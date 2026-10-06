@@ -3739,12 +3739,12 @@ async function mmsSrvCall(action,body){
 }
 // Login ka jawab na aaye to wajah dhoondho (ping: bina login ke chalta hai)
 async function mmsDiagnoseServer(){
- const cfg=gsCfg();
+ const cfg=gsCfg(),tag=' [App URL: ...'+String(cfg.url).replace('/exec','').slice(-8)+']';
  if(!cfg.url)return 'Server URL set nahi hai.';
  try{
   const o=await mmsJsonpRaw(cfg.url+(cfg.url.indexOf('?')>=0?'&':'?')+'action=ping');
-  if(o&&o.error==='AUTH_INVALID')return 'Server par naya Code.gs hai par abhi poora ready nahi - latest Code.gs paste karke Save karo, Sheet menu me HTP MMS > Security setup chalao, phir Deploy > Manage deployments > Edit > New version > Deploy karo.';
-  if(!o||o.ok!==true||o.v===undefined)return 'Server par purana Code.gs chal raha hai (ya app ka URL purane deployment ka hai) - Apps Script me Deploy > Manage deployments > Edit > New version > Deploy karo, aur URL check karo.';
+  if(o&&o.error==='AUTH_INVALID')return 'Server par naya Code.gs hai par abhi poora ready nahi - latest Code.gs paste karke Save karo, Sheet menu me HTP MMS > Security setup chalao, phir Deploy > Manage deployments > Edit > New version > Deploy karo.'+tag;
+  if(!o||o.ok!==true||o.v===undefined)return 'Server par purana Code.gs chal raha hai (ya app ka URL purane deployment ka hai) - Apps Script me Deploy > Manage deployments > Edit > New version > Deploy karo, aur URL check karo.'+tag;
   if(!o.ready)return 'Server par Security setup abhi nahi hua - Sheet menu: HTP MMS > Security setup (run once) chalao.';
   return 'Server theek hai par login ka jawab nahi aaya - thodi der baad dobara try karo.';
  }catch(e){return 'Server tak pahunch nahi paa rahe - internet check karo. Deploy me "Who has access: Anyone" aur sahi /exec URL hona chahiye.'}
@@ -4143,9 +4143,9 @@ function gsApplyPmMapRows(){
 function gsRebuildPmRows(){gsRebuildPmPlanRows();gsRebuildPmCheckRows();gsRebuildPmMapRows()}
 let gsBusy=false,gsTimer=null;
 function gsCfg(){
- let url=GS_DEFAULT_URL;
- try{const x=JSON.parse(localStorage.getItem(GS_CFG_KEY)||'null');if(x&&x.url)url=x.url}catch(e){}
- return {url:url,token:mmsSrvToken()};   // token = Code.gs ka signed session (login ke baad)
+ // Hamesha index.html wala URL (GS_DEFAULT_URL). Purana saved URL ignore + hata diya jata hai, warna purane deployment par chala jata tha.
+ try{localStorage.removeItem(GS_CFG_KEY)}catch(e){}
+ return {url:GS_DEFAULT_URL,token:mmsSrvToken()};   // token = Code.gs ka signed session (login ke baad)
 }
 function gsMeta(){try{const m=JSON.parse(localStorage.getItem(GS_META_KEY)||'null');if(m&&m.base)return m}catch(e){}return {since:0,base:{}}}
 function gsHash(str){let h1=0xdeadbeef,h2=0x41c6ce57;for(let i=0,ch;i<str.length;i++){ch=str.charCodeAt(i);h1=Math.imul(h1^ch,2654435761);h2=Math.imul(h2^ch,1597334677)}h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return (4294967296*(2097151&h2)+(h1>>>0)).toString(36)}
