@@ -1,5 +1,5 @@
 /* HTP MMS service worker - app shell offline. Version badlo jab files update karo. */
-const CACHE = 'htp-mms-v9-all-modules-sync';
+const CACHE = 'htp-mms-v10-all-modules-sync';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', function (e) {
