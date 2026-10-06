@@ -10,7 +10,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<script>if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(e){console.warn('SW',e)})})}</script>
+<script>if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').then(function(r){try{r.update()}catch(e){}}).catch(function(e){console.warn('SW',e)})})}</script>
 <title>Milestone Gear Ltd. Unit-7 | Maintenance & Utility Daily Log</title>
 <style>
 :root{--bg:#f4f7f8;--card:#fff;--ink:#17232d;--muted:#65727d;--line:#dce4e8;--brand:#0f766e;--danger:#c0392b;--ok:#198754;--warn:#b7791f}
@@ -134,6 +134,26 @@ button{border:0;border-radius:8px;padding:9px 13px;cursor:pointer;font-weight:70
  .utility-table-card .tablewrap{overflow-x:auto}
 }
 .pm-dash-kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:10px}.pm-dash-kpis>div{border:1px solid var(--official-line,#c7d1d8);background:#f7f9fa;border-radius:8px;padding:9px 6px;text-align:center}.pm-dash-kpis b{display:block;font-size:20px;color:var(--official-navy,#17324d)}.pm-dash-kpis span{font-size:10px;font-weight:700;color:#5b6770}@media(max-width:700px){.pm-dash-kpis{grid-template-columns:repeat(2,1fr)}}
+
+/* ===== MTTR / MTBF report: Excel (FMT-MNT-16) format ===== */
+.mttr-screen-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px;margin-top:14px}
+#mttr .trend-chart,.mttr-print-page .trend-chart{width:100%;height:auto;display:block}
+#mttr .mttr-report th:first-child{text-align:left}
+#mttr .mttr-report thead th{text-transform:none!important}
+@media(min-width:900px){.mttr-screen-grid{grid-template-columns:44fr 56fr}}
+@page mttrPage{size:A4 landscape;margin:8mm}
+@media print{
+ .mttr-print-page{page:mttrPage;width:278mm;margin:0 auto;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+ .mttr-print-title{position:relative;text-align:center;font-size:20px;min-height:16mm;line-height:16mm;padding:0}
+ .mttr-xl-grid{display:grid;grid-template-columns:44fr 56fr;gap:3mm;margin-top:3mm}
+ .mttr-xl-grid .chartbox,.mttr-xl-tablebox{border:1px solid #000;padding:1mm;height:79mm;overflow:hidden;box-sizing:border-box}
+ .mttr-xl-grid .chartbox svg{width:100%;height:100%}
+ .mttr-xl-tablebox .mttr-print-table{margin-top:0;height:100%;table-layout:fixed}
+ .mttr-xl-tablebox .mttr-print-table td,.mttr-xl-tablebox .mttr-print-table th{padding:1px;font-size:7px;line-height:1.15;overflow:hidden}
+ .mttr-xl-tablebox .mttr-print-table th{font-weight:800}
+ .mttr-xl-tablebox .mttr-print-table .label{width:22mm;text-align:left;padding-left:2px}
+ .mttr-print-footer{text-align:right;font-weight:600;font-size:9px;border:1px solid #000;border-top:0;margin-top:3mm;border-top:1px solid #000}
+}
 </style>
 <style id="official-plant-record-style">
 /* ===== OFFICIAL PLANT RECORD STANDARD — REMAINING MODULES ===== */
@@ -274,7 +294,6 @@ main.wrap{margin-left:252px;padding:94px 22px 25px;max-width:none}.sidebar-overl
 .utility-monthly-summary{margin-top:10px;border:1px solid #111;padding:8px;background:#f7f7f7;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:7px;font-size:11px}.utility-monthly-summary .ms-item{border:1px solid #aaa;background:#fff;padding:7px;text-align:center}.utility-monthly-summary .ms-label{display:block;font-size:9px;font-weight:700;text-transform:uppercase}.utility-monthly-summary .ms-value{display:block;font-size:16px;font-weight:800;margin-top:2px}.utility-monthly-summary .ms-sub{display:block;font-size:9px;margin-top:2px}
 @media print{.utility-monthly-summary{break-inside:avoid}}
 </style>
-\n
 
 <style id="all-modules-airc-dashboard-style">
 /* Common module dashboard language — screen only; print layouts remain controlled by existing print CSS. */
@@ -846,7 +865,7 @@ main.wrap{margin-left:252px;padding:94px 22px 25px;max-width:none}.sidebar-overl
 </section>
 
 <section id="mttr" class="panel official-module">
-<div class="card"><div class="head">Breakdown Trends Unit 7</div><div class="toolbar"><label style="font-size:12px;font-weight:700">Year</label><select id="mttr_year" onchange="renderMTTR()"></select><button class="secondary" id="mttrEditBtn" onclick="toggleMTTREdit()">✏️ Edit Report</button><button class="secondary" onclick="resetMTTROverrides()">↺ Reset to Auto</button><button class="secondary" onclick="printMTTRReport()">🖨️ Print MTTR Report</button></div><div class="tablewrap"><table class="mttr-report"><thead id="mttrHead"></thead><tbody id="mttrBody"></tbody></table></div><div class="mttr-print-grid" style="margin-top:14px"><div class="chartbox"><h4>Breakdown Percantage %</h4><svg id="mttrChartPct" class="trend-chart" viewBox="0 0 700 250"></svg></div><div class="chartbox"><h4>MTTR</h4><svg id="mttrChartMttr" class="trend-chart" viewBox="0 0 700 250"></svg></div><div class="chartbox"><h4>MTBF</h4><svg id="mttrChartMtbf" class="trend-chart" viewBox="0 0 700 250"></svg></div></div></div>
+<div class="card"><div class="head">Breakdown Trends Unit 7</div><div class="toolbar"><label style="font-size:12px;font-weight:700">Year</label><select id="mttr_year" onchange="renderMTTR()"></select><button class="secondary" id="mttrEditBtn" onclick="toggleMTTREdit()">✏️ Edit Report</button><button class="secondary" onclick="resetMTTROverrides()">↺ Reset to Auto</button><button class="secondary" onclick="printMTTRReport()">🖨️ Print MTTR Report</button></div><div class="tablewrap"><table class="mttr-report"><thead id="mttrHead"></thead><tbody id="mttrBody"></tbody></table></div><div class="mttr-screen-grid"><div class="chartbox"><svg id="mttrChartMttr" class="trend-chart" viewBox="0 0 520 290"></svg></div><div class="chartbox"><svg id="mttrChartPct" class="trend-chart" viewBox="0 0 660 290"></svg></div><div class="chartbox"><svg id="mttrChartMtbf" class="trend-chart" viewBox="0 0 520 290"></svg></div></div></div>
 </section>
 
 
@@ -1820,7 +1839,7 @@ let mttrOverrides={};
 try{mttrOverrides=JSON.parse(localStorage.getItem(MTTR_OV_KEY)||'{}')||{};}catch(e){mttrOverrides={};}
 function saveMTTROverrides(){localStorage.setItem(MTTR_OV_KEY,JSON.stringify(mttrOverrides));}
 let mttrEditMode=false;
-function mttrStats(){return BD_MONTHS.map(label=>{let d=new Date(label+' 1'),y=d.getFullYear(),m=d.getMonth()+1,a=data.bd.filter(r=>{let x=new Date((r.date||'')+'T00:00:00');return !isNaN(x)&&x.getFullYear()===y&&x.getMonth()+1===m});let ov=mttrOverrides[label]||{};let hrs=(ov.hrs!==undefined&&ov.hrs!==null)?Number(ov.hrs):a.reduce((s,r)=>s+num(r.hours),0);let count=(ov.count!==undefined&&ov.count!==null)?Number(ov.count):a.length;let machines=(ov.machines!==undefined&&ov.machines!==null)?Number(ov.machines):MACHINE_MASTER.length;let available=machines*BD_SHIFT_HOURS*BD_DAYS;return {label,hrs,count,machines,available,pct:available?hrs*100/available:0,mtbf:count?available/count:0,mttr:count?hrs/count:0}})}
+function mttrStats(){return BD_MONTHS.map(label=>{let d=new Date(label+' 1'),y=d.getFullYear(),m=d.getMonth()+1,a=data.bd.filter(r=>{let x=new Date((r.date||'')+'T00:00:00');return !isNaN(x)&&x.getFullYear()===y&&x.getMonth()+1===m});let ov=mttrOverrides[label]||{};let hrs=(ov.hrs!==undefined&&ov.hrs!==null)?Number(ov.hrs):a.reduce((s,r)=>s+num(r.hours),0);let count=(ov.count!==undefined&&ov.count!==null)?Number(ov.count):a.length;let machines=(ov.machines!==undefined&&ov.machines!==null)?Number(ov.machines):MACHINE_MASTER.length;let available=machines*BD_SHIFT_HOURS*BD_DAYS;return {label,hrs,count,machines,available,pct:available?hrs*100/available:0,mtbf:count?available/count:0,mttr:count?hrs/count:0,hasData:a.length>0||Object.keys(ov).length>0,future:new Date(y,m-1,1)>new Date()}})}
 function toggleMTTREdit(){
  if(mttrEditMode){
   const a=mttrStats();
@@ -1861,24 +1880,59 @@ function initMTTRYears(){
   }
   sel.value=[...sel.options].some(o=>o.value===keep)?keep:getCurrentFYLabel();
 }
-function renderMTTR(){initMTTRYears();let a=mttrStats();document.getElementById('mttrHead').innerHTML='<tr><th>MONTH</th>'+a.map(x=>`<th>${esc(x.label.slice(0,3).toUpperCase())}</th>`).join('')+'<th>TARGET</th></tr>';
+const MTTR_MONTH_TARGET=0.4;   // Excel (FMT-MNT-16) ki "B/D %AGE TARGET" row; TARGET column me BD_TARGET (0.15) aata hai
+function mttrMonthLabel(label){const d=new Date(label+' 1'),M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return isNaN(d)?String(label).slice(0,3):M[d.getMonth()]+'-'+String(d.getFullYear()).slice(-2)}
+function mttrBlank(x){return !!(x.future&&!x.hasData)}
+function mttrNum(v,d){return String(+Number(v).toFixed(d))}
+function mttrNice(max){if(!(max>0))return{max:1,step:0.2};const raw=max/5,p=Math.pow(10,Math.floor(Math.log10(raw))),f=raw/p,nf=f<=1?1:f<=2?2:f<=2.5?2.5:f<=5?5:10,step=nf*p;return{max:Math.ceil(max/step-1e-9)*step,step}}
+// Excel jaisa bar chart: gridlines, bars, (optional) data labels + linear trendline + legend, aur neeche data table
+function mttrChart(id,o){
+ const svg=document.getElementById(id);if(!svg)return;
+ const W=o.W,H=o.H,L=54,R=o.legend?116:10,T=30,TB=46,pb=H-TB,pw=W-L-R,ph=pb-T,n=o.cats.length,slot=pw/n,bw=slot*0.4;
+ const vals=o.vals,nums=vals.filter(function(v){return v!==null&&Number.isFinite(v)}),sc=mttrNice(Math.max(0,...nums));
+ const y=function(v){return pb-(v/sc.max)*ph};
+ let g='<text x="'+(W/2)+'" y="19" text-anchor="middle" font-size="14" fill="#595959">'+esc(o.title)+'</text>';
+ for(let k=0;k<=Math.round(sc.max/sc.step);k++){const v=k*sc.step,yy=y(v);g+='<line x1="'+L+'" y1="'+yy+'" x2="'+(L+pw)+'" y2="'+yy+'" stroke="'+(k?'#d9d9d9':'#bfbfbf')+'"/><text x="'+(L-5)+'" y="'+(yy+3.5)+'" text-anchor="end" font-size="10" fill="#595959">'+(+v.toFixed(4))+'</text>'}
+ vals.forEach(function(v,i){if(v===null||!Number.isFinite(v))return;const x=L+i*slot+(slot-bw)/2,yy=y(v);g+='<rect x="'+x+'" y="'+yy+'" width="'+bw+'" height="'+Math.max(0,pb-yy)+'" fill="#4F81BD"/>';if(o.labels)g+='<text x="'+(x+bw/2)+'" y="'+(yy-4)+'" text-anchor="middle" font-size="10" fill="#404040">'+o.fmt(v)+'</text>'});
+ if(o.trend){const pts=[];vals.forEach(function(v,i){if(v!==null&&Number.isFinite(v))pts.push([i+1,v])});
+  if(pts.length>=2){const m=pts.length,sx=pts.reduce(function(s,q){return s+q[0]},0),sy=pts.reduce(function(s,q){return s+q[1]},0),sxx=pts.reduce(function(s,q){return s+q[0]*q[0]},0),sxy=pts.reduce(function(s,q){return s+q[0]*q[1]},0),den=m*sxx-sx*sx;
+   if(den){const bb=(m*sxy-sx*sy)/den,aa=(sy-bb*sx)/m,x1=pts[0][0],x2=pts[m-1][0],fy=function(t){return Math.min(sc.max,Math.max(0,aa+bb*t))};g+='<line x1="'+(L+(x1-0.5)*slot)+'" y1="'+y(fy(x1))+'" x2="'+(L+(x2-0.5)*slot)+'" y2="'+y(fy(x2))+'" stroke="#000" stroke-width="1.5"/>'}}}
+ if(o.legend){const lx=L+pw+10,ly=T+ph/2-10;g+='<rect x="'+lx+'" y="'+(ly-4)+'" width="8" height="8" fill="#4F81BD"/><text x="'+(lx+13)+'" y="'+(ly+4)+'" font-size="9" fill="#595959">'+esc(o.key)+'</text>'+(o.trend?'<line x1="'+lx+'" y1="'+(ly+20)+'" x2="'+(lx+9)+'" y2="'+(ly+20)+'" stroke="#000" stroke-width="1.5"/><text x="'+(lx+13)+'" y="'+(ly+23)+'" font-size="8" fill="#595959">Linear ('+esc(o.key)+')</text>':'')}
+ const r1=pb+2,rh=21;
+ g+='<rect x="1" y="'+(r1+rh)+'" width="'+(L-1)+'" height="'+rh+'" fill="none" stroke="#bfbfbf"/><rect x="4" y="'+(r1+rh+7)+'" width="7" height="7" fill="#4F81BD"/><text x="14" y="'+(r1+rh+14)+'" font-size="7" fill="#404040">'+esc(o.key)+'</text>';
+ o.cats.forEach(function(c,i){const x=L+i*slot,v=vals[i];g+='<rect x="'+x+'" y="'+r1+'" width="'+slot+'" height="'+rh+'" fill="none" stroke="#bfbfbf"/><rect x="'+x+'" y="'+(r1+rh)+'" width="'+slot+'" height="'+rh+'" fill="none" stroke="#bfbfbf"/><text x="'+(x+slot/2)+'" y="'+(r1+14)+'" text-anchor="middle" font-size="8" fill="#404040">'+esc(c)+'</text>'+((v!==null&&Number.isFinite(v))?'<text x="'+(x+slot/2)+'" y="'+(r1+rh+14)+'" text-anchor="middle" font-size="8.5" fill="#404040">'+o.fmt(v)+'</text>':'')});
+ svg.setAttribute('viewBox','0 0 '+W+' '+H);svg.setAttribute('font-family','Arial,Helvetica,sans-serif');svg.innerHTML=g;
+}
+function mttrDrawCharts(ids,a){
+ const cats=a.map(function(x){return mttrMonthLabel(x.label)}).concat(['TARGET']),pv=function(f){return a.map(function(x){return mttrBlank(x)?null:f(x)})};
+ mttrChart(ids.mttr,{W:520,H:290,title:'MTTR',key:'MTTR',cats:cats,vals:pv(function(x){return x.mttr}).concat([null]),fmt:function(v){return v.toFixed(2)}});
+ mttrChart(ids.pct,{W:660,H:290,title:'Breakdown Percentage %',key:'B/D %AGE',cats:cats,vals:pv(function(x){return x.pct}).concat([BD_TARGET]),fmt:function(v){return v.toFixed(2)},labels:true,trend:true,legend:true});
+ mttrChart(ids.mtbf,{W:520,H:290,title:'MTBF',key:'MTBF',cats:cats,vals:pv(function(x){return x.mtbf}).concat([null]),fmt:function(v){return v.toFixed(0)}});
+}
+function renderMTTR(){initMTTRYears();let a=mttrStats();document.getElementById('mttrHead').innerHTML='<tr><th>MONTH</th>'+a.map(x=>`<th>${esc(mttrMonthLabel(x.label))}</th>`).join('')+'<th>TARGET</th></tr>';
  const ed=mttrEditMode;
  const inp=(field,i,val)=>`<input type="number" step="0.01" class="mttr-edit-input" data-field="${field}" data-i="${i}" value="${val}">`;
+ const cell=fn=>a.map(x=>mttrBlank(x)?'':fn(x));
  let rows=[
-  ['B/D HRS', ed?a.map((x,i)=>inp('hrs',i,x.hrs.toFixed(2))):a.map(x=>x.hrs.toFixed(2)), ''],
-  ['NO. OF MACHINES', ed?a.map((x,i)=>inp('machines',i,x.machines)):a.map(x=>x.machines), ''],
-  ['B/D %AGE', a.map(x=>x.pct.toFixed(2)+'%'), (BD_TARGET*100).toFixed(0)+'%'],
-  ['NO. OF BREAKDOWN', ed?a.map((x,i)=>inp('count',i,x.count)):a.map(x=>x.count), ''],
-  ['TOTAL AVAILABLE MACHINE HRS', a.map(x=>x.available), ''],
-  ['MTBF', a.map(x=>x.mtbf.toFixed(2)), ''],
-  ['MTTR', a.map(x=>x.mttr.toFixed(2)), ''],
-  ['B/D %AGE TARGET', a.map(()=>BD_TARGET*100+'%'), '']
+  ['B/D HRS', ed?a.map((x,i)=>inp('hrs',i,x.hrs.toFixed(2))):cell(x=>mttrNum(x.hrs,2)), ''],
+  ['NO. OF MACHINES', ed?a.map((x,i)=>inp('machines',i,x.machines)):cell(x=>x.machines), ''],
+  ['B/D %AGE', cell(x=>x.pct.toFixed(2)), '<b>'+BD_TARGET.toFixed(2)+'</b>'],
+  ['NO. OF BREAKDOWN', ed?a.map((x,i)=>inp('count',i,x.count)):cell(x=>x.count), ''],
+  ['TOTAL AVAILABLE MACHINE HRS', cell(x=>x.available), ''],
+  ['MTBF', cell(x=>x.mtbf.toFixed(0)), ''],
+  ['MTTR', cell(x=>x.mttr.toFixed(2)), ''],
+  ['B/D %AGE TARGET', cell(()=>MTTR_MONTH_TARGET.toFixed(2)), '']
  ];
  document.getElementById('mttrBody').innerHTML=rows.map(row=>`<tr><td class="label">${row[0]}</td>${row[1].map(v=>`<td>${v}</td>`).join('')}<td>${row[2]}</td></tr>`).join('');
- drawTrend('mttrChartPct',a.map(x=>x.pct),'B/D %');drawTrend('mttrChartMttr',a.map(x=>x.mttr),'MTTR');drawTrend('mttrChartMtbf',a.map(x=>x.mtbf),'MTBF')}
+ mttrDrawCharts({mttr:'mttrChartMttr',pct:'mttrChartPct',mtbf:'mttrChartMtbf'},a)}
 function drawTrend(id,vals,ylabel){let svg=document.getElementById(id);if(!svg)return;let W=700,H=250,p=35,bottom=H-p,top=p,max=Math.max(1,...vals.filter(v=>Number.isFinite(v)))*1.15,slot=(W-2*p)/vals.length,bw=Math.min(34,slot*0.58);let bars=vals.map((v,i)=>{if(!Number.isFinite(v))return '';let h=(v/max)*(H-2*p),x=p+i*slot+(slot-bw)/2,y=bottom-h;return `<rect x=\"${x}\" y=\"${y}\" width=\"${bw}\" height=\"${h}\" fill=\"#4f81bd\"/><text x=\"${x+bw/2}\" y=\"${Math.max(12,y-5)}\" text-anchor=\"middle\" font-size=\"9\">${Number(v).toFixed(1)}</text>`}).join('');let labels=vals.map((v,i)=>`<text x=\"${p+i*slot+slot/2}\" y=\"${H-10}\" text-anchor=\"middle\" font-size=\"10\">${i<12?BD_MONTHS[i].slice(0,3).toUpperCase():'TARGET'}</text>`).join('');svg.innerHTML=`<line x1=\"${p}\" y1=\"${bottom}\" x2=\"${W-p}\" y2=\"${bottom}\" stroke=\"#000\"/><line x1=\"${p}\" y1=\"${top}\" x2=\"${p}\" y2=\"${bottom}\" stroke=\"#000\"/>${bars}${labels}<text x=\"8\" y=\"${p}\" font-size=\"10\">${esc(ylabel)}</text>`}
 function printBreakdownMonth(){let label=f('bd_month')||monthLabelFromDate(new Date()),d=new Date(label+' 1'),y=d.getFullYear(),m=d.getMonth()+1,a=data.bd.filter(r=>{let x=new Date((r.date||'')+'T00:00:00');return !isNaN(x)&&x.getFullYear()===y&&x.getMonth()+1===m}).sort((x,y)=>(x.date||'').localeCompare(y.date||''));let total=a.reduce((s,r)=>s+num(r.hours),0);document.getElementById('breakdownPrintPages').innerHTML=`<div class="breakdown-print-page"><div class="bd-print-title"><img src="${APP_LOGO}" style="width:18mm;height:14mm;object-fit:contain;vertical-align:middle;margin-right:5mm">DAILY BREAKDOWN REGISTER</div><div class="bd-print-unit"><div>Unit- 7</div><div>MONTH :- ${esc(label)}</div></div><table class="bd-print-table"><colgroup>${Array.from({length:14},()=>'<col>').join('')}</colgroup><thead><tr><th>S.no</th><th>Date</th><th>Machine Detail</th><th>Breakdown Reason</th><th>B/D Type<br>(E/M)</th><th>Department/ Section</th><th colspan="3">Breakdown Time</th><th>Action Taken</th><th colspan="2">Spare Part Detail</th><th>Attended By</th><th>Status</th></tr><tr><th></th><th></th><th></th><th></th><th></th><th></th><th>From</th><th>To</th><th>Breakdown Hours</th><th></th><th>Spare Parts Used</th><th>Qty</th><th></th><th></th></tr></thead><tbody>${a.map((r,i)=>`<tr><td>${i+1}</td><td>${esc(fmtDate(r.date))}</td><td>${esc(r.machine)}</td><td>${esc(r.reason)}</td><td>${esc(r.type)}</td><td>${esc(r.section)}</td><td>${esc(r.from)}</td><td>${esc(r.to)}</td><td>${num(r.hours).toFixed(2)}</td><td>${esc(r.action)}</td><td>${esc(r.spare)}</td><td>${esc(r.qty)}</td><td>${esc(r.attended)}</td><td>${esc(r.status)}</td></tr>`).join('')}</tbody></table><div class="bd-print-total">TOTAL TIME: ${total.toFixed(2)} HRS</div><div class="bd-print-footer">FMT-MNT-08, Rev.-00, Date- 18.07.2014</div></div>`;document.body.classList.add('print-breakdown');window.print();setTimeout(()=>document.body.classList.remove('print-breakdown'),500)}
-function printMTTRReport(){let a=mttrStats();let months=a.map(x=>x.label.slice(0,3).toUpperCase());let row=(label,vals,target='')=>`<tr><td class="label">${label}</td>${vals.map(v=>`<td>${v}</td>`).join('')}<td>${target}</td></tr>`;document.getElementById('mttrPrintPage').innerHTML=`<div class="mttr-print-page"><div class="mttr-print-title"><img src="${APP_LOGO}" style="width:18mm;height:14mm;object-fit:contain;vertical-align:middle;margin-right:5mm">Breakdown Trends Unit 7</div><table class="mttr-print-table"><thead><tr><th>MONTH</th>${months.map(x=>`<th>${x}</th>`).join('')}<th>TARGET</th></tr></thead><tbody>${row('B/D HRS',a.map(x=>x.hrs.toFixed(2)))}${row('NO. OF MACHINES',a.map(x=>x.machines))}${row('B/D %AGE',a.map(x=>x.pct.toFixed(2)+'%'),(BD_TARGET*100).toFixed(0)+'%')}${row('NO. OF BREAKDOWN',a.map(x=>x.count))}${row('TOTAL AVAILABLE MACHINE HRS',a.map(x=>x.available))}${row('MTBF',a.map(x=>x.mtbf.toFixed(2)))}${row('MTTR',a.map(x=>x.mttr.toFixed(2)))}${row('B/D %AGE TARGET',a.map(()=>BD_TARGET*100+'%'))}</tbody></table><div class="mttr-print-grid"><div class="chartbox"><h4>Breakdown Percantage %</h4><svg id="printPct" class="trend-chart" viewBox="0 0 700 250"></svg></div><div class="chartbox"><h4>MTTR</h4><svg id="printMttr" class="trend-chart" viewBox="0 0 700 250"></svg></div><div class="chartbox"><h4>MTBF</h4><svg id="printMtbf" class="trend-chart" viewBox="0 0 700 250"></svg></div></div><div class="mttr-print-footer">FMT-MNT-16 , Rev 00 Effective Date 15.07.2017</div></div>`;drawTrend('printPct',a.map(x=>x.pct),'B/D %');drawTrend('printMttr',a.map(x=>x.mttr),'MTTR');drawTrend('printMtbf',a.map(x=>x.mtbf),'MTBF');document.body.classList.add('print-mttr');window.print();setTimeout(()=>document.body.classList.remove('print-mttr'),500)}
+function printMTTRReport(){
+ const a=mttrStats();
+ const row=(label,fn,target='')=>`<tr><td class="label">${label}</td>${a.map(x=>`<td>${mttrBlank(x)?'':fn(x)}</td>`).join('')}<td>${target}</td></tr>`;
+ document.getElementById('mttrPrintPage').innerHTML=`<div class="mttr-print-page"><div class="mttr-print-title"><img src="${APP_LOGO}" style="position:absolute;left:7px;top:3px;width:18mm;height:14mm;object-fit:contain">Breakdown Trends Unit 7</div><div class="mttr-xl-grid"><div class="chartbox"><svg id="printMttr" class="trend-chart" viewBox="0 0 520 290"></svg></div><div class="chartbox"><svg id="printPct" class="trend-chart" viewBox="0 0 660 290"></svg></div><div class="chartbox"><svg id="printMtbf" class="trend-chart" viewBox="0 0 520 290"></svg></div><div class="mttr-xl-tablebox"><table class="mttr-print-table"><thead><tr><th class="label">MONTH</th>${a.map(x=>`<th>${esc(mttrMonthLabel(x.label))}</th>`).join('')}<th>TARGET</th></tr></thead><tbody>${row('B/D HRS',x=>mttrNum(x.hrs,2))}${row('NO. OF MACHINES',x=>x.machines)}${row('B/D %AGE',x=>x.pct.toFixed(2),'<b>'+BD_TARGET.toFixed(2)+'</b>')}${row('NO. OF BREAKDOWN',x=>x.count)}${row('TOTAL AVAILABLE MACHINE HRS',x=>x.available)}${row('MTBF',x=>x.mtbf.toFixed(0))}${row('MTTR',x=>x.mttr.toFixed(2))}${row('B/D %AGE TARGET',()=>MTTR_MONTH_TARGET.toFixed(2))}</tbody></table></div></div><div class="mttr-print-footer">FMT-MNT-16 , Rev 00 Effective Date 15.07.2017</div></div>`;
+ mttrDrawCharts({mttr:'printMttr',pct:'printPct',mtbf:'printMtbf'},a);
+ document.body.classList.add('print-mttr');window.print();setTimeout(()=>document.body.classList.remove('print-mttr'),500)}
 /* ================= SPARE PARTS INVENTORY & MASTER LIST MODULE ================= */
 function clearSpareForm(){edit.spares=null;setv('sp_id','');setv('sp_sno',data.spares.length+1);['sp_code','sp_desc','sp_spec','sp_make','sp_min','sp_max','sp_qty','sp_loc'].forEach(id=>setv(id,''));const btn=document.querySelector('#spares .primary');if(btn)btn.textContent='Save Spare Part';}
 function saveSparePart(){
@@ -3610,7 +3664,7 @@ function mmRemoveMachine(){
 <div class="mms-box"><h3>☁ Offline → Google Sheet</h3><div id="mmsSyncStatus"></div><button onclick="MMS.queueSync()">Prepare Sync Queue</button><button onclick="MMS.clearSyncQueue()">Clear Queue</button><div class="sub">Keeps offline data intact. Google Apps Script/API connection can be configured later.</div></div>
 <div class="mms-box"><h3>📈 Dashboard Alerts / KPIs</h3><div id="mmsKPIs"></div><button onclick="MMS.refreshKPIs()">Refresh KPIs</button></div>
 </div></div></div>
-<div id="mmsLogin" class="mms-login"><div class="mms-login-card"><h2>Maintenance Management System</h2><p style="font-size:12px;color:#666">Sign in to continue.</p><input id="mmsLoginUser" placeholder="Username" autocomplete="username"><input id="mmsLoginPass" type="password" placeholder="Password" autocomplete="current-password"><button onclick="MMS.login()">Login</button><div id="mmsLoginMsg" style="font-size:11px;color:#b00;margin-top:8px"></div></div></div>
+<div id="mmsLogin" class="mms-login"><div class="mms-login-card"><h2>Maintenance Management System</h2><p style="font-size:12px;color:#666">Sign in to continue. <span style="opacity:.6">(build 06Oct-c)</span></p><input id="mmsLoginUser" placeholder="Username" autocomplete="username"><input id="mmsLoginPass" type="password" placeholder="Password" autocomplete="current-password"><button onclick="MMS.login()">Login</button><div id="mmsLoginMsg" style="font-size:11px;color:#b00;margin-top:8px"></div></div></div>
 <script id="mmsUpgradeScript">
 (function(){
 'use strict';
@@ -7196,6 +7250,320 @@ if (typeof renderAll !== 'undefined') {
   const _oldRenderAllHq = renderAll;
   renderAll = function () { _oldRenderAllHq(); hqRenderAll(); };
 }
+
+</script>
+<script id="xl-export">
+/* ===== EXCEL EXPORT: har module ka print format .xlsx me (koi external library nahi, offline bhi chalta hai) ===== */
+(function(){
+'use strict';
+var XL_PRINT_RE=/^\s*(printReadingLog|printBreakdownMonth|printMTTRReport|printSpareParts|printCriticalSpares|printThermocouplePlan|printCalibrationPlan|printMRMonth|printAirCompressor|printUtilityMaster|printUtilityHistory|printPMYearlyCalendar|printPMPlan|printMachineMaster|printMeetingLog|printPurchaseRegister|pwPrint|hqPrint[A-Za-z]*|printHistoryCurrent|printPM)\s*\(/;
+var XL_CONT={printBreakdownMonth:'breakdownPrintPages',printMTTRReport:'mttrPrintPage',printMRMonth:'mrMonthPrintPage',printHistoryCurrent:'printHistory'};
+var SKIP_TAG=/^(STYLE|SCRIPT|SVG|IMG|HEAD|TITLE|NOSCRIPT|CANVAS|LINK|META|BUTTON|INPUT|SELECT|TEXTAREA)$/;
+var BLOCK_Q='div,p,h1,h2,h3,h4,h5,h6,section,ul,ol,table,li,header,footer,form';
+
+/* ---------- 1) print function ko chalake uska HTML pakadna ---------- */
+function xlCapture(code){
+  var html='',alerted='',oo=window.open,op=window.print,oa=window.alert,oc=window.confirm;
+  var fake={document:{write:function(h){html+=h},writeln:function(h){html+=h},open:function(){},close:function(){}},focus:function(){},print:function(){},close:function(){},addEventListener:function(){},onload:null};
+  window.open=function(){return fake};window.print=function(){};window.alert=function(m){alerted=String(m||'')};window.confirm=function(){return true};
+  try{(new Function(code)).call(window)}catch(e){console.error('xl capture',e)}
+  finally{window.open=oo;window.print=op;window.alert=oa;window.confirm=oc}
+  if(!html){
+    var m=/^\s*([A-Za-z0-9_]+)/.exec(code),cid=m&&XL_CONT[m[1]],el=cid&&document.getElementById(cid);
+    if(el)html=el.innerHTML;
+  }
+  return {html:html,alerted:alerted};
+}
+
+/* ---------- 2) HTML -> sheet model ---------- */
+function xlText(el){
+  var c=el.cloneNode(true);
+  Array.prototype.forEach.call(c.querySelectorAll('style,script,svg,img,button,input,select,textarea'),function(n){n.remove()});
+  Array.prototype.forEach.call(c.querySelectorAll('br'),function(b){b.replaceWith('\n')});
+  return c.textContent.replace(/[ \t\r\f\u00a0]+/g,' ').replace(/ ?\n ?/g,'\n').replace(/\n{3,}/g,'\n\n').trim();
+}
+function xlSheetFromHtml(html){
+  var doc=new DOMParser().parseFromString(html,'text/html');
+  var rows=[],merges=[],maxc=1,textRows=0,inline=[];
+  function flush(){var t=inline.join(' ').replace(/\s+/g,' ').trim();inline=[];if(t)addText(t,'')}
+  function addText(t,cls){
+    var st;
+    if(!textRows)st='title';
+    else if(/foot|fmt-|format/i.test(cls)||/^FMT[-\s]/i.test(t))st='footer';
+    else if(/title|head|sub/i.test(cls))st='sub';
+    else st='note';
+    textRows++;rows.push({text:t,style:st});
+  }
+  function addTable(tbl){
+    var base=rows.length,occ=[],trs=Array.prototype.slice.call(tbl.rows);
+    trs.forEach(function(tr,ri){
+      rows[base+ri]={cells:[]};occ[ri]=occ[ri]||[];var ci=0;
+      Array.prototype.forEach.call(tr.cells,function(td){
+        while(occ[ri][ci])ci++;
+        var cs=Math.max(1,parseInt(td.getAttribute('colspan')||'1',10)||1),rs=Math.max(1,parseInt(td.getAttribute('rowspan')||'1',10)||1);
+        rs=Math.min(rs,trs.length-ri);
+        var txt=xlText(td),isTh=td.tagName==='TH',cls=td.className||'';
+        var st=isTh?'th':(/label|section/i.test(cls)||(td.firstElementChild&&/^(B|STRONG)$/.test(td.firstElementChild.tagName)&&td.firstElementChild.textContent.trim()===txt))?'tdb':((txt.length>28||txt.indexOf('\n')>=0)?'tdl':'td');
+        rows[base+ri].cells.push({c:ci,text:txt,style:st});
+        for(var rr=0;rr<rs;rr++){occ[ri+rr]=occ[ri+rr]||[];for(var cc=0;cc<cs;cc++)occ[ri+rr][ci+cc]=true}
+        if(cs>1||rs>1){
+          merges.push({r1:base+ri,c1:ci,r2:base+ri+rs-1,c2:ci+cs-1});
+          for(var r2=0;r2<rs;r2++)for(var c2=0;c2<cs;c2++){if(r2||c2){rows[base+ri+r2]=rows[base+ri+r2]||{cells:[]};rows[base+ri+r2].cells.push({c:ci+c2,text:'',style:st})}}
+        }
+        ci+=cs;if(ci>maxc)maxc=ci;
+      });
+    });
+    rows.push({blank:true});
+  }
+  function walk(node){
+    Array.prototype.forEach.call(node.childNodes,function(ch){
+      if(ch.nodeType===3){var t=ch.textContent.trim();if(t)inline.push(t);return}
+      if(ch.nodeType!==1||SKIP_TAG.test(ch.tagName))return;
+      if(ch.tagName==='TABLE'){flush();addTable(ch);return}
+      if(ch.querySelector(BLOCK_Q)){flush();walk(ch);flush();return}
+      var t=xlText(ch);
+      if(/^(DIV|P|H[1-6]|LI|SECTION|HEADER|FOOTER|FORM)$/.test(ch.tagName)){flush();if(t)addText(t,ch.className||'')}
+      else if(t)inline.push(t);
+    });
+  }
+  walk(doc.body);flush();
+  while(rows.length&&rows[rows.length-1].blank)rows.pop();
+  rows=rows.map(function(r){return r||{cells:[]}});
+  rows.forEach(function(r,i){if(r.text!==undefined&&maxc>1)merges.push({r1:i,c1:0,r2:i,c2:maxc-1})});
+  /* column widths */
+  var widths=[];for(var i=0;i<maxc;i++)widths[i]=6;
+  var mergedAt={};merges.forEach(function(m){mergedAt[m.r1+','+m.c1]=1});
+  rows.forEach(function(r,ri){(r.cells||[]).forEach(function(c){
+    if(mergedAt[ri+','+c.c])return;
+    var len=Math.max.apply(null,c.text.split('\n').map(function(l){return l.length}).concat([0]));
+    if(c.style==='th')len=Math.min(len,14);
+    widths[c.c]=Math.max(widths[c.c]||6,Math.min(44,len*1.15+2));
+  })});
+  return {rows:rows,merges:merges,ncols:maxc,widths:widths};
+}
+
+/* ---------- 3) sheet model -> xlsx (zip, stored) ---------- */
+var CRC_T=(function(){var t=[],c,n,k;for(n=0;n<256;n++){c=n;for(k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
+function crc32(b){var c=0xFFFFFFFF;for(var i=0;i<b.length;i++)c=CRC_T[(c^b[i])&255]^(c>>>8);return(c^0xFFFFFFFF)>>>0}
+function zipStore(files){
+  var enc=new TextEncoder(),out=[],cen=[],off=0;
+  function u16(v){return [v&255,(v>>>8)&255]}function u32(v){return [v&255,(v>>>8)&255,(v>>>16)&255,(v>>>24)&255]}
+  files.forEach(function(f){
+    var nm=enc.encode(f.name),d=typeof f.data==='string'?enc.encode(f.data):f.data,crc=crc32(d);
+    var lh=[0x50,0x4b,3,4].concat(u16(20),u16(0x0800),u16(0),u16(0),u16(0x21),u32(crc),u32(d.length),u32(d.length),u16(nm.length),u16(0));
+    out.push(new Uint8Array(lh),nm,d);
+    cen.push(new Uint8Array([0x50,0x4b,1,2].concat(u16(20),u16(20),u16(0x0800),u16(0),u16(0),u16(0x21),u32(crc),u32(d.length),u32(d.length),u16(nm.length),u16(0),u16(0),u16(0),u16(0),u32(0),u32(off))),nm);
+    off+=lh.length+nm.length+d.length;
+  });
+  var csz=0;cen.forEach(function(p){csz+=p.length});
+  var end=new Uint8Array([0x50,0x4b,5,6].concat(u16(0),u16(0),u16(files.length),u16(files.length),u32(csz),u32(off),u16(0)));
+  return new Blob(out.concat(cen,[end]),{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+}
+function colName(n){var s='';n++;while(n>0){var m=(n-1)%26;s=String.fromCharCode(65+m)+s;n=Math.floor((n-1)/26)}return s}
+function esc(s){return String(s).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g,'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+var ST={def:0,title:1,sub:2,th:3,td:4,tdl:5,tdb:6,note:7,footer:8,d1:9,d2:10,d3:11,d4:12};
+function sheetXml(m){
+  var x='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><sheetViews><sheetView workbookViewId="0" showGridLines="0"/></sheetViews><sheetFormatPr defaultRowHeight="15"/><cols>';
+  for(var i=0;i<m.ncols;i++)x+='<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+m.widths[i].toFixed(1)+'" customWidth="1"/>';
+  x+='</cols><sheetData>';
+  m.rows.forEach(function(r,ri){
+    var rn=ri+1;
+    if(r.blank||(!r.cells&&r.text===undefined)){x+='<row r="'+rn+'"/>';return}
+    var attr=r.style==='title'?' ht="28" customHeight="1"':'';
+    x+='<row r="'+rn+'"'+attr+'>';
+    if(r.text!==undefined){
+      var s=ST[r.style]||0;x+='<c r="A'+rn+'" s="'+s+'" t="inlineStr"><is><t xml:space="preserve">'+esc(r.text)+'</t></is></c>';
+      for(var c=1;c<m.ncols;c++)x+='<c r="'+colName(c)+rn+'" s="'+s+'"/>';
+    }else{
+      r.cells.sort(function(a,b){return a.c-b.c}).forEach(function(c){
+        var ref=colName(c.c)+rn,s=ST[c.style]||0,t=c.text;
+        if(t===''){x+='<c r="'+ref+'" s="'+s+'"/>'}
+        else if(/^-?(0|[1-9]\d{0,11})(\.\d{1,4})?$/.test(t)){var dp=(t.split('.')[1]||'').length;if(dp&&(c.style==='td'||c.style==='tdl'))s=ST['d'+dp];x+='<c r="'+ref+'" s="'+s+'"><v>'+t+'</v></c>'}
+        else x+='<c r="'+ref+'" s="'+s+'" t="inlineStr"><is><t xml:space="preserve">'+esc(t)+'</t></is></c>';
+      });
+    }
+    x+='</row>';
+  });
+  x+='</sheetData>';
+  if(m.merges.length){x+='<mergeCells count="'+m.merges.length+'">';m.merges.forEach(function(g){x+='<mergeCell ref="'+colName(g.c1)+(g.r1+1)+':'+colName(g.c2)+(g.r2+1)+'"/>'});x+='</mergeCells>'}
+  x+='<pageMargins left="0.3" right="0.3" top="0.4" bottom="0.4" header="0.2" footer="0.2"/><pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/></worksheet>';
+  return x;
+}
+var STYLES='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
++'<numFmts count="4"><numFmt numFmtId="164" formatCode="0.0"/><numFmt numFmtId="165" formatCode="0.00"/><numFmt numFmtId="166" formatCode="0.000"/><numFmt numFmtId="167" formatCode="0.0000"/></numFmts>'
++'<fonts count="5"><font><sz val="10"/><name val="Arial"/></font><font><b/><sz val="14"/><name val="Arial"/></font><font><b/><sz val="10"/><name val="Arial"/></font><font><i/><sz val="9"/><name val="Arial"/></font><font><b/><sz val="11"/><name val="Arial"/></font></fonts>'
++'<fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFD9D9D9"/><bgColor indexed="64"/></patternFill></fill></fills>'
++'<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color auto="1"/></left><right style="thin"><color auto="1"/></right><top style="thin"><color auto="1"/></top><bottom style="thin"><color auto="1"/></bottom><diagonal/></border></borders>'
++'<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
++'<cellXfs count="13">'
++'<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'
++'<xf numFmtId="0" fontId="1" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>'
++'<xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>'
++'<xf numFmtId="0" fontId="2" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>'
++'<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>'
++'<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center" wrapText="1"/></xf>'
++'<xf numFmtId="0" fontId="2" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center" wrapText="1"/></xf>'
++'<xf numFmtId="0" fontId="2" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center" wrapText="1"/></xf>'
++'<xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>'
++'<xf numFmtId="164" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>'
++'<xf numFmtId="165" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>'
++'<xf numFmtId="166" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>'
++'<xf numFmtId="167" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>'
++'</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+function buildXlsx(model,sheetName){
+  var nm=esc(String(sheetName||'Sheet1').replace(/[\[\]:*?\/\\]/g,' ').trim().slice(0,31)||'Sheet1');
+  var files=[
+   {name:'[Content_Types].xml',data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>'},
+   {name:'_rels/.rels',data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'},
+   {name:'xl/workbook.xml',data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="'+nm+'" sheetId="1" r:id="rId1"/></sheets></workbook>'},
+   {name:'xl/_rels/workbook.xml.rels',data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>'},
+   {name:'xl/styles.xml',data:STYLES},
+   {name:'xl/worksheets/sheet1.xml',data:sheetXml(model)}
+  ];
+  return zipStore(files);
+}
+
+/* ---------- 4) public API + buttons ---------- */
+function xlDownload(blob,fname){
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fname;document.body.appendChild(a);a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},1500);
+}
+function xlBuildFromCode(code){
+  var cap=xlCapture(code);
+  if(!cap.html||!cap.html.trim())return {error:cap.alerted||'Is module me abhi export karne ke liye kuch nahi hai.'};
+  var model=xlSheetFromHtml(cap.html);
+  if(!model.rows.length)return {error:'Export karne ke liye koi data nahi mila.'};
+  var title=(model.rows.filter(function(r){return r.text!==undefined})[0]||{}).text||'Report';
+  return {blob:buildXlsx(model,title),title:title,model:model};
+}
+window.xlBuildFromCode=xlBuildFromCode;
+window.xlExportClick=function(btn){
+  var code=btn.getAttribute('data-xl');
+  var r=xlBuildFromCode(code);
+  if(r.error)return alert(r.error);
+  var safe=r.title.replace(/[^A-Za-z0-9]+/g,'_').replace(/^_+|_+$/g,'').slice(0,40)||'Report';
+  var d=new Date(),ds=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
+  xlDownload(r.blob,'HTP_'+safe+'_'+ds+'.xlsx');
+};
+function inject(){
+  Array.prototype.forEach.call(document.querySelectorAll('button[onclick]'),function(b){
+    if(b.getAttribute('data-xl-done')||b.classList.contains('xl-btn')||b.closest('table'))return;
+    var oc=b.getAttribute('onclick')||'';
+    if(!XL_PRINT_RE.test(oc))return;
+    b.setAttribute('data-xl-done','1');
+    var x=document.createElement('button');
+    x.type='button';x.className='secondary xl-btn';x.textContent='📥 Excel';x.title='Isi print format ko Excel (.xlsx) me download karo';
+    x.setAttribute('data-xl',oc);x.setAttribute('onclick','xlExportClick(this)');
+    b.parentNode.insertBefore(x,b.nextSibling);
+  });
+}
+var tm=null;
+function sched(){clearTimeout(tm);tm=setTimeout(inject,250)}
+document.addEventListener('DOMContentLoaded',function(){inject();try{new MutationObserver(sched).observe(document.body,{childList:true,subtree:true})}catch(e){}});
+if(document.readyState!=='loading')inject();
+})();
+
+</script>
+<script id="mms-filters">
+/* ===== MODULE FILTERS: table + print + Excel teeno me lagte hain (Spare Parts ki tarah) ===== */
+(function(){
+'use strict';
+function today(){var d=new Date();return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2)}
+function dueStatus(d){
+  d=String(d||'').slice(0,10);if(!/^\d{4}-\d{2}-\d{2}$/.test(d))return 'No due date';
+  var t=today();if(d<t)return 'Overdue';
+  var l=new Date();l.setDate(l.getDate()+30);var ls=l.getFullYear()+'-'+('0'+(l.getMonth()+1)).slice(-2)+'-'+('0'+l.getDate()).slice(-2);
+  return d<=ls?'Due within 30 days':'OK';
+}
+var CFG=[
+ {key:'critical',panel:'criticalSpares',tbody:'csBody',render:'renderCriticalTable',print:['printCriticalSpares'],
+  fields:[{id:'status',label:'Status',get:function(r){return typeof criticalStatus==='function'?criticalStatus(r):''}},{id:'machine',label:'Machine No.',get:function(r){return r.machine}},{id:'loc',label:'Location',get:function(r){return r.loc}}]},
+ {key:'tc',panel:'thermocouple',tbody:'tcBody',render:'renderThermocoupleTable',print:['printThermocouplePlan'],search:true,
+  fields:[{id:'furnace',label:'Furnace No.',get:function(r){return r.furnace}},{id:'type',label:'TC Type',get:function(r){return r.type}},{id:'status',label:'Status',get:function(r){return r.status}}]},
+ {key:'cal',panel:'calibration',tbody:'calBody',render:'renderCalibrationTable',print:['printCalibrationPlan'],
+  fields:[{id:'due',label:'Calibration Due',fixed:['Overdue','Due within 30 days','OK','No due date'],get:function(r){return dueStatus(r.duedate)}},{id:'make',label:'Make',get:function(r){return r.make}},{id:'location',label:'Location',get:function(r){return r.location}}]},
+ {key:'bd',panel:'bd',tbody:'bdBody',render:'renderBreakdown',print:['printBreakdownMonth'],
+  fields:[{id:'machine',label:'Machine',get:function(r){return r.machineNumber||r.machine}},{id:'type',label:'B/D Type (E/M)',get:function(r){return r.type}},{id:'section',label:'Department / Section',get:function(r){return r.section}}]},
+ {key:'mh',panel:'mh',tbody:'mhBody',render:'renderHistory',print:[],
+  fields:[{id:'machine',label:'Machine No.',get:function(r){return r.machineNo}},{id:'year',label:'Year',get:function(r){return String(r.date||'').slice(0,4)}}]},
+ {key:'mr',panel:'mr',tbody:'mrBody',render:'renderMR',print:['printMRMonth'],
+  fields:[{id:'machine',label:'Machine',get:function(r){return r.machineNo||r.machine}},{id:'section',label:'Section',get:function(r){return r.section}}]}
+];
+function el(id){return document.getElementById(id)}
+function fid(c,f){return 'mf_'+c.key+'_'+f.id}
+function pred(c){
+  var sel=c.fields.map(function(f){var e=el(fid(c,f));return {f:f,v:e?e.value:''}}).filter(function(x){return x.v});
+  var q=c.search&&el('mf_'+c.key+'_q')?el('mf_'+c.key+'_q').value.trim().toLowerCase():'';
+  if(!sel.length&&!q)return null;
+  return function(r){
+    for(var i=0;i<sel.length;i++){if(String(sel[i].f.get(r)==null?'':sel[i].f.get(r)).trim()!==sel[i].v)return false}
+    if(q&&Object.keys(r).map(function(k){return r[k]}).join(' ').toLowerCase().indexOf(q)<0)return false;
+    return true;
+  };
+}
+function uniq(c,f){
+  if(f.fixed)return f.fixed;
+  var list=(typeof data!=='undefined'&&data[c.key])||[],set={};
+  list.forEach(function(r){var v=f.get(r);v=v==null?'':String(v).trim();if(v)set[v]=1});
+  return Object.keys(set).sort(function(a,b){return a.localeCompare(b,undefined,{numeric:true})});
+}
+function build(c){
+  var tb=el(c.tbody);if(!tb||el('mf_'+c.key))return;
+  var wrap=tb.closest('.tablewrap')||tb.closest('table');if(!wrap)return;
+  var bar=document.createElement('div');bar.id='mf_'+c.key;bar.className='toolbar mf-bar';bar.style.cssText='flex-wrap:wrap;gap:8px;align-items:flex-end';
+  var h='';
+  if(c.search)h+='<div class="field" style="min-width:150px;flex:1"><label>Search</label><input id="mf_'+c.key+'_q" placeholder="Type to search..." oninput="mmsFilterApply(\''+c.key+'\')"></div>';
+  c.fields.forEach(function(f){h+='<div class="field" style="min-width:120px;flex:1"><label>'+f.label+'</label><select id="'+fid(c,f)+'" onchange="mmsFilterApply(\''+c.key+'\')"></select></div>'});
+  h+='<button type="button" class="secondary" onclick="mmsFilterClear(\''+c.key+'\')">Clear Filters</button>';
+  bar.innerHTML=h;
+  var cnt=document.createElement('div');cnt.id='mf_'+c.key+'_cnt';cnt.style.cssText='font-size:12px;margin:4px 2px;color:#555';
+  wrap.parentNode.insertBefore(cnt,wrap);wrap.parentNode.insertBefore(bar,cnt);
+}
+function refreshOptions(c){
+  c.fields.forEach(function(f){
+    var e=el(fid(c,f));if(!e)return;var cur=e.value,vals=uniq(c,f);
+    e.innerHTML='<option value="">All</option>'+vals.map(function(v){return '<option value="'+String(v).replace(/"/g,'&quot;')+'">'+String(v).replace(/</g,'&lt;')+'</option>'}).join('');
+    if(vals.indexOf(cur)>=0)e.value=cur;
+  });
+}
+function applyRows(c){
+  var tb=el(c.tbody);if(!tb)return;
+  var p=pred(c),list=(typeof data!=='undefined'&&data[c.key])||[],shown=0,total=0;
+  Array.prototype.forEach.call(tb.rows,function(tr){
+    var b=tr.querySelector('button[onclick]'),m=b&&/\((\d+)\)/.exec(b.getAttribute('onclick')||''),rec=m?list[+m[1]]:null;
+    if(!rec){tr.style.display='';return}
+    total++;var ok=!p||p(rec);tr.style.display=ok?'':'none';if(ok)shown++;
+  });
+  var cnt=el('mf_'+c.key+'_cnt');
+  if(cnt)cnt.textContent=p?('Showing '+shown+' of '+total+' records (filtered)'):'';
+}
+function cfgOf(k){for(var i=0;i<CFG.length;i++)if(CFG[i].key===k)return CFG[i]}
+window.mmsFilterApply=function(k){var c=cfgOf(k);if(c)applyRows(c)};
+window.mmsFilterClear=function(k){var c=cfgOf(k);if(!c)return;c.fields.forEach(function(f){var e=el(fid(c,f));if(e)e.value=''});var q=el('mf_'+k+'_q');if(q)q.value='';applyRows(c)};
+window.mmsFilterPredicate=function(k){var c=cfgOf(k);return c?pred(c):null};
+function wrapRender(c){
+  var orig=window[c.render];if(typeof orig!=='function'||orig.__mf)return;
+  var w=function(){var r=orig.apply(this,arguments);try{build(c);refreshOptions(c);applyRows(c)}catch(e){console.warn('mf',e)}return r};
+  w.__mf=1;window[c.render]=w;
+}
+function wrapPrint(c,name){
+  var orig=window[name];if(typeof orig!=='function'||orig.__mf)return;
+  var w=function(){
+    var p=pred(c),full=data[c.key];
+    if(!p)return orig.apply(this,arguments);
+    data[c.key]=full.filter(p);
+    try{return orig.apply(this,arguments)}finally{data[c.key]=full}
+  };
+  w.__mf=1;window[name]=w;
+}
+function init(){
+  CFG.forEach(function(c){
+    try{build(c);refreshOptions(c);wrapRender(c);c.print.forEach(function(n){wrapPrint(c,n)});
+      var r=window[c.render];if(typeof r==='function')r();}catch(e){console.warn('mf init',c.key,e)}
+  });
+}
+if(document.readyState==='complete')setTimeout(init,0);else window.addEventListener('load',function(){setTimeout(init,0)});
+})();
 
 </script>
 </body>
