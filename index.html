@@ -3743,7 +3743,8 @@ async function mmsDiagnoseServer(){
  if(!cfg.url)return 'Server URL set nahi hai.';
  try{
   const o=await mmsJsonpRaw(cfg.url+(cfg.url.indexOf('?')>=0?'&':'?')+'action=ping');
-  if(!o||o.ok!==true||o.v===undefined)return 'Server par purana Code.gs chal raha hai - Apps Script me Deploy > Manage deployments > Edit > New version > Deploy karo.';
+  if(o&&o.error==='AUTH_INVALID')return 'Server par naya Code.gs hai par abhi poora ready nahi - latest Code.gs paste karke Save karo, Sheet menu me HTP MMS > Security setup chalao, phir Deploy > Manage deployments > Edit > New version > Deploy karo.';
+  if(!o||o.ok!==true||o.v===undefined)return 'Server par purana Code.gs chal raha hai (ya app ka URL purane deployment ka hai) - Apps Script me Deploy > Manage deployments > Edit > New version > Deploy karo, aur URL check karo.';
   if(!o.ready)return 'Server par Security setup abhi nahi hua - Sheet menu: HTP MMS > Security setup (run once) chalao.';
   return 'Server theek hai par login ka jawab nahi aaya - thodi der baad dobara try karo.';
  }catch(e){return 'Server tak pahunch nahi paa rahe - internet check karo. Deploy me "Who has access: Anyone" aur sahi /exec URL hona chahiye.'}
@@ -4091,7 +4092,7 @@ function saveUserPerms(){
 const GS_CFG_KEY='htp_mms_gs_cfg_v1',GS_META_KEY='htp_mms_gs_meta_v1';
 // LIVE BACKEND: shared by every browser/device. The token must match Code.gs.
 // Device-local localStorage is still used for cache/state, but the Google Sheet is the shared source.
-const GS_DEFAULT_URL='https://script.google.com/macros/s/AKfycbwEyG1SPn8J9HoHKV1MtXIF2PLtdqM8wwYi0bYnM_jFt0y78ZuzbxRdU7My-PMCmqE/exec';
+const GS_DEFAULT_URL='https://script.google.com/macros/s/AKfycbwhKmOBMXzuIcMOFwFeSyQ32ZBfSOfcc99yv1sfFmElA_TSN6Q8Rf2OSKyUN8I4Bg16/exec';
 const GS_ALL=['pf','pc','dg','mr','mh','pm','bd','spares','critical','tc','cal','utility','airCompressor','machineMaster','users','pmPlan','pmCheck','pmMap', 'audit','meeting','sparePurchase','powerCost','hpsebBill','satReport','satTemp','oxyMV','oxyImp','oxyRep'];
 // PM Plan schedule / PM checklists / machine-checklist map pehle localStorage me alag save
 // hote the aur kabhi sync hi nahi hote the - isliye ek device ka PM schedule change dusre
