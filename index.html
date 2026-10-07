@@ -4654,7 +4654,10 @@ function gsRenderPrimaryUI(){
 }
 // Fresh device (never synced): pura data server se lo, apne local/default records push mat karo.
 async function gsFirstPull(cfg,mods,merge){
- const out=await gsPost(cfg,{token:cfg.token,since:0,changes:[]});
+ gsStatus('⏳ Server se poora data la raha hu… (pehli baar thoda time lagta hai)');
+ let out;window.__gsLong=true;
+ try{out=await gsPost(cfg,{token:cfg.token,since:0,changes:[]})}finally{window.__gsLong=false}
+ if(!merge)window.__gsFreshOut={out:out,at:Date.now()};
  const prev=merge?gsMeta():{since:0,base:{}};
  const byMod={},base={};let replaced=false;
  (out.rows||[]).forEach(function(row){if(mods.indexOf(row.module)<0)return;(byMod[row.module]=byMod[row.module]||[]).push(row)});
@@ -4773,12 +4776,12 @@ function gsFormPost(cfg,payload){
   try{form.submit()}catch(e){clearTimeout(timer);cleanup();reject(e)}
  });
 }
-function gsJsonpPull(cfg,since){
+function gsJsonpPull(cfg,since,timeoutMs){
  return new Promise(function(resolve,reject){
   const cb='mmsJsonp_'+Date.now()+'_'+Math.random().toString(36).slice(2);
   const script=document.createElement('script');
   let done=false;
-  const timer=setTimeout(function(){finish(false,new Error('Google Sheet read timeout'))},12000);
+  const timer=setTimeout(function(){finish(false,new Error('Google Sheet read timeout'))},timeoutMs||((Number(since||0)===0&&window.__gsLong)?60000:12000));
   function cleanup(){clearTimeout(timer);try{delete window[cb]}catch(e){window[cb]=undefined}try{script.remove()}catch(e){}}
   function finish(ok,val){if(done)return;done=true;cleanup();ok?resolve(val):reject(val)}
   window[cb]=function(out){
@@ -4801,7 +4804,7 @@ async function gsPost(cfg,payload){
  const changes=payload&&payload.changes||[];
  await gsFormPost(cfg,payload);
  const wanted={};changes.forEach(function(c){wanted[c.module+'|'+c.sid]=Number(c.ts||0)});
- const deadline=Date.now()+18000;
+ const deadline=Date.now()+((!changes.length&&since===0&&window.__gsLong)?150000:18000);
  let lastErr=null;
  while(Date.now()<deadline){
   try{
@@ -4976,7 +4979,8 @@ async function gsSync(auto){
    }
    const rest=changes.length%GS_BATCH||GS_BATCH;
    out=await gsPost(cfg,{token:cfg.token,since:meta.since,changes:changes.slice(changes.length-rest)});
-  }else out=await gsPost(cfg,{token:cfg.token,since:meta.since,changes:changes});
+  }else if(!changes.length&&!meta.since&&window.__gsFreshOut&&Date.now()-window.__gsFreshOut.at<120000){out=window.__gsFreshOut.out;window.__gsFreshOut=null}
+  else out=await gsPost(cfg,{token:cfg.token,since:meta.since,changes:changes});
   // 3) apply remote changes that are newer than local
   const changed=new Set(),applied={};
   (out.rows||[]).forEach(function(row){
@@ -5021,6 +5025,10 @@ async function gsSync(auto){
  }catch(e){
   console.error('Sheet sync failed',e);
   gsStatus('⚠ Sync failed: '+(e&&e.message||e),true);
+  {const mf=gsMeta(),fresh=!mf.since&&!Object.keys(mf.base).length;
+   if(fresh){window.__gsFreshTries=(window.__gsFreshTries||0)+1;
+    if(window.__gsFreshTries<=4)gsSchedule(6000);
+    if(window.__gsFreshTries===2&&auto)alert('Is naye device par Google Sheet ka data abhi nahi aa paya ('+(e&&e.message||e)+').\n\nInternet check karo. App khud dobara koshish kar raha hai, ya upar Sync Now dabao.');}}
   if(!auto)alert('Sync failed: '+(e&&e.message||e)+'\n\nInternet check karo aur dobara Sync Now dabao.');
  }finally{gsBusy=false}
 }
