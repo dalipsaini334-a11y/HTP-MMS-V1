@@ -3941,7 +3941,7 @@ function requireRole(roles){let s=session();if(!s||!roles.includes(s.role)){aler
 async function gsPullUsersForLogin(){
  try{
   const cfg=gsCfg();if(!cfg.url||!cfg.token)return false;
-  const out=await gsPost(cfg,{token:cfg.token,since:0,changes:[]});
+  const out=await gsPullPaged(cfg,0,['users']);
   const srv=[];
   (out.rows||[]).forEach(function(row){
    if(row.module!=='users'||row.deleted||row.sid==='i:usr-admin')return;
@@ -4776,7 +4776,7 @@ function gsFormPost(cfg,payload){
   try{form.submit()}catch(e){clearTimeout(timer);cleanup();reject(e)}
  });
 }
-function gsJsonpPull(cfg,since,timeoutMs){
+function gsJsonpPull(cfg,since,timeoutMs,extraQs){
  return new Promise(function(resolve,reject){
   const cb='mmsJsonp_'+Date.now()+'_'+Math.random().toString(36).slice(2);
   const script=document.createElement('script');
@@ -4789,9 +4789,27 @@ function gsJsonpPull(cfg,since,timeoutMs){
    if(out&&out.ok)finish(true,out);else finish(false,new Error((out&&out.error)||'Google Sheet read failed'));
   };
   script.onerror=function(){finish(false,new Error('Google Sheet read network error'))};
-  script.src=cfg.url+(cfg.url.indexOf('?')>=0?'&':'?')+'callback='+encodeURIComponent(cb)+'&token='+encodeURIComponent(cfg.token)+'&since='+encodeURIComponent(String(since||0));
+  script.src=cfg.url+(cfg.url.indexOf('?')>=0?'&':'?')+'callback='+encodeURIComponent(cb)+'&token='+encodeURIComponent(cfg.token)+'&since='+encodeURIComponent(String(since||0))+(extraQs||'');
   document.head.appendChild(script);
  });
+}
+async function gsPullPaged(cfg,since,mods){
+ if(Number(since||0)>0&&!mods)return gsJsonpPull(cfg,since);
+ let offset=0,rows=[],maxSrv=0,guard=0;
+ for(;;){
+  const qs='&offset='+offset+'&limit=150'+(mods?'&mods='+encodeURIComponent(mods.join(',')):'');
+  let out=null,err=null;
+  for(let t=0;t<4&&!out;t++){
+   try{out=await gsJsonpPull(cfg,since,40000,qs)}catch(e){err=e;await new Promise(function(r){setTimeout(r,1500)})}
+  }
+  if(!out)throw err||new Error('Google Sheet read failed');
+  rows=rows.concat(out.rows||[]);if(Number(out.maxSrv||0)>maxSrv)maxSrv=Number(out.maxSrv);
+  if(out.next===undefined||out.next===null||out.next<0||out.next<=offset)break;   // done (ya purana Code.gs: sab ek saath aa gaya)
+  offset=out.next;
+  if(++guard>2000)break;
+  gsStatus('⏳ Server se data aa raha hai… '+rows.length+' records');
+ }
+ return {ok:true,rows:rows,maxSrv:maxSrv};
 }
 async function gsPost(cfg,payload){
  const since=Number(payload&&payload.since||0);
@@ -4808,7 +4826,7 @@ async function gsPost(cfg,payload){
  let lastErr=null;
  while(Date.now()<deadline){
   try{
-   const out=await gsJsonpPull(cfg,since);
+   const out=await gsPullPaged(cfg,since);
    let all=true;
    Object.keys(wanted).forEach(function(k){
     const hit=(out.rows||[]).some(function(r){return r.module+'|'+r.sid===k&&Number(r.ts||0)>=wanted[k]});
@@ -4900,7 +4918,7 @@ async function gsDiag(){
  const cfg=gsCfg();if(!cfg.token){alert('Login token nahi mila, dobara login karo.');return}
  gsStatus('⏳ Checking server data…');
  try{
-  const out=await gsJsonpPull(cfg,0),srv={};
+  const out=await gsPullPaged(cfg,0),srv={};
   (out.rows||[]).forEach(function(r){if(r.deleted)return;srv[r.module]=(srv[r.module]||0)+1});
   const lines=[];let srvTot=0,locTot=0;
   GS_ALL.forEach(function(m){if(m==='audit'||m==='users')return;const l=gsList(m),n=Array.isArray(l)?l.length:0,sv=srv[m]||0;srvTot+=sv;locTot+=n;if(n||sv)lines.push((GS_TAB[m]||m)+':  Server '+sv+'  |  Is device '+n+(sv<n?'   <-- server par kam':(sv>n?'   <-- device par kam':'')))});
