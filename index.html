@@ -3880,7 +3880,12 @@ function mmsAuditNorm(arr){
   return out.slice(0,2000);
 }
 function auditList(){try{let x=JSON.parse(localStorage.getItem(AUDIT_KEY)||'[]');return mmsAuditNorm(x)}catch(e){return []}}
+// Audit me sirf: login / logout / kisi module me change (SAVE) / user-role-password changes / restore.
+// Sync, config, FY select, backup jaisi system activity ka log nahi banta.
+const AUDIT_ALLOW={LOGIN:1,LOGOUT:1,SAVE:1,RESTORE:1,PASSWORD:1,USER_ADD:1,USER_ROLE:1,USER_PERMS:1,USER_DELETE:1,USER_PASSWORD_RESET:1};
+function auditVisible(x){return !!(x&&AUDIT_ALLOW[x.action])}
 function audit(action,module,detail){
+    if(!AUDIT_ALLOW[action])return;
     let x=auditList();
     x.unshift({
         id: 'aud-' + Date.now() + '-' + Math.random().toString(36).slice(2,8), // <-- YEH NAYI ID ADD KI HAI
@@ -3896,6 +3901,9 @@ function audit(action,module,detail){
     MMS.refreshAudit();
 }
 const origPersist=window.persist;
+// User ne pichhle 20 sec me click/type/touch kiya ho tabhi SAVE audit banega (timer / background persist ka nahi)
+window.__mmsLastUser=0;
+['click','keydown','input','change','touchstart','pointerdown'].forEach(function(ev){document.addEventListener(ev,function(){window.__mmsLastUser=Date.now()},true)});
 // Sync ke baad renderAll() jo auto-persist chalate hain unka audit/log nahi banana chahiye
 window.mmsQuiet=function(fn){window.__mmsQuiet=true;try{return fn()}finally{window.__mmsQuiet=false}};
 // Pehle wali aur nayi saved list ka farak: kitne record add / edit / delete hue
@@ -3929,7 +3937,7 @@ if(typeof origPersist==='function'&&!window.__mmsPersistWrapped){
         try{after=localStorage.getItem(KEY[k])}catch(e){}
         // Kuch change nahi hua ya sync ke baad ka auto-render hai -> na audit, na naya sync schedule
         if(before===after||window.__mmsQuiet)return;
-        audit('SAVE',k,mmsDiffSummary(before,after));
+        if(Date.now()-(window.__mmsLastUser||0)<20000)audit('SAVE',k,mmsDiffSummary(before,after));
         gsSchedule(4000);
     }
 }
@@ -3970,7 +3978,7 @@ async function login(){
  document.getElementById('mmsLoginPass').value='';
  localStorage.setItem(SESSION_KEY,JSON.stringify({u:found.u,role:r.role,loginAt:new Date().toISOString()}));
  document.getElementById('mmsLogin').classList.add('hidden');gsRenderPrimaryUI();gsSchedule(400);lm.textContent='';setBadge();audit('LOGIN','system','User login');MMS.refreshKPIs();try{renderDashboard()}catch(e){}gsSchedule(800)}
-function logout(){localStorage.removeItem(SESSION_KEY);localStorage.removeItem(MMS_SRV_KEY);document.getElementById('mmsUpgradePanel').classList.remove('open');document.getElementById('mmsLogin').classList.remove('hidden');setBadge();try{renderDashboard()}catch(e){}}
+function logout(){try{if(session())audit('LOGOUT','system','User logout')}catch(e){}localStorage.removeItem(SESSION_KEY);localStorage.removeItem(MMS_SRV_KEY);document.getElementById('mmsUpgradePanel').classList.remove('open');document.getElementById('mmsLogin').classList.remove('hidden');setBadge();try{renderDashboard()}catch(e){}}
 function backup() {
     if (!requireRole(['Admin', 'Technician'])) return;
     let pack = {
@@ -4092,8 +4100,8 @@ function moduleRows(){let keys=['pf','pc','dg','mr','mh','pm','bd','spares','cri
 function xmlEsc(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;')}
 function exportExcel(){if(!requireRole(['Admin','Technician','Operator']))return;let sheets=moduleRows();let xml='<?xml version="1.0"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Styles><Style ss:ID="h"><Font ss:Bold="1"/></Style></Styles>';sheets.forEach(sh=>{let rows=sh.rows;let keys=[...new Set(rows.flatMap(r=>Object.keys(r||{})))];xml+=`<Worksheet ss:Name="${xmlEsc(sh.name.slice(0,31))}"><Table>`;if(keys.length)xml+='<Row>'+keys.map(k=>`<Cell ss:StyleID="h"><Data ss:Type="String">${xmlEsc(k)}</Data></Cell>`).join('')+'</Row>';rows.forEach(r=>{xml+='<Row>'+keys.map(k=>`<Cell><Data ss:Type="String">${xmlEsc(typeof r[k]==='object'?JSON.stringify(r[k]):r[k])}</Data></Cell>`).join('')+'</Row>'});xml+='</Table></Worksheet>'});xml+='</Workbook>';let blob=new Blob([xml],{type:'application/vnd.ms-excel'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='HTP_MMS_COMPLETE_EXPORT_'+new Date().toISOString().slice(0,10)+'.xls';a.click();URL.revokeObjectURL(a.href);audit('EXPORT','system','Complete Excel-compatible workbook exported')}
 function validate(){let issues=[],checks=0;Object.keys(data).forEach(k=>{(data[k]||[]).forEach((r,i)=>{checks++;if(!r||typeof r!=='object')issues.push(`${k}[${i}] invalid record`);if(r.date&&isNaN(new Date(r.date)))issues.push(`${k}[${i}] invalid date`);});});(data.dg||[]).forEach((r,i)=>{['dg1kwh','dg1kvah','dg1fuel','dg2kwh','dg2kvah','dg2fuel'].forEach(k=>{if(r[k]!==''&&r[k]!=null&&Number(r[k])<0)issues.push(`DG[${i}] ${k} negative`)});['dg1batt','dg2batt'].forEach(k=>{if(r[k]!==''&&r[k]!=null&&Number(r[k])<=0)issues.push(`DG[${i}] ${k} invalid`)});});(data.pf||[]).forEach((r,i)=>{if(r.kwh!==''&&Number(r.kwh)<0)issues.push(`PF[${i}] negative KWH`);if(r.kvah!==''&&Number(r.kvah)<0)issues.push(`PF[${i}] negative KVAH`)});let out=document.getElementById('mmsValidation');if(out)out.innerHTML=issues.length?`<b style="color:#b00">${issues.length} issue(s)</b><div style="font-size:10px;max-height:90px;overflow:auto">${issues.slice(0,30).map(esc2).join('<br>')}</div>`:`<b style="color:green">✓ ${checks} records checked — no basic validation issues.</b>`;audit('VALIDATE','system',`${checks} records; ${issues.length} issue(s)`)}
-function refreshAudit(){let el=document.getElementById('mmsAuditLog');if(!el)return;el.innerHTML=auditList().slice(0,40).map(x=>`<div><b>${esc2(x.action)}</b> • ${esc2(x.module)} • ${esc2(x.user)} • ${new Date(x.time).toLocaleString()}<br><span style="color:#666">${esc2(x.detail)}</span></div><hr>`).join('')||'No audit entries.'}
-function exportAudit(){if(!requireRole(['Admin','Technician']))return;let rows=[['Time','User','Role','Action','Module','Detail'],...auditList().map(x=>[x.time,x.user,x.role,x.action,x.module,x.detail])];let csv=rows.map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\n'),blob=new Blob([csv],{type:'text/csv'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='HTP_MMS_AUDIT.csv';a.click();URL.revokeObjectURL(a.href)}
+function refreshAudit(){let el=document.getElementById('mmsAuditLog');if(!el)return;{const s=session();if(!s||s.role!=='Admin'){el.innerHTML='';return}}el.innerHTML=auditList().filter(auditVisible).slice(0,60).map(x=>`<div><b>${esc2(x.action)}</b> • ${esc2(x.module)} • ${esc2(x.user)} • ${new Date(x.time).toLocaleString()}<br><span style="color:#666">${esc2(x.detail)}</span></div><hr>`).join('')||'No audit entries.'}
+function exportAudit(){if(!requireRole(['Admin']))return;let rows=[['Time','User','Role','Action','Module','Detail'],...auditList().filter(auditVisible).map(x=>[x.time,x.user,x.role,x.action,x.module,x.detail])];let csv=rows.map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\n'),blob=new Blob([csv],{type:'text/csv'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='HTP_MMS_AUDIT.csv';a.click();URL.revokeObjectURL(a.href)}
 function initFY(){let arr;try{arr=JSON.parse(localStorage.getItem(FY_KEY)||'[]')}catch(e){arr=[]}if(!Array.isArray(arr)||!arr.length){let y=getCurrentFYStartYear();arr=[`${y}-${String(y+1).slice(-2)}`,`${y+1}-${String(y+2).slice(-2)}`];localStorage.setItem(FY_KEY,JSON.stringify(arr))}let s=document.getElementById('mmsFY');if(s){s.innerHTML=arr.map(x=>`<option>${esc2(x)}</option>`).join('')}}
 function addFY(){if(!requireRole(['Admin']))return;let y=parseInt(prompt('Enter FY start year, e.g. 2027'));if(!y||y<2000)return;let arr=JSON.parse(localStorage.getItem(FY_KEY)||'[]');let l=`${y}-${String(y+1).slice(-2)}`;if(!arr.includes(l))arr.push(l);arr.sort();localStorage.setItem(FY_KEY,JSON.stringify(arr));initFY();audit('FY_ADD','system',l)}
 function applyFY(){let v=document.getElementById('mmsFY')?.value;if(!v)return;localStorage.setItem('htp_mms_selected_fy',v);audit('FY_SELECT','system',v);alert('FY '+v+' selected. Existing module calculations remain unchanged; this selector is stored for future reporting/sync use.')}
@@ -4433,7 +4441,7 @@ function gsReport(mod,mk){
  }else if(mod==='audit'){
   rep.title='SYSTEM AUDIT & ACTIVITY LOG';
   rep.headers=['Time','User','Role','Action','Module','Detail'];
-  rep.rows=gsAuditArr.map(function(r){return [r.time, r.user, r.role, r.action, r.module, r.detail]});
+  rep.rows=gsAuditArr.filter(auditVisible).map(function(r){return [r.time, r.user, r.role, r.action, r.module, r.detail]});
  }else return null;
  if(!rep.rows.length)return {tab:tab,remove:true};
  rep.rows=rep.rows.map(function(r){return r.map(gsCell)});
@@ -4811,7 +4819,16 @@ async function gsPullPaged(cfg,since,mods){
  }
  return {ok:true,rows:rows,maxSrv:maxSrv};
 }
-async function gsPost(cfg,payload){
+async function gsServerMax(cfg){
+ // Bahut bada 'since' dene par server sirf maxSrv batata hai (koi data nahi) - ack ke liye halka baseline.
+ try{const o=await gsJsonpPull(cfg,9e15,15000);return Number(o.maxSrv||0)}catch(e){return null}
+}
+async function gsPullRetry(cfg,since){
+ let err=null;
+ for(let t=0;t<3;t++){try{return await gsPullPaged(cfg,since)}catch(e){err=e;await new Promise(function(r){setTimeout(r,1200)})}}
+ throw err||new Error('Google Sheet read failed');
+}
+async function gsPost(cfg,payload,ackOnly){
  const since=Number(payload&&payload.since||0);
  // Reports do not participate in the record-sync acknowledgement. Queue them without
  // making the user's sync wait for another full Google Sheet read/write cycle.
@@ -4820,24 +4837,38 @@ async function gsPost(cfg,payload){
   catch(e){console.warn('Google Sheet report queue failed',e);return {ok:true,rows:[],maxSrv:since};}
  }
  const changes=payload&&payload.changes||[];
- await gsFormPost(cfg,payload);
  const wanted={};changes.forEach(function(c){wanted[c.module+'|'+c.sid]=Number(c.ts||0)});
- const deadline=Date.now()+((!changes.length&&since===0&&window.__gsLong)?150000:18000);
+ const hasAll=function(rows){return Object.keys(wanted).every(function(k){return (rows||[]).some(function(r){return r.module+'|'+r.sid===k&&Number(r.ts||0)>=wanted[k]})})};
+ if(changes.length){
+  // 1) baseline  2) POST  3) sirf naye rows (baseline ke baad) poll karke ack - poora data baar-baar download nahi hota
+  const baseline=await gsServerMax(cfg);
+  await gsFormPost(cfg,payload);
+  if(baseline!==null){
+   const ackDeadline=Date.now()+Math.min(150000,60000+changes.length*250);
+   while(Date.now()<ackDeadline){
+    try{
+     const o=await gsJsonpPull(cfg,baseline,20000);
+     if(hasAll(o.rows)){
+      if(ackOnly)return {ok:true,rows:[],maxSrv:Number(o.maxSrv||baseline)};
+      return await gsPullRetry(cfg,since);
+     }
+    }catch(e){}
+    await new Promise(function(r){setTimeout(r,1000)});
+   }
+  }
+  // Fallback: purana tareeka (server ne shayad newer record rakha ho to wo bhi since ke baad dikhega)
+  const out=await gsPullRetry(cfg,since);
+  if(hasAll(out.rows))return ackOnly?{ok:true,rows:[],maxSrv:out.maxSrv}:out;
+  throw new Error('Google Sheet write acknowledgement timeout');
+ }
+ await gsFormPost(cfg,payload);
+ const deadline=Date.now()+((since===0&&window.__gsLong)?150000:18000);
  let lastErr=null;
  while(Date.now()<deadline){
-  try{
-   const out=await gsPullPaged(cfg,since);
-   let all=true;
-   Object.keys(wanted).forEach(function(k){
-    const hit=(out.rows||[]).some(function(r){return r.module+'|'+r.sid===k&&Number(r.ts||0)>=wanted[k]});
-    if(!hit)all=false;
-   });
-   if(all||!changes.length)return out;
-  }catch(e){lastErr=e}
+  try{return await gsPullPaged(cfg,since)}catch(e){lastErr=e}
   await new Promise(function(r){setTimeout(r,900)});
  }
- if(lastErr)throw lastErr;
- throw new Error('Google Sheet write acknowledgement timeout');
+ throw lastErr||new Error('Google Sheet read timeout');
 }
 async function gsReconcileNew(cfg){
  const meta=gsMeta(),ob=meta.base||{};
@@ -4993,7 +5024,7 @@ async function gsSync(auto){
   if(changes.length>GS_BATCH){
    for(let bi=0;bi<changes.length-GS_BATCH;bi+=GS_BATCH){
     gsStatus('⏳ Uploading '+Math.min(bi+GS_BATCH,changes.length)+'/'+changes.length+'…');
-    await gsPost(cfg,{token:cfg.token,since:meta.since,changes:changes.slice(bi,bi+GS_BATCH)});
+    await gsPost(cfg,{token:cfg.token,since:meta.since,changes:changes.slice(bi,bi+GS_BATCH)},true);
    }
    const rest=changes.length%GS_BATCH||GS_BATCH;
    out=await gsPost(cfg,{token:cfg.token,since:meta.since,changes:changes.slice(changes.length-rest)});
