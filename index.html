@@ -4007,6 +4007,14 @@ function mmsMergeList(local,incoming,keyFn){
     (incoming||[]).forEach(function(r){const k=keyFn(r);if(k in idx)out[idx[k]]=r;else{idx[k]=out.length;out.push(r)}});
     return out;
 }
+/* Seed (default) records: id like sp-seed-3. Naye device par ye default list pehle se bhar jati hai, isliye
+   backup/sync me jo seed part user ne delete kiya tha wo wapas aa jata tha. Ab backup/server hi final hai. */
+function mmsIsSeedRec(r){return !!r&&typeof r==='object'&&/-seed-\d+$/.test(String(r.id==null?'':r.id))}
+function mmsDropStaleSeeds(k,local,incoming){
+    if(['spares','critical','tc','cal'].indexOf(k)<0||!Array.isArray(local))return local;
+    const ids={};(incoming||[]).forEach(function(r){if(r&&r.id!=null)ids[String(r.id)]=1});
+    return local.filter(function(r){return !mmsIsSeedRec(r)||ids[String(r.id)]});
+}
 function restore() {
     if (!requireRole(['Admin'])) return;
     let inp = document.createElement('input');
@@ -4029,7 +4037,7 @@ function restore() {
 
                 Object.keys(p.data).forEach(k => {
                     if (Array.isArray(p.data[k])) {
-                        data[k] = merge ? mmsMergeList(data[k], p.data[k]) : p.data[k];
+                        data[k] = merge ? mmsMergeList(mmsDropStaleSeeds(k, data[k], p.data[k]), p.data[k]) : p.data[k];
                         if (typeof KEY !== 'undefined' && KEY[k]) localStorage.setItem(KEY[k], JSON.stringify(data[k]));
                     }
                 });
@@ -4890,7 +4898,11 @@ async function gsSync(auto){
   // pehle chalta tha - wo server ke records "base" me daal deta tha aur khali local list ko "delete" samajh kar
   // server se saara data (pf, bd, machineMaster...) delete kar deta tha.
   {const m0=gsMeta();if(!m0.since&&!Object.keys(m0.base).length){
-   await gsFirstPull(cfg,gsIsPrimary()?GS_MASTERS:GS_ALL.filter(function(m){return m!=='users'}));
+   // Naye device ki default (seed) lists server ke data ke upar na aayein: pehle khali karo, server se lo,
+   // aur agar server par us module ka kuch hai hi nahi to defaults wapas rakh do.
+   const seedStash={};['spares','critical','tc','cal'].forEach(function(k){const l=data[k];if(Array.isArray(l)&&l.length&&l.every(mmsIsSeedRec)){seedStash[k]=l.slice();l.splice(0,l.length)}});
+   try{await gsFirstPull(cfg,gsIsPrimary()?GS_MASTERS:GS_ALL.filter(function(m){return m!=='users'}));}
+   finally{Object.keys(seedStash).forEach(function(k){if(!data[k].length)data[k].push.apply(data[k],seedStash[k])})}
    localStorage.setItem(GS_MIGRATION_KEY,'1');
   }}
   await gsReconcileNew(cfg);
