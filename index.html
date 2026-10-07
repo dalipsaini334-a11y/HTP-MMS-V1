@@ -3717,7 +3717,7 @@ function mmRemoveMachine(){
 <div class="mms-box"><h3>✅ Data Validation</h3><button onclick="MMS.validate()">Run Full Validation</button><div id="mmsValidation"></div></div>
 <div class="mms-box"><h3>🗓 Financial Year</h3><select id="mmsFY"></select><button onclick="MMS.addFY()">Add Future FY</button><button onclick="MMS.applyFY()">Apply FY</button></div>
 <div class="mms-box"><h3>📝 Audit Trail</h3><div class="mms-log" id="mmsAuditLog"></div><button onclick="MMS.exportAudit()">Export Audit CSV</button></div>
-<div class="mms-box"><h3>🔄 Google Sheet Live Sync</h3><div id="mmsGsStatus" style="font-size:11px;margin-bottom:6px">Not configured</div><div id="mmsGsPrimary" style="font-size:11px;margin-bottom:6px;color:#1e6b3a"></div><button onclick="MMS.gsTogglePrimary()">📱 Set/Unset This as Primary Device</button><div class="sub" style="margin-bottom:6px">Sirf ek device ko Primary mark karo — yeh naya master data seed kar sakta hai, baaki devices hamesha pehle server ka data lete hain.</div><button onclick="MMS.gsConfigure()">Configure URL / Token</button><button onclick="MMS.gsSync(false)">Sync Now</button><button onclick="MMS.gsRebuildReports()">Rebuild All Sheet Reports</button><button onclick="MMS.gsResetState()">Reset Sync State</button><div class="sub">Two-way sync with all users. Auto-syncs every 60 sec and a few seconds after each save.</div></div>
+<div class="mms-box"><h3>🔄 Google Sheet Live Sync</h3><div id="mmsGsStatus" style="font-size:11px;margin-bottom:6px">Not configured</div><div id="mmsGsPrimary" style="font-size:11px;margin-bottom:6px;color:#1e6b3a"></div><button onclick="MMS.gsTogglePrimary()">📱 Set/Unset This as Primary Device</button><div class="sub" style="margin-bottom:6px">Sirf ek device ko Primary mark karo — yeh naya master data seed kar sakta hai, baaki devices hamesha pehle server ka data lete hain.</div><button onclick="MMS.gsConfigure()">Configure URL / Token</button><button onclick="MMS.gsSync(false)">Sync Now</button><button onclick="MMS.gsDiag()">🔍 Check Sync Data</button><button onclick="MMS.gsRebuildReports()">Rebuild All Sheet Reports</button><button onclick="MMS.gsResetState()">Reset Sync State</button><div class="sub">Two-way sync with all users. Auto-syncs every 60 sec and a few seconds after each save.</div></div>
 <div class="mms-box"><h3>☁ Offline → Google Sheet</h3><div id="mmsSyncStatus"></div><button onclick="MMS.queueSync()">Prepare Sync Queue</button><button onclick="MMS.clearSyncQueue()">Clear Queue</button><div class="sub">Keeps offline data intact. Google Apps Script/API connection can be configured later.</div></div>
 <div class="mms-box"><h3>📈 Dashboard Alerts / KPIs</h3><div id="mmsKPIs"></div><button onclick="MMS.refreshKPIs()">Refresh KPIs</button></div>
 </div></div></div>
@@ -4658,13 +4658,21 @@ async function gsFirstPull(cfg,mods,merge){
  const byMod={},base={};let replaced=false;
  (out.rows||[]).forEach(function(row){if(mods.indexOf(row.module)<0)return;(byMod[row.module]=byMod[row.module]||[]).push(row)});
  Object.keys(byMod).forEach(function(mod){
-  const live=[],nb={};
+  let live=[];const nb={},seenSid={};
   byMod[mod].forEach(function(row){
+   seenSid[row.sid]=1;
    if(row.deleted){nb[row.sid]={h:'',ts:row.ts,del:1};return}
    let rec;try{rec=JSON.parse(row.json)}catch(e){return}
    live.push(rec);nb[row.sid]={h:gsHash(gsClean(rec)),ts:row.ts,m:gsRecMonth(mod,rec)||''};
   });
   const list=gsList(mod);
+  // Is device par pehle se jo apna (non-default) data hai wo server ki list se overwrite na ho: server ke saath
+  // jod do (union). Jo record server par hai hi nahi wo agle push me upload ho jata hai. Server me delete
+  // (tombstone) hue records wapas nahi aate.
+  if(!merge&&['machineMaster','users','audit','pmPlan','pmCheck','pmMap'].indexOf(mod)<0){
+   const extra=list.filter(function(r){if(!r||typeof r!=='object'||mmsIsSeedRec(r))return false;const sid=gsSidOf(r);return !sid||!seenSid[sid]});
+   if(extra.length)live=live.concat(extra);
+  }
   list.splice.apply(list,[0,list.length].concat(live));
   base[mod]=nb;gsPersist(mod);replaced=true;
  });
@@ -4883,6 +4891,19 @@ async function gsRebaseDevice(cfg){
   try{mmsQuiet(renderAll)}catch(e){console.warn('renderAll rebase',e)}
  }catch(e){console.warn('gsRebaseDevice',e)}
 }
+async function gsDiag(){
+ if(!session()){alert('Pehle login karo.');return}
+ const cfg=gsCfg();if(!cfg.token){alert('Login token nahi mila, dobara login karo.');return}
+ gsStatus('⏳ Checking server data…');
+ try{
+  const out=await gsJsonpPull(cfg,0),srv={};
+  (out.rows||[]).forEach(function(r){if(r.deleted)return;srv[r.module]=(srv[r.module]||0)+1});
+  const lines=[];let srvTot=0,locTot=0;
+  GS_ALL.forEach(function(m){if(m==='audit'||m==='users')return;const l=gsList(m),n=Array.isArray(l)?l.length:0,sv=srv[m]||0;srvTot+=sv;locTot+=n;if(n||sv)lines.push((GS_TAB[m]||m)+':  Server '+sv+'  |  Is device '+n+(sv<n?'   <-- server par kam':(sv>n?'   <-- device par kam':'')))});
+  alert('SYNC DATA CHECK\n\n'+lines.join('\n')+'\n\nTotal: Server '+srvTot+' | Is device '+locTot+'\n\n"server par kam" = us module ka data purane device se upload nahi hua. Purane mobile par jaake Sync Now dabao.\n"device par kam" = Is device par Sync Now dabao.');
+  gsStatus('☁ Check done');
+ }catch(e){gsStatus('⚠ Check failed: '+(e&&e.message||e),true);alert('Check failed: '+(e&&e.message||e))}
+}
 async function gsSync(auto){
  if(!session())return;
  const cfg=gsCfg();
@@ -4945,7 +4966,16 @@ async function gsSync(auto){
   });
   assigned.forEach(gsPersist);
   // 2) push + pull
-  const out=await gsPost(cfg,{token:cfg.token,since:meta.since,changes:changes});
+  // Bade data par ek saath push fail ho jata tha (timeout) - isliye 80-80 records ke batch me bhejte hain.
+  const GS_BATCH=80;let out;
+  if(changes.length>GS_BATCH){
+   for(let bi=0;bi<changes.length-GS_BATCH;bi+=GS_BATCH){
+    gsStatus('⏳ Uploading '+Math.min(bi+GS_BATCH,changes.length)+'/'+changes.length+'…');
+    await gsPost(cfg,{token:cfg.token,since:meta.since,changes:changes.slice(bi,bi+GS_BATCH)});
+   }
+   const rest=changes.length%GS_BATCH||GS_BATCH;
+   out=await gsPost(cfg,{token:cfg.token,since:meta.since,changes:changes.slice(changes.length-rest)});
+  }else out=await gsPost(cfg,{token:cfg.token,since:meta.since,changes:changes});
   // 3) apply remote changes that are newer than local
   const changed=new Set(),applied={};
   (out.rows||[]).forEach(function(row){
@@ -4990,6 +5020,7 @@ async function gsSync(auto){
  }catch(e){
   console.error('Sheet sync failed',e);
   gsStatus('⚠ Sync failed: '+(e&&e.message||e),true);
+  if(!auto)alert('Sync failed: '+(e&&e.message||e)+'\n\nInternet check karo aur dobara Sync Now dabao.');
  }finally{gsBusy=false}
 }
 // Live multi-device sync: pull shared Sheet changes frequently while keeping local/offline cache.
@@ -4998,7 +5029,7 @@ document.addEventListener('visibilitychange',function(){if(!document.hidden)gsSc
 window.addEventListener('online',function(){gsSchedule(500)});
 window.addEventListener('load',function(){gsSchedule(1500)});
 
-window.MMS={gsRebuildReports,gsSync,gsConfigure,gsTogglePrimary,gsResetState,login,logout,backup,restore,exportExcel,validate,refreshAudit,exportAudit,addFY,applyFY,queueSync,clearSyncQueue,refreshKPIs,openTools,closeTools,changePassword,manageUsers,populatePermUserSelect,loadUserPerms,selectAllPerms,saveUserRoleLabel,saveUserPerms,deleteUserAccount};
+window.MMS={gsDiag,gsRebuildReports,gsSync,gsConfigure,gsTogglePrimary,gsResetState,login,logout,backup,restore,exportExcel,validate,refreshAudit,exportAudit,addFY,applyFY,queueSync,clearSyncQueue,refreshKPIs,openTools,closeTools,changePassword,manageUsers,populatePermUserSelect,loadUserPerms,selectAllPerms,saveUserRoleLabel,saveUserPerms,deleteUserAccount};
 window.addEventListener('load',()=>{setBadge();let s=session();if(s){document.getElementById('mmsLogin').classList.add('hidden');}else document.getElementById('mmsLogin').classList.remove('hidden');initFY();refreshKPIs();gsRenderPrimaryUI();});
 })();
 document.addEventListener('DOMContentLoaded',function(){utilityNormalizeData();seedUtilityExcel2024Items();setv('mu_log_date',utilityToday());setv('mu_item_sno',nextUtilitySno());renderMaintUtility();if(typeof initAirCompressor==='function')initAirCompressor();});
