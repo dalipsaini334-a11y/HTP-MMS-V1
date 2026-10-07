@@ -4686,8 +4686,12 @@ async function gsFirstPull(cfg,mods,merge){
    if(extra.length)live=live.concat(extra);
   }
   list.splice.apply(list,[0,list.length].concat(live));
-  base[mod]=nb;gsPersist(mod);replaced=true;
+  base[mod]=nb;replaced=true;
+  try{gsPersist(mod)}catch(pe){(window.__gsPersistFail=window.__gsPersistFail||[]).push((GS_TAB[mod]||mod))}
  });
+ if(window.__gsPersistFail&&window.__gsPersistFail.length){const fl=window.__gsPersistFail.join(', ');window.__gsPersistFail=null;
+  // meta NAHI likhte: warna reload ke baad ye modules 'delete' samajh kar server se hat sakte the
+  throw new Error('STORAGE_FULL: is phone ki storage me ye modules save nahi ho paye: '+fl)}
  localStorage.setItem(GS_META_KEY,JSON.stringify(merge?{since:prev.since||0,base:Object.assign({},prev.base,base),pend:prev.pend}:{since:0,base:base}));
  if(replaced){try{mmsQuiet(renderAll)}catch(e){console.warn('renderAll first pull',e)}
   const rb={};Object.keys(byMod).forEach(function(mod){rb[mod]=true});gsRebaseline(rb)}
@@ -4953,7 +4957,10 @@ async function gsDiag(){
   (out.rows||[]).forEach(function(r){if(r.deleted)return;srv[r.module]=(srv[r.module]||0)+1});
   const lines=[];let srvTot=0,locTot=0;
   GS_ALL.forEach(function(m){if(m==='audit'||m==='users')return;const l=gsList(m),n=Array.isArray(l)?l.length:0,sv=srv[m]||0;srvTot+=sv;locTot+=n;if(n||sv)lines.push((GS_TAB[m]||m)+':  Server '+sv+'  |  Is device '+n+(sv<n?'   <-- server par kam':(sv>n?'   <-- device par kam':'')))});
-  alert('SYNC DATA CHECK\n\n'+lines.join('\n')+'\n\nTotal: Server '+srvTot+' | Is device '+locTot+'\n\n"server par kam" = us module ka data purane device se upload nahi hua. Purane mobile par jaake Sync Now dabao.\n"device par kam" = Is device par Sync Now dabao.');
+  let stg='';try{let used=0;const big=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i),v=localStorage.getItem(k)||'';used+=k.length+v.length;big.push([k,v.length])}
+   big.sort(function(a,b){return b[1]-a[1]});let free=0;for(const n of [200000,500000,1000000,2000000,4000000]){try{localStorage.setItem('__mms_probe',new Array(n+1).join('x'));free=n}catch(e2){break}}try{localStorage.removeItem('__mms_probe')}catch(e3){}
+   stg='\n\nSTORAGE: use '+Math.round(used/1000)+'K chars | khali jagah ~'+(free>=4000000?'4000K+':Math.round(free/1000)+'K')+'\nSabse bade: '+big.slice(0,6).map(function(x){return x[0].replace('htp7_','').replace('htp_mms_','')+' '+Math.round(x[1]/1000)+'K'}).join(', ')}catch(e4){}
+  alert('SYNC DATA CHECK\n\n'+lines.join('\n')+stg+'\n\nTotal: Server '+srvTot+' | Is device '+locTot+'\n\n"server par kam" = us module ka data purane device se upload nahi hua. Purane mobile par jaake Sync Now dabao.\n"device par kam" = Is device par Sync Now dabao.');
   gsStatus('☁ Check done');
  }catch(e){gsStatus('⚠ Check failed: '+(e&&e.message||e),true);alert('Check failed: '+(e&&e.message||e))}
 }
@@ -5075,7 +5082,8 @@ async function gsSync(auto){
   console.error('Sheet sync failed',e);
   gsStatus('⚠ Sync failed: '+(e&&e.message||e),true);
   {const mf=gsMeta(),fresh=!mf.since&&!Object.keys(mf.base).length;
-   if(fresh){window.__gsFreshTries=(window.__gsFreshTries||0)+1;
+   if(fresh&&/STORAGE_FULL/.test(String(e&&e.message||e))){if(!window.__gsFullAlert){window.__gsFullAlert=1;alert('Is phone/browser ki storage kam pad rahi hai (iPhone Safari ~5MB deta hai).\n\n'+String(e.message).replace('STORAGE_FULL: ','')+'\n\nTools > Sync Data Check chalao aur screenshot bhejo.')}}
+   else if(fresh){window.__gsFreshTries=(window.__gsFreshTries||0)+1;
     if(window.__gsFreshTries<=4)gsSchedule(6000);
     if(window.__gsFreshTries===2&&auto)alert('Is naye device par Google Sheet ka data abhi nahi aa paya ('+(e&&e.message||e)+').\n\nInternet check karo. App khud dobara koshish kar raha hai, ya upar Sync Now dabao.');}}
   if(!auto)alert('Sync failed: '+(e&&e.message||e)+'\n\nInternet check karo aur dobara Sync Now dabao.');
