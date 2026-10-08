@@ -12,6 +12,33 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <script id="mms-idb-shim">(function(){
+ // ===== Safari/iPhone Date fix: Chrome 'October 2026 1' / '07-Oct-2026' samajhta hai, Safari nahi (Invalid Date) =====
+ // Sirf tab lagta hai jab browser ka apna parse fail ho, isliye Chrome/Android par koi farq nahi.
+ (function(){
+  var D=window.Date,MN=['january','february','march','april','may','june','july','august','september','october','november','december'];
+  function mi(s){s=String(s).toLowerCase().replace('.','');for(var i=0;i<12;i++){if(MN[i]===s||MN[i].slice(0,3)===s.slice(0,3)&&s.length<=MN[i].length&&MN[i].indexOf(s)===0)return i}return -1}
+  function hh(h,ap){h=+h;if(ap){ap=ap.toLowerCase();if(ap==='pm'&&h<12)h+=12;if(ap==='am'&&h===12)h=0}return h}
+  function fix(s){
+   var m;s=String(s).trim();
+   if(m=/^([A-Za-z]{3,9})\.?,?\s+(\d{4})\s+(\d{1,2})$/.exec(s)){var a=mi(m[1]);if(a>=0)return [+m[2],a,+m[3]]}                     // October 2026 1
+   if(m=/^([A-Za-z]{3,9})\.?,?\s+(\d{4})$/.exec(s)){var b=mi(m[1]);if(b>=0)return [+m[2],b,1]}                                      // October 2026
+   if(m=/^(\d{1,2})[-\/ ]([A-Za-z]{3,9})\.?[-\/ ,]+(\d{4})(?:[ T,]+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?)?$/i.exec(s)){          // 07-Oct-2026 [10:07 PM]
+    var c=mi(m[2]);if(c>=0)return [+m[3],c,+m[1],m[4]?hh(m[4],m[7]):0,m[5]?+m[5]:0,m[6]?+m[6]:0]}
+   if(m=/^(\d{4})-(\d{1,2})-(\d{1,2})[ T]+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?$/i.exec(s))                                       // 2026-10-07 22:07
+    return [+m[1],+m[2]-1,+m[3],hh(m[4],m[7]),+m[5],m[6]?+m[6]:0];
+   return null;
+  }
+  function SD(){
+   var a=Array.prototype.slice.call(arguments);
+   if(!new.target)return D();
+   if(a.length===1&&typeof a[0]==='string'&&isNaN(D.parse(a[0]))){var f=fix(a[0]);if(f)a=f}
+   return Reflect.construct(D,a,new.target);
+  }
+  SD.prototype=D.prototype;Object.setPrototypeOf(SD,D);
+  SD.parse=function(s){var v=D.parse(s);if(isNaN(v)&&typeof s==='string'){var f=fix(s);if(f)return new D(f[0],f[1],f[2],f[3]||0,f[4]||0,f[5]||0).getTime()}return v};
+  try{D.prototype.constructor=SD}catch(e){}
+  window.Date=SD;window.__mmsDateFix=fix;
+ })();
  // ===== MMS storage shim: localStorage ki jagah IndexedDB (iPhone ~5MB limit se bachne ke liye) =====
  // App ka baaki code bina badle 'localStorage' bolta hai; data memory me rehta hai aur peeche IndexedDB me save hota hai.
  // IndexedDB na chale to app purane localStorage par hi chalta hai.
@@ -1064,6 +1091,7 @@ main.wrap{margin-left:252px;padding:94px 22px 25px;max-width:none}.sidebar-overl
     </div>
   </div>
 </div>
+<datalist id="pmObsList"><option value="Found OK"><option value="Not OK"><option value="Cleaning OK"></datalist>
 <div class="card"><div class="tablewrap"><table class="tbl pm-table"><thead><tr><th>S.No.</th><th>Freq.</th><th>Activity (Electrical + Mechanical)</th><th>Standard</th><th>Method</th><th>Observation</th><th>Work Done</th><th>Remark</th><th>Photo / Evidence</th><th>Checklist Action</th></tr></thead><tbody id="pmBody"></tbody></table></div></div>
 <div class="card"><div class="head2">Saved Preventive Maintenance Records</div><div class="tablewrap"><table class="tbl"><thead><tr><th>Date</th><th>Checklist</th><th>Machine No.</th><th>Start</th><th>End</th><th>Checked By</th><th>Verified By</th><th>Action</th></tr></thead><tbody id="pmHistoryBody"></tbody></table></div></div>
 </section>
@@ -2090,6 +2118,14 @@ function saveSparePart(){
   if(min<0||max<=0||available<0)return alert('Minimum and Maximum Quantity must be valid, and Available Quantity cannot be negative.');
   if(min>max)return alert('Minimum Quantity cannot be greater than Maximum Quantity.');
   if(available>max)return alert('Available Quantity cannot be greater than Maximum Quantity.');
+  if(old){ // naam/spec badla to linked Critical record ko bhi wahi naya naam do, warna sync usse purane naam se naya spare bana deta tha (duplicate)
+    const oK=spareLinkKey(old.desc,old.spec),nD=canonicalPartText(f('sp_desc')),nS=canonicalPartText(f('sp_spec')),nK=spareLinkKey(nD,nS);
+    if(oK!==nK){
+      const clash=data.spares.find(x=>x!==old&&spareLinkKey(x.desc,x.spec)===nK);
+      if(clash&&!confirm('Is naam aur specification ka part Spare List me pehle se maujood hai:\n\n'+clash.desc+(clash.spec?' - '+clash.spec:'')+'\n\nPhir bhi save karein? (Duplicate ban sakta hai)'))return;
+      data.critical.forEach(c=>{if(spareLinkKey(c.desc,c.spec)===oK){c.desc=nD;c.spec=nS;c.updatedAt=new Date().toISOString()}});
+    }
+  }
   let r={id:old?.id||Date.now(),sno:num(f('sp_sno'))||data.spares.length+1,code:f('sp_code'),desc:f('sp_desc'),spec:f('sp_spec'),make:f('sp_make'),min,max,qty:String(available),availableQty:available,loc:f('sp_loc'),updatedAt:new Date().toISOString()};
   if(old){r.qty=String(available);r.availableQty=available;}
   let wasEdit=edit.spares!==null;
@@ -2160,6 +2196,14 @@ function saveCriticalSpare(){
   let old=edit.critical!==null?data.critical[edit.critical]:null;
   let r={id:old?.id||Date.now(),sno:num(f('cs_sno'))||data.critical.length+1,code:f('cs_code'),desc:f('cs_desc'),spec:f('cs_spec'),min:num(f('cs_min')),max:num(f('cs_max')),machine:f('cs_machine'),loc:f('cs_loc'),avail:num(f('cs_avail')),remark:f('cs_remark'),updatedAt:new Date().toISOString()};
   if(!r.desc.trim())return alert('Please enter Part Description.');
+  if(old){ // naam/spec badla to linked Spare Inventory record ko rename karo (naya spare nahi banna chahiye)
+    const oK=spareLinkKey(old.desc,old.spec),nD=canonicalPartText(r.desc),nS=canonicalPartText(r.spec),nK=spareLinkKey(nD,nS);
+    if(oK!==nK){
+      const sp=data.spares.find(s=>spareLinkKey(s.desc,s.spec)===oK);
+      const clash=data.spares.find(s=>s!==sp&&spareLinkKey(s.desc,s.spec)===nK);
+      if(sp&&!clash){sp.desc=nD;sp.spec=nS;sp.updatedAt=new Date().toISOString()}
+    }
+  }
   let wasEdit=edit.critical!==null;
   if(wasEdit)data.critical[edit.critical]=r;else data.critical.push(r);
   syncSpareCriticalMaster(true,'critical');edit.critical=null;clearCriticalForm();renderSparePartsTable();renderCriticalTable();
@@ -2758,7 +2802,7 @@ function renderPMRows(rows){
  let body=document.getElementById('pmBody');if(!body)return;
  rows=normalizePMRows(rows);
  const saved=window.__pmLoadedEntries||[];
- body.innerHTML=rows.map((r,i)=>{const imgs=(PM_METHOD_IMAGES[f('pm_template')]||{})[String(i)]||[]; const methodHtml=imgs.map(im=>`<img class="pm-method-img" src="${im.src}" style="max-width:180px;height:auto;display:block;margin:3px auto;cursor:zoom-in" onclick="window.open(this.src,'_blank')">`).join(''); const ev=Array.isArray(saved[i]?.evidence)?saved[i].evidence:[]; return `<tr data-pm-index="${i}"><td>${r.sno}</td><td>${esc(r.freq)}</td><td>${esc(r.activity)}</td><td>${esc(r.standard)}</td><td>${esc(r.method)}${methodHtml}</td><td><select class="pm-obs"><option value="">Select</option><option>Found OK</option><option>Not OK</option><option>Cleaning OK</option></select></td><td><select class="pm-work"><option value="">Select</option><option>OK</option><option>Not OK</option></select></td><td><input class="pm-rem" placeholder="Remark"></td><td>${pmEvidenceHtml(i,ev)}</td><td><div class="pm-editor-actions"><button class="secondary" onclick="editPMCheckpoint(${i})">Edit</button><button class="danger" onclick="deletePMCheckpoint(${i})">Delete</button></div></td></tr>`}).join('');
+ body.innerHTML=rows.map((r,i)=>{const imgs=(PM_METHOD_IMAGES[f('pm_template')]||{})[String(i)]||[]; const methodHtml=imgs.map(im=>`<img class="pm-method-img" src="${im.src}" style="max-width:180px;height:auto;display:block;margin:3px auto;cursor:zoom-in" onclick="window.open(this.src,'_blank')">`).join(''); const ev=Array.isArray(saved[i]?.evidence)?saved[i].evidence:[]; return `<tr data-pm-index="${i}"><td>${r.sno}</td><td>${esc(r.freq)}</td><td>${esc(r.activity)}</td><td>${esc(r.standard)}</td><td>${esc(r.method)}${methodHtml}</td><td><input class="pm-obs" list="pmObsList" autocomplete="off" placeholder="Select / type…" onfocus="this.dataset.t='';this.dataset.v=this.value;this.value=''" oninput="this.dataset.t='1'" onblur="if(!this.value&&!this.dataset.t)this.value=this.dataset.v||''"></td><td><select class="pm-work"><option value="">Select</option><option>OK</option><option>Not OK</option></select></td><td><input class="pm-rem" placeholder="Remark"></td><td>${pmEvidenceHtml(i,ev)}</td><td><div class="pm-editor-actions"><button class="secondary" onclick="editPMCheckpoint(${i})">Edit</button><button class="danger" onclick="deletePMCheckpoint(${i})">Delete</button></div></td></tr>`}).join('');
  window.__pmLoadedEntries=null;
  restorePMSpareUsed(saved);
 }
@@ -2992,7 +3036,43 @@ function addSparePartRow(part='',qty='',focus=true,spareLink=''){
 }
 function handleMRSpareSelect(sel){
   if(!sel)return;
-  if(sel.value==='__UNLISTED__'){const u=promptUnlistedSpare();if(!u){sel.value='';updateSpareLegacyFields();return;}const link=makeUnlistedSpareLink(u);addUnlistedOption(sel,link,u);const row=sel.closest('.spare-row');if(row&&!row.querySelector('.spare-qty').value)row.querySelector('.spare-qty').value='1';}
+  if(sel.value==='__UNLISTED__'){const u=promptUnlistedSpare();if(!u){sel.value='';updateSpareLegacyFields();return;}const link=makeUnlistedSpareLink(u);addUnlistedOption(sel,link,u);const row=sel.closest('.spare-row');if(row&&!row.querySelector('.spare-qty').value)row.querySelector('.spare-qty').value='1';
+    try{mrOfferRegisterUnlisted(sel,u)}catch(e){console.warn('Unlisted register offer skipped',e)}}
+}
+function mmsCanSaveQuiet(k){const s=mmsSession();if(!s)return false;if(s.role==='Admin')return true;const rec=mmsCurrentUserRecord();const perms=(rec&&rec.perms)||mmsDefaultPermsForRole(s.role);return !!(perms[k]&&perms[k].save)}
+// Unlisted part chunne ke baad: Spare Parts List aur/ya Critical Spare List me bhi add karna hai ya nahi (permission ke hisab se)
+function mrOfferRegisterUnlisted(sel,u){
+  const canSp=mmsCanSaveQuiet('spares'),canCr=mmsCanSaveQuiet('critical');
+  if(!canSp&&!canCr)return false;
+  const label=unlistedSpareLabel(u);
+  const addSp=canSp&&confirm('Part: '+label+'\n\nIs part ko SPARE PARTS LIST (Inventory) me bhi add karna hai?\n\nOK = Haan, add karo\nCancel = Nahi');
+  const addCr=canCr&&confirm('Part: '+label+'\n\nIs part ko CRITICAL SPARE LIST me bhi add karna hai?\n(Critical me add hone par ye Spare Parts List me bhi apne aap judega.)\n\nOK = Haan, add karo\nCancel = Nahi');
+  if(!addSp&&!addCr)return false;
+  const row=sel.closest('.spare-row'),qEl=row&&row.querySelector('.spare-qty');
+  const used=Math.max(1,num(qEl&&qEl.value)||1);
+  let av=prompt('Available Quantity (is slip me use hone se PEHLE ka stock):\n\nUse hui qty ('+used+') slip save karne par isi stock se ghat jayegi.',String(used));
+  if(av===null)return false;av=Math.max(0,num(av));
+  if(av<used){alert('Available Quantity use hui qty ('+used+') se kam nahi ho sakti. List me add nahi kiya gaya.');return false}
+  let mn=prompt('Minimum Quantity:','0');if(mn===null)return false;mn=Math.max(0,num(mn));
+  let mx=prompt('Maximum Quantity:',String(Math.max(av,1)));if(mx===null)return false;mx=Math.max(num(mx),mn,av,1);
+  let loc=prompt('Location (optional):','');if(loc===null)return false;
+  let mc='';if(addCr){mc=prompt('Machine (optional):','');if(mc===null)return false}
+  const now=new Date().toISOString(),base=Date.now();
+  const part=canonicalPartText(u.part),spec=canonicalPartText(u.spec),make=canonicalPartText(u.make),key=spareLinkKey(part,spec);
+  let s=data.spares.find(x=>spareLinkKey(x.desc,x.spec)===key);
+  if(!s){s={id:base,sno:data.spares.length+1,code:'',desc:part,spec,make,min:mn,max:mx,qty:String(av),availableQty:av,loc:loc.trim(),updatedAt:now};data.spares.push(s)}
+  if(addCr&&!data.critical.find(c=>spareLinkKey(c.desc,c.spec)===key)){
+    data.critical.push({id:base+1,sno:data.critical.length+1,code:'',desc:part,spec,min:mn,max:mx,machine:mc.trim(),loc:loc.trim(),avail:av,remark:String(u.remark||''),updatedAt:now});
+  }
+  syncSpareCriticalMaster(true,addCr?'critical':'spares');
+  persist('spares');persist('critical');
+  try{renderSparePartsTable();renderCriticalTable()}catch(e){}
+  s=data.spares.find(x=>spareLinkKey(x.desc,x.spec)===key)||s;
+  const nl='spares:'+s.id;
+  refreshMRSpareSelects();
+  sel.innerHTML=mrSpareOptionList(nl);sel.value=nl;
+  alert('"'+label+'" '+(addCr?'Spare Parts List aur Critical Spare List':'Spare Parts List')+' me add ho gaya.\n\nSlip save karne par use hui qty ('+used+') stock se ghat jayegi.');
+  return true;
 }
 function ensureSpareRow(){const box=document.getElementById('mrSpareParts');if(box&&!box.querySelector('.spare-row'))addSparePartRow('', '', false)}
 function formatSpareParts(parts){return (parts||[]).filter(x=>x.part||x.qty).map(x=>`${x.part}${x.qty!==''?' (Qty: '+x.qty+')':''}`).join(', ')}
