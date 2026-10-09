@@ -2127,7 +2127,7 @@ function saveSparePart(){
     }
   }
   let r={id:old?.id||Date.now(),sno:num(f('sp_sno'))||data.spares.length+1,code:f('sp_code'),desc:f('sp_desc'),spec:f('sp_spec'),make:f('sp_make'),min,max,qty:String(available),availableQty:available,loc:f('sp_loc'),updatedAt:new Date().toISOString()};
-  if(old){r.qty=String(available);r.availableQty=available;}
+  if(old){r.qty=String(available);r.availableQty=available;if(old.lowPlanned!==undefined)r.lowPlanned=old.lowPlanned;}
   let wasEdit=edit.spares!==null;
   if(wasEdit)data.spares[edit.spares]=r;else data.spares.push(r);
   persist('spares');syncSpareCriticalMaster(true);edit.spares=null;clearSpareForm();renderSparePartsTable();
@@ -2196,6 +2196,7 @@ function saveCriticalSpare(){
   let old=edit.critical!==null?data.critical[edit.critical]:null;
   let r={id:old?.id||Date.now(),sno:num(f('cs_sno'))||data.critical.length+1,code:f('cs_code'),desc:f('cs_desc'),spec:f('cs_spec'),min:num(f('cs_min')),max:num(f('cs_max')),machine:f('cs_machine'),loc:f('cs_loc'),avail:num(f('cs_avail')),remark:f('cs_remark'),updatedAt:new Date().toISOString()};
   if(!r.desc.trim())return alert('Please enter Part Description.');
+  if(old&&old.lowPlanned!==undefined)r.lowPlanned=old.lowPlanned;
   if(old){ // naam/spec badla to linked Spare Inventory record ko rename karo (naya spare nahi banna chahiye)
     const oK=spareLinkKey(old.desc,old.spec),nD=canonicalPartText(r.desc),nS=canonicalPartText(r.spec),nK=spareLinkKey(nD,nS);
     if(oK!==nK){
@@ -6215,6 +6216,7 @@ setTimeout(() => {
                 <div class="field"><label>Urgency Level</label><select id="pur_urgency"><option>Normal</option><option>Urgent</option><option>Critical Breakdown</option></select></div>
                 <div class="field"><label>Planned / Request Date</label><input id="pur_req_date" type="date"></div>
                 <div class="field"><label>Status</label><select id="pur_status" onchange="purchaseStatusChanged()"><option>Planned</option><option>Ordered</option><option>Received</option><option>Cancelled</option></select></div>
+                <div class="field"><label>Order Date</label><input id="pur_ord_date" type="date"></div>
                 <div class="field"><label>PO Number</label><input id="pur_po" placeholder="PO-2026-XXXX"></div>
                 <div class="field"><label>Vendor / Supplier Name</label><input id="pur_vendor" placeholder="Supplier firm name"></div>
                 <div class="field"><label>Received Date</label><input id="pur_rec_date" type="date"></div>
@@ -6224,33 +6226,21 @@ setTimeout(() => {
                 <div class="actions wide">
                     <button class="primary" onclick="savePurchaseRecord()">Save Purchase Record</button>
                     <button class="secondary" onclick="clearPurchaseForm()">Clear</button>
-                    <button class="secondary" onclick="printPurchaseRegister()">🖨️ Print Purchase Register</button>
+                    <button class="secondary" onclick="printPurchaseRegister()">🖨️ Print This List</button>
+                    <button class="secondary" onclick="printPurchaseRegister('ALL')">🖨️ Print All</button>
                 </div>
             </div>
         </div>
         <div class="card">
-            <div class="summary">
-                <div class="stat">Total Records: <b id="pur_sum_total">0</b></div>
-                <div class="stat">Planned / Ordered: <b id="pur_sum_pending">0</b></div>
-                <div class="stat">Received Orders: <b id="pur_sum_received">0</b></div>
-            </div>
+            <div id="purTabs" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px"></div>
+            <div class="utility-help" id="purTabHelp"></div>
             <div class="toolbar">
-                <input id="pur_search" placeholder="Search description, PO, vendor, status..." oninput="renderPurchaseTable()">
-                <select id="pur_filter_status" onchange="renderPurchaseTable()">
-                    <option value="">All Status</option>
-                    <option value="Planned">Planned</option>
-                    <option value="Ordered">Ordered</option>
-                    <option value="Received">Received</option>
-                    <option value="Cancelled">Cancelled</option>
-                </select>
+                <input id="pur_search" placeholder="Search in this list (part, PO, vendor, remark...)" oninput="renderPurchaseTable()">
+                <span id="purCount" style="font-weight:bold;align-self:center"></span>
             </div>
             <div class="tablewrap">
                 <table class="tbl">
-                    <thead>
-                        <tr>
-                            <th>Sr.No.</th><th>Part Description</th><th>Specification</th><th>Qty Needed</th><th>Urgency</th><th>Req. Date</th><th>Status</th><th>PO No. & Vendor</th><th>Received Date & Qty</th><th>Cost (₹)</th><th>Remark</th><th>Action</th>
-                        </tr>
-                    </thead>
+                    <thead id="purHead"></thead>
                     <tbody id="purBody"></tbody>
                 </table>
             </div>
@@ -6262,6 +6252,7 @@ setTimeout(() => {
 
 // 3. Purchase Module Functions
 let editPurchaseIndex = null;
+let purTab = 'Planned';
 
 function nextPurchaseSno() {
     let list = Array.isArray(data.sparePurchase) ? data.sparePurchase : [];
@@ -6270,7 +6261,7 @@ function nextPurchaseSno() {
 
 function clearPurchaseForm() {
     editPurchaseIndex = null;
-    ['pur_id', 'pur_desc', 'pur_spec', 'pur_po', 'pur_vendor', 'pur_rec_qty', 'pur_cost', 'pur_remark'].forEach(id => setv(id, ''));
+    ['pur_id', 'pur_desc', 'pur_spec', 'pur_po', 'pur_vendor', 'pur_rec_qty', 'pur_cost', 'pur_remark', 'pur_ord_date'].forEach(id => setv(id, ''));
     setv('pur_sno', nextPurchaseSno());
     setv('pur_qty', '1');
     setv('pur_urgency', 'Normal');
@@ -6285,10 +6276,48 @@ function purchaseStatusChanged() {
     let st = f('pur_status');
     let recDate = document.getElementById('pur_rec_date');
     let recQty = document.getElementById('pur_rec_qty');
+    let ordDate = document.getElementById('pur_ord_date');
+    if (st === 'Ordered' && ordDate && !ordDate.value) ordDate.value = new Date().toISOString().slice(0, 10);
     if (st === 'Received') {
         if (recDate && !recDate.value) recDate.value = new Date().toISOString().slice(0, 10);
         if (recQty && !recQty.value) recQty.value = f('pur_qty') || '1';
     }
+}
+
+// Received hone par stock Spare Inventory me add karna (pehle save ke andar tha, ab quick "Mark Received" bhi yahi use karta hai)
+function purchaseAddToInventory(r) {
+    let addedToInventory = false;
+    if (confirm(`Status is 'Received'. Do you want to automatically add ${r.recQty} qty of "${r.desc}" to the Spare Parts Inventory master?`)) {
+        let existingSpare = (data.spares || []).find(s => normalizeSpareName(s.desc) === normalizeSpareName(r.desc) && (!r.spec || normalizeSpareName(s.spec) === normalizeSpareName(r.spec)));
+        if (existingSpare) {
+            let cur = inventoryAvailableQty(existingSpare);
+            syncSpareAvailable(existingSpare, cur + r.recQty);
+            addedToInventory = true;
+        } else {
+            let newSp = {
+                id: 'sp-pur-' + Date.now(),
+                sno: (data.spares || []).length + 1,
+                code: r.po || '',
+                desc: r.desc,
+                spec: r.spec,
+                make: r.vendor || '',
+                min: 1,
+                max: Math.max(5, r.recQty * 2),
+                qty: String(r.recQty),
+                availableQty: r.recQty,
+                loc: 'Main Store',
+                updatedAt: new Date().toISOString()
+            };
+            if (!Array.isArray(data.spares)) data.spares = [];
+            data.spares.push(newSp);
+            addedToInventory = true;
+        }
+        if (typeof persist === 'function') {
+            persist('spares');
+            if (typeof syncSpareCriticalMaster === 'function') syncSpareCriticalMaster(true);
+        }
+    }
+    return addedToInventory;
 }
 
 function savePurchaseRecord() {
@@ -6315,6 +6344,7 @@ function savePurchaseRecord() {
         status: newStatus,
         po: (f('pur_po') || '').trim(),
         vendor: (f('pur_vendor') || '').trim(),
+        ordDate: f('pur_ord_date'),
         recDate: f('pur_rec_date'),
         recQty: newStatus === 'Received' ? (recQty > 0 ? recQty : qty) : 0,
         cost: num(f('pur_cost')),
@@ -6326,37 +6356,7 @@ function savePurchaseRecord() {
     // toh optional prompt de sakte hain ya automatic spare inventory mein stock add kar sakte hain.
     let addedToInventory = false;
     if (newStatus === 'Received' && (!oldRecord || oldRecord.status !== 'Received')) {
-        if (confirm(`Status is 'Received'. Do you want to automatically add ${r.recQty} qty of "${r.desc}" to the Spare Parts Inventory master?`)) {
-            // Check if spare exists in main inventory, else create it
-            let existingSpare = (data.spares || []).find(s => normalizeSpareName(s.desc) === normalizeSpareName(r.desc) && (!r.spec || normalizeSpareName(s.spec) === normalizeSpareName(r.spec)));
-            if (existingSpare) {
-                let cur = inventoryAvailableQty(existingSpare);
-                syncSpareAvailable(existingSpare, cur + r.recQty);
-                addedToInventory = true;
-            } else {
-                let newSp = {
-                    id: 'sp-pur-' + Date.now(),
-                    sno: (data.spares || []).length + 1,
-                    code: r.po || '',
-                    desc: r.desc,
-                    spec: r.spec,
-                    make: r.vendor || '',
-                    min: 1,
-                    max: Math.max(5, r.recQty * 2),
-                    qty: String(r.recQty),
-                    availableQty: r.recQty,
-                    loc: 'Main Store',
-                    updatedAt: new Date().toISOString()
-                };
-                if (!Array.isArray(data.spares)) data.spares = [];
-                data.spares.push(newSp);
-                addedToInventory = true;
-            }
-            if (typeof persist === 'function') {
-                persist('spares');
-                if (typeof syncSpareCriticalMaster === 'function') syncSpareCriticalMaster(true);
-            }
-        }
+        addedToInventory = purchaseAddToInventory(r);
     }
 
     if (editPurchaseIndex !== null) {
@@ -6367,49 +6367,126 @@ function savePurchaseRecord() {
 
     if (typeof persist === 'function') persist('sparePurchase');
     clearPurchaseForm();
+    if (['Planned', 'Ordered', 'Received', 'Cancelled'].includes(r.status)) purTab = r.status;   // save ke baad usi status ki list khul jaye
     renderPurchaseTable();
     if (typeof renderSparePartsTable === 'function') renderSparePartsTable();
     
     alert('Purchase record saved successfully.' + (addedToInventory ? '\n\nSpare stock successfully updated in Inventory!' : ''));
 }
 
+// ---- Alag-alag lists: Planned / Ordered / Received / Cancelled ----
+const PUR_TABS = [
+    { st: 'Planned',   icon: '📝', color: '#2563eb', help: 'PLANNED: abhi order nahi hua - future ke liye plan kiye gaye parts. Order hone par "Mark Ordered" dabao.' },
+    { st: 'Ordered',   icon: '📦', color: '#d97706', help: 'ORDERED: order ho chuka (PO / Vendor), maal abhi aana baaki hai. Maal aane par "Mark Received" dabao.' },
+    { st: 'Received',  icon: '✅', color: '#15803d', help: 'RECEIVED: maal aa chuka. Stock Spare Inventory me add hota hai.' },
+    { st: 'Cancelled', icon: '✖', color: '#6b7280', help: 'CANCELLED: band / cancel kiye gaye records.' }
+];
+function purStatusOf(r) { return PUR_TABS.some(t => t.st === r.status) ? r.status : 'Planned'; }
+function purUrg(r, plain) {
+    let bad = r.urgency === 'Urgent' || r.urgency === 'Critical Breakdown';
+    return plain || !bad ? esc(r.urgency || '') : `<span style="color:#c0392b;font-weight:bold">${esc(r.urgency)}</span>`;
+}
+const PUR_COLS = (function () {
+    const desc = ['Part Description', (r) => `<b>${esc(r.desc)}</b>`];
+    const spec = ['Specification', (r) => esc(r.spec)];
+    const remark = ['Remark', (r) => esc(r.remark)];
+    const po = ['PO No.', (r) => esc(r.po || '—')];
+    const vendor = ['Vendor', (r) => esc(r.vendor || '—')];
+    return {
+        Planned:   [desc, spec, ['Qty Needed', (r) => `<b>${esc(r.qty)}</b>`], ['Urgency', purUrg], ['Planned Date', (r) => esc(fmtDate(r.reqDate))], remark],
+        Ordered:   [desc, spec, ['Qty Ordered', (r) => `<b>${esc(r.qty)}</b>`], ['Urgency', purUrg], ['Order Date', (r) => esc(fmtDate(r.ordDate || '')) || '—'], po, vendor, remark],
+        Received:  [desc, spec, ['Qty Ordered', (r) => esc(r.qty)], ['Received Date', (r) => esc(fmtDate(r.recDate)) || '—'], ['Qty Received', (r) => `<b>${esc(r.recQty)}</b>`], po, vendor, ['Cost (₹)', (r) => r.cost > 0 ? '₹' + Number(r.cost).toFixed(2) : '—'], remark],
+        Cancelled: [desc, spec, ['Qty', (r) => esc(r.qty)], ['Urgency', purUrg], ['Planned Date', (r) => esc(fmtDate(r.reqDate))], remark]
+    };
+})();
+function purSort(st, a) {
+    const pr = { 'Critical Breakdown': 0, 'Urgent': 1, 'Normal': 2 };
+    const d = (x) => x || '';
+    if (st === 'Planned') a.sort((x, y) => ((pr[x.urgency] ?? 2) - (pr[y.urgency] ?? 2)) || d(x.reqDate).localeCompare(d(y.reqDate)));
+    else if (st === 'Ordered') a.sort((x, y) => d(x.ordDate || x.reqDate).localeCompare(d(y.ordDate || y.reqDate)));
+    else if (st === 'Received') a.sort((x, y) => d(y.recDate).localeCompare(d(x.recDate)));
+    else a.sort((x, y) => d(y.reqDate).localeCompare(d(x.reqDate)));
+    return a;
+}
+function purSetTab(st) { purTab = st; renderPurchaseTable(); }
+
 function renderPurchaseTable() {
-    let body = document.getElementById('purBody');
-    if (!body) return;
+    let body = document.getElementById('purBody'), head = document.getElementById('purHead');
+    if (!body || !head) return;
     if (!Array.isArray(data.sparePurchase)) data.sparePurchase = [];
+    if (!PUR_TABS.some(t => t.st === purTab)) purTab = 'Planned';
+
+    let all = data.sparePurchase;
+    let counts = {};
+    PUR_TABS.forEach(t => counts[t.st] = 0);
+    all.forEach(r => counts[purStatusOf(r)]++);
+
+    let tabsEl = document.getElementById('purTabs');
+    if (tabsEl) tabsEl.innerHTML = PUR_TABS.map(t => {
+        let on = t.st === purTab;
+        return `<button type="button" onclick="purSetTab('${t.st}')" style="padding:9px 14px;border-radius:10px;font-weight:bold;cursor:pointer;border:2px solid ${t.color};` +
+            `background:${on ? t.color : '#fff'};color:${on ? '#fff' : t.color}">${t.icon} ${t.st} <span style="background:${on ? 'rgba(255,255,255,.25)' : '#eee'};color:${on ? '#fff' : '#333'};border-radius:20px;padding:1px 8px;margin-left:4px">${counts[t.st]}</span></button>`;
+    }).join('');
+    let tabDef = PUR_TABS.find(t => t.st === purTab);
+    setText('purTabHelp', tabDef.help);
 
     let q = (f('pur_search') || '').toLowerCase();
-    let st = f('pur_filter_status') || '';
-
-    let a = data.sparePurchase.filter(r => (!st || r.status === st) && (!q || Object.values(r).join(' ').toLowerCase().includes(q)));
-    a.sort((x, y) => (y.reqDate || '').localeCompare(x.reqDate || ''));
+    let a = purSort(purTab, all.filter(r => purStatusOf(r) === purTab && (!q || Object.values(r).join(' ').toLowerCase().includes(q))));
+    let cols = PUR_COLS[purTab];
+    head.innerHTML = '<tr><th>Sr.No.</th>' + cols.map(c => `<th>${c[0]}</th>`).join('') + '<th>Action</th></tr>';
 
     body.innerHTML = a.map((r, i) => {
-        let realIdx = data.sparePurchase.indexOf(r);
-        let cls = r.status === 'Received' ? 'req-closed' : (r.status === 'Cancelled' ? '' : 'req-open');
-        let urgencyColor = r.urgency === 'Urgent' || r.urgency === 'Critical Breakdown' ? 'color:#c0392b; font-weight:bold;' : '';
-        return `<tr>
-            <td>${i + 1}</td>
-            <td><b>${esc(r.desc)}</b></td>
-            <td>${esc(r.spec)}</td>
-            <td><b>${esc(r.qty)}</b></td>
-            <td style="${urgencyColor}">${esc(r.urgency)}</td>
-            <td>${esc(fmtDate(r.reqDate))}</td>
-            <td class="${cls}">${esc(r.status)}</td>
-            <td>${esc(r.po || '—')}<br><small style="color:#666">${esc(r.vendor || '')}</small></td>
-            <td>${r.status === 'Received' ? esc(fmtDate(r.recDate)) + ' (Qty: ' + esc(r.recQty) + ')' : '—'}</td>
-            <td>${r.cost > 0 ? '₹' + Number(r.cost).toFixed(2) : '—'}</td>
-            <td style="text-align:left; max-width:180px; white-space:normal;">${esc(r.remark)}</td>
-            <td class="editbar">
-                <button class="secondary" onclick="editPurchaseRecord(${realIdx})">Edit</button>
-                <button class="danger" onclick="deletePurchaseRecord(${realIdx})">Delete</button>
-            </td>
-        </tr>`;
-    }).join('') || '<tr><td colspan="12">No purchase records found.</td></tr>';
+        let realIdx = all.indexOf(r);
+        let quick = purTab === 'Planned' ? `<button class="secondary" onclick="purchaseMarkOrdered(${realIdx})">📦 Mark Ordered</button>`
+            : purTab === 'Ordered' ? `<button class="secondary" onclick="purchaseMarkReceived(${realIdx})">✅ Mark Received</button>`
+            : purTab === 'Cancelled' ? `<button class="secondary" onclick="purchaseReplan(${realIdx})">↩ Re-plan</button>` : '';
+        return `<tr><td>${i + 1}</td>` + cols.map(c => `<td${c[0] === 'Remark' ? ' style="text-align:left;max-width:180px;white-space:normal"' : ''}>${c[1](r)}</td>`).join('') +
+            `<td class="editbar">${quick}<button class="secondary" onclick="editPurchaseRecord(${realIdx})">Edit</button><button class="danger" onclick="deletePurchaseRecord(${realIdx})">Delete</button></td></tr>`;
+    }).join('') || `<tr><td colspan="${cols.length + 2}">${q ? 'Is search me koi record nahi mila.' : 'Is list me abhi koi record nahi hai.'}</td></tr>`;
+    setText('purCount', a.length + ' record(s)');
+}
 
-    setText('pur_sum_total', data.sparePurchase.length);
-    setText('pur_sum_pending', data.sparePurchase.filter(x => x.status === 'Planned' || x.status === 'Ordered').length);
-    setText('pur_sum_received', data.sparePurchase.filter(x => x.status === 'Received').length);
+function purToday() { return new Date().toISOString().slice(0, 10); }
+function purAskDate(label, def) {
+    let v = prompt(label + ' (YYYY-MM-DD):', def);
+    if (v === null) return null;
+    v = v.trim();
+    return /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : def;
+}
+// Planned -> Ordered (form khole bina)
+function purchaseMarkOrdered(i) {
+    if (typeof mmsGuardEdit === 'function' && !mmsGuardEdit('sparePurchase')) return;
+    let r = data.sparePurchase[i]; if (!r) return;
+    let po = prompt('PO Number (optional):', r.po || ''); if (po === null) return;
+    let vendor = prompt('Vendor / Supplier name (optional):', r.vendor || ''); if (vendor === null) return;
+    let d = purAskDate('Order Date', r.ordDate || purToday()); if (d === null) return;
+    r.status = 'Ordered'; r.po = po.trim(); r.vendor = vendor.trim(); r.ordDate = d; r.updatedAt = new Date().toISOString();
+    if (typeof persist === 'function') persist('sparePurchase');
+    purTab = 'Ordered'; renderPurchaseTable();
+}
+// Ordered -> Received (+ optional stock add in Spare Inventory)
+function purchaseMarkReceived(i) {
+    if (typeof mmsGuardEdit === 'function' && !mmsGuardEdit('sparePurchase')) return;
+    let r = data.sparePurchase[i]; if (!r) return;
+    let d = purAskDate('Received Date', r.recDate || purToday()); if (d === null) return;
+    let q = prompt('Quantity Received:', String(r.recQty > 0 ? r.recQty : r.qty)); if (q === null) return;
+    let rq = num(q); if (rq <= 0) rq = num(r.qty);
+    let c = prompt('Total Cost in ₹ (optional):', r.cost > 0 ? String(r.cost) : ''); if (c === null) return;
+    let wasReceived = r.status === 'Received';
+    r.status = 'Received'; r.recDate = d; r.recQty = rq; r.cost = num(c); r.updatedAt = new Date().toISOString();
+    let added = false;
+    if (!wasReceived) added = purchaseAddToInventory(r);
+    if (typeof persist === 'function') persist('sparePurchase');
+    purTab = 'Received'; renderPurchaseTable();
+    if (typeof renderSparePartsTable === 'function') renderSparePartsTable();
+    if (added) alert('Received list me chala gaya.\n\nSpare stock Inventory me update ho gaya.');
+}
+function purchaseReplan(i) {
+    if (typeof mmsGuardEdit === 'function' && !mmsGuardEdit('sparePurchase')) return;
+    let r = data.sparePurchase[i]; if (!r) return;
+    r.status = 'Planned'; r.updatedAt = new Date().toISOString();
+    if (typeof persist === 'function') persist('sparePurchase');
+    purTab = 'Planned'; renderPurchaseTable();
 }
 
 function editPurchaseRecord(i) {
@@ -6427,6 +6504,7 @@ function editPurchaseRecord(i) {
     setv('pur_status', r.status);
     setv('pur_po', r.po);
     setv('pur_vendor', r.vendor);
+    setv('pur_ord_date', r.ordDate || '');
     setv('pur_rec_date', r.recDate);
     setv('pur_rec_qty', r.recQty);
     setv('pur_cost', r.cost);
@@ -6444,46 +6522,155 @@ function deletePurchaseRecord(i) {
     renderPurchaseTable();
 }
 
-function printPurchaseRegister() {
-    let a = data.sparePurchase || [];
-    let body = a.map((r, i) => `<tr>
-        <td>${i + 1}</td>
-        <td><b>${esc(r.desc)}</b></td>
-        <td>${esc(r.spec)}</td>
-        <td>${esc(r.qty)}</td>
-        <td>${esc(r.urgency)}</td>
-        <td>${esc(fmtDate(r.reqDate))}</td>
-        <td>${esc(r.status)}</td>
-        <td>${esc(r.po)} / ${esc(r.vendor)}</td>
-        <td>${r.status === 'Received' ? esc(fmtDate(r.recDate)) + ' (Qty: ' + esc(r.recQty) + ')' : '—'}</td>
-        <td>${r.cost > 0 ? '₹' + Number(r.cost).toFixed(2) : '—'}</td>
-        <td style="text-align:left">${esc(r.remark)}</td>
-    </tr>`).join('');
+function printPurchaseRegister(mode) {
+    let all = data.sparePurchase || [];
+    let sections = (mode === 'ALL' ? PUR_TABS.map(t => t.st) : [purTab]).map(st => {
+        let rows = purSort(st, all.filter(r => purStatusOf(r) === st));
+        let cols = PUR_COLS[st];
+        let body = rows.map((r, i) => `<tr><td>${i + 1}</td>` + cols.map(c => `<td${c[0] === 'Remark' ? ' style="text-align:left"' : ''}>${c[0] === 'Urgency' ? purUrg(r, true) : c[1](r)}</td>`).join('') + '</tr>').join('');
+        return `<div class="sub2">${st.toUpperCase()} LIST (${rows.length})</div><table><thead><tr><th>Sr.No.</th>${cols.map(c => `<th>${c[0]}</th>`).join('')}</tr></thead><tbody>${body || `<tr><td colspan="${cols.length + 1}">No records</td></tr>`}</tbody></table>`;
+    }).join('<br>');
 
     let w = window.open('', '_blank', 'width=1200,height=800');
     if (!w) return alert('Please allow pop-ups to print.');
-    w.document.write(`<!doctype html><html><head><title>Spare Part Purchase & Receipt Register</title><style>
+    w.document.write(`<!doctype html><html><head><title>Spare Part Purchase Register</title><style>
         @page{size:A4 landscape;margin:8mm}
         body{font-family:Arial;font-size:10px}
         .title{text-align:center;font-size:16px;font-weight:bold}
         .title img{width:16mm;height:12mm;object-fit:contain;vertical-align:middle;margin-right:5mm}
         .sub{text-align:center;font-size:13px;font-weight:bold;margin:4px 0 10px}
+        .sub2{font-size:12px;font-weight:bold;margin:8px 0 4px}
         table{width:100%;border-collapse:collapse}
         th,td{border:1px solid #000;padding:5px;text-align:center}
         th{background:#eee}
     </style></head><body>
     <div class="title"><img src="${typeof APP_LOGO !== 'undefined' ? APP_LOGO : ''}">MILESTONE GEARS LTD. UNIT-7</div>
     <div class="sub">SPARE PART PURCHASE PLANNING & RECEIPT REGISTER</div>
-    <table>
-        <thead>
-            <tr><th>Sr.No.</th><th>Part Description</th><th>Specification</th><th>Qty Needed</th><th>Urgency</th><th>Req. Date</th><th>Status</th><th>PO & Vendor</th><th>Received Date & Qty</th><th>Cost (₹)</th><th>Remark</th></tr>
-        </thead>
-        <tbody>${body || '<tr><td colspan="11">No records</td></tr>'}</tbody>
-    </table>
+    ${sections}
     <script>window.onload=()=>window.print()<\/script>
     </body></html>`);
     w.document.close();
 }
+
+// =================================================================
+// AUTO PLAN: Spare Inventory / Critical Spare me low stock hote hi Purchase > Planned list me add
+// Low stock = Available < Minimum (jaisa Inventory/Critical table me "LOW" dikhta hai).
+// Har record par lowPlanned flag rehta hai: ek low-stock cycle ke liye ek hi baar plan banta hai; stock theek hone par flag hat jata hai.
+// =================================================================
+function purHash(z) { let x = 5381; for (let i = 0; i < z.length; i++) x = ((x << 5) + x + z.charCodeAt(i)) | 0; return (x >>> 0).toString(36); }
+function purMatches(p, desc, spec) {
+    return normalizeSpareName(p.desc) === normalizeSpareName(desc) && (!p.spec || normalizeSpareName(p.spec) === normalizeSpareName(spec));
+}
+function purToast(msg) {
+    try {
+        let t = document.createElement('div');
+        t.textContent = msg;
+        t.style.cssText = 'position:fixed;left:50%;bottom:70px;transform:translateX(-50%);max-width:90%;background:#1e293b;color:#fff;padding:10px 16px;border-radius:12px;font:600 13px Arial;z-index:99999;box-shadow:0 4px 14px rgba(0,0,0,.35);text-align:center';
+        document.body.appendChild(t);
+        setTimeout(() => t.remove(), 6000);
+    } catch (e) {}
+}
+function purLowEntries() {
+    const map = {};
+    const get = (desc, spec, make) => {
+        const k = spareLinkKey(desc, spec);
+        if (!k.split('||')[0]) return null;
+        return map[k] || (map[k] = { key: k, desc: canonicalPartText(desc), spec: canonicalPartText(spec), make: canonicalPartText(make), recs: [], low: false, critical: false, avail: 0, min: 0, max: 0 });
+    };
+    (data.spares || []).forEach(s => {
+        const e = get(s.desc, s.spec, s.make); if (!e) return;
+        e.recs.push(s);
+        if (spareStatus(s) === 'LOW') { e.low = true; e.avail = inventoryAvailableQty(s); e.min = num(s.min); e.max = num(s.max); }
+    });
+    (data.critical || []).forEach(c => {
+        const e = get(c.desc, c.spec, ''); if (!e) return;
+        e.recs.push(c); e.critical = true;
+        if (criticalStatus(c) === 'Low') { if (!e.low) { e.avail = num(c.avail); e.min = num(c.min); e.max = num(c.max); } e.low = true; }
+    });
+    return Object.values(map);
+}
+function purchaseAutoPlanLowStock() {
+    if (window.__purAutoBusy) return 0;
+    if (typeof spareStatus !== 'function' || typeof criticalStatus !== 'function' || !Array.isArray(data.spares)) return 0;
+    const sess = (typeof mmsSession === 'function') ? mmsSession() : null;
+    if (!sess) return 0;                                   // login ke baad hi
+    window.__purAutoBusy = true;
+    try {
+        if (!Array.isArray(data.sparePurchase)) data.sparePurchase = [];
+        const entries = purLowEntries();
+        const baselineDone = entries.some(e => e.recs.some(r => r.lowPlanned !== undefined));
+        const needPlan = entries.filter(e => e.low && !e.recs.some(r => r.lowPlanned));
+        let addOK = true, spChanged = false, crChanged = false, added = [];
+
+        if (!baselineDone) {
+            // Pehli baar: sirf Admin decide kare ki abhi ke low-stock parts bhi Planned me aayen ya nahi
+            if (sess.role !== 'Admin') return 0;
+            const open0 = needPlan.filter(e => !data.sparePurchase.some(p => ['Planned', 'Ordered'].includes(p.status) && purMatches(p, e.desc, e.spec)));
+            if (open0.length) {
+                const names = open0.slice(0, 8).map(e => '- ' + e.desc + (e.spec ? ' - ' + e.spec : '') + ' (Avail ' + e.avail + ', Min ' + e.min + ')').join('\n');
+                addOK = confirm('Spare Inventory / Critical list me abhi ' + open0.length + ' part low stock me hain:\n\n' + names + (open0.length > 8 ? '\n...aur ' + (open0.length - 8) + ' aur' : '') + '\n\nUnhe Spare Part Purchase > Planned list me add kar dein?\n\nOK = Haan, add karo\nCancel = Nahi (aage se sirf naye low-stock parts apne aap add honge)');
+            }
+        }
+
+        const today = new Date().toISOString().slice(0, 10);
+        entries.forEach(e => {
+            const flagged = e.recs.some(r => r.lowPlanned);
+            if (!e.low) {                                      // stock theek ho gaya: flag hatao taaki agli baar phir plan ban sake
+                e.recs.forEach(r => { if (r.lowPlanned !== false) { r.lowPlanned = false; if (data.spares.includes(r)) spChanged = true; else crChanged = true; } });
+                return;
+            }
+            if (flagged) return;
+            const open = data.sparePurchase.some(p => ['Planned', 'Ordered'].includes(p.status) && purMatches(p, e.desc, e.spec));
+            if (!open && addOK) {
+                const base = 'pur-auto-' + purHash(e.key) + '-';
+                let n = 1; while (data.sparePurchase.some(p => p.id === base + n)) n++;
+                const need = Math.max(1, e.max > 0 ? e.max - e.avail : e.min - e.avail);
+                data.sparePurchase.push({
+                    id: base + n,
+                    sno: nextPurchaseSno(),
+                    desc: e.desc, spec: e.spec,
+                    qty: need,
+                    urgency: (e.critical || e.avail <= 0) ? 'Urgent' : 'Normal',
+                    reqDate: today,
+                    status: 'Planned',
+                    po: '', vendor: e.make || '', ordDate: '', recDate: '', recQty: 0, cost: 0,
+                    remark: 'Auto: Low stock (Available ' + e.avail + ', Min ' + e.min + (e.max > 0 ? ', Max ' + e.max : '') + ')' + (e.critical ? ' [Critical Spare]' : ''),
+                    auto: true,
+                    updatedAt: new Date().toISOString()
+                });
+                added.push(e.desc + (e.spec ? ' - ' + e.spec : ''));
+            }
+            e.recs.forEach(r => { r.lowPlanned = true; if (data.spares.includes(r)) spChanged = true; else crChanged = true; });
+        });
+
+        if (added.length) persist('sparePurchase');
+        if (spChanged) persist('spares');
+        if (crChanged) persist('critical');
+        if (added.length) {
+            try { renderPurchaseTable(); } catch (e2) {}
+            purToast('📝 Low stock: ' + added.length + ' part Purchase > Planned list me add hua' + (added.length <= 3 ? ': ' + added.join(', ') : ''));
+        }
+        return added.length;
+    } finally {
+        window.__purAutoBusy = false;
+    }
+}
+// Stock badalte hi (Spares/Critical save) thodi der baad check; saath me har 20 sec (sync se aaye badlav / login ke baad ke liye)
+(function () {
+    let t = 0;
+    const prev = window.persist;
+    if (typeof prev === 'function') {
+        window.persist = function (k) {
+            const r = prev.apply(this, arguments);
+            if ((k === 'spares' || k === 'critical') && !window.__purAutoBusy) {
+                clearTimeout(t);
+                t = setTimeout(() => { try { purchaseAutoPlanLowStock(); } catch (e) { console.warn('auto plan', e); } }, 700);
+            }
+            return r;
+        };
+    }
+    setInterval(() => { try { purchaseAutoPlanLowStock(); } catch (e) { console.warn('auto plan', e); } }, 20000);
+})();
 
 // Global Render Integration
 if (typeof renderAll !== 'undefined') {
