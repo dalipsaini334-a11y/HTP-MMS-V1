@@ -1499,7 +1499,7 @@ function loadEditableMachineMaster() {
         console.warn('Machine master load skipped', e)
     }
 }
-function savePMMachineChecklistMap(){localStorage.setItem(PM_MACHINE_CHECKLIST_KEY,JSON.stringify(PM_MACHINE_CHECKLIST_MAP));if(typeof gsSchedule==='function')gsSchedule(4000);}
+function savePMMachineChecklistMap(){localStorage.setItem(PM_MACHINE_CHECKLIST_KEY,JSON.stringify(PM_MACHINE_CHECKLIST_MAP));if(typeof gsSchedule==='function')gsSchedule(1500);}
 function defaultPMChecklistForMachine(m){if(!m)return '';const n=String(m.machineName||'').toUpperCase(),no=String(m.machineNumber||'').toUpperCase(),keys=Object.keys(PM_CHECKLISTS||{});let exact=keys.find(k=>n.includes(String(k).toUpperCase())||String(k).toUpperCase().includes(n));if(exact)return exact;if(n.includes('SEAL QUANCH')||no.startsWith('SQF'))return keys.find(k=>k.toUpperCase()==='SQF')||'';if(n.includes('PUNCH'))return keys.find(k=>k.toUpperCase().includes('PUNCH'))||'';if(n.includes('WASH'))return keys.find(k=>k.toUpperCase().includes('WASH'))||'';if(n.includes('TEMPER'))return keys.find(k=>k.toUpperCase().includes('TEMP'))||keys.find(k=>k.toUpperCase()==='TEMPRING')||'';if(n.includes('CHARGE'))return keys.find(k=>k.toUpperCase().includes('CHARGE'))||'';if(n.includes('SHOT BLAST'))return keys.find(k=>k.toUpperCase().includes('SHOT'))||'';if(n.includes('GEAR TOOTH'))return keys.find(k=>k.toUpperCase().includes('GTC'))||'';return keys[0]||'';}
 function pmChecklistForMachine(machineNo){const m=MACHINE_MASTER.find(x=>String(x.machineNumber)===String(machineNo));let key=PM_MACHINE_CHECKLIST_MAP[String(machineNo)]||defaultPMChecklistForMachine(m);if(key&&!PM_CHECKLISTS[key]){delete PM_MACHINE_CHECKLIST_MAP[String(machineNo)];key=defaultPMChecklistForMachine(m);}if(key&&!PM_MACHINE_CHECKLIST_MAP[String(machineNo)]){PM_MACHINE_CHECKLIST_MAP[String(machineNo)]=key;savePMMachineChecklistMap();}return key||'';}
 function refreshMachineDependentUI(){populateMachineDropdown();populateHistoryMachineDropdown();populateMachineDepartmentFilter();if(typeof initPM==='function')initPM();if(typeof renderPMPlan==='function')renderPMPlan();if(typeof renderMachineMaster==='function')renderMachineMaster();if(typeof pmPlanMachineSetupOptions==='function')pmPlanMachineSetupOptions();if(typeof renderDashboard==='function')renderDashboard();}
@@ -2781,7 +2781,7 @@ function printReadingLog(type){
  w.document.close();w.focus();setTimeout(()=>w.print(),250);
 }
 
-function savePMChecklistStore(){localStorage.setItem(PM_CHECKLIST_KEY,JSON.stringify(PM_CHECKLISTS));if(typeof gsSchedule==='function')gsSchedule(4000);}
+function savePMChecklistStore(){localStorage.setItem(PM_CHECKLIST_KEY,JSON.stringify(PM_CHECKLISTS));if(typeof gsSchedule==='function')gsSchedule(1500);}
 function normalizePMRows(rows){return (rows||[]).map((r,i)=>({sno:i+1,freq:r.freq||'',activity:r.activity||'',standard:r.standard||'',method:r.method||''}));}
 function initPM(){
  let t=document.getElementById('pm_template'); if(!t)return;
@@ -3677,13 +3677,13 @@ function pmPlanEnsureMaster(){
   if(!pmPlanData.master||typeof pmPlanData.master!=='object'){
     const old=pmPlanData.yearly||{};pmPlanData.master={};
     pmPlanMachines().forEach(m=>{const o=old[m.machineNumber]||{};pmPlanData.master[m.machineNumber]={frequency:o.frequency||'Monthly',baseMonth:(o.months&&o.months[0])||PMPLAN_MONTHS[0],dueDay:10,priority:'Normal',responsible:'',months:Array.isArray(o.months)?o.months.slice():[]};});
-    pmPlanData.schema=2;localStorage.setItem(PMPLAN_KEY,JSON.stringify(pmPlanData));if(typeof gsSchedule==='function')gsSchedule(4000);
+    pmPlanData.schema=2;localStorage.setItem(PMPLAN_KEY,JSON.stringify(pmPlanData));if(typeof gsSchedule==='function')gsSchedule(1500);
   }
   pmPlanMachines().forEach(m=>{if(!pmPlanData.master[m.machineNumber])pmPlanData.master[m.machineNumber]={frequency:'Monthly',baseMonth:PMPLAN_MONTHS[0],dueDay:10,priority:'Normal',responsible:'',months:[]};});
-  if(normalizePMMasterForCurrentFY())localStorage.setItem(PMPLAN_KEY,JSON.stringify(pmPlanData));if(typeof gsSchedule==='function')gsSchedule(4000);
+  if(normalizePMMasterForCurrentFY())localStorage.setItem(PMPLAN_KEY,JSON.stringify(pmPlanData));if(typeof gsSchedule==='function')gsSchedule(1500);
 }
 function pmMasterGet(m){pmPlanEnsureMaster();return pmPlanData.master[m.machineNumber]||{frequency:'Monthly',baseMonth:PMPLAN_MONTHS[0],dueDay:10,priority:'Normal',responsible:'',months:[]};}
-function pmMasterSave(m,v){pmPlanEnsureMaster();pmPlanData.master[m.machineNumber]={...pmMasterGet(m),...v};localStorage.setItem(PMPLAN_KEY,JSON.stringify(pmPlanData));if(typeof gsSchedule==='function')gsSchedule(4000);}
+function pmMasterSave(m,v){pmPlanEnsureMaster();pmPlanData.master[m.machineNumber]={...pmMasterGet(m),...v};localStorage.setItem(PMPLAN_KEY,JSON.stringify(pmPlanData));if(typeof gsSchedule==='function')gsSchedule(1500);}
 function pmPlanGet(month,machine){
   pmPlanEnsureMaster();
   const k=pmPlanMonthKey(month)+'__'+machine.machineNumber,d=pmPlanData[k]||{};
@@ -3704,10 +3704,10 @@ function pmPlanGet(month,machine){
     const calculated=pmPlanNextDate(d.actual,machine);
     if(calculated&&calculated!==next){next=calculated;d.nextDate=calculated;changed=true;}
   }
-  if(changed){pmPlanData[k]=d;localStorage.setItem(PMPLAN_KEY,JSON.stringify(pmPlanData));if(typeof gsSchedule==='function')gsSchedule(4000);}
+  if(changed){pmPlanData[k]=d;localStorage.setItem(PMPLAN_KEY,JSON.stringify(pmPlanData));if(typeof gsSchedule==='function')gsSchedule(1500);}
   return {planned:d.planned||'',actual:d.actual||'',nextDate:next,tech:d.tech||'',work:d.work||'',remark:d.remark||'',pmCheckId:d.pmCheckId||'',scheduled:d.scheduled===true};
 }
-function pmPlanSave(month,machine,val){pmPlanEnsureMaster();pmPlanData[pmPlanMonthKey(month)+'__'+machine.machineNumber]=val;localStorage.setItem(PMPLAN_KEY,JSON.stringify(pmPlanData));if(typeof gsSchedule==='function')gsSchedule(4000);}
+function pmPlanSave(month,machine,val){pmPlanEnsureMaster();pmPlanData[pmPlanMonthKey(month)+'__'+machine.machineNumber]=val;localStorage.setItem(PMPLAN_KEY,JSON.stringify(pmPlanData));if(typeof gsSchedule==='function')gsSchedule(1500);}
 function pmFrequencyMonths(freq,base){let bi=PMPLAN_MONTHS.indexOf(base);if(bi<0)bi=0;if(freq==='Monthly')return PMPLAN_MONTHS.slice();if(freq==='Quarterly')return PMPLAN_MONTHS.filter((_,i)=>(i-bi+12)%12%3===0);if(freq==='Half-Yearly')return PMPLAN_MONTHS.filter((_,i)=>(i-bi+12)%12%6===0);if(freq==='Yearly')return [PMPLAN_MONTHS[bi]];return []}
 function pmScheduledMonths(m){const p=pmMasterGet(m);let months=Array.isArray(p.months)&&p.months.length?p.months:pmFrequencyMonths(p.frequency,p.baseMonth);if(p.frequency!=='Custom')months=pmFrequencyMonths(p.frequency,p.baseMonth);return months.filter(x=>PMPLAN_MONTHS.includes(x));}
 function pmDueDate(month,day){const idx=PMPLAN_MONTHS.indexOf(month);if(idx<0)return '';const [mon,yr]=month.split(' '),d=new Date(Date.parse(mon+' 1, '+yr));d.setDate(Math.min(Math.max(Number(day)||10,1),28));return d.toISOString().slice(0,10)}
@@ -4108,7 +4108,7 @@ if(typeof origPersist==='function'&&!window.__mmsPersistWrapped){
         // Kuch change nahi hua ya sync ke baad ka auto-render hai -> na audit, na naya sync schedule
         if(before===after||window.__mmsQuiet)return;
         if(Date.now()-(window.__mmsLastUser||0)<20000)audit('SAVE',k,mmsDiffSummary(before,after));
-        gsSchedule(4000);
+        gsSchedule(1500);
     }
 }
 function setBadge(){{let sb=document.getElementById('mmsSyncBtn');if(sb)sb.style.display=session()?'block':'none'}let s=session(),b=document.getElementById('mmsUserBadge'),i=document.getElementById('mmsRoleInfo');if(b)b.textContent=s?`👤 ${s.u} • ${s.role}`:'';if(i)i.innerHTML=s?`<b>Logged in:</b> ${esc2(s.u)} (${esc2(s.role)})`:'Not logged in';let btn=document.getElementById('mmsUpgradeBtn');if(btn)btn.classList.toggle('mms-show',!!s&&s.role==='Admin');let lo=document.getElementById('mmsLogoutBtn');if(lo)lo.classList.toggle('mms-show',!!s);if((!s||s.role!=='Admin')){let p=document.getElementById('mmsUpgradePanel');if(p)p.classList.remove('open')}}
@@ -4802,7 +4802,7 @@ function gsStatus(msg,bad){
  const b=document.getElementById('mmsSyncBtn');if(b){b.textContent=msg;b.style.background=bad?'#fdecea':'#eaf6ee';b.style.color=bad?'#c0392b':'#1e6b3a'}
  const t=document.getElementById('mmsGsStatus');if(t)t.textContent=msg;
 }
-function gsSchedule(ms){clearTimeout(gsTimer);gsTimer=setTimeout(function(){gsSync(true)},ms||4000)}
+function gsSchedule(ms){clearTimeout(gsTimer);gsTimer=setTimeout(function(){gsSync(true)},ms||1500)}
 function gsTogglePrimary(){if(!requireRole(['Admin']))return;gsSetPrimary(!gsIsPrimary())}
 function gsConfigure(){
  if(!session()){alert('Please login first.');return}
@@ -5046,14 +5046,17 @@ async function gsPost(cfg,payload,ackOnly){
 }
 async function gsReconcileNew(cfg){
  const meta=gsMeta(),ob=meta.base||{};
- let needsFetch=false;
+ // Audit entries (har save/login par naya record) ko reconcile ki zarurat nahi - pehle inki wajah se HAR save par
+ // server ka poora data (hazaaron rows) download hota tha aur upload der se hota tha.
+ const needMods=[];
  GS_RECONCILE_MODS.forEach(function(mod){
+  if(mod==='audit')return;
   const list=gsList(mod),b=ob[mod]||{};
-  list.forEach(function(r){if(r&&typeof r==='object'){const sid=gsSidOf(r);if(sid&&!b[sid])needsFetch=true}});
+  if(list.some(function(r){if(r&&typeof r==='object'){const sid=gsSidOf(r);return !!(sid&&!b[sid])}return false}))needMods.push(mod);
  });
- if(!needsFetch)return;
+ if(!needMods.length)return;
  try{
-  const out=await gsPost(cfg,{token:cfg.token,since:0,changes:[]});
+  const out=await gsPullPaged(cfg,0,needMods);   // sirf wahi modules jinme naya local record hai
   const serverByMod={};
   (out.rows||[]).forEach(function(row){
    if(row.deleted)return;
@@ -5138,7 +5141,7 @@ async function gsSync(auto){
  if(!session())return;
  const cfg=gsCfg();
  if(!cfg.url||!cfg.token){if(!auto)alert('Pehle login karo.');return}
- if(gsBusy)return;
+ if(gsBusy){window.__gsAgain=true;return}
  if(auto&&typeof edit!=='undefined'&&Object.keys(edit).some(function(k){return edit[k]!==null&&edit[k]!==undefined}))return;
  gsBusy=true;gsStatus('⏳ Syncing…');
  try{
@@ -5257,10 +5260,46 @@ async function gsSync(auto){
     if(window.__gsFreshTries<=4)gsSchedule(6000);
     if(window.__gsFreshTries===2&&auto)alert('Is naye device par Google Sheet ka data abhi nahi aa paya ('+(e&&e.message||e)+').\n\nInternet check karo. App khud dobara koshish kar raha hai, ya upar Sync Now dabao.');}}
   if(!auto)alert('Sync failed: '+(e&&e.message||e)+'\n\nInternet check karo aur dobara Sync Now dabao.');
- }finally{gsBusy=false}
+ }finally{gsBusy=false;if(window.__gsAgain){window.__gsAgain=false;gsSchedule(700)}}
 }
+
+// App band karne / background me jaane par: jo changes abhi upload nahi hue unhe navigator.sendBeacon se turant bhej do
+// (beacon browser band hone ke baad bhi poora hota hai). Delete kabhi nahi bhejte; baaki agli baar app khulne par normal sync se.
+function gsBeaconFlush(){
+ try{
+  if(!session()||!navigator.sendBeacon)return;
+  const cfg=gsCfg();if(!cfg.url||!cfg.token)return;
+  const meta=gsMeta();
+  if(!meta.since&&!Object.keys(meta.base||{}).length)return;       // fresh device: pehle server se lena baaki hai
+  gsUsersArr=users();gsAuditArr=auditList();
+  const now=Date.now(),changes=[];
+  GS_ALL.filter(function(m){return m!=='audit'}).concat(['audit']).forEach(function(mod){
+   if(mod==='users'&&!(session()&&session().role==='Admin'))return;
+   const list=gsList(mod),used=new Set(),oldBase=(meta.base||{})[mod]||{};
+   if(!Array.isArray(list))return;
+   list.forEach(function(r){
+    if(!r||typeof r!=='object')return;
+    if(mod==='users'&&gsPristine(r)&&!oldBase[gsSidOf(r)])return;
+    let sid=gsSidOf(r);
+    if(!sid||used.has(sid)){sid=sid||('h'+gsHash(gsClean(r)));while(used.has(sid))sid+='+'}
+    used.add(sid);
+    const js=gsClean(r),hh=gsHash(js),b=oldBase[sid];
+    if(!b||b.h!==hh)changes.push({module:mod,sid:sid,ts:now,deleted:0,json:js});
+   });
+  });
+  if(!changes.length)return;
+  let size=0;const pack=[];                                           // beacon limit ~64KB: jitna aa sake
+  changes.forEach(function(c){const n=c.json.length+90;if(size+n<=48000){size+=n;pack.push(c)}});
+  if(!pack.length)return;
+  const body=new URLSearchParams();body.append('payload',JSON.stringify({token:cfg.token,since:meta.since||0,changes:pack}));
+  navigator.sendBeacon(cfg.url,body);
+ }catch(e){console.warn('beacon flush',e)}
+}
+(function(){let last=0;function bf(){const t=Date.now();if(t-last<1500)return;last=t;gsBeaconFlush()}
+ document.addEventListener('visibilitychange',function(){if(document.hidden)bf()});
+ window.addEventListener('pagehide',bf);})();
 // Live multi-device sync: pull shared Sheet changes frequently while keeping local/offline cache.
-setInterval(function(){gsSync(true)},15000);
+setInterval(function(){if(!document.hidden)gsSync(true)},8000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)gsSchedule(500)});
 window.addEventListener('online',function(){gsSchedule(500)});
 window.addEventListener('load',function(){gsSchedule(1500)});
