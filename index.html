@@ -4615,9 +4615,10 @@ function gsReport(mod,mk){
  }else if(mod==='sparePurchase'){
   const a=data.sparePurchase||[];
   rep.title='SPARE PART PURCHASE PLANNING & RECEIPT REGISTER';
-  rep.headers=['Sr.No.','Part Description','Specification','Qty Needed','Urgency','Req. Date','Status','PO & Vendor','Received Date & Qty','Cost (Rs)','Remark'];
-  rep.rows=a.map(function(r,i){return [i+1,r.desc,r.spec,r.qty,r.urgency,fmtDate(r.reqDate),r.status,((r.po||'')+' / '+(r.vendor||'')),(r.status==='Received'?fmtDate(r.recDate)+' (Qty: '+r.recQty+')':''),(r.cost>0?Number(r.cost).toFixed(2):''),r.remark]});
-  rep.summary=[['Total',a.length],['Pending (Planned/Ordered)',a.filter(function(x){return x.status==='Planned'||x.status==='Ordered'}).length],['Received',a.filter(function(x){return x.status==='Received'}).length]];
+  rep.headers=['Sr.No.','Part Description','Specification','Qty','Urgency','Source','Machine / Ref','Req. Date','Stage','PR No.','PR Date','PO No.','PO Date','Vendor','Sent On','Expected Delivery','Received Date','Qty Received','Challan / Invoice','Cost (Rs)','Remark'];
+  const stg=function(r){return r.status==='Ordered'?(r.vendor?'Sent to Vendor':'PO Created'):(r.status||'Planned')};
+  rep.rows=a.map(function(r,i){return [i+1,r.desc,r.spec,r.qty,r.urgency,r.source||'',r.refInfo||'',fmtDate(r.reqDate),stg(r),r.prNo||'',fmtDate(r.prDate),r.po||'',fmtDate(r.poDate||r.ordDate),r.vendor||'',fmtDate(r.sentDate),fmtDate(r.expDate),(stg(r)==='Received'?fmtDate(r.recDate):''),(stg(r)==='Received'?r.recQty:''),r.challan||'',(r.cost>0?Number(r.cost).toFixed(2):''),r.remark]});
+  rep.summary=[['Total',a.length],['Requirement (PR pending)',a.filter(function(x){return stg(x)==='Planned'}).length],['PR Raised',a.filter(function(x){return stg(x)==='PR Raised'}).length],['PO Created',a.filter(function(x){return stg(x)==='PO Created'}).length],['Sent to Vendor (material awaited)',a.filter(function(x){return stg(x)==='Sent to Vendor'}).length],['Received',a.filter(function(x){return stg(x)==='Received'}).length]];
  }else if(mod==='powerCost'||mod==='hpsebBill'){
   pwFillReport(rep,mod);
  }else if(typeof hqIsMod==='function'&&hqIsMod(mod)){
@@ -6270,7 +6271,7 @@ setTimeout(() => {
         <div class="card">
             <div class="head">MILESTONE GEARS LTD. UNIT-7</div>
             <div class="head2">SPARE PART PURCHASE PLANNING & RECEIPT REGISTER</div>
-            <div class="utility-help">Plan future spare part purchases, track active orders, and maintain complete receiving history (Vendor, PO, Cost, and Stock Auto-Update).</div>
+            <div class="utility-help"><b>Process:</b> Requirement (Low Stock / Breakdown) ➜ PR Raised (PR No.) ➜ PO Created by Store (PO No.) ➜ PO Sent to Vendor ➜ Material Received (stock auto-update).</div>
             <div class="form">
                 <input type="hidden" id="pur_id">
                 <div class="field"><label>Sr. No.</label><input id="pur_sno" type="number"></div>
@@ -6278,14 +6279,21 @@ setTimeout(() => {
                 <div class="field"><label>Specification / Part No.</label><input id="pur_spec" placeholder="e.g. 6205-2Z/C3"></div>
                 <div class="field"><label>Quantity Needed <b>*</b></label><input id="pur_qty" type="number" min="0" step="any" value="1"></div>
                 <div class="field"><label>Urgency Level</label><select id="pur_urgency"><option>Normal</option><option>Urgent</option><option>Critical Breakdown</option></select></div>
-                <div class="field"><label>Planned / Request Date</label><input id="pur_req_date" type="date"></div>
-                <div class="field"><label>Status</label><select id="pur_status" onchange="purchaseStatusChanged()"><option>Planned</option><option>Ordered</option><option>Received</option><option>Cancelled</option></select></div>
-                <div class="field"><label>Order Date</label><input id="pur_ord_date" type="date"></div>
+                <div class="field"><label>Requirement Source</label><select id="pur_source"><option>Low Stock</option><option>Breakdown</option><option>Manual</option></select></div>
+                <div class="field"><label>Machine / Breakdown Ref.</label><input id="pur_ref" placeholder="e.g. SQF - 01 / breakdown date"></div>
+                <div class="field"><label>Requirement Date</label><input id="pur_req_date" type="date"></div>
+                <div class="field"><label>Stage / Status</label><select id="pur_status" onchange="purchaseStatusChanged()"><option value="Planned">1. Requirement (PR not raised)</option><option value="PR Raised">2. PR Raised</option><option value="PO Created">3. PO Created (by Store)</option><option value="Sent to Vendor">4. PO Sent to Vendor</option><option value="Received">5. Material Received</option><option value="Cancelled">Cancelled</option></select></div>
+                <div class="field"><label>PR Number</label><input id="pur_pr_no" placeholder="PR number"></div>
+                <div class="field"><label>PR Date</label><input id="pur_pr_date" type="date"></div>
                 <div class="field"><label>PO Number</label><input id="pur_po" placeholder="PO-2026-XXXX"></div>
+                <div class="field"><label>PO Date</label><input id="pur_po_date" type="date"></div>
                 <div class="field"><label>Vendor / Supplier Name</label><input id="pur_vendor" placeholder="Supplier firm name"></div>
-                <div class="field"><label>Received Date</label><input id="pur_rec_date" type="date"></div>
+                <div class="field"><label>PO Sent to Vendor On</label><input id="pur_sent_date" type="date"></div>
+                <div class="field"><label>Expected Delivery Date</label><input id="pur_exp_date" type="date"></div>
+                <div class="field"><label>Material Received Date</label><input id="pur_rec_date" type="date"></div>
                 <div class="field"><label>Quantity Received</label><input id="pur_rec_qty" type="number" min="0" step="any" placeholder="0"></div>
                 <div class="field"><label>Total Cost (₹)</label><input id="pur_cost" type="number" min="0" step="0.01" placeholder="0.00"></div>
+                <div class="field"><label>Challan / Invoice No.</label><input id="pur_challan" placeholder="Vendor challan / invoice"></div>
                 <div class="field wide"><label>Remark / Indent Note</label><input id="pur_remark" placeholder="Machine reference or additional notes"></div>
                 <div class="actions wide">
                     <button class="primary" onclick="savePurchaseRecord()">Save Purchase Record</button>
@@ -6325,7 +6333,8 @@ function nextPurchaseSno() {
 
 function clearPurchaseForm() {
     editPurchaseIndex = null;
-    ['pur_id', 'pur_desc', 'pur_spec', 'pur_po', 'pur_vendor', 'pur_rec_qty', 'pur_cost', 'pur_remark', 'pur_ord_date'].forEach(id => setv(id, ''));
+    ['pur_id', 'pur_desc', 'pur_spec', 'pur_po', 'pur_vendor', 'pur_rec_qty', 'pur_cost', 'pur_remark', 'pur_ref', 'pur_pr_no', 'pur_pr_date', 'pur_po_date', 'pur_sent_date', 'pur_exp_date', 'pur_challan'].forEach(id => setv(id, ''));
+    setv('pur_source', 'Manual');
     setv('pur_sno', nextPurchaseSno());
     setv('pur_qty', '1');
     setv('pur_urgency', 'Normal');
@@ -6338,12 +6347,14 @@ function clearPurchaseForm() {
 
 function purchaseStatusChanged() {
     let st = f('pur_status');
-    let recDate = document.getElementById('pur_rec_date');
-    let recQty = document.getElementById('pur_rec_qty');
-    let ordDate = document.getElementById('pur_ord_date');
-    if (st === 'Ordered' && ordDate && !ordDate.value) ordDate.value = new Date().toISOString().slice(0, 10);
+    const today = new Date().toISOString().slice(0, 10);
+    const fill = (id) => { let e = document.getElementById(id); if (e && !e.value) e.value = today; };
+    if (st === 'PR Raised') fill('pur_pr_date');
+    if (st === 'PO Created') fill('pur_po_date');
+    if (st === 'Sent to Vendor') fill('pur_sent_date');
     if (st === 'Received') {
-        if (recDate && !recDate.value) recDate.value = new Date().toISOString().slice(0, 10);
+        fill('pur_rec_date');
+        let recQty = document.getElementById('pur_rec_qty');
         if (recQty && !recQty.value) recQty.value = f('pur_qty') || '1';
     }
 }
@@ -6396,30 +6407,44 @@ function savePurchaseRecord() {
     let oldRecord = editPurchaseIndex !== null ? data.sparePurchase[editPurchaseIndex] : null;
     let newStatus = f('pur_status') || 'Planned';
     let recQty = num(f('pur_rec_qty'));
+    let prNo = (f('pur_pr_no') || '').trim(), poNo = (f('pur_po') || '').trim(), vendor = (f('pur_vendor') || '').trim();
 
-    let r = {
+    // Process ke hisaab se jo number us stage par milta hai wo zaroori
+    if (newStatus === 'PR Raised' && !prNo) return alert('PR Raised stage ke liye PR Number zaroori hai.');
+    if (newStatus === 'PO Created' && !poNo) return alert('PO Created stage ke liye PO Number zaroori hai.');
+    if (newStatus === 'Sent to Vendor' && !poNo) return alert('Vendor ko PO bhejne se pehle PO Number zaroori hai.');
+    if (newStatus === 'Sent to Vendor' && !vendor) return alert('PO Sent to Vendor stage ke liye Vendor Name zaroori hai.');
+
+    let r = Object.assign({}, oldRecord || {}, {
         id: oldRecord?.id || 'pur-' + Date.now(),
         sno: num(f('pur_sno')) || nextPurchaseSno(),
         desc,
         spec: (f('pur_spec') || '').trim(),
         qty,
         urgency: f('pur_urgency') || 'Normal',
+        source: f('pur_source') || 'Manual',
+        refInfo: (f('pur_ref') || '').trim(),
         reqDate: f('pur_req_date'),
         status: newStatus,
-        po: (f('pur_po') || '').trim(),
-        vendor: (f('pur_vendor') || '').trim(),
-        ordDate: f('pur_ord_date'),
-        recDate: f('pur_rec_date'),
+        prNo,
+        prDate: f('pur_pr_date') || (newStatus === 'PR Raised' ? purToday() : ''),
+        po: poNo,
+        poDate: f('pur_po_date') || (newStatus === 'PO Created' ? purToday() : ''),
+        ordDate: f('pur_po_date') || (newStatus === 'PO Created' ? purToday() : ''),
+        vendor,
+        sentDate: f('pur_sent_date') || (newStatus === 'Sent to Vendor' ? purToday() : ''),
+        expDate: f('pur_exp_date'),
+        recDate: f('pur_rec_date') || (newStatus === 'Received' ? purToday() : ''),
         recQty: newStatus === 'Received' ? (recQty > 0 ? recQty : qty) : 0,
         cost: num(f('pur_cost')),
+        challan: (f('pur_challan') || '').trim(),
         remark: (f('pur_remark') || '').trim(),
         updatedAt: new Date().toISOString()
-    };
+    });
 
-    // Smart Inventory Integration: Agar status pehle received nahi tha aur ab 'Received' hua hai,
-    // toh optional prompt de sakte hain ya automatic spare inventory mein stock add kar sakte hain.
+    // Material Received hone par (pehle received nahi tha) stock Spare Inventory me add karne ka option
     let addedToInventory = false;
-    if (newStatus === 'Received' && (!oldRecord || oldRecord.status !== 'Received')) {
+    if (newStatus === 'Received' && (!oldRecord || purStatusOf(oldRecord) !== 'Received')) {
         addedToInventory = purchaseAddToInventory(r);
     }
 
@@ -6431,43 +6456,84 @@ function savePurchaseRecord() {
 
     if (typeof persist === 'function') persist('sparePurchase');
     clearPurchaseForm();
-    if (['Planned', 'Ordered', 'Received', 'Cancelled'].includes(r.status)) purTab = r.status;   // save ke baad usi status ki list khul jaye
+    if (PUR_TABS.some(t => t.st === r.status)) purTab = r.status;   // save ke baad usi stage ki list khul jaye
     renderPurchaseTable();
     if (typeof renderSparePartsTable === 'function') renderSparePartsTable();
-    
+
     alert('Purchase record saved successfully.' + (addedToInventory ? '\n\nSpare stock successfully updated in Inventory!' : ''));
 }
 
-// ---- Alag-alag lists: Planned / Ordered / Received / Cancelled ----
+// ---- Process ki alag-alag lists: Requirement -> PR -> PO -> Sent to Vendor -> Received (+ Cancelled) ----
+const PUR_OPEN = ['Planned', 'PR Raised', 'PO Created', 'Sent to Vendor', 'Ordered'];   // 'Ordered' = purana status (auto convert hota hai)
 const PUR_TABS = [
-    { st: 'Planned',   icon: '📝', color: '#2563eb', help: 'PLANNED: abhi order nahi hua - future ke liye plan kiye gaye parts. Order hone par "Mark Ordered" dabao.' },
-    { st: 'Ordered',   icon: '📦', color: '#d97706', help: 'ORDERED: order ho chuka (PO / Vendor), maal abhi aana baaki hai. Maal aane par "Mark Received" dabao.' },
-    { st: 'Received',  icon: '✅', color: '#15803d', help: 'RECEIVED: maal aa chuka. Stock Spare Inventory me add hota hai.' },
-    { st: 'Cancelled', icon: '✖', color: '#6b7280', help: 'CANCELLED: band / cancel kiye gaye records.' }
+    { st: 'Planned',        label: 'Requirement',    icon: '📝', color: '#2563eb', help: 'REQUIREMENT: Low stock / Breakdown ki wajah se part chahiye, abhi PR nahi bana. PR banne par "PR Raised" dabao aur PR Number daalo.' },
+    { st: 'PR Raised',      label: 'PR Raised',      icon: '📄', color: '#7c3aed', help: 'PR RAISED: PR Number mil gaya, ab Store PO banayega. PO ban jaye to "PO Created" dabao aur PO Number daalo.' },
+    { st: 'PO Created',     label: 'PO Created',     icon: '🧾', color: '#0891b2', help: 'PO CREATED: Store ne PO bana diya (PO Number mila), vendor ko bhejna baaki hai. Vendor ko bhej diya to "Sent to Vendor" dabao.' },
+    { st: 'Sent to Vendor', label: 'Sent to Vendor', icon: '🚚', color: '#d97706', help: 'SENT TO VENDOR: PO vendor ko bhej diya gaya, maal aana baaki hai. Maal aane par "Mark Received" dabao.' },
+    { st: 'Received',       label: 'Received',       icon: '✅', color: '#15803d', help: 'RECEIVED: maal company me aa gaya. Stock Spare Inventory me add hota hai.' },
+    { st: 'Cancelled',      label: 'Cancelled',      icon: '✖',  color: '#6b7280', help: 'CANCELLED: band / cancel kiye gaye records. "Re-plan" se wapas Requirement me aa sakte hain.' }
 ];
-function purStatusOf(r) { return PUR_TABS.some(t => t.st === r.status) ? r.status : 'Planned'; }
+function purStatusOf(r) {
+    if (r.status === 'Ordered') return r.vendor ? 'Sent to Vendor' : 'PO Created';
+    return PUR_TABS.some(t => t.st === r.status) ? r.status : 'Planned';
+}
+// Purane 'Ordered' records ko naye stage me badalna (ek baar)
+function purMigrateLegacy() {
+    let ch = false;
+    (data.sparePurchase || []).forEach(r => {
+        if (!r || typeof r !== 'object') return;
+        if (r.status === 'Ordered') {
+            r.status = r.vendor ? 'Sent to Vendor' : 'PO Created';
+            if (!r.poDate && r.ordDate) r.poDate = r.ordDate;
+            if (r.status === 'Sent to Vendor' && !r.sentDate && r.ordDate) r.sentDate = r.ordDate;
+            ch = true;
+        } else if (r.ordDate && !r.poDate) { r.poDate = r.ordDate; ch = true; }
+    });
+    if (ch && typeof persist === 'function') persist('sparePurchase');
+}
+function purToday() { return new Date().toISOString().slice(0, 10); }
+function purDays(d) {
+    if (!d) return null;
+    let t = new Date(String(d) + 'T00:00:00').getTime();
+    return isNaN(t) ? null : Math.max(0, Math.floor((Date.now() - t) / 86400000));
+}
 function purUrg(r, plain) {
     let bad = r.urgency === 'Urgent' || r.urgency === 'Critical Breakdown';
-    return plain || !bad ? esc(r.urgency || '') : `<span style="color:#c0392b;font-weight:bold">${esc(r.urgency)}</span>`;
+    return plain === true || !bad ? esc(r.urgency || '') : `<span style="color:#c0392b;font-weight:bold">${esc(r.urgency)}</span>`;
 }
 const PUR_COLS = (function () {
     const desc = ['Part Description', (r) => `<b>${esc(r.desc)}</b>`];
     const spec = ['Specification', (r) => esc(r.spec)];
     const remark = ['Remark', (r) => esc(r.remark)];
-    const po = ['PO No.', (r) => esc(r.po || '—')];
+    const qty = (t) => [t, (r) => `<b>${esc(r.qty)}</b>`];
+    const urg = ['Urgency', purUrg];
+    const src = ['Source', (r) => esc(r.source || 'Manual')];
+    const pr = ['PR No.', (r) => `<b>${esc(r.prNo || '—')}</b>`];
+    const po = ['PO No.', (r) => `<b>${esc(r.po || '—')}</b>`];
     const vendor = ['Vendor', (r) => esc(r.vendor || '—')];
+    const waiting = (field) => ['Days Waiting', (r) => { let d = purDays(field(r)); return d === null ? '—' : d + ' day(s)'; }];
     return {
-        Planned:   [desc, spec, ['Qty Needed', (r) => `<b>${esc(r.qty)}</b>`], ['Urgency', purUrg], ['Planned Date', (r) => esc(fmtDate(r.reqDate))], remark],
-        Ordered:   [desc, spec, ['Qty Ordered', (r) => `<b>${esc(r.qty)}</b>`], ['Urgency', purUrg], ['Order Date', (r) => esc(fmtDate(r.ordDate || '')) || '—'], po, vendor, remark],
-        Received:  [desc, spec, ['Qty Ordered', (r) => esc(r.qty)], ['Received Date', (r) => esc(fmtDate(r.recDate)) || '—'], ['Qty Received', (r) => `<b>${esc(r.recQty)}</b>`], po, vendor, ['Cost (₹)', (r) => r.cost > 0 ? '₹' + Number(r.cost).toFixed(2) : '—'], remark],
-        Cancelled: [desc, spec, ['Qty', (r) => esc(r.qty)], ['Urgency', purUrg], ['Planned Date', (r) => esc(fmtDate(r.reqDate))], remark]
+        Planned:          [desc, spec, qty('Qty Needed'), urg, src, ['Machine / Ref', (r) => esc(r.refInfo || '—')], ['Req. Date', (r) => esc(fmtDate(r.reqDate))], remark],
+        'PR Raised':      [desc, spec, qty('Qty'), urg, src, pr, ['PR Date', (r) => esc(fmtDate(r.prDate)) || '—'], waiting((r) => r.prDate), remark],
+        'PO Created':     [desc, spec, qty('Qty'), pr, po, ['PO Date', (r) => esc(fmtDate(r.poDate || r.ordDate)) || '—'], vendor, waiting((r) => r.poDate || r.ordDate), remark],
+        'Sent to Vendor': [desc, spec, qty('Qty Ordered'), pr, po, vendor, ['Sent On', (r) => esc(fmtDate(r.sentDate)) || '—'],
+            ['Expected Delivery', (r, plain) => {
+                if (!r.expDate) return '—';
+                let late = r.expDate < purToday();
+                let t = esc(fmtDate(r.expDate));
+                return late ? (plain === true ? t + ' (Late)' : `<span style="color:#c0392b;font-weight:bold">⚠ ${t} (Late)</span>`) : t;
+            }], remark],
+        Received:         [desc, spec, ['Qty Ordered', (r) => esc(r.qty)], pr, po, vendor, ['Received Date', (r) => esc(fmtDate(r.recDate)) || '—'], ['Qty Received', (r) => `<b>${esc(r.recQty)}</b>`], ['Cost (₹)', (r) => r.cost > 0 ? '₹' + Number(r.cost).toFixed(2) : '—'], ['Challan / Invoice', (r) => esc(r.challan || '—')], remark],
+        Cancelled:        [desc, spec, ['Qty', (r) => esc(r.qty)], src, pr, po, remark]
     };
 })();
 function purSort(st, a) {
     const pr = { 'Critical Breakdown': 0, 'Urgent': 1, 'Normal': 2 };
     const d = (x) => x || '';
     if (st === 'Planned') a.sort((x, y) => ((pr[x.urgency] ?? 2) - (pr[y.urgency] ?? 2)) || d(x.reqDate).localeCompare(d(y.reqDate)));
-    else if (st === 'Ordered') a.sort((x, y) => d(x.ordDate || x.reqDate).localeCompare(d(y.ordDate || y.reqDate)));
+    else if (st === 'PR Raised') a.sort((x, y) => d(x.prDate).localeCompare(d(y.prDate)));
+    else if (st === 'PO Created') a.sort((x, y) => d(x.poDate || x.ordDate).localeCompare(d(y.poDate || y.ordDate)));
+    else if (st === 'Sent to Vendor') a.sort((x, y) => d(x.expDate || '9999').localeCompare(d(y.expDate || '9999')));
     else if (st === 'Received') a.sort((x, y) => d(y.recDate).localeCompare(d(x.recDate)));
     else a.sort((x, y) => d(y.reqDate).localeCompare(d(x.reqDate)));
     return a;
@@ -6478,6 +6544,7 @@ function renderPurchaseTable() {
     let body = document.getElementById('purBody'), head = document.getElementById('purHead');
     if (!body || !head) return;
     if (!Array.isArray(data.sparePurchase)) data.sparePurchase = [];
+    purMigrateLegacy();
     if (!PUR_TABS.some(t => t.st === purTab)) purTab = 'Planned';
 
     let all = data.sparePurchase;
@@ -6486,11 +6553,13 @@ function renderPurchaseTable() {
     all.forEach(r => counts[purStatusOf(r)]++);
 
     let tabsEl = document.getElementById('purTabs');
-    if (tabsEl) tabsEl.innerHTML = PUR_TABS.map(t => {
+    const tabBtn = (t) => {
         let on = t.st === purTab;
-        return `<button type="button" onclick="purSetTab('${t.st}')" style="padding:9px 14px;border-radius:10px;font-weight:bold;cursor:pointer;border:2px solid ${t.color};` +
-            `background:${on ? t.color : '#fff'};color:${on ? '#fff' : t.color}">${t.icon} ${t.st} <span style="background:${on ? 'rgba(255,255,255,.25)' : '#eee'};color:${on ? '#fff' : '#333'};border-radius:20px;padding:1px 8px;margin-left:4px">${counts[t.st]}</span></button>`;
-    }).join('');
+        return `<button type="button" onclick="purSetTab('${t.st}')" style="padding:9px 12px;border-radius:10px;font-weight:bold;cursor:pointer;border:2px solid ${t.color};` +
+            `background:${on ? t.color : '#fff'};color:${on ? '#fff' : t.color}">${t.icon} ${t.label} <span style="background:${on ? 'rgba(255,255,255,.25)' : '#eee'};color:${on ? '#fff' : '#333'};border-radius:20px;padding:1px 8px;margin-left:4px">${counts[t.st]}</span></button>`;
+    };
+    if (tabsEl) tabsEl.innerHTML = PUR_TABS.slice(0, 5).map(tabBtn).join('<span style="align-self:center;color:#94a3b8;font-weight:bold">➜</span>') +
+        `<span style="margin-left:auto">${tabBtn(PUR_TABS[5])}</span>`;
     let tabDef = PUR_TABS.find(t => t.st === purTab);
     setText('purTabHelp', tabDef.help);
 
@@ -6499,58 +6568,84 @@ function renderPurchaseTable() {
     let cols = PUR_COLS[purTab];
     head.innerHTML = '<tr><th>Sr.No.</th>' + cols.map(c => `<th>${c[0]}</th>`).join('') + '<th>Action</th></tr>';
 
+    const nextBtn = { 'Planned': ['purchaseMarkPR', '📄 PR Raised'], 'PR Raised': ['purchaseMarkPO', '🧾 PO Created'], 'PO Created': ['purchaseMarkSent', '🚚 Sent to Vendor'], 'Sent to Vendor': ['purchaseMarkReceived', '✅ Mark Received'], 'Cancelled': ['purchaseReplan', '↩ Re-plan'] }[purTab];
     body.innerHTML = a.map((r, i) => {
         let realIdx = all.indexOf(r);
-        let quick = purTab === 'Planned' ? `<button class="secondary" onclick="purchaseMarkOrdered(${realIdx})">📦 Mark Ordered</button>`
-            : purTab === 'Ordered' ? `<button class="secondary" onclick="purchaseMarkReceived(${realIdx})">✅ Mark Received</button>`
-            : purTab === 'Cancelled' ? `<button class="secondary" onclick="purchaseReplan(${realIdx})">↩ Re-plan</button>` : '';
+        let quick = nextBtn ? `<button class="secondary" onclick="${nextBtn[0]}(${realIdx})">${nextBtn[1]}</button>` : '';
         return `<tr><td>${i + 1}</td>` + cols.map(c => `<td${c[0] === 'Remark' ? ' style="text-align:left;max-width:180px;white-space:normal"' : ''}>${c[1](r)}</td>`).join('') +
             `<td class="editbar">${quick}<button class="secondary" onclick="editPurchaseRecord(${realIdx})">Edit</button><button class="danger" onclick="deletePurchaseRecord(${realIdx})">Delete</button></td></tr>`;
     }).join('') || `<tr><td colspan="${cols.length + 2}">${q ? 'Is search me koi record nahi mila.' : 'Is list me abhi koi record nahi hai.'}</td></tr>`;
     setText('purCount', a.length + ' record(s)');
 }
 
-function purToday() { return new Date().toISOString().slice(0, 10); }
 function purAskDate(label, def) {
     let v = prompt(label + ' (YYYY-MM-DD):', def);
     if (v === null) return null;
     v = v.trim();
     return /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : def;
 }
-// Planned -> Ordered (form khole bina)
-function purchaseMarkOrdered(i) {
-    if (typeof mmsGuardEdit === 'function' && !mmsGuardEdit('sparePurchase')) return;
-    let r = data.sparePurchase[i]; if (!r) return;
-    let po = prompt('PO Number (optional):', r.po || ''); if (po === null) return;
-    let vendor = prompt('Vendor / Supplier name (optional):', r.vendor || ''); if (vendor === null) return;
-    let d = purAskDate('Order Date', r.ordDate || purToday()); if (d === null) return;
-    r.status = 'Ordered'; r.po = po.trim(); r.vendor = vendor.trim(); r.ordDate = d; r.updatedAt = new Date().toISOString();
+function purCanEdit() { return !(typeof mmsGuardEdit === 'function' && !mmsGuardEdit('sparePurchase')); }
+function purFinish(tab) {
     if (typeof persist === 'function') persist('sparePurchase');
-    purTab = 'Ordered'; renderPurchaseTable();
+    purTab = tab; renderPurchaseTable();
 }
-// Ordered -> Received (+ optional stock add in Spare Inventory)
-function purchaseMarkReceived(i) {
-    if (typeof mmsGuardEdit === 'function' && !mmsGuardEdit('sparePurchase')) return;
+// 1) Requirement -> PR Raised
+function purchaseMarkPR(i) {
+    if (!purCanEdit()) return;
     let r = data.sparePurchase[i]; if (!r) return;
-    let d = purAskDate('Received Date', r.recDate || purToday()); if (d === null) return;
+    let no = prompt('PR Number (PR banne par jo number mila):', r.prNo || ''); if (no === null) return;
+    no = no.trim(); if (!no) return alert('PR Number zaroori hai.');
+    let d = purAskDate('PR Date', r.prDate || purToday()); if (d === null) return;
+    r.status = 'PR Raised'; r.prNo = no; r.prDate = d; r.updatedAt = new Date().toISOString();
+    purFinish('PR Raised');
+}
+// 2) PR Raised -> PO Created (Store ne PO banaya)
+function purchaseMarkPO(i) {
+    if (!purCanEdit()) return;
+    let r = data.sparePurchase[i]; if (!r) return;
+    let no = prompt('PO Number (Store ne PO banaya to jo number mila):', r.po || ''); if (no === null) return;
+    no = no.trim(); if (!no) return alert('PO Number zaroori hai.');
+    let d = purAskDate('PO Date', r.poDate || r.ordDate || purToday()); if (d === null) return;
+    let v = prompt('Vendor / Supplier name (agar pata ho, nahi to khali chhodo):', r.vendor || ''); if (v === null) return;
+    r.status = 'PO Created'; r.po = no; r.poDate = d; r.ordDate = d; if (v.trim()) r.vendor = v.trim(); r.updatedAt = new Date().toISOString();
+    purFinish('PO Created');
+}
+// 3) PO Created -> Sent to Vendor
+function purchaseMarkSent(i) {
+    if (!purCanEdit()) return;
+    let r = data.sparePurchase[i]; if (!r) return;
+    let po = r.po || '';
+    if (!po) { po = prompt('PO Number:', ''); if (po === null) return; po = po.trim(); if (!po) return alert('PO Number zaroori hai.'); }
+    let v = prompt('Vendor / Supplier name (jise PO bheja):', r.vendor || ''); if (v === null) return;
+    v = v.trim(); if (!v) return alert('Vendor Name zaroori hai.');
+    let d = purAskDate('PO Vendor ko kab bheja', r.sentDate || purToday()); if (d === null) return;
+    let e = prompt('Expected Delivery Date (YYYY-MM-DD, nahi pata to khali chhodo):', r.expDate || ''); if (e === null) return;
+    e = e.trim(); if (e && !/^\d{4}-\d{2}-\d{2}$/.test(e)) { alert('Expected date format galat tha, isliye khali rakhi gayi.'); e = ''; }
+    r.status = 'Sent to Vendor'; r.po = po; r.vendor = v; r.sentDate = d; r.expDate = e; r.updatedAt = new Date().toISOString();
+    purFinish('Sent to Vendor');
+}
+// 4) Sent to Vendor -> Received (+ optional stock add in Spare Inventory)
+function purchaseMarkReceived(i) {
+    if (!purCanEdit()) return;
+    let r = data.sparePurchase[i]; if (!r) return;
+    let d = purAskDate('Material Received Date', r.recDate || purToday()); if (d === null) return;
     let q = prompt('Quantity Received:', String(r.recQty > 0 ? r.recQty : r.qty)); if (q === null) return;
     let rq = num(q); if (rq <= 0) rq = num(r.qty);
+    let ch = prompt('Challan / Invoice No. (optional):', r.challan || ''); if (ch === null) return;
     let c = prompt('Total Cost in ₹ (optional):', r.cost > 0 ? String(r.cost) : ''); if (c === null) return;
-    let wasReceived = r.status === 'Received';
-    r.status = 'Received'; r.recDate = d; r.recQty = rq; r.cost = num(c); r.updatedAt = new Date().toISOString();
+    let wasReceived = purStatusOf(r) === 'Received';
+    r.status = 'Received'; r.recDate = d; r.recQty = rq; r.challan = ch.trim(); r.cost = num(c); r.updatedAt = new Date().toISOString();
     let added = false;
     if (!wasReceived) added = purchaseAddToInventory(r);
-    if (typeof persist === 'function') persist('sparePurchase');
-    purTab = 'Received'; renderPurchaseTable();
+    purFinish('Received');
     if (typeof renderSparePartsTable === 'function') renderSparePartsTable();
     if (added) alert('Received list me chala gaya.\n\nSpare stock Inventory me update ho gaya.');
 }
 function purchaseReplan(i) {
-    if (typeof mmsGuardEdit === 'function' && !mmsGuardEdit('sparePurchase')) return;
+    if (!purCanEdit()) return;
     let r = data.sparePurchase[i]; if (!r) return;
     r.status = 'Planned'; r.updatedAt = new Date().toISOString();
-    if (typeof persist === 'function') persist('sparePurchase');
-    purTab = 'Planned'; renderPurchaseTable();
+    purFinish('Planned');
 }
 
 function editPurchaseRecord(i) {
@@ -6565,10 +6660,17 @@ function editPurchaseRecord(i) {
     setv('pur_qty', r.qty);
     setv('pur_urgency', r.urgency);
     setv('pur_req_date', r.reqDate);
-    setv('pur_status', r.status);
+    setv('pur_status', purStatusOf(r));
+    setv('pur_source', r.source || 'Manual');
+    setv('pur_ref', r.refInfo || '');
+    setv('pur_pr_no', r.prNo || '');
+    setv('pur_pr_date', r.prDate || '');
     setv('pur_po', r.po);
+    setv('pur_po_date', r.poDate || r.ordDate || '');
     setv('pur_vendor', r.vendor);
-    setv('pur_ord_date', r.ordDate || '');
+    setv('pur_sent_date', r.sentDate || '');
+    setv('pur_exp_date', r.expDate || '');
+    setv('pur_challan', r.challan || '');
     setv('pur_rec_date', r.recDate);
     setv('pur_rec_qty', r.recQty);
     setv('pur_cost', r.cost);
@@ -6591,8 +6693,8 @@ function printPurchaseRegister(mode) {
     let sections = (mode === 'ALL' ? PUR_TABS.map(t => t.st) : [purTab]).map(st => {
         let rows = purSort(st, all.filter(r => purStatusOf(r) === st));
         let cols = PUR_COLS[st];
-        let body = rows.map((r, i) => `<tr><td>${i + 1}</td>` + cols.map(c => `<td${c[0] === 'Remark' ? ' style="text-align:left"' : ''}>${c[0] === 'Urgency' ? purUrg(r, true) : c[1](r)}</td>`).join('') + '</tr>').join('');
-        return `<div class="sub2">${st.toUpperCase()} LIST (${rows.length})</div><table><thead><tr><th>Sr.No.</th>${cols.map(c => `<th>${c[0]}</th>`).join('')}</tr></thead><tbody>${body || `<tr><td colspan="${cols.length + 1}">No records</td></tr>`}</tbody></table>`;
+        let body = rows.map((r, i) => `<tr><td>${i + 1}</td>` + cols.map(c => `<td${c[0] === 'Remark' ? ' style="text-align:left"' : ''}>${c[1](r, true)}</td>`).join('') + '</tr>').join('');
+        return `<div class="sub2">${PUR_TABS.find(t => t.st === st).label.toUpperCase()} LIST (${rows.length})</div><table><thead><tr><th>Sr.No.</th>${cols.map(c => `<th>${c[0]}</th>`).join('')}</tr></thead><tbody>${body || `<tr><td colspan="${cols.length + 1}">No records</td></tr>`}</tbody></table>`;
     }).join('<br>');
 
     let w = window.open('', '_blank', 'width=1200,height=800');
@@ -6609,7 +6711,7 @@ function printPurchaseRegister(mode) {
         th{background:#eee}
     </style></head><body>
     <div class="title"><img src="${typeof APP_LOGO !== 'undefined' ? APP_LOGO : ''}">MILESTONE GEARS LTD. UNIT-7</div>
-    <div class="sub">SPARE PART PURCHASE PLANNING & RECEIPT REGISTER</div>
+    <div class="sub">SPARE PART PURCHASE REGISTER &nbsp;(REQUIREMENT ➜ PR ➜ PO ➜ VENDOR ➜ RECEIVED)</div>
     ${sections}
     <script>window.onload=()=>window.print()<\/script>
     </body></html>`);
@@ -6669,7 +6771,7 @@ function purchaseAutoPlanLowStock() {
         if (!baselineDone) {
             // Pehli baar: sirf Admin decide kare ki abhi ke low-stock parts bhi Planned me aayen ya nahi
             if (sess.role !== 'Admin') return 0;
-            const open0 = needPlan.filter(e => !data.sparePurchase.some(p => ['Planned', 'Ordered'].includes(p.status) && purMatches(p, e.desc, e.spec)));
+            const open0 = needPlan.filter(e => !data.sparePurchase.some(p => PUR_OPEN.includes(p.status) && purMatches(p, e.desc, e.spec)));
             if (open0.length) {
                 const names = open0.slice(0, 8).map(e => '- ' + e.desc + (e.spec ? ' - ' + e.spec : '') + ' (Avail ' + e.avail + ', Min ' + e.min + ')').join('\n');
                 addOK = confirm('Spare Inventory / Critical list me abhi ' + open0.length + ' part low stock me hain:\n\n' + names + (open0.length > 8 ? '\n...aur ' + (open0.length - 8) + ' aur' : '') + '\n\nUnhe Spare Part Purchase > Planned list me add kar dein?\n\nOK = Haan, add karo\nCancel = Nahi (aage se sirf naye low-stock parts apne aap add honge)');
@@ -6684,7 +6786,7 @@ function purchaseAutoPlanLowStock() {
                 return;
             }
             if (flagged) return;
-            const open = data.sparePurchase.some(p => ['Planned', 'Ordered'].includes(p.status) && purMatches(p, e.desc, e.spec));
+            const open = data.sparePurchase.some(p => PUR_OPEN.includes(p.status) && purMatches(p, e.desc, e.spec));
             if (!open && addOK) {
                 const base = 'pur-auto-' + purHash(e.key) + '-';
                 let n = 1; while (data.sparePurchase.some(p => p.id === base + n)) n++;
@@ -6695,9 +6797,10 @@ function purchaseAutoPlanLowStock() {
                     desc: e.desc, spec: e.spec,
                     qty: need,
                     urgency: (e.critical || e.avail <= 0) ? 'Urgent' : 'Normal',
+                    source: 'Low Stock',
                     reqDate: today,
                     status: 'Planned',
-                    po: '', vendor: e.make || '', ordDate: '', recDate: '', recQty: 0, cost: 0,
+                    po: '', prNo: '', prDate: '', poDate: '', ordDate: '', sentDate: '', expDate: '', challan: '', refInfo: '', vendor: e.make || '', recDate: '', recQty: 0, cost: 0,
                     remark: 'Auto: Low stock (Available ' + e.avail + ', Min ' + e.min + (e.max > 0 ? ', Max ' + e.max : '') + ')' + (e.critical ? ' [Critical Spare]' : ''),
                     auto: true,
                     updatedAt: new Date().toISOString()
