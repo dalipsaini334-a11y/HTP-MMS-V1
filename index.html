@@ -3894,7 +3894,7 @@ function mmRemoveMachine(){
 <button id="mmsLogoutBtn" onclick="MMS.logout()">⎋ Logout</button>
 <button id="mmsSyncBtn" onclick="MMS.gsSync(false)" style="display:none;position:fixed;left:10px;bottom:10px;z-index:9998;padding:6px 10px;border:1px solid #bbb;border-radius:8px;font-size:11px;cursor:pointer;background:#f3f3f3;max-width:70vw">🔄 Sync</button>
 <div id="mmsUpgradePanel"><div class="mms-card"><button class="mms-close" onclick="MMS.closeTools()">✕</button><h2>Maintenance System Tools</h2><div class="sub">Backup, Excel export, validation, audit, financial year and user management. Existing modules are not replaced.</div><div class="mms-grid">
-<div class="mms-box"><h3>🔐 User & Roles</h3><div id="mmsRoleInfo"></div><button onclick="MMS.logout()">Logout</button><button onclick="MMS.changePassword()">Change Password</button><button onclick="MMS.manageUsers()">Manage Users</button></div>
+<div class="mms-box"><h3>🔐 User & Roles</h3><div id="mmsRoleInfo"></div><button onclick="MMS.logout()">Logout</button><button onclick="MMS.changePassword()">Change Password</button><button onclick="MMS.setPin()">Set / Change PIN</button><button onclick="MMS.manageUsers()">Manage Users</button></div>
 <div class="mms-box" style="grid-column:1/-1"><h3>🧩 Module Access Control</h3><div class="sub">Choose a user, then set exactly which modules they can Save/Update, Edit and Delete in. Works for Admin, Technician, Operator, and any custom designation (Engineer, Supervisor, etc.). Admin always has full access.</div>
 <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px">
 <select id="mmsPermUser" onchange="MMS.loadUserPerms()"></select>
@@ -4158,22 +4158,98 @@ async function gsPullUsersForLogin(){
   return true;
  }catch(e){console.warn('gsPullUsersForLogin',e);return false}
 }
+// Is device ki pehchaan (random id, sirf is phone/browser me): naye device se login par Admin ko email jata hai
+function mmsDeviceId(){try{let d=localStorage.getItem('htp_mms_dev_v1');if(!/^[a-f0-9]{32}$/.test(d||'')){const a=new Uint8Array(16);crypto.getRandomValues(a);d=Array.from(a).map(function(b){return ('0'+b.toString(16)).slice(-2)}).join('');localStorage.setItem('htp_mms_dev_v1',d)}return d}catch(e){return ''}}
+// ---- Pehle login par naya password (temp password ke baad) ----
+async function mmsForcePasswordChange(u,oldPw,role){
+ const min=role==='Admin'?12:10;
+ for(let i=0;i<5;i++){
+  const np=prompt('🔐 Ye aapka pehla login hai (ya Admin ne password reset kiya hai).\n\nApna NAYA password banao (kam se kam '+min+' characters, aam password nahi chalega):');
+  if(np===null)return false;
+  if(np.length<min){alert('Password kam se kam '+min+' characters ka ho.');continue}
+  const cf=prompt('Naya password dobara likho:');
+  if(cf===null)return false;
+  if(cf!==np){alert('Dono password alag hain, dobara try karo.');continue}
+  let r;
+  try{r=await mmsSrvCall('changePw',{old:oldPw,pw:np})}catch(e){alert('Server se connect nahi hua. Internet check karo.');return false}
+  if(!r||!r.ok){alert((r&&r.error)||'Password change nahi hua.');continue}
+  mmsSrvSet(r.token,r.exp,u);
+  return true;
+ }
+ return false;
+}
+// ---- Bade kaam par PIN (ya password): 5 minute ke liye yaad rehta hai ----
+let mmsRT=null,mmsRTExp=0;
+async function mmsReauthToken(){
+ if(mmsRT&&Date.now()<mmsRTExp-5000)return mmsRT;
+ const re=prompt('🔐 Ye bada kaam hai. Apna PIN (ya password) daalo:');
+ if(re===null||re==='')return null;
+ let r;
+ try{r=await mmsSrvCall('reauth',{re:re})}catch(e){alert('Server se connect nahi hua. Internet check karo.');return null}
+ if(!r||!r.ok){alert((r&&r.error)||'Galat PIN / password');return null}
+ mmsRT=r.rt;mmsRTExp=Number(r.exp)||Date.now()+240000;
+ return mmsRT;
+}
+async function mmsSrvSensitive(action,body){
+ let rt=await mmsReauthToken();
+ if(!rt)return {ok:false,error:'Cancel kiya gaya.'};
+ let r=await mmsSrvCall(action,Object.assign({rt:rt},body));
+ if(r&&r.error==='REAUTH_REQUIRED'){                      // token purana ho gaya tha: ek baar phir poochho
+  mmsRT=null;rt=await mmsReauthToken();
+  if(!rt)return {ok:false,error:'Cancel kiya gaya.'};
+  r=await mmsSrvCall(action,Object.assign({rt:rt},body));
+ }
+ return r;
+}
+async function setPin(){
+ if(!requireRole(['Admin']))return;
+ const old=prompt('PIN set karne ke liye apna abhi ka PASSWORD daalo:');if(!old)return;
+ const pin=prompt('Naya 6-digit PIN likho (sirf ginti, jaise 482915).\nKhali chhodo to PIN hat jayega aur bade kaam par password lagega:');
+ if(pin===null)return;
+ if(pin!==''){
+  if(!/^\d{6}$/.test(pin))return alert('PIN theek 6 ginti ka ho.');
+  const cf=prompt('PIN dobara likho:');if(cf===null)return;if(cf!==pin)return alert('Dono PIN alag hain.');
+ }
+ try{
+  const r=await mmsSrvCall('pinSet',{old:old,pin:pin});
+  if(!r||!r.ok)return alert((r&&r.error)||'PIN set nahi hua.');
+  mmsRT=null;
+  alert(pin?'PIN set ho gaya. Ab user banana/badalna/hatana aur backup restore par PIN (ya password) lagega.':'PIN hata diya. Ab bade kaam par password lagega.');
+ }catch(e){alert('Server se connect nahi hua. Internet check karo.')}
+}
 async function login(){
  const lm=document.getElementById('mmsLoginMsg'),u=document.getElementById('mmsLoginUser').value.trim(),p=document.getElementById('mmsLoginPass').value;
  if(!u||!p){lm.textContent='Username aur password daalo.';return}
  lm.textContent='Server se check ho raha hai…';
- let r;
- try{r=await mmsSrvCall('login',{u:u,p:p})}
+ let r;const dev=mmsDeviceId();
+ try{r=await mmsSrvCall('login',{u:u,p:p,dev:dev})}
  catch(e){lm.textContent='Server check ho raha hai…';lm.textContent=await mmsDiagnoseServer();return}
+ // 2-factor: password sahi hone par server authenticator app ka code maangta hai
+ let tries2=0;
+ while(r&&!r.ok&&r.need2fa&&tries2<3){
+  const code=prompt((tries2?r.error+'\n\n':'')+'🔐 Authenticator app ka 6-digit code daalo:');
+  if(code===null){lm.textContent='Login cancel kiya.';return}
+  lm.textContent='Code check ho raha hai…';
+  try{r=await mmsSrvCall('login',{u:u,p:p,code:String(code).trim(),dev:dev})}
+  catch(e){lm.textContent=await mmsDiagnoseServer();return}
+  tries2++;
+ }
  if(!r||!r.ok){lm.textContent=(r&&r.error)||'Invalid username or password.';return}
  mmsSrvSet(r.token,r.exp,r.u);
+ let forcedChange=false;
+ if(r.mustChange){                                       // Admin ne temp password diya tha: pehle apna naya password banao
+  lm.textContent='Naya password banana zaroori hai…';
+  const done=await mmsForcePasswordChange(r.u,p,r.role);
+  if(!done){try{localStorage.removeItem(MMS_SRV_KEY)}catch(e){}document.getElementById('mmsLoginPass').value='';lm.textContent='Naya password set kiye bina login nahi ho sakta. Dobara try karo.';return}
+  forcedChange=true;
+ }
  try{await gsPullUsersForLogin()}catch(e){}            // permissions wali users list server se
  let found=users().find(x=>x.u===r.u);
  if(!found){const us=users();found={u:r.u,id:'usr-'+r.u,role:r.role,perms:mmsDefaultPermsForRole(r.role)};us.push(found);localStorage.setItem(USERS_KEY,JSON.stringify(us))}
  document.getElementById('mmsLoginPass').value='';
  localStorage.setItem(SESSION_KEY,JSON.stringify({u:found.u,role:r.role,loginAt:new Date().toISOString()}));
- document.getElementById('mmsLogin').classList.add('hidden');gsRenderPrimaryUI();gsSchedule(400);lm.textContent='';setBadge();audit('LOGIN','system','User login');MMS.refreshKPIs();try{renderDashboard()}catch(e){}gsSchedule(800)}
-function logout(){try{if(session())audit('LOGOUT','system','User logout')}catch(e){}localStorage.removeItem(SESSION_KEY);localStorage.removeItem(MMS_SRV_KEY);document.getElementById('mmsUpgradePanel').classList.remove('open');document.getElementById('mmsLogin').classList.remove('hidden');setBadge();try{renderDashboard()}catch(e){}}
+ document.getElementById('mmsLogin').classList.add('hidden');gsRenderPrimaryUI();gsSchedule(400);lm.textContent='';setBadge();audit('LOGIN','system','User login');if(forcedChange)audit('PASSWORD','system','Password changed (first login)');MMS.refreshKPIs();try{renderDashboard()}catch(e){}gsSchedule(800)}
+function logout(){try{if(session())audit('LOGOUT','system',window.__mmsAutoLogout?'Auto logout (idle)':'User logout')}catch(e){}localStorage.removeItem(SESSION_KEY);localStorage.removeItem(MMS_SRV_KEY);document.getElementById('mmsUpgradePanel').classList.remove('open');document.getElementById('mmsLogin').classList.remove('hidden');setBadge();try{renderDashboard()}catch(e){}}
 function backup() {
     if (!requireRole(['Admin', 'Technician'])) return;
     let pack = {
@@ -4219,8 +4295,9 @@ function mmsDropStaleSeeds(k,local,incoming){
     const ids={};(incoming||[]).forEach(function(r){if(r&&r.id!=null)ids[String(r.id)]=1});
     return local.filter(function(r){return !mmsIsSeedRec(r)||ids[String(r.id)]});
 }
-function restore() {
+async function restore() {
     if (!requireRole(['Admin'])) return;
+    if (!(await mmsReauthToken())) return;      // bade kaam: PIN ya password
     let inp = document.createElement('input');
     inp.type = 'file';
     inp.accept = '.json,application/json';
@@ -4308,7 +4385,7 @@ function closeTools(){document.getElementById('mmsUpgradePanel').classList.remov
 async function changePassword(){
  if(!requireRole(['Admin']))return;let s=session();if(!s)return;
  const op=prompt('Current password:');if(!op)return;
- const np=prompt('Enter new password (minimum 8 characters):');if(!np||np.length<8)return alert('Password must be at least 8 characters.');
+ const np=prompt('Enter new password (Admin ke liye minimum 12 characters; aam / aasani se guess hone wala password nahi chalega):');if(!np||np.length<12)return alert('Admin password must be at least 12 characters.');
  if(prompt('Confirm new password:')!==np)return alert('Passwords do not match.');
  try{const r=await mmsSrvCall('changePw',{old:op,pw:np});if(!r.ok)return alert(r.error||'Password change failed.');mmsSrvSet(r.token,r.exp,s.u);audit('PASSWORD','system','Password changed');alert('Password changed.')}
  catch(e){alert('Server se connect nahi hua. Internet check karke dobara try karo.')}
@@ -4322,9 +4399,9 @@ async function manageUsers(){
   if(u.trim()){
    let x=us.find(z=>z.u===u.trim());if(!x)return alert('User not found.');
    let role=(prompt('Enter role / designation for '+x.u+' (e.g. Admin, Technician, Operator, Engineer, Supervisor):',x.role)||'').trim()||x.role;
-   let newPass=prompt('Reset password for '+x.u+'? Enter a new password (minimum 8 characters), or leave blank to keep the current password:');
-   if(newPass&&newPass.length<8)return alert('Password must be at least 8 characters. Nothing changed.');
-   const r=await mmsSrvCall('userSet',{u:x.u,role:role,pw:newPass||''});
+   let newPass=prompt('Reset password for '+x.u+'? Enter a new password (minimum 10 characters, Admin ke liye 12), or leave blank to keep the current password:');
+   if(newPass&&newPass.length<10)return alert('Password must be at least 10 characters. Nothing changed.');
+   const r=await mmsSrvSensitive('userSet',{u:x.u,role:role,pw:newPass||''});
    if(!r.ok)return alert((r.error||'Server error')+(/password zaroori/.test(r.error||'')?'\n\nIs user ka server account abhi nahi hai - "Reset password" me naya password daalo.':''));
    x.role=role;localStorage.setItem(USERS_KEY,JSON.stringify(us));
    audit('USER_ROLE','system',`${x.u} -> ${role}`);if(newPass)audit('USER_PASSWORD_RESET','system',x.u);
@@ -4333,9 +4410,9 @@ async function manageUsers(){
   }else{
    let nu=(prompt('New username')||'').trim();if(!nu)return;
    if(us.some(x=>x.u===nu))return alert('Username already exists');
-   let np=prompt('Temporary password (min 8)');if(!np||np.length<8)return alert('Invalid password (minimum 8 characters).');
+   let np=prompt('Temporary password (min 10 characters, Admin ke liye 12)');if(!np||np.length<10)return alert('Invalid password (minimum 10 characters).');
    let nr=(prompt('Role / designation (e.g. Admin, Technician, Operator, Engineer, Supervisor):','Operator')||'').trim();if(!nr)return alert('Role is required.');
-   const r=await mmsSrvCall('userSet',{u:nu,role:nr,pw:np});
+   const r=await mmsSrvSensitive('userSet',{u:nu,role:nr,pw:np});
    if(!r.ok)return alert(r.error||'Server error');
    us.push({u:nu,id:'usr-'+nu,role:nr,perms:mmsDefaultPermsForRole(nr)});localStorage.setItem(USERS_KEY,JSON.stringify(us));
    audit('USER_ADD','system',nu);populatePermUserSelect();
@@ -4391,7 +4468,7 @@ async function deleteUserAccount(){
  let s=session();if(s&&s.u===uname)return alert('You cannot delete the account you are currently logged in as.');
  let us=users();let u=us.find(x=>x.u===uname);if(!u)return alert('User not found.');
  if(!confirm('Delete user "'+uname+'" ('+u.role+')? This cannot be undone.'))return;
- try{const r=await mmsSrvCall('userDel',{u:uname});if(!r.ok)return alert(r.error||'Server error')}catch(e){return alert('Server se connect nahi hua. Internet check karke dobara try karo.')}
+ try{const r=await mmsSrvSensitive('userDel',{u:uname});if(!r.ok)return alert(r.error||'Server error')}catch(e){return alert('Server se connect nahi hua. Internet check karke dobara try karo.')}
  us=us.filter(x=>x.u!==uname);
  localStorage.setItem(USERS_KEY,JSON.stringify(us));
  audit('USER_DELETE','system',uname);
@@ -5037,7 +5114,7 @@ async function gsPost(cfg,payload,ackOnly){
   catch(e){console.warn('Google Sheet report queue failed',e);return {ok:true,rows:[],maxSrv:since};}
  }
  const changes=payload&&payload.changes||[];
- const wanted={};changes.forEach(function(c){wanted[c.module+'|'+c.sid]=Number(c.ts||0)});
+ const wanted={},isAdm=!!(session()&&session().role==='Admin');changes.forEach(function(c){if(c.module==='audit'&&!isAdm)return;wanted[c.module+'|'+c.sid]=Number(c.ts||0)});
  const hasAll=function(rows){return Object.keys(wanted).every(function(k){return (rows||[]).some(function(r){return r.module+'|'+r.sid===k&&Number(r.ts||0)>=wanted[k]})})};
  if(changes.length){
   // 1) baseline  2) POST  3) sirf naye rows (baseline ke baad) poll karke ack - poora data baar-baar download nahi hota
@@ -5218,6 +5295,7 @@ async function gsSync(auto){
    Object.keys(oldBase).forEach(function(sid){
     if(used.has(sid))return;
     if(oldBase[sid].del){nb[sid]=oldBase[sid];return}
+    if(mod==='audit'&&!(session()&&session().role==='Admin'))return;   // purani audit entry local trim: server par delete nahi bhejte
     if(mod==='users'&&sid==='i:usr-admin'){nb[sid]=oldBase[sid];return}
     changes.push({module:mod,sid:sid,ts:now,deleted:1,json:''});nb[sid]={h:'',ts:now,del:1};gsAff(aff,mod,oldBase[sid].m);
    });
@@ -5324,13 +5402,33 @@ function gsBeaconFlush(){
 (function(){let last=0;function bf(){const t=Date.now();if(t-last<1500)return;last=t;gsBeaconFlush()}
  document.addEventListener('visibilitychange',function(){if(document.hidden)bf()});
  window.addEventListener('pagehide',bf);})();
+// ===== Idle auto-logout: MMS_IDLE_MIN minute koi activity nahi to logout (pehle bacha hua data server ko bhej diya jata hai) =====
+const MMS_IDLE_MIN=60, MMS_IDLE_ADMIN_MIN=15;
+(function(){
+ let last=Date.now();
+ const touch=function(){last=Date.now()};
+ ['click','keydown','touchstart','pointerdown','input','scroll'].forEach(function(ev){document.addEventListener(ev,touch,{capture:true,passive:true})});
+ function check(){
+  try{
+   if(!session())return;
+   const lim=(session().role==='Admin'?MMS_IDLE_ADMIN_MIN:MMS_IDLE_MIN)*60000;
+   if(Date.now()-last<=lim)return;
+   try{gsBeaconFlush()}catch(e){}
+   window.__mmsAutoLogout=true;
+   try{logout()}finally{window.__mmsAutoLogout=false}
+   try{purToast('⏱ Kuch der koi activity nahi hui, isliye logout ho gaya. Dobara login karo.')}catch(e){}
+  }catch(e){}
+ }
+ setInterval(check,30000);
+ document.addEventListener('visibilitychange',function(){if(!document.hidden)check()});
+})();
 // Live multi-device sync: pull shared Sheet changes frequently while keeping local/offline cache.
 setInterval(function(){if(!document.hidden)gsSync(true)},8000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)gsSchedule(500)});
 window.addEventListener('online',function(){gsSchedule(500)});
 window.addEventListener('load',function(){gsSchedule(1500)});
 
-window.MMS={gsDiag,gsRebuildReports,gsSync,gsConfigure,gsTogglePrimary,gsResetState,login,logout,backup,restore,exportExcel,validate,refreshAudit,exportAudit,addFY,applyFY,queueSync,clearSyncQueue,refreshKPIs,openTools,closeTools,changePassword,manageUsers,populatePermUserSelect,loadUserPerms,selectAllPerms,saveUserRoleLabel,saveUserPerms,deleteUserAccount};
+window.MMS={setPin,gsDiag,gsRebuildReports,gsSync,gsConfigure,gsTogglePrimary,gsResetState,login,logout,backup,restore,exportExcel,validate,refreshAudit,exportAudit,addFY,applyFY,queueSync,clearSyncQueue,refreshKPIs,openTools,closeTools,changePassword,manageUsers,populatePermUserSelect,loadUserPerms,selectAllPerms,saveUserRoleLabel,saveUserPerms,deleteUserAccount};
 window.addEventListener('load',()=>{setBadge();let s=session();if(s){document.getElementById('mmsLogin').classList.add('hidden');}else document.getElementById('mmsLogin').classList.remove('hidden');initFY();refreshKPIs();gsRenderPrimaryUI();});
 })();
 document.addEventListener('DOMContentLoaded',function(){utilityNormalizeData();seedUtilityExcel2024Items();setv('mu_log_date',utilityToday());setv('mu_item_sno',nextUtilitySno());renderMaintUtility();if(typeof initAirCompressor==='function')initAirCompressor();});
