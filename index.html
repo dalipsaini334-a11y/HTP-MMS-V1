@@ -8126,12 +8126,15 @@ if (typeof renderAll !== 'undefined') {
 <script type="text/mms-defer" id="amc-module">
 /* =====================================================================
  * AMC & SERVICE (OUTSOURCE)  -  DG Set / Nitrogen Plant / Air Compressor etc.
- *   amc     - AMC / service contract register (vendor, period, frequency, service months)
- *   amcLog  - Service visit log (kab, kisne, kya kaam kiya, next due)
- *   amcPlan - Month-wise service plan (FY Apr-Mar) : kis equipment ki service kis mahine me,
- *             kaunsi ho gayi / due / overdue  (auto, contract + visit log se)
- * Storage, Google Sheet sync, Module Access Control, Audit log, Excel/Print - sab HT Quality
- * wale register framework (hq*) ke through, baaki modules jaise hi.
+ *   amc     - Contract / service register (AMC ho ya na ho)
+ *   amcLog  - Service visit log (kab, kisne, kya kaam kiya, hour meter, next due)
+ *   amcPlan - Service plan + pending list + equipment history
+ *
+ * Service basis:
+ *   Calendar (months) : Monthly / 2-monthly / Quarterly / Half-yearly / Yearly / Custom months
+ *   Running hours     : har X hours par (DG, Air Compressor). Current hours DG Daily Reading /
+ *                       Air Compressor module se auto aate hain (ya manual update).
+ * AMC optional hai: "Yearly Service (no AMC)", "Hours-based Service (no AMC)", "On-Call", "In-house".
  * ===================================================================== */
 (function () {
   'use strict';
@@ -8140,10 +8143,15 @@ if (typeof renderAll !== 'undefined') {
 
   var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   var FREQ = { 'Monthly': 1, 'Every 2 months': 2, 'Quarterly (3 months)': 3, 'Half-yearly (6 months)': 6, 'Yearly': 12, 'Custom months': 0 };
-  var TYPES = ['Comprehensive AMC', 'Non-Comprehensive AMC', 'Service Contract (Labour only)', 'On-Call / Breakdown only', 'Under Warranty'];
+  var TYPES = ['Comprehensive AMC', 'Non-Comprehensive AMC', 'Service Contract (Labour only)', 'Yearly Service (no AMC)', 'Hours-based Service (no AMC)', 'On-Call / Breakdown only', 'In-house (no vendor)', 'Under Warranty'];
+  var NOAMC = /^(Yearly Service|Hours-based|On-Call|In-house)/i;
+  var NEEDV = /^(Comprehensive|Non-Comprehensive|Service Contract)/i;
+  var BASIS = ['Calendar (months)', 'Running hours'];
   var VTYPES = ['Scheduled AMC Visit', 'Breakdown / Emergency Call', 'Overhaul / Major Service', 'Inspection / Health Check', 'Other'];
   var EQUIP = ['DG Set', 'Nitrogen Plant', 'Air Compressor', 'Air Dryer', 'Chiller', 'Cooling Tower', 'Transformer', 'HT Panel / VCB', 'UPS / Battery Bank', 'EOT Crane', 'Forklift', 'Fire Fighting System', 'RO / ETP Plant', 'Boiler', 'Lift'];
-  var DOC = 'AMC-01 / REV-00';
+  var DOC = 'AMC-01 / REV-01';
+  var HR_KEYS = ['hrSource', 'hrInterval', 'hrLast', 'hrLastDate', 'hrNow', 'hrNowDate', 'hrAvg', 'hrAlert'];
+  var CAL_KEYS = ['freq', 'baseMonth', 'customMonths', 'serviceMonths'];
 
   function el(i) { return document.getElementById(i); }
   function pad(n) { return String(n).padStart(2, '0'); }
@@ -8155,6 +8163,12 @@ if (typeof renderAll !== 'undefined') {
   function fyOf(d) { var y = +String(d).slice(0, 4), m = +String(d).slice(5, 7); return m >= 4 ? y : y - 1; }
   function isBrk(v) { return /breakdown/i.test(v || ''); }
   function nextSno(key) { return hqList(key).reduce(function (m, r) { return Math.max(m, hqN(r.sno) || 0); }, 0) + 1; }
+  function inr(n) { return '\u20B9 ' + Number(n || 0).toLocaleString('en-IN'); }
+  function numOf(x) { var n = parseFloat(String(x === undefined || x === null ? '' : x).replace(/,/g, '')); return isNaN(n) ? NaN : n; }
+  function fmt(n) { return Math.round(n).toLocaleString('en-IN'); }
+  function dayNum(d) { return Math.floor(Date.parse(String(d).slice(0, 10) + 'T00:00:00') / 86400000); }
+  function machList() { return (typeof MACHINE_MASTER !== 'undefined' && Array.isArray(MACHINE_MASTER)) ? MACHINE_MASTER : []; }
+  function machFind(no) { return machList().find(function (m) { return String(m.machineNumber) === String(no); }); }
   function strip(s) { return String(s === undefined || s === null ? '' : s).replace(/<[^>]*>/g, ''); }
 
   /* ---------- registration (storage / sync / permissions) ---------- */
@@ -8169,8 +8183,69 @@ if (typeof renderAll !== 'undefined') {
   });
   try { GS_TAB.amc = 'AMCContracts'; GS_TAB.amcLog = 'AMCServiceLog'; } catch (e) { }
 
-  /* ---------- schedule logic ---------- */
+  /* ---------- running-hours logic ---------- */
+  function isHrs(c) { return c && c.basis === 'Running hours' && numOf(c.hrInterval) > 0; }
+  function acNames() {
+    var names = {}, sel = el('ac_machine');
+    if (sel && sel.options) [].forEach.call(sel.options, function (op) { var v = op.value || ''; if (v && !/select/i.test(v)) names[v] = 1; });
+    var dl = el('ac_machine_list') || (sel && sel.list); if (dl && dl.options) [].forEach.call(dl.options, function (op) { var v = op.value || ''; if (v) names[v] = 1; });
+    (data.airCompressor || []).forEach(function (r) { if (r && r.machine) names[r.machine] = 1; });
+    return Object.keys(names).sort();
+  }
+  function srcOptions() {
+    var o = [['manual', 'Manual entry (hour meter khud update karunga)'], ['dg1', 'Auto: DG Daily Reading — DG-1 running hour'], ['dg2', 'Auto: DG Daily Reading — DG-2 running hour']];
+    acNames().forEach(function (n) { o.push(['ac:' + n, 'Auto: Air Compressor — ' + n + ' (run hour)']); });
+    return o;
+  }
+  function readingsFor(c) {
+    var s = c.hrSource || 'manual', out = [];
+    if (s === 'dg1' || s === 'dg2') {
+      var k = s === 'dg1' ? 'dg1hr' : 'dg2hr';
+      (data.dg || []).forEach(function (r) { var v = numOf(r[k]); if (!isNaN(v) && r.date) out.push({ d: String(r.date).slice(0, 10), t: String(r.date).slice(0, 10) + ' ' + (r.time || ''), v: v }); });
+    } else if (s.indexOf('ac:') === 0) {
+      var m = s.slice(3);
+      (data.airCompressor || []).forEach(function (r) { if (r && r.type === 'reading' && r.machine === m) { var v = numOf(r.runHour); if (!isNaN(v) && r.date) out.push({ d: String(r.date).slice(0, 10), t: String(r.date).slice(0, 10) + ' ', v: v }); } });
+    }
+    return out.sort(function (a, b) { return a.t < b.t ? -1 : (a.t > b.t ? 1 : a.v - b.v); });
+  }
+  function srcName(c) {
+    var s = c.hrSource || 'manual';
+    return s === 'dg1' ? 'DG Daily Reading (DG-1)' : (s === 'dg2' ? 'DG Daily Reading (DG-2)' : (s.indexOf('ac:') === 0 ? 'Air Compressor (' + s.slice(3) + ')' : 'Manual'));
+  }
+  function curHours(c) {
+    var rd = readingsFor(c);
+    if (rd.length) { var l = rd[rd.length - 1]; return { h: l.v, d: l.d, src: srcName(c) }; }
+    var mh = numOf(c.hrNow);
+    if (!isNaN(mh)) return { h: mh, d: c.hrNowDate || '', src: 'Manual' };
+    return { h: NaN, d: '', src: '—' };
+  }
+  function avgPerMonth(c) {
+    var man = numOf(c.hrAvg); if (!isNaN(man) && man > 0) return man;
+    var rd = readingsFor(c); if (rd.length < 2) return NaN;
+    var last = rd[rd.length - 1], cut = dayNum(last.d) - 90, first = rd.filter(function (x) { return dayNum(x.d) >= cut; })[0] || rd[0];
+    var days = dayNum(last.d) - dayNum(first.d); if (days < 7) return NaN;
+    var a = (last.v - first.v) / days * 30.44; return a > 0 ? a : NaN;
+  }
+  function hrInfo(c) {
+    if (!isHrs(c)) return null;
+    var iv = numOf(c.hrInterval);
+    var logs = hqList('amcLog').filter(function (l) { return String(l.contractId) === String(c.id) && l.status === 'Completed' && !isBrk(l.visitType) && !isNaN(numOf(l.runHours)); })
+      .sort(function (a, b) { return String(b.visitDate || '').localeCompare(String(a.visitDate || '')); });
+    var lastH = logs[0] ? numOf(logs[0].runHours) : numOf(c.hrLast), lastD = logs[0] ? logs[0].visitDate : (c.hrLastDate || '');
+    if (isNaN(lastH)) lastH = 0;
+    var cur = curHours(c), nodata = isNaN(cur.h), curH = nodata ? lastH : cur.h;
+    var due = lastH + iv, rem = due - curH, al = numOf(c.hrAlert); if (isNaN(al) || al <= 0) al = Math.max(1, Math.round(iv * 0.1));
+    var st = curH >= due ? 'over' : (rem <= al ? 'due' : 'ok'), avg = avgPerMonth(c), etaYm = '';
+    if (st === 'ok' && avg > 0) {
+      var dt = new Date(Date.parse(hqToday() + 'T00:00:00') + (rem / avg) * 30.44 * 864e5);
+      etaYm = dt.getFullYear() + '-' + pad(dt.getMonth() + 1);
+    }
+    return { iv: iv, lastH: lastH, lastD: lastD, cur: cur, curH: curH, nodata: nodata, due: due, rem: rem, alert: al, state: st, avg: avg, etaYm: etaYm };
+  }
+
+  /* ---------- calendar schedule logic ---------- */
   function planned(c) {
+    if (c.basis === 'Running hours') return [];
     var f = c.freq || 'Quarterly (3 months)', out = [], i;
     if (f === 'Custom months') {
       String(c.customMonths || '').split(/[^A-Za-z]+/).forEach(function (w) {
@@ -8186,10 +8261,12 @@ if (typeof renderAll !== 'undefined') {
   }
   function fyOrder(i) { return (i + 9) % 12; }
   function monthsLabel(c) { return planned(c).slice().sort(function (a, b) { return fyOrder(a) - fyOrder(b); }).map(function (i) { return MON[i]; }).join(', '); }
+  function schedLabel(c) { return c.basis === 'Running hours' ? (numOf(c.hrInterval) > 0 ? 'Every ' + fmt(numOf(c.hrInterval)) + ' hrs' : '') : monthsLabel(c); }
   function find(id) { return hqList('amc').find(function (x) { return String(x.id) === String(id); }); }
-  function lab(c) { return (c.equipment || '') + (c.equipNo ? ' – ' + c.equipNo : ''); }
+  function lab(c) { return (c.equipment || '') + ((c.equipNo || c.machineNo) ? ' – ' + (c.equipNo || c.machineNo) : ''); }
   function inContract(c, ym) {
-    if (c.startDate && ym < String(c.startDate).slice(0, 7)) return false;
+    var sd = c.startDate || String(c.createdAt || '').slice(0, 10);   // start date na ho to record banne ka mahina
+    if (sd && ym < String(sd).slice(0, 7)) return false;
     if (c.endDate && ym > String(c.endDate).slice(0, 7)) return false;
     return true;
   }
@@ -8197,11 +8274,21 @@ if (typeof renderAll !== 'undefined') {
     return hqList('amcLog').filter(function (l) { return String(l.contractId) === String(c.id) && l.schedMonth === ym && !isBrk(l.visitType); });
   }
   function cellState(c, ym) {
+    var logs, done, cur = ymNow();
+    if (isHrs(c)) {
+      logs = logsFor(c, ym); done = logs.filter(function (l) { return l.status === 'Completed'; })[0];
+      if (done) return { s: 'done', log: done };
+      var h = hrInfo(c);
+      if (h) {
+        if (ym === cur && (h.state === 'over' || h.state === 'due')) return { s: h.state === 'over' ? 'over' : 'due', hr: h, log: logs[0] || null };
+        if (h.state === 'ok' && h.etaYm === ym) return { s: 'up', hr: h, est: true };
+      }
+      return { s: 'none' };
+    }
     if (planned(c).indexOf(+ym.slice(5, 7) - 1) < 0) return { s: 'none' };
     if (!inContract(c, ym)) return { s: 'out' };
-    var logs = logsFor(c, ym), done = logs.filter(function (l) { return l.status === 'Completed'; })[0];
+    logs = logsFor(c, ym); done = logs.filter(function (l) { return l.status === 'Completed'; })[0];
     if (done) return { s: 'done', log: done };
-    var cur = ymNow();
     return { s: ym < cur ? 'over' : (ym === cur ? 'due' : 'up'), log: logs[0] || null };
   }
   function nextAfter(c, ym) {
@@ -8214,6 +8301,12 @@ if (typeof renderAll !== 'undefined') {
   }
   function nextState(c) {
     var cur = ymNow(), k, ym, st;
+    if (isHrs(c)) {
+      var h = hrInfo(c); if (!h) return { s: 'none' };
+      if (h.state === 'over') return { s: 'over', ym: cur, hr: h };
+      if (h.state === 'due') return { s: 'due', ym: cur, hr: h };
+      return h.etaYm ? { s: 'up', ym: h.etaYm, hr: h, est: true } : { s: 'none', hr: h };
+    }
     if (!planned(c).length) return { s: 'none' };
     for (k = -12; k <= -1; k++) { ym = hqAddMonthsYM(cur, k); if (cellState(c, ym).s === 'over') return { s: 'over', ym: ym }; }
     if (cellState(c, cur).s === 'due') return { s: 'due', ym: cur };
@@ -8221,42 +8314,69 @@ if (typeof renderAll !== 'undefined') {
     return { s: 'none' };
   }
   function cStatus(c) {
-    if (!c.endDate) return { t: 'No end date', c: '#555' };
+    if (!c.endDate) return NOAMC.test(c.amcType || '') ? { t: 'Service only', c: '#2563eb' } : { t: 'No end date', c: '#555' };
     var d = hqDaysTo(c.endDate);
     if (d < 0) return { t: 'Expired', c: '#b91c1c' };
     if (d <= 60) return { t: 'Expiring in ' + d + ' days', c: '#b45309' };
     return { t: 'Active', c: '#15803d' };
   }
+  function hrNextTxt(h) {
+    if (!h) return '—';
+    return h.state === 'over' ? 'Overdue: due at ' + fmt(h.due) + ' hrs' : (h.state === 'due' ? 'Due now: ' + fmt(h.rem) + ' hrs left' : 'At ' + fmt(h.due) + ' hrs' + (h.etaYm ? ' (~' + ymLbl(h.etaYm) + ')' : ''));
+  }
+  function ndLbl(x) { return /hrs$/.test(String(x || '')) ? String(x) : ymLbl(x); }
 
   /* ---------- register definitions ---------- */
   HQ_CFG.amc = {
-    key: 'amc', title: 'AMC & SERVICE CONTRACT REGISTER (OUTSOURCED EQUIPMENT)', docNo: DOC,
-    help: 'DG Set, Nitrogen Plant, Air Compressor jaise outsource AMC / service wale equipment ki contract details bharein. <b>Service Frequency + First Service Month</b> se service ke mahine auto ban jaate hain aur <b>Service Plan (Month-wise)</b> me dikhte hain.',
+    key: 'amc', title: 'AMC & SERVICE REGISTER (OUTSOURCED EQUIPMENT)', docNo: DOC,
+    help: 'Jin equipment ki service vendor se hoti hai unki details yahan bharein &mdash; <b>AMC ho ya na ho</b>. Sirf yearly service wale equipment ke liye <b>Frequency = Yearly</b>; DG / Air Compressor jaise <b>running hours</b> par service wale equipment ke liye <b>Service Basis = Running hours</b> chunein (hours DG Daily Reading / Air Compressor module se auto aate hain). <b>Machine Master</b> se machine chunne par naam, number, department aur make auto bhar jaate hain.',
     fields: [
       F('sno', 'Sr. No.', 'number', { sec: 'A. EQUIPMENT DETAILS', d: function () { return nextSno('amc'); } }),
+      F('machineNo', 'Select Machine (from Machine Master)', 'select', { o: [], w: true }),
       F('equipment', 'Equipment (AMC / service for)', 'text', { req: true, ph: 'e.g. DG Set / Nitrogen Plant / Air Compressor' }),
       F('equipNo', 'Equipment No. / ID / Capacity', 'text', { ph: 'e.g. DG-1 • 500 KVA' }),
       F('location', 'Location / Section', 'text'),
       F('make', 'Make / Model', 'text'),
-      F('vendor', 'Service Provider (Vendor)', 'text', { sec: 'B. VENDOR & CONTRACT', req: true, ph: 'Vendor / company name' }),
+      F('amcType', 'Contract Type', 'select', { sec: 'B. VENDOR & CONTRACT (AMC optional)', o: TYPES, d: 'Comprehensive AMC' }),
+      F('vendor', 'Service Provider (Vendor)', 'text', { ph: 'Vendor / company (AMC me zaroori)' }),
       F('contactPerson', 'Contact Person', 'text'),
       F('phone', 'Phone / Mobile', 'tel'),
-      F('amcType', 'Contract Type', 'select', { o: TYPES, d: 'Comprehensive AMC' }),
       F('poNo', 'AMC / PO / Contract No.', 'text'),
       F('startDate', 'AMC Start Date', 'date'),
       F('endDate', 'AMC End Date', 'date'),
       F('amount', 'AMC Value (₹)', 'number', { ph: '0.00' }),
-      F('freq', 'Service Frequency', 'select', { sec: 'C. SERVICE SCHEDULE', o: Object.keys(FREQ), d: 'Quarterly (3 months)' }),
+      F('basis', 'Service Basis', 'select', { sec: 'C. SERVICE SCHEDULE', o: BASIS, d: 'Calendar (months)' }),
+      F('freq', 'Service Frequency', 'select', { o: Object.keys(FREQ), d: 'Quarterly (3 months)' }),
       F('baseMonth', 'First Service Month', 'select', { o: MON, d: 'Apr' }),
       F('customMonths', 'Custom Months (only if frequency = Custom)', 'text', { ph: 'e.g. Jun, Dec' }),
-      F('serviceMonths', 'Service Months (auto)', 'text', { calc: true, w: true }),
-      F('scope', 'Scope of Work / Inclusions', 'text', { w: true, ph: 'e.g. 4 visits / year, oil + filters, labour included' }),
+      F('serviceMonths', 'Service Schedule (auto)', 'text', { calc: true, w: true }),
+      F('hrSource', 'Running Hours Source', 'select', { sec: 'D. RUNNING-HOURS BASED SERVICE', o: [], w: true, d: 'manual' }),
+      F('hrInterval', 'Service Every (hours)', 'number', { ph: 'e.g. 250 (DG) / 2000 (compressor)' }),
+      F('hrLast', 'Hour Meter at Last Service', 'number', { ph: 'Last service ke time hours' }),
+      F('hrLastDate', 'Last Service Date', 'date'),
+      F('hrNow', 'Current Running Hours (manual)', 'number', { ph: 'Sirf Manual source me' }),
+      F('hrNowDate', 'Reading Date', 'date'),
+      F('hrAvg', 'Avg Running Hours / Month (optional)', 'number', { ph: 'Forecast ke liye; DG / compressor me auto' }),
+      F('hrAlert', 'Alert Before (hours)', 'number', { ph: 'Blank = interval ka 10%' }),
+      F('scope', 'Scope of Work / Inclusions', 'text', { sec: 'E. NOTES', w: true, ph: 'e.g. 4 visits / year, oil + filters, labour included' }),
       F('remark', 'Remark', 'text', { w: true })
     ],
-    calc: function (v) { return { serviceMonths: monthsLabel(v) }; },
+    calc: function (v) { var m = machFind(v.machineNo); return { serviceMonths: schedLabel(v), machineName: m ? (m.machineName || '') : '' }; },
+    onChange: function (k) {
+      if (k === 'basis' || k === 'hrSource' || k === 'amcType') applyBasis();
+      if (k !== 'machineNo') return;
+      var m = machFind(hqV('hq_amc_machineNo')); if (!m) return;
+      hqSet('hq_amc_equipment', m.machineName || ''); hqSet('hq_amc_equipNo', m.machineNumber || '');
+      hqSet('hq_amc_location', m.department || ''); hqSet('hq_amc_make', m.make || '');
+    },
     check: function (r) {
       if (r.startDate && r.endDate && r.endDate < r.startDate) return { err: 'AMC End Date, Start Date se pehle nahi ho sakti.' };
-      if (r.freq === 'Custom months' && !planned(r).length) return { err: 'Custom frequency me kam se kam ek mahina likhein (e.g. Jun, Dec).' };
+      if (NEEDV.test(r.amcType || '') && !String(r.vendor || '').trim()) return { err: 'AMC / Service Contract me Service Provider (Vendor) ka naam zaroori hai.' };
+      if (r.basis === 'Running hours') {
+        if (!(numOf(r.hrInterval) > 0)) return { err: '"Service Every (hours)" bharein (e.g. 250).' };
+        if (isNaN(numOf(r.hrLast))) return { err: '"Hour Meter at Last Service" bharein (naya equipment ho to 0).' };
+        if ((r.hrSource || 'manual') === 'manual' && isNaN(numOf(r.hrNow))) return { warn: 'Source Manual hai par "Current Running Hours" khali hai — bad me "Update hrs" se bhar sakte hain.' };
+      } else if (r.freq === 'Custom months' && !planned(r).length) return { err: 'Custom frequency me kam se kam ek mahina likhein (e.g. Jun, Dec).' };
       return {};
     },
     sort: function (a, b) { return (hqN(a.sno) || 0) - (hqN(b.sno) || 0); },
@@ -8270,12 +8390,13 @@ if (typeof renderAll !== 'undefined') {
       { h: 'Contract Type', v: function (r) { return r.amcType; } },
       { h: 'AMC Period', v: function (r) { return (r.startDate ? hqFmtD(r.startDate) : '') + (r.endDate ? ' to ' + hqFmtD(r.endDate) : ''); } },
       { h: 'Value (₹)', v: function (r) { return (r.amount === '' || r.amount === undefined || r.amount === null) ? '' : Number(r.amount).toLocaleString('en-IN'); } },
-      { h: 'Frequency', v: function (r) { return r.freq; } },
-      { h: 'Service Months', v: function (r) { return monthsLabel(r); } },
+      { h: 'Service Schedule', v: function (r) { return schedLabel(r); } },
+      { h: 'Running Hours', v: function (r) { var h = hrInfo(r); return h ? (h.nodata ? 'No reading' : fmt(h.curH) + ' hrs (due ' + fmt(h.due) + ')') : ''; } },
       { h: 'Contract Status', html: true, v: function (r) { var s = cStatus(r); return '<b style="color:' + s.c + '">' + esc(s.t) + '</b>'; } },
       {
         h: 'Next Service', html: true, v: function (r) {
           var s = nextState(r);
+          if (s.hr) { var c = s.s === 'over' ? '#b91c1c' : (s.s === 'due' ? '#b45309' : '#0b1f4a'); return '<b style="color:' + c + '">' + esc(hrNextTxt(s.hr)) + '</b>'; }
           if (s.s === 'over') return '<b style="color:#b91c1c">Overdue: ' + esc(ymLbl(s.ym)) + '</b>';
           if (s.s === 'due') return '<b style="color:#b45309">Due this month</b>';
           if (s.s === 'up') return esc(ymLbl(s.ym));
@@ -8286,14 +8407,14 @@ if (typeof renderAll !== 'undefined') {
     summary: function (l) {
       var act = 0, exp = 0, ex = 0;
       l.forEach(function (c) { var t = cStatus(c).t; if (t === 'Active') act++; else if (t === 'Expired') ex++; else if (/^Expiring/.test(t)) exp++; });
-      return [['Contracts', l.length], ['Active', act], ['Expiring ≤60 days', exp], ['Expired', ex], ['Service overdue', l.filter(function (c) { return nextState(c).s === 'over'; }).length]];
+      return [['Equipment', l.length], ['With AMC (active)', act], ['Expiring ≤60 days', exp], ['Expired', ex], ['Service overdue', l.filter(function (c) { return nextState(c).s === 'over'; }).length]];
     },
-    printBtns: '<button class="secondary" onclick="hqPrintAmcContracts()">🖨️ Print Contracts</button>'
+    printBtns: '<button class="secondary" onclick="hqPrintAmcContracts()">🖨️ Print Register</button>'
   };
 
   HQ_CFG.amcLog = {
     key: 'amcLog', title: 'AMC / SERVICE VISIT LOG (OUTSOURCED EQUIPMENT)', docNo: DOC,
-    help: 'Vendor ki har service visit yahan bharein. <b>"Service for Month"</b> = plan ka wo mahina jiski service ho rahi hai (isi se Service Plan me ✓ lagta hai). Status <b>Completed</b> karne par us mahine ki service done ginti hai; <b>Next Service Due</b> frequency se auto aata hai.',
+    help: 'Vendor ki har service visit yahan bharein. <b>"Service for Month"</b> = plan ka wo mahina jiski service ho rahi hai. Status <b>Completed</b> karne par service done ginti hai. <b>Running-hours wale equipment</b> (DG / compressor) me <b>"Running Hours"</b> me service ke time ka hour-meter reading zaroor bharein &mdash; isi se agli service ka hisaab banta hai.',
     fields: [
       F('contractId', 'Equipment / AMC', 'select', { sec: 'A. SERVICE VISIT', o: [], req: true }),
       F('schedMonth', 'Service for Month (plan month)', 'month', { d: function () { return ymNow(); } }),
@@ -8303,7 +8424,7 @@ if (typeof renderAll !== 'undefined') {
       F('vendor', 'Service Provider', 'text'),
       F('engineer', 'Service Engineer (Vendor)', 'text'),
       F('jobNo', 'Service Report / Job Card No.', 'text'),
-      F('runHours', 'Running Hours (DG / Compressor)', 'number'),
+      F('runHours', 'Running Hours (hour-meter at service)', 'number'),
       F('cost', 'Extra Charges / Parts Cost (₹)', 'number', { ph: '0.00' }),
       F('workDone', 'Work Done / Observations', 'text', { sec: 'B. WORK DETAILS', w: true }),
       F('partsReplaced', 'Parts / Consumables Replaced', 'text', { w: true }),
@@ -8313,18 +8434,25 @@ if (typeof renderAll !== 'undefined') {
     ],
     calc: function (v) {
       var c = find(v.contractId), out = { equipName: c ? lab(c) : (v.equipName || '') };
-      if (c && !v.vendor) out.vendor = c.vendor;
-      out.nextDue = (c && v.schedMonth && !isBrk(v.visitType)) ? nextAfter(c, v.schedMonth) : '';
-      return out;
+      if (c && !v.vendor) out.vendor = c.vendor || '';
+      var nd = '';
+      if (c && !isBrk(v.visitType)) {
+        if (isHrs(c)) { var rh = numOf(v.runHours); if (!isNaN(rh)) nd = fmt(rh + numOf(c.hrInterval)) + ' hrs'; }
+        else if (v.schedMonth) nd = nextAfter(c, v.schedMonth);
+      }
+      out.nextDue = nd; return out;
     },
     onChange: function (k) {
       if (k !== 'contractId') return;
-      var c = find(hqV('hq_amcLog_contractId')); if (c) hqSet('hq_amcLog_vendor', c.vendor || '');
+      var c = find(hqV('hq_amcLog_contractId')); if (!c) return;
+      hqSet('hq_amcLog_vendor', c.vendor || '');
+      if (isHrs(c)) { var h = hrInfo(c); if (h && !h.nodata && !String(hqV('hq_amcLog_runHours') || '').trim()) hqSet('hq_amcLog_runHours', h.curH); }
     },
     check: function (r) {
       var c = find(r.contractId);
       if (!c) return { err: 'Equipment / AMC select karein (pehle "AMC Contracts" me equipment add karein).' };
       if (!isBrk(r.visitType) && !r.schedMonth) return { err: '"Service for Month" bharein (plan ka mahina).' };
+      if (isHrs(c) && r.status === 'Completed' && !isBrk(r.visitType) && isNaN(numOf(r.runHours))) return { err: 'Ye equipment running-hours par service hota hai — "Running Hours" (hour-meter reading) bharein, taaki agli service ka hisaab sahi bane.' };
       var w = [];
       if (r.status === 'Completed' && r.visitDate > hqToday()) w.push('Status Completed hai par visit date aaj ke baad ki hai.');
       if (!isBrk(r.visitType) && r.status === 'Completed' && hqList('amcLog').some(function (x) {
@@ -8345,7 +8473,7 @@ if (typeof renderAll !== 'undefined') {
       { h: 'Run Hrs', v: function (r) { return r.runHours; } },
       { h: 'Cost (₹)', v: function (r) { return (r.cost === '' || r.cost === undefined || r.cost === null) ? '' : Number(r.cost).toLocaleString('en-IN'); } },
       { h: 'Work Done', v: function (r) { return r.workDone; } },
-      { h: 'Next Due', v: function (r) { return ymLbl(r.nextDue); } }
+      { h: 'Next Due', v: function (r) { return ndLbl(r.nextDue); } }
     ],
     summary: function (l) {
       var cur = ymNow();
@@ -8356,14 +8484,42 @@ if (typeof renderAll !== 'undefined') {
     printBtns: '<button class="secondary" onclick="hqPrintAmcLog()">🖨️ Print Service Log</button>'
   };
 
-  /* ---------- equipment select + datalist ---------- */
+  /* ---------- selects / form visibility ---------- */
   function refreshSel() {
     var sel = el('hq_amcLog_contractId'); if (!sel) return;
     var cur = sel.value, list = hqList('amc').slice().sort(function (a, b) { return (hqN(a.sno) || 0) - (hqN(b.sno) || 0); });
     sel.innerHTML = '<option value="">-- Select equipment / AMC --</option>' + list.map(function (c) {
-      return '<option value="' + esc(String(c.id)) + '">' + esc(lab(c) + (c.vendor ? ' (' + c.vendor + ')' : '')) + '</option>';
+      return '<option value="' + esc(String(c.id)) + '">' + esc(lab(c) + (c.vendor ? ' (' + c.vendor + ')' : '')) + (isHrs(c) ? ' ⏱' : '') + '</option>';
     }).join('');
     sel.value = cur;
+  }
+  function refreshMach() {
+    var sel = el('hq_amc_machineNo'); if (!sel) return;
+    var cur = sel.value, list = machList();
+    var h = '<option value="">-- Select from Machine Master (optional) --</option>' + list.map(function (m) {
+      return '<option value="' + esc(String(m.machineNumber)) + '">' + esc(m.machineNumber) + ' — ' + esc(m.machineName || '') + (m.department ? ' (' + esc(m.department) + ')' : '') + '</option>';
+    }).join('');
+    if (cur && !machFind(cur)) h += '<option value="' + esc(cur) + '">' + esc(cur) + '</option>';
+    sel.innerHTML = h; sel.value = cur;
+  }
+  function refreshHrSrc() {
+    var sel = el('hq_amc_hrSource'); if (!sel) return;
+    var cur = sel.value || 'manual', o = srcOptions();
+    if (!o.some(function (x) { return x[0] === cur; })) o.push([cur, cur]);
+    sel.innerHTML = o.map(function (x) { return '<option value="' + esc(x[0]) + '">' + esc(x[1]) + '</option>'; }).join('');
+    sel.value = cur;
+  }
+  function fieldBox(k) { var e = el('hq_amc_' + k); return e ? (e.closest('.field') || e.parentNode) : null; }
+  function showBox(k, on) { var b = fieldBox(k); if (b) b.style.display = on ? '' : 'none'; }
+  function applyBasis() {
+    var p = el('amc'); if (!p || !el('hq_amc_basis')) return;
+    var hrs = hqV('hq_amc_basis') === 'Running hours', man = (hqV('hq_amc_hrSource') || 'manual') === 'manual';
+    CAL_KEYS.forEach(function (k) { showBox(k, !hrs); });
+    HR_KEYS.forEach(function (k) { showBox(k, hrs && (man || (k !== 'hrNow' && k !== 'hrNowDate'))); });
+    var hs = [].filter.call(p.querySelectorAll('.wide'), function (d) { return /^D\./.test((d.textContent || '').trim()); })[0];
+    if (hs) hs.style.display = hrs ? '' : 'none';
+    var noamc = NOAMC.test(hqV('hq_amc_amcType') || '');
+    ['poNo', 'startDate', 'endDate', 'amount'].forEach(function (k) { var b = fieldBox(k); if (b) b.style.opacity = noamc ? '.55' : ''; });
   }
   function equipList() {
     var inp = el('hq_amc_equipment'); if (!inp) return;
@@ -8375,11 +8531,12 @@ if (typeof renderAll !== 'undefined') {
   }
 
   /* ---------- plan view ---------- */
+  function hs(h, k) { return h ? '<small>' + k + '</small>' : ''; }
   var CELL = {
     done: function (s) { return '✓<small>' + esc(dm(s.log.visitDate)) + '</small>'; },
-    over: function (s) { return '⚠<small>Overdue</small>' + (s.log ? '<small>⏳ ' + esc(dm(s.log.visitDate)) + '</small>' : ''); },
-    due: function (s) { return '●<small>Due</small>' + (s.log ? '<small>⏳ ' + esc(dm(s.log.visitDate)) + '</small>' : ''); },
-    up: function (s) { return '○<small>Planned</small>' + (s.log ? '<small>⏳ ' + esc(dm(s.log.visitDate)) + '</small>' : ''); },
+    over: function (s) { return '⚠<small>Overdue</small>' + (s.hr ? '<small>+' + fmt(-s.hr.rem) + ' hrs</small>' : '') + (s.log ? '<small>⏳ ' + esc(dm(s.log.visitDate)) + '</small>' : ''); },
+    due: function (s) { return '●<small>Due</small>' + (s.hr ? '<small>' + fmt(s.hr.rem) + ' hrs left</small>' : '') + (s.log ? '<small>⏳ ' + esc(dm(s.log.visitDate)) + '</small>' : ''); },
+    up: function (s) { return '○<small>' + (s.est ? 'Est.' : 'Planned') + '</small>' + (s.hr ? '<small>' + fmt(s.hr.rem) + ' hrs</small>' : '') + (s.log ? '<small>⏳ ' + esc(dm(s.log.visitDate)) + '</small>' : ''); },
     out: function () { return '—'; },
     none: function () { return ''; }
   };
@@ -8395,6 +8552,62 @@ if (typeof renderAll !== 'undefined') {
       return { c: c, cells: ms.map(function (ym) { return { ym: ym, st: cellState(c, ym) }; }) };
     }).filter(function (r) { return only !== 'pend' || r.cells.some(function (x) { return x.st.s === 'over' || x.st.s === 'due'; }); });
   }
+  function pendingItems() {
+    var out = [], cur = ymNow();
+    hqList('amc').forEach(function (c) {
+      if (isHrs(c)) {
+        var h = hrInfo(c);
+        if (h && (h.state === 'over' || h.state === 'due')) out.push({ c: c, ym: cur, s: h.state === 'over' ? 'over' : 'due', hr: h });
+        else if (h && h.etaYm === hqAddMonthsYM(cur, 1)) out.push({ c: c, ym: h.etaYm, s: 'up', hr: h });
+      } else {
+        for (var k = -12; k <= 1; k++) {
+          var ym = hqAddMonthsYM(cur, k), st = cellState(c, ym);
+          if (st.s === 'over' || st.s === 'due' || (st.s === 'up' && k === 1)) out.push({ c: c, ym: ym, s: st.s, log: st.log });
+        }
+      }
+      if (c.endDate && !NOAMC.test(c.amcType || '')) { var d = hqDaysTo(c.endDate); if (d <= 60) out.push({ c: c, s: 'exp', d: d }); }
+    });
+    var ord = { over: 0, exp: 1, due: 2, up: 3 };
+    return out.sort(function (x, y) { return (ord[x.s] - ord[y.s]) || String(x.ym || '').localeCompare(String(y.ym || '')); });
+  }
+  function telOf(c) { return String(c.phone || '').replace(/[^0-9+]/g, ''); }
+  function manualSrc(c) { return isHrs(c) && (c.hrSource || 'manual') === 'manual'; }
+  function pendHtml() {
+    var it = pendingItems();
+    if (!it.length) return '<div class="amc-empty">\u2705 Koi service pending nahi hai &mdash; sab service plan up to date hai.</div>';
+    return it.map(function (x) {
+      var c = x.c, t = telOf(c), cls, pill, sub, h = x.hr;
+      if (x.s === 'over') { cls = 'bad'; pill = '\u26A0 OVERDUE'; sub = h ? 'Hour meter ' + fmt(h.curH) + ' hrs \u2022 service ' + fmt(h.due) + ' hrs par due thi (' + fmt(-h.rem) + ' hrs upar)' : ymLbl(x.ym) + ' ki service pending'; }
+      else if (x.s === 'due') { cls = 'warn'; pill = '\u25CF DUE'; sub = h ? fmt(h.rem) + ' hrs baaki \u2022 service ' + fmt(h.due) + ' hrs par' : ymLbl(x.ym) + ' ki service' + (x.log ? ' (visit ' + dm(x.log.visitDate) + ')' : ''); }
+      else if (x.s === 'up') { cls = 'info'; pill = '\u25CB NEXT MONTH'; sub = h ? 'Est. ' + ymLbl(x.ym) + ' \u2022 ' + fmt(h.rem) + ' hrs baaki' : ymLbl(x.ym) + ' ki service'; }
+      else { cls = x.d < 0 ? 'bad' : 'warn'; pill = x.d < 0 ? '\u26A0 AMC EXPIRED' : '\u26A0 AMC EXPIRING'; sub = 'AMC end: ' + hqFmtD(c.endDate) + (x.d >= 0 ? ' (' + x.d + ' din baaki)' : ''); }
+      var id = esc(String(c.id));
+      return '<div class="amc-row amc-r-' + cls + '"><div class="amc-r-main"><b onclick="amcHist(\'' + id + '\')">' + esc(lab(c)) + (h ? ' <span class="amc-hr">\u23F1</span>' : '') + '</b><small>' + esc(c.vendor || (NOAMC.test(c.amcType || '') ? c.amcType : '')) + (c.contactPerson ? ' \u2022 ' + esc(c.contactPerson) : '') + '</small></div>' +
+        '<div class="amc-r-mid"><span class="amc-pill amc-p-' + cls + '">' + pill + '</span><small>' + esc(sub) + '</small></div>' +
+        '<div class="amc-r-act">' + (t ? '<a class="amc-call" href="tel:' + esc(t) + '">\uD83D\uDCDE ' + esc(c.phone) + '</a>' : '') +
+        (manualSrc(c) ? '<button type="button" class="secondary" onclick="amcHrs(\'' + id + '\')">Update hrs</button>' : '') +
+        (x.ym ? '<button type="button" class="secondary" onclick="amcPlanCell(\'' + id + '\',\'' + x.ym + '\')">Log service</button>' : '<button type="button" class="secondary" onclick="amcGo(\'amc\');hqEdit(\'amc\',\'' + id + '\')">Open contract</button>') + '</div></div>';
+    }).join('');
+  }
+  function kpiHtml(y0, cnt) {
+    var all = hqList('amc'), live = all.filter(function (c) { return cStatus(c).t !== 'Expired'; });
+    var withAmc = all.filter(function (c) { return !NOAMC.test(c.amcType || '') && c.endDate && cStatus(c).t !== 'Expired'; }).length;
+    var exp = all.filter(function (c) { return /^Expiring/.test(cStatus(c).t); }).length;
+    var fs = y0 + '-04-01', fe = (y0 + 1) + '-03-31';
+    var extra = hqList('amcLog').filter(function (l) { return l.visitDate >= fs && l.visitDate <= fe; }).reduce(function (s, l) { return s + (+l.cost || 0); }, 0);
+    var value = live.reduce(function (s, c) { return s + (+c.amount || 0); }, 0);
+    var den = cnt.done + cnt.over, comp = den ? Math.round(cnt.done * 100 / den) : null;
+    function k(l, v, sub, extraHtml, st) { return '<div class="stat">' + esc(l) + '<b' + (st ? ' style="' + st + '"' : '') + '>' + esc(v) + '</b>' + (sub ? '<span class="amc-sub">' + esc(sub) + '</span>' : '') + (extraHtml || '') + '</div>'; }
+    return k('Equipment', all.length, withAmc + ' with AMC') +
+      k('Service compliance', comp === null ? '\u2014' : comp + '%', cnt.done + ' done / ' + cnt.over + ' overdue', comp === null ? '' : '<div class="amc-bar"><i style="width:' + comp + '%"></i></div>') +
+      k('Due now', cnt.due, 'service pending') + k('Overdue', cnt.over, 'services') + k('AMC expiring', exp, 'within 60 days') +
+      k('AMC value (live)', inr(value), '', '', 'font-size:20px') + k('Extra charges FY', inr(extra), 'parts / call-outs', '', 'font-size:20px');
+  }
+  function eqCell(c) {
+    var h = hrInfo(c), hx = '';
+    if (h) hx = '<br><small class="amc-hrline amc-hl-' + h.state + '">\u23F1 ' + (h.nodata ? 'no reading' : fmt(h.curH) + ' / ' + fmt(h.due) + ' hrs') + '</small>';
+    return '<td class="amc-eq" onclick="amcHist(\'' + esc(String(c.id)) + '\')" title="Service history"><b>' + esc(c.equipment || '') + '</b>' + ((c.equipNo || c.machineNo) ? ' <small>' + esc(c.equipNo || c.machineNo) + '</small>' : '') + '<br><small>' + esc(c.vendor || (NOAMC.test(c.amcType || '') ? 'Service only' : '')) + '</small>' + hx + '</td>';
+  }
   function planRender() {
     var body = el('amcp_body'), fy = el('amcp_fy'); if (!body || !fy) return;
     var yrs = fyYears(), sel = fy.value;
@@ -8402,19 +8615,60 @@ if (typeof renderAll !== 'undefined') {
       fy.innerHTML = yrs.map(function (y) { return '<option value="' + y + '">FY ' + y + '-' + String(y + 1).slice(2) + '</option>'; }).join('');
       fy.value = (sel && yrs.indexOf(+sel) >= 0) ? sel : String(fyOf(hqToday()));
     }
-    var y0 = +fy.value, flt = (el('amcp_flt') || {}).value || 'all', rows = planRows(y0, flt);
+    var y0 = +fy.value, flt = (el('amcp_flt') || {}).value || 'all', rows = planRows(y0, flt), full = planRows(y0, 'all');
     var cnt = { done: 0, over: 0, due: 0, up: 0 };
+    full.forEach(function (r) { r.cells.forEach(function (x) { if (cnt[x.st.s] !== undefined) cnt[x.st.s]++; }); });
     body.innerHTML = rows.map(function (r) {
-      return '<tr><td class="amc-eq"><b>' + esc(r.c.equipment || '') + '</b>' + (r.c.equipNo ? ' <small>' + esc(r.c.equipNo) + '</small>' : '') + '<br><small>' + esc(r.c.vendor || '') + '</small></td>' +
-        r.cells.map(function (x) {
-          var s = x.st.s; if (cnt[s] !== undefined) cnt[s]++;
-          var tip = s === 'done' ? 'Completed ' + hqFmtD(x.st.log.visitDate) : ymLbl(x.ym);
-          return '<td class="amc-c amc-' + s + '" title="' + esc(tip) + '"' + (s === 'none' || s === 'out' ? '' : ' onclick="amcPlanCell(\'' + esc(String(r.c.id)) + '\',\'' + x.ym + '\')"') + '>' + CELL[s](x.st) + '</td>';
-        }).join('') + '</tr>';
-    }).join('') || '<tr><td colspan="13">' + (hqList('amc').length ? 'Koi equipment pending nahi hai.' : 'Pehle "AMC Contracts" me equipment / vendor add karein.') + '</td></tr>';
-    var tot = cnt.done + cnt.over + cnt.due + cnt.up, sum = el('amcp_sum');
-    if (sum) sum.innerHTML = [['Planned services', tot], ['Completed', cnt.done], ['Overdue', cnt.over], ['Due this month', cnt.due], ['Upcoming', cnt.up]].map(function (x) { return '<div class="stat">' + esc(x[0]) + ': <b>' + esc(x[1]) + '</b></div>'; }).join('');
+      return '<tr>' + eqCell(r.c) + r.cells.map(function (x) {
+        var s = x.st.s, tip = s === 'done' ? 'Completed ' + hqFmtD(x.st.log.visitDate) : ymLbl(x.ym);
+        return '<td class="amc-c amc-' + s + '" title="' + esc(tip) + '"' + (s === 'none' || s === 'out' ? '' : ' onclick="amcPlanCell(\'' + esc(String(r.c.id)) + '\',\'' + x.ym + '\')"') + '>' + CELL[s](x.st) + '</td>';
+      }).join('') + '</tr>';
+    }).join('') || '<tr><td colspan="13">' + (hqList('amc').length ? 'Koi equipment pending nahi hai.' : 'Pehle "AMC Contracts" me equipment add karein.') + '</td></tr>';
+    var sum = el('amcp_sum'); if (sum) sum.innerHTML = kpiHtml(y0, cnt);
+    var pend = el('amcp_pend'); if (pend) pend.innerHTML = pendHtml();
+    var pc = el('amcp_pcount'); if (pc) { var n = pendingItems().length; pc.textContent = n ? String(n) : ''; pc.style.display = n ? 'inline-block' : 'none'; }
   }
+  /* manual running hours update (chhota dialog) */
+  window.amcHrs = function (cid) {
+    var c = find(cid); if (!c) return; var h = hrInfo(c);
+    var ov = el('amcDlg'); if (!ov) { ov = document.createElement('div'); ov.id = 'amcDlg'; document.body.appendChild(ov); }
+    ov.innerHTML = '<div class="amc-h-card amc-d-card" role="dialog"><div class="amc-h-top"><div><div class="amc-h-t">Update running hours</div><div class="amc-h-s">' + esc(lab(c)) + '</div></div><button type="button" class="amc-x" onclick="amcDlgClose()" aria-label="Close">\u2715</button></div>' +
+      '<div class="amc-d-note">Last service: ' + esc(h ? fmt(h.lastH) + ' hrs' : '\u2014') + ' \u2022 Next service: ' + esc(h ? fmt(h.due) + ' hrs' : '\u2014') + '</div>' +
+      '<label class="amc-d-l">Hour meter reading (hrs)</label><input id="amcHrsV" type="number" step="0.1" inputmode="decimal" value="' + esc(h && !h.nodata ? String(h.curH) : '') + '">' +
+      '<label class="amc-d-l">Reading date</label><input id="amcHrsD" type="date" value="' + esc(hqToday()) + '">' +
+      '<div class="amc-h-act"><button type="button" class="amc-b1" onclick="amcHrsSave(\'' + esc(String(c.id)) + '\')">Save</button><button type="button" class="amc-b2" onclick="amcDlgClose()">Cancel</button></div></div>';
+    ov.className = 'on'; ov.onclick = function (e) { if (e.target === ov) amcDlgClose(); };
+  };
+  window.amcDlgClose = function () { var o = el('amcDlg'); if (o) { o.className = ''; o.innerHTML = ''; } };
+  window.amcHrsSave = function (cid) {
+    if (!mmsGuardEdit('amc')) return;
+    var c = find(cid); if (!c) return;
+    var v = numOf((el('amcHrsV') || {}).value), d = (el('amcHrsD') || {}).value || hqToday();
+    if (isNaN(v) || v < 0) return alert('Valid hour meter reading bharein.');
+    c.hrNow = v; c.hrNowDate = d; c.updatedAt = new Date().toISOString();
+    persist('amc'); amcDlgClose(); hqRender('amc'); try { hqDue(); } catch (e) { }
+  };
+  /* equipment ki service history (popup) */
+  window.amcHist = function (cid) {
+    var c = find(cid); if (!c) return;
+    var logs = hqList('amcLog').filter(function (l) { return String(l.contractId) === String(cid); }).sort(function (a, b) { return String(b.visitDate || '').localeCompare(String(a.visitDate || '')); });
+    var done = logs.filter(function (l) { return l.status === 'Completed'; }).length, cost = logs.reduce(function (s, l) { return s + (+l.cost || 0); }, 0);
+    var st = cStatus(c), ns = nextState(c), h = hrInfo(c);
+    var nsTxt = h ? hrNextTxt(h) : (ns.s === 'over' ? 'Overdue: ' + ymLbl(ns.ym) : (ns.s === 'due' ? 'Due this month' : (ns.s === 'up' ? ymLbl(ns.ym) : '\u2014')));
+    var rows = logs.map(function (l) {
+      var cl = l.status === 'Completed' ? 'good' : 'warn';
+      return '<tr><td>' + esc(hqFmtD(l.visitDate)) + '</td><td>' + esc(isBrk(l.visitType) ? '\u2014' : ymLbl(l.schedMonth)) + '</td><td>' + esc(l.visitType || '') + '</td><td><span class="amc-pill amc-p-' + cl + '">' + esc(l.status || '') + '</span></td><td>' + esc(l.engineer || '') + '</td><td>' + esc(l.jobNo || '') + '</td><td>' + esc(l.runHours || '') + '</td><td>' + esc(l.cost ? Number(l.cost).toLocaleString('en-IN') : '') + '</td><td>' + esc(l.workDone || '') + '</td></tr>';
+    }).join('') || '<tr><td colspan="9" style="text-align:center;padding:18px">Abhi koi service visit save nahi hui.</td></tr>';
+    var hk = h ? '<div><small>Hour meter now</small><b>' + esc(h.nodata ? 'No reading' : fmt(h.curH) + ' hrs') + '</b></div><div><small>Reading source</small><b>' + esc(h.cur.src + (h.cur.d ? ' (' + dm(h.cur.d) + ')' : '')) + '</b></div><div><small>Last service at</small><b>' + esc(fmt(h.lastH) + ' hrs') + '</b></div><div><small>Next service at</small><b>' + esc(fmt(h.due) + ' hrs (' + (h.rem >= 0 ? fmt(h.rem) + ' left' : fmt(-h.rem) + ' over') + ')') + '</b></div><div><small>Avg running / month</small><b>' + esc(h.avg > 0 ? fmt(h.avg) + ' hrs' : '\u2014') + '</b></div>' : '';
+    var ov = el('amcHist'); if (!ov) { ov = document.createElement('div'); ov.id = 'amcHist'; document.body.appendChild(ov); }
+    var idq = esc(String(c.id));
+    ov.innerHTML = '<div class="amc-h-card" role="dialog"><div class="amc-h-top"><div><div class="amc-h-t">' + esc(lab(c)) + '</div><div class="amc-h-s">' + esc(c.vendor || c.amcType || '') + (c.phone ? ' \u2022 ' + esc(c.phone) : '') + '</div></div><button type="button" class="amc-x" onclick="amcHistClose()" aria-label="Close">\u2715</button></div>' +
+      '<div class="amc-h-kpi"><div><small>Contract</small><b style="color:' + st.c + '">' + esc(st.t) + '</b></div>' + (c.startDate || c.endDate ? '<div><small>AMC period</small><b>' + esc((c.startDate ? hqFmtD(c.startDate) : '\u2014') + ' to ' + (c.endDate ? hqFmtD(c.endDate) : '\u2014')) + '</b></div>' : '') + '<div><small>Service schedule</small><b>' + esc(schedLabel(c) || '\u2014') + '</b></div><div><small>Next service</small><b>' + esc(nsTxt) + '</b></div>' + hk + '<div><small>Visits done</small><b>' + done + ' / ' + logs.length + '</b></div><div><small>Extra charges</small><b>' + esc(inr(cost)) + '</b></div></div>' +
+      '<div class="amc-h-tw"><table><thead><tr><th>Date</th><th>For month</th><th>Type</th><th>Status</th><th>Engineer</th><th>Job card</th><th>Hrs</th><th>Cost</th><th>Work done</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+      '<div class="amc-h-act"><button type="button" class="amc-b1" onclick="amcHistClose();amcPlanCell(\'' + idq + '\',\'' + ymNow() + '\')">+ Log service</button>' + (manualSrc(c) ? '<button type="button" class="amc-b2" onclick="amcHistClose();amcHrs(\'' + idq + '\')">Update hours</button>' : '') + '<button type="button" class="amc-b2" onclick="amcHistClose();amcGo(\'amc\');hqEdit(\'amc\',\'' + idq + '\')">Open contract</button></div></div>';
+    ov.className = 'on'; ov.onclick = function (e) { if (e.target === ov) amcHistClose(); };
+  };
+  window.amcHistClose = function () { var o = el('amcHist'); if (o) { o.className = ''; o.innerHTML = ''; } };
   window.amcGo = function (key) {
     var b = document.querySelector('.app-sidebar .tab[data-target="' + key + '"]');
     if (typeof navigateApp === 'function') navigateApp(key, b); else if (typeof showTab === 'function') showTab(key, b);
@@ -8434,11 +8688,14 @@ if (typeof renderAll !== 'undefined') {
   function dueItems() {
     var items = [];
     hqList('amc').forEach(function (c) {
-      var st = nextState(c), L = lab(c);
-      if (st.s === 'over') items.push({ m: 'amcPlan', t: L + ' — service overdue (' + ymLbl(st.ym) + ')', due: monthEnd(st.ym), d: hqDaysTo(monthEnd(st.ym)) });
-      else if (st.s === 'due') items.push({ m: 'amcPlan', t: L + ' — service due this month', due: monthEnd(st.ym), d: hqDaysTo(monthEnd(st.ym)) });
-      else if (st.s === 'up' && st.ym === hqAddMonthsYM(ymNow(), 1)) items.push({ m: 'amcPlan', t: L + ' — service next month (' + ymLbl(st.ym) + ')', due: monthEnd(st.ym), d: hqDaysTo(monthEnd(st.ym)) });
-      if (c.endDate) { var e = hqDaysTo(c.endDate); if (e <= 60) items.push({ m: 'amc', t: 'AMC ' + (e < 0 ? 'expired' : 'expiring') + ': ' + L, due: c.endDate, d: e }); }
+      var st = nextState(c), L = lab(c), h = st.hr, due, d;
+      if (st.s === 'over' || st.s === 'due' || (st.s === 'up' && st.ym === hqAddMonthsYM(ymNow(), 1))) {
+        due = h ? hqToday() : monthEnd(st.ym); d = h ? (st.s === 'over' ? -1 : 0) : hqDaysTo(due);
+        var t = h ? L + (st.s === 'over' ? ' — service overdue (' + fmt(h.curH) + ' / ' + fmt(h.due) + ' hrs)' : (st.s === 'due' ? ' — service due in ' + fmt(h.rem) + ' hrs' : ' — service next month (~' + fmt(h.rem) + ' hrs)'))
+          : L + (st.s === 'over' ? ' — service overdue (' + ymLbl(st.ym) + ')' : (st.s === 'due' ? ' — service due this month' : ' — service next month (' + ymLbl(st.ym) + ')'));
+        items.push({ m: 'amcPlan', t: t, due: due, d: d });
+      }
+      if (c.endDate && !NOAMC.test(c.amcType || '')) { var e = hqDaysTo(c.endDate); if (e <= 60) items.push({ m: 'amc', t: 'AMC ' + (e < 0 ? 'expired' : 'expiring') + ': ' + L, due: c.endDate, d: e }); }
     });
     return items.sort(function (a, b) { return a.d - b.d; });
   }
@@ -8453,7 +8710,7 @@ if (typeof renderAll !== 'undefined') {
     var box = el('amcDueList'); if (!box) return;
     var it = dueItems();
     box.innerHTML = it.length ? it.map(function (x) {
-      var late = x.d < 0, txt = x.d < 0 ? 'Overdue ' + (-x.d) + ' day(s)' : (x.d === 0 ? 'Due today' : 'Due in ' + x.d + ' day(s)');
+      var late = x.d < 0, txt = x.d < 0 ? 'Overdue' + (x.d < -1 || x.m === 'amc' ? ' ' + (-x.d) + ' day(s)' : '') : (x.d === 0 ? 'Due now' : 'Due in ' + x.d + ' day(s)');
       return '<div class="dash-row" style="cursor:pointer;border-left:3px solid ' + (late ? '#b91c1c' : '#b45309') + '" onclick="amcGo(\'' + x.m + '\')"><span><b>' + esc(x.t) + '</b></span>' +
         '<span style="text-align:right;font-size:11px">' + esc(hqFmtD(x.due)) + '<br><b>' + esc(txt) + '</b></span></div>';
     }).join('') : '<div class="dash-empty">All outsourced AMC / service plans are up to date.</div>';
@@ -8465,15 +8722,16 @@ if (typeof renderAll !== 'undefined') {
     var fy = el('amcp_fy'), y0 = fy && fy.value ? +fy.value : fyOf(hqToday()), flt = (el('amcp_flt') || {}).value || 'all';
     var rows = planRows(y0, flt), ms = fyMonths(y0);
     var tr = rows.map(function (r, i) {
-      return '<tr style="height:30px"><td class="c">' + (i + 1) + '</td><td><b>' + esc(r.c.equipment || '') + '</b> ' + esc(r.c.equipNo || '') + '</td><td>' + esc(r.c.vendor || '') + '</td>' + r.cells.map(function (x) {
-        var s = x.st.s, cls = { done: 'dn', over: 'ov', due: 'du', up: 'up' }[s] || '', t = s === 'done' ? '✓ ' + dm(x.st.log.visitDate) : (s === 'over' ? 'Overdue' : (s === 'due' ? 'Due' : (s === 'up' ? 'Planned' : (s === 'out' ? '—' : ''))));
+      var h = hrInfo(r.c);
+      return '<tr style="height:30px"><td class="c">' + (i + 1) + '</td><td><b>' + esc(r.c.equipment || '') + '</b> ' + esc(r.c.equipNo || '') + (h ? '<br><small>' + (h.nodata ? 'no reading' : fmt(h.curH) + ' / ' + fmt(h.due) + ' hrs') + '</small>' : '') + '</td><td>' + esc(r.c.vendor || (NOAMC.test(r.c.amcType || '') ? 'Service only' : '')) + '</td>' + r.cells.map(function (x) {
+        var s = x.st.s, cls = { done: 'dn', over: 'ov', due: 'du', up: 'up' }[s] || '', t = s === 'done' ? '✓ ' + dm(x.st.log.visitDate) : (s === 'over' ? 'Overdue' : (s === 'due' ? 'Due' : (s === 'up' ? (x.st.est ? 'Est.' : 'Planned') : (s === 'out' ? '—' : ''))));
         return '<td class="c ' + cls + '">' + esc(t) + '</td>';
       }).join('') + '</tr>';
     }).join('') || '<tr><td colspan="15" class="c">No records</td></tr>';
     hqWin('AMC Service Plan', cssLand(),
       hqHead('AMC & SERVICE PLAN (OUTSOURCED EQUIPMENT) — FY ' + y0 + '-' + String(y0 + 1).slice(2)) +
       '<table><thead><tr><th>Sr.</th><th>Equipment</th><th>Service Provider</th>' + ms.map(function (ym) { return '<th>' + MON[+ym.slice(5, 7) - 1] + '</th>'; }).join('') + '</tr></thead><tbody>' + tr + '</tbody></table>' +
-      '<div class="lg" style="margin-top:6px"><span class="dn">✓ Done (date)</span><span class="ov">Overdue</span><span class="du">Due this month</span><span class="up">Planned</span></div>' +
+      '<div class="lg" style="margin-top:6px"><span class="dn">✓ Done (date)</span><span class="ov">Overdue</span><span class="du">Due now</span><span class="up">Planned / Est.</span></div>' +
       hqSig('Prepared By (Maintenance):', 'Approved By (H.O.D.):') + '<div class="doc">' + DOC + '</div>');
   };
   function printCfg(key, title) {
@@ -8485,33 +8743,59 @@ if (typeof renderAll !== 'undefined') {
     hqWin(title, cssLand(), hqHead(title) + '<table><thead><tr><th>Sr.</th>' + c.cols.map(function (x) { return '<th>' + esc(x.h) + '</th>'; }).join('') + '</tr></thead><tbody>' + tr + '</tbody></table>' +
       hqSig('Prepared By (Maintenance):', 'Approved By (H.O.D.):') + '<div class="doc">' + DOC + '</div>');
   }
-  window.hqPrintAmcContracts = function () { printCfg('amc', 'AMC & SERVICE CONTRACT REGISTER'); };
+  window.hqPrintAmcContracts = function () { printCfg('amc', 'AMC & SERVICE REGISTER'); };
   window.hqPrintAmcLog = function () { printCfg('amcLog', 'AMC / SERVICE VISIT LOG'); };
 
   /* ---------- sidebar + panels ---------- */
   function planPanelHtml() {
-    return '<div class="card"><div class="head">Milestone Gears Ltd. UNIT-7</div><div class="head2">AMC &amp; SERVICE PLAN — MONTH-WISE (OUTSOURCED EQUIPMENT)</div>' +
-      '<div class="utility-help">Har equipment ki vendor service kis mahine me honi hai, kaunsi ho chuki hai aur kaunsi due / overdue hai — sab yahan auto dikhta hai (AMC Contracts + Service Visit Log se). <b>Kisi mahine ke box par dabao</b> to us mahine ki service entry khulti hai.</div>' +
-      '<div class="toolbar"><select id="amcp_fy" onchange="amcPlanRender()"></select>' +
-      '<select id="amcp_flt" onchange="amcPlanRender()"><option value="all">All equipment</option><option value="pend">Only due / overdue</option></select></div>' +
-      '<div class="actions"><button class="secondary" onclick="amcGo(\'amc\')">📑 AMC Contracts</button><button class="secondary" onclick="amcGo(\'amcLog\')">🛠️ Service Visit Log</button><button class="secondary" onclick="hqPrintAmcPlan()">🖨️ Print Plan</button></div>' +
-      '<div class="summary" id="amcp_sum"></div>' +
-      '<div class="tablewrap"><table class="tbl amc-plan"><thead><tr><th>Equipment / Vendor</th>' + ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'].map(function (m) { return '<th>' + m + '</th>'; }).join('') + '</tr></thead><tbody id="amcp_body"></tbody></table></div>' +
-      '<div class="note" style="margin-top:8px;font-size:12px"><b>✓</b> Done (date) &nbsp; <b>⚠</b> Overdue &nbsp; <b>●</b> Due this month &nbsp; <b>○</b> Planned &nbsp; <b>—</b> Contract period ke bahar &nbsp; <b>⏳</b> Visit date fixed (abhi Completed nahi)</div></div>';
+    var MH = ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'].map(function (m) { return '<th>' + m + '</th>'; }).join('');
+    return '<div class="card amc-card"><div class="head">Milestone Gears Ltd. UNIT-7</div><div class="head2">AMC &amp; SERVICE MANAGEMENT &mdash; OUTSOURCED EQUIPMENT</div>' +
+      '<div class="utility-help">Vendor se hone wali service ka poora control &mdash; AMC wale ya bina AMC wale equipment. Calendar wali service (monthly / yearly) <b>mahine ke box</b> me, aur DG / Air Compressor jaisi <b>running-hours wali service</b> hour-meter ke hisaab se (⏱) dikhti hai. <b>Box par dabao</b> to service entry khulti hai; <b>equipment ke naam par dabao</b> to uski poori history khulti hai.</div>' +
+      '<div class="toolbar"><select id="amcp_fy" onchange="amcPlanRender()"></select><select id="amcp_flt" onchange="amcPlanRender()"><option value="all">All equipment</option><option value="pend">Only due / overdue</option></select></div>' +
+      '<div class="actions"><button class="primary" onclick="amcGo(\'amcLog\')">\uD83D\uDEE0\uFE0F Log Service Visit</button><button class="secondary" onclick="amcGo(\'amc\')">\uD83D\uDCD1 Equipment / AMC Register</button><button class="secondary" onclick="hqPrintAmcPlan()">\uD83D\uDDA8\uFE0F Print Plan</button></div>' +
+      '<div class="summary" id="amcp_sum"></div></div>' +
+      '<div class="card amc-card"><div class="head2" style="font-size:18px!important;margin-bottom:10px!important">\u26A0 Pending services &amp; AMC alerts <span id="amcp_pcount" class="amc-cnt"></span></div><div id="amcp_pend"></div></div>' +
+      '<div class="card amc-card"><div class="head2" style="font-size:18px!important;margin-bottom:10px!important">Month-wise service plan</div>' +
+      '<div class="tablewrap"><table class="tbl amc-plan"><thead><tr><th>Equipment / Vendor</th>' + MH + '</tr></thead><tbody id="amcp_body"></tbody></table></div>' +
+      '<div class="note" style="margin-top:8px;font-size:12px"><b>\u2713</b> Done (date) &nbsp; <b>\u26A0</b> Overdue &nbsp; <b>\u25CF</b> Due now &nbsp; <b>\u25CB</b> Planned / Est. (hours se anumaan) &nbsp; <b>\u2014</b> Contract period ke bahar &nbsp; <b>\u23F3</b> Visit date fixed &nbsp; <b>\u23F1</b> Running-hours equipment</div></div>';
   }
   function injectStyle() {
     if (el('amc-style')) return;
     var s = document.createElement('style'); s.id = 'amc-style';
-    s.textContent = '#amcPlan table.amc-plan td,#amcPlan table.amc-plan th{text-align:center;white-space:nowrap}#amcPlan table.amc-plan td.amc-eq{text-align:left;min-width:150px;position:sticky;left:0;background:#fff!important;z-index:1}' +
+    s.textContent =
+      '#amcPlan table.amc-plan td,#amcPlan table.amc-plan th{text-align:center;white-space:nowrap}#amcPlan table.amc-plan td.amc-eq{text-align:left;min-width:160px;position:sticky;left:0;z-index:1;cursor:pointer}' +
+      '#amcPlan table.amc-plan td.amc-eq b{text-decoration:underline dotted;text-underline-offset:3px}' +
       '#amcPlan table.amc-plan th:first-child{position:sticky;left:0;z-index:2}#amcPlan table.amc-plan td.amc-c{cursor:pointer;font-weight:700;min-width:62px;line-height:1.15}#amcPlan table.amc-plan td.amc-c small{display:block;font-size:10px;font-weight:700}' +
       '#amcPlan table.amc-plan td.amc-done{background:#dcf3e2!important;color:#137333!important}#amcPlan table.amc-plan td.amc-over{background:#fde1df!important;color:#b91c1c!important}#amcPlan table.amc-plan td.amc-due{background:#ffe9d3!important;color:#b45309!important}' +
-      '#amcPlan table.amc-plan td.amc-up{background:#e8f0fe!important;color:#1a56db!important}#amcPlan table.amc-plan td.amc-out{background:#f1f1f1!important;color:#999!important;cursor:default}#amcPlan table.amc-plan td.amc-none{background:#fafafa!important;cursor:default}';
+      '#amcPlan table.amc-plan td.amc-up{background:#e8f0fe!important;color:#1a56db!important}#amcPlan table.amc-plan td.amc-out{background:#f1f1f1!important;color:#999!important;cursor:default}#amcPlan table.amc-plan td.amc-none{cursor:default}' +
+      '#amcPlan .amc-hrline{display:inline-block;margin-top:2px;padding:1px 7px;border-radius:8px;font-size:10.5px;font-weight:700;background:#e4ebf3;color:#123c62}#amcPlan .amc-hl-over{background:#fde1df;color:#b91c1c}#amcPlan .amc-hl-due{background:#ffe9d3;color:#b45309}' +
+      '#amcPlan .amc-sub{font-size:11px;font-weight:600;color:#6a7385}#amcPlan .amc-bar{width:100%;height:6px;border-radius:3px;background:#e1e9f2;overflow:hidden}#amcPlan .amc-bar i{display:block;height:100%;background:#0e9f62;border-radius:3px}' +
+      '#amcPlan .amc-cnt{display:none;margin-left:6px;padding:2px 9px;border-radius:10px;background:#e53935;color:#fff;font-size:12px;font-weight:800;vertical-align:middle}' +
+      '#amcPlan .amc-empty{padding:18px;text-align:center;color:#33445f;font-weight:600;background:#eef7f1;border-radius:12px}' +
+      '#amcPlan .amc-row{display:grid;grid-template-columns:1.4fr 1.2fr auto;gap:10px;align-items:center;padding:12px 14px;margin-bottom:8px;border:1px solid #d3dce7;border-left:5px solid #123c62;border-radius:14px;background:#fff}' +
+      '#amcPlan .amc-r-bad{border-left-color:#e53935}#amcPlan .amc-r-warn{border-left-color:#f08a00}#amcPlan .amc-r-info{border-left-color:#2563eb}' +
+      '#amcPlan .amc-r-main b{display:block;font-size:15px;color:#0b1f4a;cursor:pointer}#amcPlan .amc-row small{display:block;font-size:12px;color:#5b6577;margin-top:2px}#amcPlan .amc-hr{font-size:13px}' +
+      '#amcPlan .amc-r-mid{display:flex;flex-direction:column;align-items:flex-start;gap:3px}#amcPlan .amc-r-act{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}' +
+      '.amc-pill{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:999px;color:#fff;font-size:11.5px;font-weight:800;letter-spacing:.3px;line-height:1;white-space:nowrap;text-transform:uppercase}' +
+      '.amc-p-good{background:#0e9f62}.amc-p-warn{background:#f08a00}.amc-p-bad{background:#e53935}.amc-p-info{background:#2563eb}' +
+      '#amcPlan a.amc-call{display:inline-flex;align-items:center;gap:4px;padding:8px 12px;border-radius:12px;background:#e4f4ec;color:#0b6b43;font-weight:700;font-size:13px;text-decoration:none;white-space:nowrap}' +
+      '@media (max-width:760px){#amcPlan .amc-row{grid-template-columns:1fr}#amcPlan .amc-r-act{justify-content:flex-start}}' +
+      '#amcHist,#amcDlg{display:none;position:fixed;inset:0;z-index:9800;background:rgba(11,37,69,.5);align-items:flex-end;justify-content:center}#amcHist.on,#amcDlg.on{display:flex}' +
+      '.amc-h-card{width:min(900px,100%);max-height:92vh;max-height:92dvh;overflow:auto;background:#fff;border-radius:24px 24px 0 0;padding:18px 16px calc(16px + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 32px rgba(0,0,0,.3);font-family:inherit;color:#0b1f4a}' +
+      '.amc-d-card{width:min(420px,100%)}.amc-d-note{background:#eef5fb;border-radius:12px;padding:9px 12px;font-size:13px;margin-bottom:10px}.amc-d-l{display:block;font-size:12px;font-weight:700;color:#5b6577;margin:10px 0 4px}.amc-d-card input{width:100%;box-sizing:border-box;min-height:48px;padding:10px 12px;border:1px solid #c5d1de;border-radius:10px;font-size:17px;color:#0b1f4a;background:#fff}' +
+      '@media (min-width:761px){#amcHist,#amcDlg{align-items:center}.amc-h-card{border-radius:24px}}' +
+      '.amc-h-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:12px}.amc-h-t{font-size:19px;font-weight:800}.amc-h-s{font-size:13px;color:#5b6577;margin-top:2px}' +
+      '.amc-x{width:38px;height:38px;border:0;border-radius:50%;background:#e4ebf3;color:#123c62;font-size:16px;font-weight:800;cursor:pointer}' +
+      '.amc-h-kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:12px}.amc-h-kpi div{background:#eef5fb;border-radius:12px;padding:9px 12px}.amc-h-kpi small{display:block;font-size:11px;color:#5b6577;font-weight:600}.amc-h-kpi b{font-size:14px}' +
+      '.amc-h-tw{overflow-x:auto;border:1.5px solid #8fa3ba;border-radius:14px}#amcHist table{border-collapse:collapse;width:100%;min-width:640px}#amcHist th{background:#fff;color:#6a7385;font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;padding:10px;border-bottom:2px solid #6f86a0;text-align:left;white-space:nowrap}' +
+      '#amcHist td{padding:10px;border-bottom:1.5px solid #c9d4e1;font-size:13.5px}#amcHist td:first-child,#amcHist td:nth-child(2){white-space:nowrap}#amcHist tr:last-child td{border-bottom:0}' +
+      '.amc-h-act{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}.amc-h-act button{flex:1 1 150px;min-height:46px;border:0;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer}.amc-b1{background:#123c62;color:#fff}.amc-b2{background:#e4ebf3;color:#123c62}';
     document.head.appendChild(s);
   }
   function inject() {
     var sc = document.querySelector('.app-sidebar .side-scroll'), main = document.querySelector('main.wrap'); if (!sc || !main) return false;
     injectStyle();
-    var NAV = [['amcPlan', '📅', 'Service Plan (Month-wise)'], ['amc', '📑', 'AMC Contracts'], ['amcLog', '🛠️', 'Service Visit Log']];
+    var NAV = [['amcPlan', '📅', 'Service Plan (Month-wise)'], ['amc', '📑', 'Equipment / AMC Register'], ['amcLog', '🛠️', 'Service Visit Log']];
     if (!el('amcNavGroup')) {
       var g = document.createElement('div'); g.className = 'nav-group'; g.id = 'amcNavGroup';
       g.innerHTML = '<div class="nav-group-title">AMC & SERVICE (OUTSOURCE)</div>' + NAV.map(function (n) {
@@ -8519,13 +8803,17 @@ if (typeof renderAll !== 'undefined') {
       }).join('');
       var h = el('hqNavGroup'); if (h && h.parentNode === sc && h.nextSibling) sc.insertBefore(g, h.nextSibling); else sc.appendChild(g);
     }
-    // agar HT Quality group me galti se ban gaye to hata do
     var hg = el('hqNavGroup'); if (hg) ['amc', 'amcLog'].forEach(function (k) { var b = hg.querySelector('#side_' + k); if (b) b.remove(); });
     ['amc', 'amcLog'].forEach(function (k) {
       if (!el(k)) { var s = document.createElement('section'); s.id = k; s.className = 'panel official-module'; s.innerHTML = hqPanelHtml(k); main.appendChild(s); hqClear(k); }
     });
     if (!el('amcPlan')) { var p = document.createElement('section'); p.id = 'amcPlan'; p.className = 'panel official-module'; p.innerHTML = planPanelHtml(); main.appendChild(p); }
-    equipList(); return true;
+    equipList();
+    var ms = el('hq_amc_machineNo');
+    if (ms && !ms.__amcBound) { ms.__amcBound = 1; ['focus', 'mousedown', 'touchstart'].forEach(function (ev) { ms.addEventListener(ev, refreshMach); }); }
+    var hsrc = el('hq_amc_hrSource');
+    if (hsrc && !hsrc.__amcBound) { hsrc.__amcBound = 1; ['focus', 'mousedown', 'touchstart'].forEach(function (ev) { hsrc.addEventListener(ev, refreshHrSrc); }); }
+    refreshMach(); refreshHrSrc(); refreshSel(); applyBasis(); return true;
   }
 
   /* ---------- wrappers (existing framework ko chhede bina) ---------- */
@@ -8536,11 +8824,28 @@ if (typeof renderAll !== 'undefined') {
     return r;
   };
   var _edit = window.hqEdit;
-  window.hqEdit = function (key) { if (key === 'amcLog') refreshSel(); return _edit.apply(this, arguments); };
+  window.hqEdit = function (key) {
+    if (key === 'amcLog') refreshSel();
+    if (key === 'amc') { refreshMach(); refreshHrSrc(); }
+    var r = _edit.apply(this, arguments);
+    if (key === 'amc') applyBasis();
+    return r;
+  };
+  var _clear = window.hqClear;
+  window.hqClear = function (key) { var r = _clear.apply(this, arguments); if (key === 'amc') { refreshHrSrc(); applyBasis(); } return r; };
   window.amcPlanRender = planRender;
   if (typeof renderAll !== 'undefined') {
     var _ra = renderAll;
     renderAll = function () { _ra(); try { refreshSel(); planRender(); dueRender(); } catch (e) { } };
+  }
+  // panel kholte hi hours / plan fresh (DG / compressor ke naye readings ke baad)
+  if (typeof navigateApp === 'function') {
+    var _nav = navigateApp;
+    window.navigateApp = function (id) {
+      var r = _nav.apply(this, arguments);
+      if (id === 'amcPlan' || id === 'amc' || id === 'amcLog') { try { refreshSel(); refreshHrSrc(); planRender(); dueRender(); } catch (e) { } }
+      return r;
+    };
   }
   function init(n) {
     if (!inject()) { if ((n || 0) < 40) setTimeout(function () { init((n || 0) + 1); }, 250); return; }
@@ -9348,6 +9653,76 @@ html body #aamBar.home #aamTitle{font-size:14.5px!important}
 html body #aamBar .aam-logo{width:28px;height:28px;margin-right:3px}
 #aamSub{font-size:12px!important}
 }
+@media screen{
+html body main.wrap section.panel .summary .stat{background:#fff!important;color:#0b1f4a!important}
+}
+@media screen{
+html body main.wrap section.panel .summary .stat{background:#f4f8fc!important;border:1px solid #d6e3ef!important}
+}
+
+/* ===== v9: dark + colourful tables & cards (html.aam-tl = light switch) ===== */
+:root{--grp:#123c62;--grp-d:#0b2545;--grp-l:#9cc4ee;--grp-s:#e3edf7}
+@media screen{
+html:not(.aam-tl) body main.wrap section.panel .tablewrap:not(.aam-cvw){background:#0e2238!important;border:1.5px solid var(--grp)!important;box-shadow:0 6px 18px rgba(5,15,30,.35)!important;border-radius:16px!important}
+html:not(.aam-tl) body main.wrap section.panel table.tbl:not(.pm-yearly-table):not(.pm-calendar) th,html:not(.aam-tl) body main.wrap section.panel table.report-table th,html:not(.aam-tl) body main.wrap section.panel table.mttr-report th{background:linear-gradient(135deg,var(--grp-d),var(--grp))!important;color:#fff!important;border-right:1px solid rgba(255,255,255,.22)!important;border-bottom:2px solid var(--grp-l)!important}
+html:not(.aam-tl) body main.wrap section.panel table.tbl:not(.pm-yearly-table):not(.pm-calendar) th:last-child,html:not(.aam-tl) body main.wrap section.panel table.report-table th:last-child,html:not(.aam-tl) body main.wrap section.panel table.mttr-report th:last-child{border-right:0!important}
+html:not(.aam-tl) body main.wrap section.panel table.tbl:not(.pm-yearly-table):not(.pm-calendar) td,html:not(.aam-tl) body main.wrap section.panel table.report-table td,html:not(.aam-tl) body main.wrap section.panel table.mttr-report td{background:#112b45!important;color:#e6f0fa!important;border-right:1px solid rgba(255,255,255,.08)!important;border-bottom:1px solid rgba(255,255,255,.14)!important}
+html:not(.aam-tl) body main.wrap section.panel table.tbl:not(.pm-yearly-table):not(.pm-calendar) tbody tr:nth-child(even) td,html:not(.aam-tl) body main.wrap section.panel table.report-table tbody tr:nth-child(even) td,html:not(.aam-tl) body main.wrap section.panel table.mttr-report tbody tr:nth-child(even) td{background:#0e2740!important}
+html:not(.aam-tl) body main.wrap section.panel table.tbl:not(.pm-yearly-table):not(.pm-calendar) tbody tr:hover td,html:not(.aam-tl) body main.wrap section.panel table.report-table tbody tr:hover td,html:not(.aam-tl) body main.wrap section.panel table.mttr-report tbody tr:hover td{background:#1a4268!important}
+html:not(.aam-tl) body main.wrap section.panel table.tbl:not(.pm-yearly-table):not(.pm-calendar) td:last-child,html:not(.aam-tl) body main.wrap section.panel table.report-table td:last-child,html:not(.aam-tl) body main.wrap section.panel table.mttr-report td:last-child{border-right:0!important}
+html:not(.aam-tl) body main.wrap section.panel table.tbl:not(.pm-yearly-table):not(.pm-calendar) tbody tr:last-child td,html:not(.aam-tl) body main.wrap section.panel table.report-table tbody tr:last-child td,html:not(.aam-tl) body main.wrap section.panel table.mttr-report tbody tr:last-child td{border-bottom:0!important}
+html:not(.aam-tl) body main.wrap section.panel table.tbl:not(.pm-yearly-table):not(.pm-calendar) tbody td:first-child,html:not(.aam-tl) body main.wrap section.panel table.report-table tbody td:first-child,html:not(.aam-tl) body main.wrap section.panel table.mttr-report tbody td:first-child{color:var(--grp-l)!important;font-weight:800!important}
+html:not(.aam-tl) body main.wrap section.panel table.tbl:not(.pm-yearly-table):not(.pm-calendar) td button,html:not(.aam-tl) body main.wrap section.panel table.report-table td button,html:not(.aam-tl) body main.wrap section.panel table.mttr-report td button{background:var(--grp)!important;color:#fff!important;box-shadow:0 0 0 1px rgba(255,255,255,.25) inset}
+html:not(.aam-tl) body main.wrap section.panel table.tbl:not(.pm-yearly-table):not(.pm-calendar) td button.danger,html:not(.aam-tl) body main.wrap section.panel table.report-table td button.danger,html:not(.aam-tl) body main.wrap section.panel table.mttr-report td button.danger{background:#e5484d!important;color:#fff!important}
+html:not(.aam-tl) body main.wrap section.panel table.tbl:not(.pm-yearly-table):not(.pm-calendar) td input,html:not(.aam-tl) body main.wrap section.panel table.report-table td input,html:not(.aam-tl) body main.wrap section.panel table.mttr-report td input,html:not(.aam-tl) body main.wrap section.panel table.tbl:not(.pm-yearly-table):not(.pm-calendar) td select,html:not(.aam-tl) body main.wrap section.panel table.report-table td select,html:not(.aam-tl) body main.wrap section.panel table.mttr-report td select{background:#0b1c2e!important;color:#fff!important;border:1px solid rgba(255,255,255,.3)!important}
+html:not(.aam-tl) body main.wrap section.panel table.tbl:not(.pm-yearly-table):not(.pm-calendar) td b[style*="#b91c1c"],html:not(.aam-tl) body main.wrap section.panel table.report-table td b[style*="#b91c1c"],html:not(.aam-tl) body main.wrap section.panel table.mttr-report td b[style*="#b91c1c"]{color:#ff8a80!important}
+html:not(.aam-tl) body main.wrap section.panel table.tbl:not(.pm-yearly-table):not(.pm-calendar) td b[style*="#b45309"],html:not(.aam-tl) body main.wrap section.panel table.report-table td b[style*="#b45309"],html:not(.aam-tl) body main.wrap section.panel table.mttr-report td b[style*="#b45309"]{color:#ffd180!important}
+html:not(.aam-tl) body main.wrap section.panel table.tbl:not(.pm-yearly-table):not(.pm-calendar) td b[style*="#15803d"],html:not(.aam-tl) body main.wrap section.panel table.report-table td b[style*="#15803d"],html:not(.aam-tl) body main.wrap section.panel table.mttr-report td b[style*="#15803d"]{color:#69f0ae!important}
+html:not(.aam-tl) body main.wrap section.panel table.tbl:not(.pm-yearly-table):not(.pm-calendar) td b[style*="#137333"],html:not(.aam-tl) body main.wrap section.panel table.report-table td b[style*="#137333"],html:not(.aam-tl) body main.wrap section.panel table.mttr-report td b[style*="#137333"]{color:#69f0ae!important}
+html:not(.aam-tl) body main.wrap section.panel table.tbl:not(.pm-yearly-table):not(.pm-calendar) td b[style*="#0b1f4a"],html:not(.aam-tl) body main.wrap section.panel table.report-table td b[style*="#0b1f4a"],html:not(.aam-tl) body main.wrap section.panel table.mttr-report td b[style*="#0b1f4a"]{color:#e6f0fa!important}
+html:not(.aam-tl) body main.wrap section.panel table.tbl:not(.pm-yearly-table):not(.pm-calendar) td b[style*="#2563eb"],html:not(.aam-tl) body main.wrap section.panel table.report-table td b[style*="#2563eb"],html:not(.aam-tl) body main.wrap section.panel table.mttr-report td b[style*="#2563eb"]{color:#82b1ff!important}
+html:not(.aam-tl) body main.wrap section.panel table.tbl:not(.pm-yearly-table):not(.pm-calendar) td b[style*="#555"],html:not(.aam-tl) body main.wrap section.panel table.report-table td b[style*="#555"],html:not(.aam-tl) body main.wrap section.panel table.mttr-report td b[style*="#555"]{color:#cfd8dc!important}
+html:not(.aam-tl) body main.wrap section.panel table.tbl.aam-cv:not(.pm-yearly-table):not(.pm-calendar) tbody tr,html:not(.aam-tl) body main.wrap section.panel table.report-table.aam-cv tbody tr,html:not(.aam-tl) body main.wrap section.panel table.mttr-report.aam-cv tbody tr{background:linear-gradient(160deg,#18385c,#0e2238)!important;border:1px solid rgba(255,255,255,.16)!important;border-left:6px solid var(--grp)!important;box-shadow:0 6px 16px rgba(5,15,30,.4)!important}
+html:not(.aam-tl) body main.wrap section.panel table.tbl.aam-cv:not(.pm-yearly-table):not(.pm-calendar) td,html:not(.aam-tl) body main.wrap section.panel table.report-table.aam-cv td,html:not(.aam-tl) body main.wrap section.panel table.mttr-report.aam-cv td{background:transparent!important;color:#f1f6fc!important;border:0!important;border-bottom:1px solid rgba(255,255,255,.16)!important}
+html:not(.aam-tl) body main.wrap section.panel table.tbl.aam-cv:not(.pm-yearly-table):not(.pm-calendar) td:last-child,html:not(.aam-tl) body main.wrap section.panel table.report-table.aam-cv td:last-child,html:not(.aam-tl) body main.wrap section.panel table.mttr-report.aam-cv td:last-child{border-bottom:0!important}
+html:not(.aam-tl) body main.wrap section.panel table.tbl.aam-cv:not(.pm-yearly-table):not(.pm-calendar) td::before,html:not(.aam-tl) body main.wrap section.panel table.report-table.aam-cv td::before,html:not(.aam-tl) body main.wrap section.panel table.mttr-report.aam-cv td::before{color:#9fc0e0!important}
+html:not(.aam-tl) body main.wrap section.panel table.tbl.aam-cv:not(.pm-yearly-table):not(.pm-calendar) td:first-child,html:not(.aam-tl) body main.wrap section.panel table.report-table.aam-cv td:first-child,html:not(.aam-tl) body main.wrap section.panel table.mttr-report.aam-cv td:first-child{color:var(--grp-l)!important}
+html:not(.aam-tl) body main.wrap section.panel table.tbl.aam-cv:not(.pm-yearly-table):not(.pm-calendar) td button,html:not(.aam-tl) body main.wrap section.panel table.report-table.aam-cv td button,html:not(.aam-tl) body main.wrap section.panel table.mttr-report.aam-cv td button{background:var(--grp)!important;color:#fff!important}
+html:not(.aam-tl) body main.wrap section.panel table.tbl.aam-cv:not(.pm-yearly-table):not(.pm-calendar) td button.danger,html:not(.aam-tl) body main.wrap section.panel table.report-table.aam-cv td button.danger,html:not(.aam-tl) body main.wrap section.panel table.mttr-report.aam-cv td button.danger{background:#e5484d!important}
+html:not(.aam-tl) body main.wrap section.panel table.tbl.aam-cv:not(.pm-yearly-table):not(.pm-calendar) td b[style*="#b91c1c"],html:not(.aam-tl) body main.wrap section.panel table.report-table.aam-cv td b[style*="#b91c1c"],html:not(.aam-tl) body main.wrap section.panel table.mttr-report.aam-cv td b[style*="#b91c1c"]{color:#ff8a80!important}
+html:not(.aam-tl) body main.wrap section.panel table.tbl.aam-cv:not(.pm-yearly-table):not(.pm-calendar) td b[style*="#b45309"],html:not(.aam-tl) body main.wrap section.panel table.report-table.aam-cv td b[style*="#b45309"],html:not(.aam-tl) body main.wrap section.panel table.mttr-report.aam-cv td b[style*="#b45309"]{color:#ffd180!important}
+html:not(.aam-tl) body main.wrap section.panel table.tbl.aam-cv:not(.pm-yearly-table):not(.pm-calendar) td b[style*="#15803d"],html:not(.aam-tl) body main.wrap section.panel table.report-table.aam-cv td b[style*="#15803d"],html:not(.aam-tl) body main.wrap section.panel table.mttr-report.aam-cv td b[style*="#15803d"]{color:#69f0ae!important}
+html:not(.aam-tl) body main.wrap section.panel table.tbl.aam-cv:not(.pm-yearly-table):not(.pm-calendar) td b[style*="#0b1f4a"],html:not(.aam-tl) body main.wrap section.panel table.report-table.aam-cv td b[style*="#0b1f4a"],html:not(.aam-tl) body main.wrap section.panel table.mttr-report.aam-cv td b[style*="#0b1f4a"]{color:#e6f0fa!important}
+html:not(.aam-tl) body main.wrap section.panel .summary .stat{background:linear-gradient(160deg,#18385c,#0e2238)!important;border:1px solid rgba(255,255,255,.16)!important;color:#e6f0fa!important}
+html:not(.aam-tl) body main.wrap section.panel .summary .stat .amc-sub{color:#9fc0e0!important}
+html:not(.aam-tl) body main.wrap section.panel .summary .stat:nth-child(1){--sc:#7dd3fc}
+html:not(.aam-tl) body main.wrap section.panel .summary .stat:nth-child(2){--sc:#34d399}
+html:not(.aam-tl) body main.wrap section.panel .summary .stat:nth-child(3){--sc:#fbbf24}
+html:not(.aam-tl) body main.wrap section.panel .summary .stat:nth-child(4){--sc:#f87171}
+html:not(.aam-tl) body main.wrap section.panel .summary .stat:nth-child(5){--sc:#c084fc}
+html:not(.aam-tl) body main.wrap section.panel .summary .stat:nth-child(n+6){--sc:#7dd3fc}
+html:not(.aam-tl) body main.wrap section.panel .aam-seg{border-color:var(--grp)!important}
+html:not(.aam-tl) #amcPlan .amc-row{background:linear-gradient(160deg,#18385c,#0e2238)!important;border-color:rgba(255,255,255,.16)!important;color:#f1f6fc}
+html:not(.aam-tl) #amcPlan .amc-r-main b{color:#fff!important}
+html:not(.aam-tl) #amcPlan .amc-row small{color:#9fc0e0!important}
+html:not(.aam-tl) #amcPlan .amc-empty{background:#12392f!important;color:#b9f0d5!important}
+html:not(.aam-tl) #amcPlan a.amc-call{background:#14503a!important;color:#9ef3c6!important}
+html:not(.aam-tl) #amcPlan .amc-hrline{background:#1d4467!important;color:#cfe6fb!important}
+html:not(.aam-tl) #amcPlan .amc-hl-over{background:#5c1f22!important;color:#ffb4ab!important}
+html:not(.aam-tl) #amcPlan .amc-hl-due{background:#5a3b0b!important;color:#ffd180!important}
+html:not(.aam-tl) #amcPlan .amc-bar{background:#2a4a6b!important}
+}
+@media screen{
+html:not(.aam-tl) body main.wrap section.panel table.tbl.aam-cv:not(.pm-yearly-table):not(.pm-calendar) tbody tr:nth-child(even) td,html:not(.aam-tl) body main.wrap section.panel table.report-table.aam-cv tbody tr:nth-child(even) td,html:not(.aam-tl) body main.wrap section.panel table.mttr-report.aam-cv tbody tr:nth-child(even) td,html:not(.aam-tl) body main.wrap section.panel table.tbl.aam-cv:not(.pm-yearly-table):not(.pm-calendar) tbody tr:hover td,html:not(.aam-tl) body main.wrap section.panel table.report-table.aam-cv tbody tr:hover td,html:not(.aam-tl) body main.wrap section.panel table.mttr-report.aam-cv tbody tr:hover td{background:transparent!important}
+html:not(.aam-tl) body main.wrap section.panel table.tbl.aam-cv:not(.pm-yearly-table):not(.pm-calendar) tbody td:first-child,html:not(.aam-tl) body main.wrap section.panel table.report-table.aam-cv tbody td:first-child,html:not(.aam-tl) body main.wrap section.panel table.mttr-report.aam-cv tbody td:first-child{color:var(--grp-l)!important}
+}
+@media screen{
+html:not(.aam-tl) body main.wrap section.panel .summary .stat b,html:not(.aam-tl) body main.wrap section.panel .summary .stat b[id],html:not(.aam-tl) body main.wrap section.panel .stat b{color:var(--sc,#7dd3fc)!important}
+html:not(.aam-tl) body main.wrap section.panel .stat{color:#e6f0fa!important}
+}
+@media screen{
+html body main.wrap section.panel .stat b{font-size:26px!important;line-height:1.1!important;overflow-wrap:anywhere}
+}
 </style>
 <script type="text/mms-defer" id="android-app-mode">
 (function(){
@@ -9372,6 +9747,7 @@ var IC={
  sync:'M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z',
  tools:'M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z',
  logout:'M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z',
+ moon:'M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z',
  reload:'M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z'
 };
 var NAVS=[
@@ -9385,7 +9761,10 @@ var PAL=['#0148b1','#e8710a','#d93025','#188038','#7b1fa2','#00838f','#c2185b','
 function mix(h,t,a){var n=parseInt(h.slice(1),16),r=[n>>16&255,n>>8&255,n&255].map(function(v,i){return Math.round(v*(1-a)+t[i]*a)});return '#'+r.map(function(v){return ('0'+v.toString(16)).slice(-2)}).join('')}
 function pal(i){var c=PAL[((i%PAL.length)+PAL.length)%PAL.length];return{c:c,s:mix(c,[255,255,255],.88),d:mix(c,[0,0,0],.5)}}
 function tagGroups(){document.querySelectorAll('#appSidebar .nav-group').forEach(function(g,i){if(g.getAttribute('data-aam')===String(i))return;var p=pal(i);g.setAttribute('data-aam',i);g.style.setProperty('--g',p.c);g.style.setProperty('--gs',p.s);g.style.setProperty('--gd',p.d)})}
-function applyAccent(id){var p=NAVY,r=document.documentElement.style;r.setProperty('--aam-acc',p.c);r.setProperty('--aam-acc-soft',p.s);r.setProperty('--aam-acc-dark',p.d);var m=document.querySelector('meta[name="theme-color"]');if(m&&m.getAttribute('content')!==p.c)m.setAttribute('content',p.c)}
+function applyAccent(id){var p=NAVY,r=document.documentElement.style;r.setProperty('--aam-acc',p.c);r.setProperty('--aam-acc-soft',p.s);r.setProperty('--aam-acc-dark',p.d);
+ var b=sideBtn(id),g=b&&b.closest&&b.closest('.nav-group'),i=g?parseInt(g.getAttribute('data-aam'),10):0;if(isNaN(i))i=0;var q=pal(i);
+ r.setProperty('--grp',q.c);r.setProperty('--grp-d',mix(q.c,[0,0,0],.45));r.setProperty('--grp-s',q.s);r.setProperty('--grp-l',mix(q.c,[255,255,255],.6));
+ var m=document.querySelector('meta[name="theme-color"]');if(m&&m.getAttribute('content')!==p.c)m.setAttribute('content',p.c)}
 var APP_TITLE='Milestone Gears Ltd.',APP_SUB='Maintenance \u2022 Unit-7',NAVY={c:'#123c62',s:'#e3edf7',d:'#0b2545'};
 var exitArmed=false,toastT=0;
 
@@ -9489,6 +9868,8 @@ function openMenu(){
  var sb=$('mmsSyncBtn'),up=$('mmsUpgradeBtn'),lo=$('mmsLogoutBtn');
  if(logged&&sb){var st=sb.textContent.trim();h+=mItem('sync','sync','Sync now',st&&st!=='\uD83D\uDD04 Sync'?st:'')}
  if(logged&&up&&up.classList.contains('mms-show'))h+=mItem('tools','tools','System tools');
+ var lightT=document.documentElement.classList.contains('aam-tl');
+ h+=mItem('theme','moon','Tables & cards: '+(lightT?'Light':'Dark'),lightT?'Dark mode me badlo':'Light mode me badlo');
  h+=mItem('reload','reload','Reload app');
  if(logged&&lo)h+=mItem('logout','logout','Log out');
  $('aamMenu').innerHTML=h;
@@ -9521,7 +9902,9 @@ function bind(){
   var b=e.target.closest('.aam-mi');if(!b)return;
   var k=b.getAttribute('data-k');closeMenu();
   var el={sync:$('mmsSyncBtn'),tools:$('mmsUpgradeBtn'),logout:$('mmsLogoutBtn')}[k];
-  if(k==='reload')location.reload();else if(el)el.click();
+  if(k==='reload')location.reload();
+  else if(k==='theme'){var on=document.documentElement.classList.toggle('aam-tl');try{localStorage.setItem('aam_tbl',on?'light':'dark')}catch(e){}toast(on?'Light tables':'Dark tables')}
+  else if(el)el.click();
  });
  // keyboard khulte hi bottom bar chhupao
  document.addEventListener('focusin',function(e){var t=e.target;if(phone()&&t&&/^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName)&&t.id!=='aamSearch')document.body.classList.add('aam-kb')});
@@ -9578,7 +9961,7 @@ function tagBtnGroups(){
 var PILL_G=/^(ok|good|full|complete[d]?|closed|done|active|received|approved|normal|available|pass|passed|resolved|healthy|ready|yes)$/i;
 var PILL_W=/^(low|min|pending|open|scheduled|postponed|due|due this month|expiring.*|warning|partial|ordered|planned|requirement|pr raised|po created|sent to vendor|reorder|below min.*)$/i;
 var PILL_B=/^(not ok|notok|overdue.*|expired|cancel(l)?ed|rejected|critical|empty|out of stock|fail(ed)?|breakdown|no|high|blocked)$/i;
-var PILL_I=/^(in progress|ongoing|running|processing)$/i;
+var PILL_I=/^(in progress|ongoing|running|processing|service only)$/i;
 function pillClass(t){t=String(t||'').replace(/\s+/g,' ').trim();if(!t||t.length>26)return '';if(PILL_G.test(t))return 'good';if(PILL_B.test(t))return 'bad';if(PILL_W.test(t))return 'warn';if(PILL_I.test(t))return 'info';return ''}
 function pillify(t){
  var hr=t.querySelectorAll('thead tr');if(hr.length!==1)return;
@@ -9621,6 +10004,7 @@ function ensureSeg(w){
 }
 function decorate(){
  var main=document.querySelector('main.wrap');if(!main)return;
+ [].forEach.call(main.querySelectorAll('.aam-seg'),function(s){var n=s.nextElementSibling;if(!n||!n.querySelector||!n.querySelector('table'))s.remove()});
  tagBtnGroups();
  document.querySelectorAll('main.wrap table').forEach(function(t){
   try{if(!t.closest('#mmsUpgradePanel')&&!t.classList.contains('amc-plan'))pillify(t)}catch(e){}
@@ -9655,6 +10039,7 @@ function initCards(){
  (pq.addEventListener?pq.addEventListener('change',decorate):0);
  decorate();
 }
+try{if(localStorage.getItem('aam_tbl')==='light')document.documentElement.classList.add('aam-tl')}catch(e){}
 build();bind();hook();sync();setupBack();initCards();
 // login ke baad / data load ke baad bhi title & bar sahi rahe
 window.addEventListener('load',function(){setTimeout(sync,300)});
