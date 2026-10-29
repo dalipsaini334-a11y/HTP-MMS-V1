@@ -4233,9 +4233,9 @@ async function gsPullUsersForLogin(){
 function mmsDeviceId(){try{let d=localStorage.getItem('htp_mms_dev_v1');if(!/^[a-f0-9]{32}$/.test(d||'')){const a=new Uint8Array(16);crypto.getRandomValues(a);d=Array.from(a).map(function(b){return ('0'+b.toString(16)).slice(-2)}).join('');localStorage.setItem('htp_mms_dev_v1',d)}return d}catch(e){return ''}}
 // ---- Pehle login par naya password (temp password ke baad) ----
 async function mmsForcePasswordChange(u,oldPw,role){
- const min=role==='Admin'?12:10;
+ const min=role==='Admin'?8:6;
  for(let i=0;i<5;i++){
-  const np=prompt('🔐 Ye aapka pehla login hai (ya Admin ne password reset kiya hai).\n\nApna NAYA password banao (kam se kam '+min+' characters, aam password nahi chalega):');
+  const np=prompt('🔐 Ye aapka pehla login hai (ya Admin ne password reset kiya hai).\n\nApna NAYA password banao (kam se kam '+min+' characters):');
   if(np===null)return false;
   if(np.length<min){alert('Password kam se kam '+min+' characters ka ho.');continue}
   const cf=prompt('Naya password dobara likho:');
@@ -4456,7 +4456,7 @@ function closeTools(){document.getElementById('mmsUpgradePanel').classList.remov
 async function changePassword(){
  if(!requireRole(['Admin']))return;let s=session();if(!s)return;
  const op=prompt('Current password:');if(!op)return;
- const np=prompt('Enter new password (Admin ke liye minimum 12 characters; aam / aasani se guess hone wala password nahi chalega):');if(!np||np.length<12)return alert('Admin password must be at least 12 characters.');
+ const np=prompt('Enter new password (Admin ke liye minimum 8 characters):');if(!np||np.length<8)return alert('Admin password must be at least 8 characters.');
  if(prompt('Confirm new password:')!==np)return alert('Passwords do not match.');
  try{const r=await mmsSrvCall('changePw',{old:op,pw:np});if(!r.ok)return alert(r.error||'Password change failed.');mmsSrvSet(r.token,r.exp,s.u);audit('PASSWORD','system','Password changed');alert('Password changed.')}
  catch(e){alert('Server se connect nahi hua. Internet check karke dobara try karo.')}
@@ -4470,8 +4470,8 @@ async function manageUsers(){
   if(u.trim()){
    let x=us.find(z=>z.u===u.trim());if(!x)return alert('User not found.');
    let role=(prompt('Enter role / designation for '+x.u+' (e.g. Admin, Technician, Operator, Engineer, Supervisor):',x.role)||'').trim()||x.role;
-   let newPass=prompt('Reset password for '+x.u+'? Enter a new password (minimum 10 characters, Admin ke liye 12), or leave blank to keep the current password:');
-   if(newPass&&newPass.length<10)return alert('Password must be at least 10 characters. Nothing changed.');
+   let newPass=prompt('Reset password for '+x.u+'? Enter a new password (minimum 6 characters, Admin ke liye 8), or leave blank to keep the current password:');
+   if(newPass&&newPass.length<6)return alert('Password must be at least 6 characters. Nothing changed.');
    const r=await mmsSrvSensitive('userSet',{u:x.u,role:role,pw:newPass||''});
    if(!r.ok)return alert((r.error||'Server error')+(/password zaroori/.test(r.error||'')?'\n\nIs user ka server account abhi nahi hai - "Reset password" me naya password daalo.':''));
    x.role=role;localStorage.setItem(USERS_KEY,JSON.stringify(us));
@@ -4481,7 +4481,7 @@ async function manageUsers(){
   }else{
    let nu=(prompt('New username')||'').trim();if(!nu)return;
    if(us.some(x=>x.u===nu))return alert('Username already exists');
-   let np=prompt('Temporary password (min 10 characters, Admin ke liye 12)');if(!np||np.length<10)return alert('Invalid password (minimum 10 characters).');
+   let np=prompt('Temporary password (min 6 characters, Admin ke liye 8)');if(!np||np.length<6)return alert('Invalid password (minimum 6 characters).');
    let nr=(prompt('Role / designation (e.g. Admin, Technician, Operator, Engineer, Supervisor):','Operator')||'').trim();if(!nr)return alert('Role is required.');
    const r=await mmsSrvSensitive('userSet',{u:nu,role:nr,pw:np});
    if(!r.ok)return alert(r.error||'Server error');
