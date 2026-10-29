@@ -9723,7 +9723,274 @@ html:not(.aam-tl) body main.wrap section.panel .stat{color:#e6f0fa!important}
 @media screen{
 html body main.wrap section.panel .stat b{font-size:26px!important;line-height:1.1!important;overflow-wrap:anywhere}
 }
+/* ===== v10: sabhi modules me ek jaisa dark navy card / KPI / button (html.aam-tl = light switch) ===== */
+@media screen{
+html:not(.aam-tl) body main.wrap .utility-kpi,html:not(.aam-tl) body main.wrap .airc-kpi,html:not(.aam-tl) body main.wrap .pm-kpi,html:not(.aam-tl) body main.wrap .ms-item,html:not(.aam-tl) body main.wrap .dash-stat,html:not(.aam-tl) body main.wrap .chartbox{background:linear-gradient(160deg,#18385c,#0e2238)!important;border:1px solid rgba(255,255,255,.16)!important;border-left:1px solid rgba(255,255,255,.16)!important;color:#e6f0fa!important;box-shadow:0 4px 12px rgba(5,15,30,.25)!important}
+html:not(.aam-tl) body main.wrap .utility-kpi *,html:not(.aam-tl) body main.wrap .airc-kpi *,html:not(.aam-tl) body main.wrap .pm-kpi span,html:not(.aam-tl) body main.wrap .ms-item span,html:not(.aam-tl) body main.wrap .dash-stat .label,html:not(.aam-tl) body main.wrap .dash-stat small{color:#9fc0e0!important}
+html:not(.aam-tl) body main.wrap .utility-kpi .v,html:not(.aam-tl) body main.wrap .airc-kpi .v,html:not(.aam-tl) body main.wrap .pm-kpi b,html:not(.aam-tl) body main.wrap .ms-item .ms-value,html:not(.aam-tl) body main.wrap .dash-stat .value{color:#7dd3fc!important}
+html:not(.aam-tl) body main.wrap .dash-stat .ico{background:rgba(255,255,255,.12)!important;color:#fff!important}
+html:not(.aam-tl) body main.wrap section.panel .utility-banner{background:linear-gradient(135deg,#0b2545,#123c62 60%,#1d5b8e)!important;border:0!important;border-left:0!important;color:#fff!important}
+html:not(.aam-tl) body main.wrap section.panel .utility-banner *{color:#fff!important}
+html:not(.aam-tl) body main.wrap section.panel .utility-banner .ub-code{background:rgba(255,255,255,.14)!important;border:1px solid rgba(255,255,255,.3)!important}
+html:not(.aam-tl) body main.wrap .airc-banner{background:linear-gradient(135deg,#0b2545,#123c62 60%,#1d5b8e)!important}
+/* Edit / action buttons: har module me ek hi navy (Delete / Remove ka red wahi rahega) */
+html body main.wrap section.panel button.secondary[style*="background"]:not(.danger),html body main.wrap section.panel table button:not(.danger){background:#123c62!important;color:#fff!important;border-color:#123c62!important}
+}
+/* ===== v11: form cards + input fields bhi navy (html.aam-tl = light switch) ===== */
+@media screen{
+html:not(.aam-tl) body main.wrap section.panel .card,html:not(.aam-tl) body main.wrap section.panel .utility-form-card,html:not(.aam-tl) body main.wrap section.panel .utility-table-card,html:not(.aam-tl) body main.wrap section.panel .airc-card,html:not(.aam-tl) body main.wrap section.panel .dash-card{background:#0e2238!important;background-image:linear-gradient(160deg,#143252,#0e2238)!important;border:1px solid #2a4a6b!important;color:#e6f0fa!important;box-shadow:0 6px 18px rgba(5,15,30,.3)!important}
+html:not(.aam-tl) body main.wrap section.panel .card .head,html:not(.aam-tl) body main.wrap section.panel .card .head2,html:not(.aam-tl) body main.wrap section.panel .card h1,html:not(.aam-tl) body main.wrap section.panel .card h2,html:not(.aam-tl) body main.wrap section.panel .card h3,html:not(.aam-tl) body main.wrap section.panel .utility-form-card h3,html:not(.aam-tl) body main.wrap section.panel .airc-card h3,html:not(.aam-tl) body main.wrap section.panel .dash-card h3{color:#fff!important}
+html:not(.aam-tl) body main.wrap section.panel .card label,html:not(.aam-tl) body main.wrap section.panel .field label,html:not(.aam-tl) body main.wrap section.panel .utility-form-card label,html:not(.aam-tl) body main.wrap section.panel .airc-card label{color:#9fc0e0!important}
+html:not(.aam-tl) body main.wrap section.panel .card small,html:not(.aam-tl) body main.wrap section.panel .card .muted,html:not(.aam-tl) body main.wrap section.panel .card .hint{color:#9fc0e0!important}
+html:not(.aam-tl) body main.wrap section.panel .card input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=hidden]),html:not(.aam-tl) body main.wrap section.panel .card select,html:not(.aam-tl) body main.wrap section.panel .card textarea,html:not(.aam-tl) body main.wrap section.panel .utility-form-card input:not([type=checkbox]):not([type=radio]):not([type=hidden]),html:not(.aam-tl) body main.wrap section.panel .utility-form-card select,html:not(.aam-tl) body main.wrap section.panel .utility-form-card textarea,html:not(.aam-tl) body main.wrap section.panel .airc-card input:not([type=checkbox]):not([type=radio]):not([type=hidden]),html:not(.aam-tl) body main.wrap section.panel .airc-card select,html:not(.aam-tl) body main.wrap section.panel .airc-card textarea{background:#112b45!important;color:#e6f0fa!important;border:1px solid #3b6288!important;color-scheme:dark}
+html:not(.aam-tl) body main.wrap section.panel .card input::placeholder,html:not(.aam-tl) body main.wrap section.panel .card textarea::placeholder,html:not(.aam-tl) body main.wrap section.panel .utility-form-card input::placeholder,html:not(.aam-tl) body main.wrap section.panel .airc-card input::placeholder{color:#7d9bbd!important}
+html:not(.aam-tl) body main.wrap section.panel .card input:focus,html:not(.aam-tl) body main.wrap section.panel .card select:focus,html:not(.aam-tl) body main.wrap section.panel .card textarea:focus,html:not(.aam-tl) body main.wrap section.panel .utility-form-card input:focus,html:not(.aam-tl) body main.wrap section.panel .utility-form-card select:focus,html:not(.aam-tl) body main.wrap section.panel .airc-card input:focus{border-color:#7dd3fc!important;outline:2px solid rgba(125,211,252,.35)!important}
+html:not(.aam-tl) body main.wrap section.panel .card input[readonly],html:not(.aam-tl) body main.wrap section.panel .card input:disabled,html:not(.aam-tl) body main.wrap section.panel .card select:disabled{background:#0b1d31!important;color:#9fc0e0!important}
+html:not(.aam-tl) body main.wrap section.panel .card option,html:not(.aam-tl) body main.wrap section.panel .card optgroup{background:#112b45;color:#e6f0fa}
+html:not(.aam-tl) body main.wrap section.panel .note,html:not(.aam-tl) body main.wrap section.panel .utility-help,html:not(.aam-tl) body main.wrap section.panel .utility-note,html:not(.aam-tl) body main.wrap section.panel .utility-section-head,html:not(.aam-tl) body main.wrap section.panel .utility-subgroup,html:not(.aam-tl) body main.wrap section.panel .utility-table-head,html:not(.aam-tl) body main.wrap section.panel .utility-monthly-summary,html:not(.aam-tl) body main.wrap section.panel .history-auto,html:not(.aam-tl) body main.wrap section.panel .pm-guide,html:not(.aam-tl) body main.wrap section.panel .rolebar{background:#12304e!important;color:#d6e6f5!important;border-color:#2a4a6b!important}
+html:not(.aam-tl) body main.wrap section.panel .note *,html:not(.aam-tl) body main.wrap section.panel .utility-help *,html:not(.aam-tl) body main.wrap section.panel .utility-note *,html:not(.aam-tl) body main.wrap section.panel .utility-section-head *,html:not(.aam-tl) body main.wrap section.panel .utility-subgroup *,html:not(.aam-tl) body main.wrap section.panel .utility-table-head *,html:not(.aam-tl) body main.wrap section.panel .history-auto *,html:not(.aam-tl) body main.wrap section.panel .pm-guide *{color:#d6e6f5!important}
+html:not(.aam-tl) body main.wrap section.panel .card button.secondary:not(.danger),html:not(.aam-tl) body main.wrap section.panel .utility-form-card button.secondary:not(.danger),html:not(.aam-tl) body main.wrap section.panel .airc-card button.secondary:not(.danger){background:#1d4467!important;color:#e6f0fa!important;border:1px solid #3b6288!important}
+html:not(.aam-tl) body main.wrap section.panel .card button.primary,html:not(.aam-tl) body main.wrap section.panel .utility-form-card button.primary,html:not(.aam-tl) body main.wrap section.panel .airc-card button.primary{background:linear-gradient(135deg,#1d5b8e,#2a7fc4)!important;color:#fff!important;border:1px solid #5aa5e0!important}
+}
 </style>
+<script type="text/mms-defer" id="mms-reports">
+/* ===== REPORTS: har module ki + poore app ki Monthly / Yearly report (app ke navy colour me) ===== */
+(function () {
+  'use strict';
+  var MODS = [
+    { k: 'pf', n: 'Power Factor', g: 'Utility & Energy' }, { k: 'pc', n: 'Power Cut Detail', g: 'Utility & Energy' },
+    { k: 'dg', n: 'DG Daily Reading', g: 'Utility & Energy' }, { k: 'airCompressor', n: 'Air Compressor KWH', g: 'Utility & Energy' },
+    { k: 'powerCost', n: 'Power Cost', g: 'Utility & Energy' }, { k: 'hpsebBill', n: 'HPSEBL Bill', g: 'Utility & Energy' },
+    { k: 'mr', n: 'Maintenance Request', g: 'Maintenance', dk: ['pdate', 'mdate', 'hdate'] }, { k: 'bd', n: 'Breakdown Register', g: 'Maintenance' },
+    { k: 'mh', n: 'Machine History', g: 'Maintenance' }, { k: 'pm', n: 'PM Check Sheet', g: 'Preventive Maintenance' },
+    { k: 'meeting', n: 'Daily Meeting Log', g: 'Maintenance' },
+    { k: 'spares', n: 'Spare Parts Inventory', g: 'Stores', master: 1 }, { k: 'critical', n: 'Critical Spares Register', g: 'Stores', master: 1 },
+    { k: 'sparePurchase', n: 'Spare Part Purchase', g: 'Stores' }, { k: 'utility', n: 'Maint & Utility (usage log)', g: 'Stores', only: function (r) { return r && r.type === 'log'; } },
+    { k: 'tc', n: 'Thermocouple Plan', g: 'Plant Planning', master: 1 }, { k: 'cal', n: 'Calibration Control Plan', g: 'Plant Planning', master: 1 },
+    { k: 'machineMaster', n: 'Machine Master', g: 'Master Data', master: 1 },
+    { k: 'satReport', n: 'SAT Report (CQI-9)', g: 'HT Quality' }, { k: 'satTemp', n: 'SAT Temp Verification', g: 'HT Quality' },
+    { k: 'oxyMV', n: 'Oxy Probe MV Check', g: 'HT Quality' }, { k: 'oxyImp', n: 'O2 Probe Impedance', g: 'HT Quality' },
+    { k: 'oxyRep', n: 'Oxy Probe Replacement', g: 'HT Quality' },
+    { k: 'amc', n: 'AMC & Service Contracts', g: 'AMC & Service', master: 1 }, { k: 'amcLog', n: 'AMC Service Visit Log', g: 'AMC & Service' }
+  ];
+  var COLS = {
+    bd: ['date', 'machineNumber', 'reason', 'type', 'section', 'from', 'to', 'hours', 'action', 'status'],
+    mh: ['date', 'machineNo', 'machine', 'reason', 'action', 'spares', 'attendedBy', 'bdHours', 'cost'],
+    pm: ['date', 'machineNo', 'template', 'start', 'end', 'checkedBy', 'verifiedBy'],
+    airCompressor: ['date', 'machine', 'kwh', 'runHour', 'loadHour'],
+    utility: ['date', 'itemName', 'activity', 'problem', 'action', 'person', 'qty', 'department'],
+    spares: ['code', 'desc', 'spec', 'make', 'min', 'max', 'availableQty', 'loc'],
+    critical: ['code', 'desc', 'machine', 'min', 'max', 'avail', 'loc'],
+    tc: ['furnace', 'loc', 'type', 'srid', 'freq', 'inst', 'due', 'status'],
+    cal: ['name', 'make', 'idno', 'range', 'location', 'date', 'duedate']
+  };
+  var SKIPKEY = /^(id|_sid|ts|deleted|updatedAt|savedAt|createdAt|evidence|sourceRef|sourceSr|sourceMrSr|spareLink|auto|entries|checklistRows|sno)$/i;
+  var NODATE = /due|next|expect|deliver|valid|expir|end|renew|updated|saved|created|sched|plan/i;
+  var MON = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+  var MONF = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  var FYORDER = [4, 5, 6, 7, 8, 9, 10, 11, 12, 1, 2, 3];
+
+  function el(i) { return document.getElementById(i); }
+  function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function pretty(k) { return String(k).replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[_-]+/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); }); }
+  function num(v) { if (v === '' || v == null) return NaN; var n = parseFloat(String(v).replace(/,/g, '')); return isFinite(n) ? n : NaN; }
+  function fmt(n) { return (Math.round(n * 100) / 100).toLocaleString('en-IN'); }
+  function list(m) { var a; try { a = m.k === 'machineMaster' ? MACHINE_MASTER : data[m.k]; } catch (e) { a = []; } a = Array.isArray(a) ? a : []; return m.only ? a.filter(m.only) : a; }
+
+  /* record ki tareekh -> {y,m} */
+  function ym(v) {
+    if (v == null) return null; v = String(v).trim(); var x;
+    if ((x = /^(\d{4})-(\d{1,2})(?:-(\d{1,2}))?/.exec(v))) return +x[2] >= 1 && +x[2] <= 12 ? { y: +x[1], m: +x[2], d: +(x[3] || 0) } : null;
+    if ((x = /^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})/.exec(v))) return { y: +x[3], m: +x[2], d: +x[1] };
+    if ((x = /^(\d{1,2})[-\/ ]([A-Za-z]{3,9})\.?[-\/ ,]+(\d{4})/.exec(v))) { var j = MON.indexOf(x[2].slice(0, 3).toLowerCase()); if (j >= 0) return { y: +x[3], m: j + 1, d: +x[1] }; }
+    if ((x = /^([A-Za-z]{3,9})[-,\s]+(\d{4})/.exec(v))) { var i = MON.indexOf(x[1].slice(0, 3).toLowerCase()); if (i >= 0) return { y: +x[2], m: i + 1 }; }
+    return null;
+  }
+  function recYM(m, r) {
+    var keys = (m.dk || []).concat(Object.keys(r).filter(function (k) { return /date|month|^dt$|^day$/i.test(k) && !NODATE.test(k) && (m.dk || []).indexOf(k) < 0; }));
+    for (var i = 0; i < keys.length; i++) { var t = ym(r[keys[i]]); if (t) return t; }
+    return null;
+  }
+  function fyOf(t) { return t.m >= 4 ? t.y : t.y - 1; }
+  function fyLabel(y) { return y + '-' + String((y + 1) % 100).padStart(2, '0'); }
+
+  /* period ke records */
+  function pick(m, P) {
+    var all = list(m);
+    if (m.master) return { rows: all, snap: true, all: all.length };
+    var rows = all.filter(function (r) {
+      var t = recYM(m, r); if (!t) return false;
+      if (P.type === 'd') return t.y === P.y && t.m === P.m && t.d === P.d;
+      return P.type === 'm' ? (t.y === P.y && t.m === P.m) : fyOf(t) === P.y;
+    });
+    rows.sort(function (a, b) { var x = recYM(m, a), y = recYM(m, b); return (x.y * 100 + x.m) - (y.y * 100 + y.m) || String(a.date || '').localeCompare(String(b.date || '')); });
+    return { rows: rows, snap: false, all: all.length };
+  }
+  function colsFor(m, rows) {
+    var want = COLS[m.k], cnt = {}, order = [];
+    rows.forEach(function (r) { Object.keys(r).forEach(function (k) { if (SKIPKEY.test(k)) return; var v = r[k]; if (v == null || v === '' || typeof v === 'object') return; if (typeof v === 'string' && v.length > 300) return; if (!(k in cnt)) { cnt[k] = 0; order.push(k); } cnt[k]++; }); });
+    if (want) { var w = want.filter(function (k) { return cnt[k]; }); if (w.length) return w; }
+    return order.sort(function (a, b) { return cnt[b] - cnt[a] || order.indexOf(a) - order.indexOf(b); }).slice(0, 9);
+  }
+  function sums(rows, cols) {
+    var out = [];
+    cols.forEach(function (k) {
+      if (!/hour|hrs|kwh|kvah|cost|amount|bill|units|qty|total|consumption|duration/i.test(k) || /date|month|id$/i.test(k)) return;
+      var s = 0, n = 0; rows.forEach(function (r) { var v = num(r[k]); if (!isNaN(v)) { s += v; n++; } });
+      if (n) out.push({ k: k, s: s });
+    });
+    return out.slice(0, 4);
+  }
+  function cell(v) { var s = String(v == null ? '' : v); return esc(s.length > 70 ? s.slice(0, 68) + '…' : s); }
+
+  /* ---------- CSS (screen + print + Excel) ---------- */
+  var CSS = '.rp{font-family:Arial,Helvetica,sans-serif;color:#0b1f4a;max-width:1100px;margin:0 auto;-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
+    '.rp-head{background-color:#123c62;background-image:linear-gradient(135deg,#0b2545,#123c62 60%,#1d5b8e);color:#fff;border-radius:14px;padding:16px 18px;margin-bottom:12px}' +
+    '.rp-co{font-size:13px;font-weight:700;color:#9fc0e0;letter-spacing:.4px}.rp-title{font-size:21px;font-weight:800;margin:4px 0;color:#fff}.rp-sub{font-size:12px;color:#d6e6f5}' +
+    '.rp-logo{height:38px;width:auto;float:right;margin-left:10px;background:#fff;border-radius:8px;padding:3px}' +
+    '.rp-kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:0 0 12px}' +
+    '.rp-kpi{background-color:#0e2238;background-image:linear-gradient(160deg,#18385c,#0e2238);border:1px solid #2a4a6b;border-radius:12px;padding:10px 12px}' +
+    '.rp-kpi span{display:block;font-size:11px;color:#9fc0e0;font-weight:700;text-transform:uppercase;letter-spacing:.3px}.rp-kpi b{display:block;font-size:24px;color:#7dd3fc;margin-top:3px}' +
+    '.rp-h{background-color:#123c62;color:#fff;font-size:14px;font-weight:800;padding:8px 12px;border-radius:10px 10px 0 0;margin:14px 0 0}' +
+    '.rp-note{font-size:12px;color:#44474f;margin:4px 2px 8px}' +
+    '.rp table{width:100%;border-collapse:collapse;font-size:12px;margin:0}' +
+    '.rp table th{background-color:#123c62!important;background-image:none!important;color:#fff!important;border:1px solid #2a4a6b!important;padding:6px 7px;text-align:left;font-size:11.5px}' +
+    '.rp table td{background-color:#112b45!important;background-image:none!important;color:#e6f0fa!important;border:1px solid #2a4a6b!important;padding:6px 7px;vertical-align:top}' +
+    '.rp table tbody tr:nth-child(even) td{background-color:#16365a!important}.rp td.n,.rp th.n{text-align:right}.rp table td.b{font-weight:700;color:#7dd3fc!important}' +
+    '.rp table tfoot td{background-color:#0b2545!important;color:#fff!important;font-weight:800}' +
+    '.rp-tw{overflow-x:auto;border:1.5px solid #123c62;border-radius:0 0 10px 10px;background-color:#0e2238}' +
+    '.rp-foot{text-align:center;font-size:11px;color:#5b6577;margin-top:12px}' +
+    '@media print{@page{size:A4 landscape;margin:8mm}body{margin:0}.rp-tw{overflow:visible}.rp table{font-size:10px}.rp th,.rp td{padding:4px 5px}.rp-h{page-break-after:avoid}.rp tr{page-break-inside:avoid}}';
+
+  var PX = 'html body main.wrap section.panel #rptOut .rp table';
+  var PANEL_CSS = PX + ' th{background-color:#123c62!important;background-image:none!important;color:#fff!important;border:1px solid #2a4a6b!important}' +
+    PX + ' td{background-color:#112b45!important;background-image:none!important;color:#e6f0fa!important;border:1px solid #2a4a6b!important}' +
+    PX + ' tbody tr:nth-child(even) td{background-color:#16365a!important}' + PX + ' td.b{color:#7dd3fc!important}' +
+    PX + ' tfoot td{background-color:#0b2545!important;color:#fff!important}';
+  function logo() { try { return typeof APP_LOGO !== 'undefined' && APP_LOGO ? '<img class="rp-logo" src="' + APP_LOGO + '" alt="">' : ''; } catch (e) { return ''; } }
+  function kpi(l, v) { return '<div class="rp-kpi"><span>' + esc(l) + '</span><b>' + esc(v) + '</b></div>'; }
+  function head(title, sub, withLogo) {
+    return '<div class="rp-head">' + (withLogo ? logo() : '') + '<div class="rp-co">Milestone Gears Ltd. UNIT-7 &nbsp;|&nbsp; Maintenance Management System</div><div class="rp-title">' + esc(title) + '</div><div class="rp-sub">' + esc(sub) + '</div></div>';
+  }
+  function stamp() { var d = new Date(); return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) + ' ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }); }
+  function typeText(P) { return P.type === 'd' ? 'Daily' : (P.type === 'm' ? 'Monthly' : 'Yearly'); }
+  function periodText(P) { if (P.type === 'd') return String(P.d).padStart(2, '0') + ' ' + MONF[P.m - 1] + ' ' + P.y; return P.type === 'm' ? MONF[P.m - 1] + ' ' + P.y : 'Financial Year ' + fyLabel(P.y) + ' (Apr ' + P.y + ' – Mar ' + (P.y + 1) + ')'; }
+
+  /* ---------- ek module ki report ---------- */
+  function moduleReport(m, P, withLogo) {
+    var r = pick(m, P), cols = colsFor(m, r.rows), sm = sums(r.rows, cols);
+    var h = head(m.n + ' — ' + typeText(P) + ' Report', (r.snap ? 'Register snapshot (current status)' : periodText(P)) + '  •  Generated ' + stamp(), withLogo);
+    h += '<div class="rp-kpis">' + kpi(r.snap ? 'Total records' : 'Records in period', r.rows.length) + sm.map(function (s) { return kpi('Total ' + pretty(s.k), fmt(s.s)); }).join('');
+    if (m.k === 'bd' && r.rows.length) { var hrs = 0; r.rows.forEach(function (x) { var v = num(x.hours); if (!isNaN(v)) hrs += v; }); h += kpi('MTTR (hrs / breakdown)', fmt(hrs / r.rows.length)); }
+    h += '</div>';
+    if (!r.rows.length) return h + '<div class="rp-note">Is period me koi record nahi mila' + (r.all ? ' (module me total ' + r.all + ' records hain, doosre mahino/saalon ke).' : '.') + '</div>';
+    if (P.type === 'y' && !r.snap) {
+      var by = {}; r.rows.forEach(function (x) { var t = recYM(m, x), k = t.y * 100 + t.m; by[k] = (by[k] || 0) + 1; });
+      h += '<div class="rp-h">Month-wise records</div><div class="rp-tw"><table><thead><tr>' + FYORDER.map(function (mo) { return '<th class="n">' + MON[mo - 1].toUpperCase() + '</th>'; }).join('') + '<th class="n">TOTAL</th></tr></thead><tbody><tr>' +
+        FYORDER.map(function (mo) { var y = mo >= 4 ? P.y : P.y + 1; return '<td class="n">' + (by[y * 100 + mo] || 0) + '</td>'; }).join('') + '<td class="n b">' + r.rows.length + '</td></tr></tbody></table></div>';
+    }
+    h += '<div class="rp-h">' + esc(m.n) + ' — details</div><div class="rp-tw"><table><thead><tr><th>#</th>' + cols.map(function (c) { return '<th>' + esc(pretty(c)) + '</th>'; }).join('') + '</tr></thead><tbody>' +
+      r.rows.map(function (x, i) { return '<tr><td class="b">' + (i + 1) + '</td>' + cols.map(function (c) { return '<td>' + cell(x[c]) + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody>' +
+      (sm.length ? '<tfoot><tr><td>Total</td>' + cols.map(function (c) { var s = sm.filter(function (q) { return q.k === c; })[0]; return '<td>' + (s ? fmt(s.s) : '') + '</td>'; }).join('') + '</tr></tfoot>' : '') + '</table></div>';
+    return h + '<div class="rp-foot">Milestone Gears Ltd. UNIT-7 • Maintenance Team</div>';
+  }
+
+  /* ---------- poore app ki report ---------- */
+  function overallReport(P, withLogo) {
+    var rows = [], months = {}, tot = 0, bdRows = [], bdHrs = 0, kwh = 0, low = 0;
+    MODS.forEach(function (m) {
+      var r = pick(m, P); rows.push({ m: m, r: r });
+      if (!r.snap) { tot += r.rows.length; r.rows.forEach(function (x) { var t = recYM(m, x), k = t.y * 100 + t.m; (months[m.k] = months[m.k] || {})[k] = (months[m.k][k] || 0) + 1; }); }
+      if (m.k === 'bd') { bdRows = r.rows; r.rows.forEach(function (x) { var v = num(x.hours); if (!isNaN(v)) bdHrs += v; }); }
+      if (m.k === 'airCompressor') r.rows.forEach(function (x) { var v = num(x.kwh); if (!isNaN(v)) kwh += v; });
+      if (m.k === 'spares') r.rows.forEach(function (x) { var mn = num(x.min), q = num(x.availableQty != null ? x.availableQty : x.qty); if (!isNaN(mn) && !isNaN(q) && mn > 0 && q <= mn) low++; });
+    });
+    function cnt(k) { return rows.filter(function (x) { return x.m.k === k; })[0].r.rows.length; }
+    var h = head('Overall App — ' + typeText(P) + ' Report', periodText(P) + '  •  Generated ' + stamp(), withLogo);
+    h += '<div class="rp-kpis">' + kpi('Total entries in period', tot) + kpi('Breakdowns', bdRows.length) + kpi('Breakdown hours', fmt(bdHrs)) +
+      kpi('MTTR (hrs / breakdown)', bdRows.length ? fmt(bdHrs / bdRows.length) : '0') + kpi('Maintenance requests', cnt('mr')) + kpi('PM check sheets', cnt('pm')) +
+      kpi('Machine history', cnt('mh')) + kpi('Spare purchases', cnt('sparePurchase')) + kpi('Air compressor KWH', fmt(kwh)) + kpi('Low-stock spares', low) + '</div>';
+    h += '<div class="rp-h">Module-wise summary</div><div class="rp-tw"><table><thead><tr><th>#</th><th>Module</th><th>Group</th><th class="n">Records</th><th>Basis</th></tr></thead><tbody>' +
+      rows.map(function (x, i) { return '<tr><td class="b">' + (i + 1) + '</td><td>' + esc(x.m.n) + '</td><td>' + esc(x.m.g) + '</td><td class="n b">' + x.r.rows.length + '</td><td>' + (x.r.snap ? 'Register total (snapshot)' : (P.type === 'd' ? 'Entries this day' : (P.type === 'm' ? 'Entries this month' : 'Entries this FY'))) + '</td></tr>'; }).join('') +
+      '</tbody><tfoot><tr><td></td><td>Total (period entries)</td><td></td><td class="n">' + tot + '</td><td></td></tr></tfoot></table></div>';
+    if (P.type === 'y') {
+      h += '<div class="rp-h">Month-wise entries (FY ' + fyLabel(P.y) + ')</div><div class="rp-tw"><table><thead><tr><th>Module</th>' + FYORDER.map(function (mo) { return '<th class="n">' + MON[mo - 1].toUpperCase() + '</th>'; }).join('') + '<th class="n">TOTAL</th></tr></thead><tbody>' +
+        rows.filter(function (x) { return !x.r.snap && x.r.rows.length; }).map(function (x) {
+          return '<tr><td>' + esc(x.m.n) + '</td>' + FYORDER.map(function (mo) { var y = mo >= 4 ? P.y : P.y + 1; return '<td class="n">' + (((months[x.m.k] || {})[y * 100 + mo]) || 0) + '</td>'; }).join('') + '<td class="n b">' + x.r.rows.length + '</td></tr>';
+        }).join('') + '</tbody></table></div>';
+    }
+    if (bdRows.length) {
+      var byM = {}; bdRows.forEach(function (x) { var k = String(x.machineNumber || x.machine || '-'); var o = byM[k] || (byM[k] = { n: 0, h: 0 }); o.n++; var v = num(x.hours); if (!isNaN(v)) o.h += v; });
+      h += '<div class="rp-h">Breakdown — machine-wise</div><div class="rp-tw"><table><thead><tr><th>Machine</th><th class="n">Breakdowns</th><th class="n">Hours</th><th class="n">MTTR (hrs)</th></tr></thead><tbody>' +
+        Object.keys(byM).sort(function (a, b) { return byM[b].h - byM[a].h; }).map(function (k) { return '<tr><td>' + esc(k) + '</td><td class="n">' + byM[k].n + '</td><td class="n">' + fmt(byM[k].h) + '</td><td class="n b">' + fmt(byM[k].h / byM[k].n) + '</td></tr>'; }).join('') + '</tbody></table></div>';
+    }
+    return h + '<div class="rp-note">Kisi ek module ki poori detail chahiye to upar "Report for" me us module ko chuno.</div><div class="rp-foot">Milestone Gears Ltd. UNIT-7 • Maintenance Team</div>';
+  }
+
+  /* ---------- panel ---------- */
+  function fyChoices() {
+    var set = {}, now = new Date(); set[fyOf({ y: now.getFullYear(), m: now.getMonth() + 1 })] = 1;
+    MODS.forEach(function (m) { if (m.master) return; list(m).forEach(function (r) { var t = recYM(m, r); if (t) set[fyOf(t)] = 1; }); });
+    return Object.keys(set).map(Number).sort(function (a, b) { return b - a; });
+  }
+  function getP() {
+    var type = el('rptPeriod').value;
+    if (type === 'd') { var td = ym(el('rptDay').value); if (!td || !td.d) { var n0 = new Date(); td = { y: n0.getFullYear(), m: n0.getMonth() + 1, d: n0.getDate() }; } return { type: 'd', y: td.y, m: td.m, d: td.d }; }
+    if (type === 'm') { var v = el('rptMonth').value, t = ym(v); if (!t) { var n = new Date(); t = { y: n.getFullYear(), m: n.getMonth() + 1 }; } return { type: 'm', y: t.y, m: t.m }; }
+    return { type: 'y', y: +el('rptFy').value };
+  }
+  function build(withLogo) {
+    var P = getP(), sc = el('rptScope').value;
+    if (sc === '*') return overallReport(P, withLogo);
+    var m = MODS.filter(function (x) { return x.k === sc; })[0];
+    return moduleReport(m, P, withLogo);
+  }
+  function fname() { var P = getP(), sc = el('rptScope').value; return 'HTP_MMS_' + (sc === '*' ? 'Overall' : sc) + '_' + (P.type === 'd' ? P.y + '-' + String(P.m).padStart(2, '0') + '-' + String(P.d).padStart(2, '0') : (P.type === 'm' ? P.y + '-' + String(P.m).padStart(2, '0') : 'FY' + fyLabel(P.y))); }
+  window.rptGenerate = function () { var o = el('rptOut'); if (o) o.innerHTML = '<style>' + CSS + PANEL_CSS + '</style><div class="rp">' + build(true) + '</div>'; };
+  window.rptPrint = function () {
+    var w = window.open('', '_blank'); if (!w) return alert('Please allow pop-ups to print.');
+    w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>' + esc(fname()) + '</title><style>body{margin:10px;background:#fff}' + CSS + '</style></head><body><div class="rp">' + build(true) + '</div><script>window.onload=function(){setTimeout(function(){window.print()},400)}<\/script></body></html>');
+    w.document.close();
+  };
+  window.rptExcel = function () {
+    var html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8"><style>' + CSS + '</style></head><body><div class="rp">' + build(false) + '</div></body></html>';
+    var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['﻿' + html], { type: 'application/vnd.ms-excel;charset=utf-8' })); a.download = fname() + '.xls';
+    document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  };
+  window.rptSync = function () {
+    var t = el('rptPeriod').value; el('rptMonthWrap').style.display = t === 'm' ? '' : 'none'; el('rptDayWrap').style.display = t === 'd' ? '' : 'none'; el('rptFyWrap').style.display = t === 'y' ? '' : 'none';
+    var cur = el('rptFy').value; el('rptFy').innerHTML = fyChoices().map(function (y) { return '<option value="' + y + '">FY ' + fyLabel(y) + '</option>'; }).join(''); if (cur) el('rptFy').value = cur;
+  };
+
+  var PCSS = '#reports .rpt-ctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;align-items:end}#reports .rpt-btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}#reports .rpt-btns button{flex:1 1 140px}#reports #rptOut{margin-top:14px}';
+  function init() {
+    var sc = document.querySelector('#appSidebar .side-scroll') || document.querySelector('.app-sidebar .side-scroll'), main = document.querySelector('main.wrap');
+    if (!sc || !main || el('reports')) return;
+    var now = new Date(), mv = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0'), dv = mv + '-' + String(now.getDate()).padStart(2, '0');
+    var opts = '<option value="*">📊 Overall App (all modules)</option>';
+    var gs = {}; MODS.forEach(function (m) { (gs[m.g] = gs[m.g] || []).push(m); });
+    Object.keys(gs).forEach(function (g) { opts += '<optgroup label="' + esc(g) + '">' + gs[g].map(function (m) { return '<option value="' + m.k + '">' + esc(m.n) + '</option>'; }).join('') + '</optgroup>'; });
+    var s = document.createElement('section'); s.id = 'reports'; s.className = 'panel official-module';
+    s.innerHTML = '<style>' + PCSS + '</style><div class="card"><div class="head">Milestone Gears Ltd. UNIT-7</div><div class="head2">DAILY, MONTHLY &amp; YEARLY REPORTS</div>' +
+      '<div class="note" style="margin:6px 0 12px">Kisi bhi module ki ya poore app ki Daily / Monthly / Yearly report banao. Yearly = Financial Year (Apr–Mar). Report ko Print / PDF ya Excel me le sakte ho.</div>' +
+      '<div class="rpt-ctl"><div class="field"><label>Report for</label><select id="rptScope" onchange="rptGenerate()">' + opts + '</select></div>' +
+      '<div class="field"><label>Report type</label><select id="rptPeriod" onchange="rptSync();rptGenerate()"><option value="d">Daily</option><option value="m">Monthly</option><option value="y">Yearly (FY Apr–Mar)</option></select></div>' +
+      '<div class="field" id="rptDayWrap" style="display:none"><label>Date</label><input type="date" id="rptDay" value="' + dv + '" onchange="rptGenerate()"></div>' +
+      '<div class="field" id="rptMonthWrap"><label>Month</label><input type="month" id="rptMonth" value="' + mv + '" onchange="rptGenerate()"></div>' +
+      '<div class="field" id="rptFyWrap" style="display:none"><label>Financial year</label><select id="rptFy" onchange="rptGenerate()"></select></div></div>' +
+      '<div class="rpt-btns"><button type="button" class="primary" onclick="rptGenerate()">📊 Generate Report</button><button type="button" class="secondary" onclick="rptPrint()">🖨️ Print / PDF</button><button type="button" class="secondary" onclick="rptExcel()">📥 Excel</button></div></div>' +
+      '<div id="rptOut"></div>';
+    main.appendChild(s);
+    var g = document.createElement('div'); g.className = 'nav-group'; g.id = 'reportsNavGroup';
+    g.innerHTML = '<div class="nav-group-title">REPORTS</div><button type="button" class="tab" id="side_reports" data-target="reports" onclick="showTab(\'reports\',this)"><span>📊</span> Daily / Monthly / Yearly Reports</button>';
+    sc.appendChild(g);
+    g.querySelector('button').addEventListener('click', function () { try { rptSync(); rptGenerate(); } catch (e) { console.warn('reports', e); } });
+    try { rptSync(); } catch (e) { }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
+
+</script>
 <script type="text/mms-defer" id="android-app-mode">
 (function(){
 'use strict';
