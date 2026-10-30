@@ -2599,7 +2599,8 @@ function savePF() {
     
     alert(wasEdit ? 'Reading updated successfully.' : 'Reading saved successfully.');
     
-    if (confirm('Do you want to share this reading to the Power Factor WhatsApp Group?')) {
+    if (confirm('Do you want to share the Daily Power Factor Report (' + fmtDate(row.date) + ') on WhatsApp?')) {
+        if (typeof window.rptShareDaily === 'function') { try { window.rptShareDaily('pf', row.date); return; } catch (e) { console.warn('rptShareDaily', e); } }
         let msg = `⚡ *DAILY POWER FACTOR REPORT*\n` +
                   `🏢 Unit-7 | Milestone Gears Ltd.\n` +
                   `📅 Date: ${fmtDate(row.date)} | ⏰ Time: ${row.time}\n\n` +
@@ -3293,7 +3294,7 @@ function saveMR(){
  updateSpareLegacyFields();let r={sr:f('mr_sr'),status:f('mr_status')||'Open',pdate:f('mr_pdate'),ptime:f('mr_ptime'),machine:f('mr_machine'),machineNo:f('mr_machine_no'),section:f('mr_section'),grade:f('mr_grade'),make:f('mr_make'),spareParts:spareParts,qty:formatSpareQty(spareParts),reqBy:f('mr_req_by'),reqCode:f('mr_req_code'),prodSign:f('mr_prod_sign'),recvBy:f('mr_recv_by'),recvCode:f('mr_recv_code'),mdate:f('mr_mdate'),mtime:f('mr_mtime'),maintSign:f('mr_maint_sign'),problem:f('mr_problem'),observation:f('mr_observation'),action:f('mr_action'),spare:f('mr_spare'),hdate:f('mr_hdate'),htime:f('mr_htime'),hprodSign:f('mr_hprod_sign'),hmaintSign:f('mr_hmaint_sign'),duration:dateTimeDuration(f('mr_mdate'),f('mr_mtime'),f('mr_hdate'),f('mr_htime')),history:f('mr_history'),historyBy:f('mr_history_by'),maintCost:f('mr_maint_cost')};
  if(mrRole==='production'){
   if(!r.pdate||!r.machineNo||!r.reqBy||!r.problem)return alert('Please enter Date, Machine, Request Given By and Problem.');r.sr=r.sr||String(nextMRSerial());r.status='Open';
-  if(edit.mr!==null)data.mr[edit.mr]=r;else data.mr.push(r);persist('mr');let saved={...r};edit.mr=null;clearMR();renderMR();renderDashboard();populateMaintenanceRequests();alert('Maintenance Request saved successfully. Sr. No. '+saved.sr);if(confirm('Do you want to share this Maintenance Request to the WhatsApp Group?'))sendWhatsAppFor(saved);
+  if(edit.mr!==null)data.mr[edit.mr]=r;else data.mr.push(r);persist('mr');let saved={...r};edit.mr=null;clearMR();renderMR();renderDashboard();populateMaintenanceRequests();alert('Maintenance Request saved successfully. Sr. No. '+saved.sr);if(confirm('Do you want to share the Daily Maintenance Request Report ('+fmtDate(saved.pdate||saved.mdate||saved.hdate)+') on WhatsApp?')){let sd=saved.pdate||saved.mdate||saved.hdate;if(typeof window.rptShareDaily==='function'&&sd){try{window.rptShareDaily('mr',sd)}catch(e){sendWhatsAppFor(saved)}}else sendWhatsAppFor(saved)}
  }else{
   if(edit.mr===null){let idx=document.getElementById('mr_select_existing')?.value;if(idx!=='')edit.mr=Number(idx);}if(edit.mr===null)return alert('Please select an Open / In Progress request first.');let old=data.mr[edit.mr];
   const previousSpareParts=legacySpareParts(old);
@@ -9841,10 +9842,200 @@ html body main.wrap .dashboard-footer span{color:#4a5a69!important}
 
   function el(i) { return document.getElementById(i); }
   function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
-  function pretty(k) { return String(k).replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[_-]+/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); }); }
+  function pretty(k) { if (typeof LBL !== 'undefined' && LBL[k]) return LBL[k]; return String(k).replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[_-]+/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); }); }
   function num(v) { if (v === '' || v == null) return NaN; var n = parseFloat(String(v).replace(/,/g, '')); return isFinite(n) ? n : NaN; }
   function fmt(n) { return (Math.round(n * 100) / 100).toLocaleString('en-IN'); }
-  function list(m) { var a; try { a = m.k === 'machineMaster' ? MACHINE_MASTER : data[m.k]; } catch (e) { a = []; } a = Array.isArray(a) ? a : []; return m.only ? a.filter(m.only) : a; }
+  function list(m) { var a; try { a = m.k === 'machineMaster' ? MACHINE_MASTER : data[m.k]; } catch (e) { a = []; } a = Array.isArray(a) ? a : []; a = m.only ? a.filter(m.only) : a; var rg = regOf(m); if (rg && rg.enrich) { try { a = rg.enrich(a); } catch (e) { console.warn('report enrich', m.k, e); } } return a; }
+
+
+  /* ===== REGISTER LAYOUT =====
+     Report ki detail table ab har module ke Register table jaisi banti hai: wahi columns, wahi order, wahi (calculated) values.
+     h = register ke column heading, v(r,i) = ek record ki row, enrich = register jaisa calculation (diff / PF / status),
+     sum = KPI me jodne wali keys, sumH = footer total (heading -> key), sort = register ka order. */
+  var LBL = {
+    kwhDiff: 'KWH Diff.', kvahDiff: 'KVAH Diff.', c1: 'DG 01 Consumption', c2: 'DG 02 Consumption',
+    dg1dKwh: 'DG1 ΔKWH', dg1dKvah: 'DG1 ΔKVAH', dg2dKwh: 'DG2 ΔKWH', dg2dKvah: 'DG2 ΔKVAH',
+    kwhDay: 'Unit Consumption', totalRun: 'Run Hours', totalLoad: 'Load Hours', hours: 'B/D Hours', bdHours: 'B/D Hours',
+    units: 'Units Consumption', bill: 'Bill (₹)', total: 'Total Bill Amount', ltr: 'Total Diesel (Ltrs)', energy: 'Energy Cost (Lac)',
+    amount: 'Contract Value (₹)', cost: 'Cost (₹)'
+  };
+  function gn(v) { var n = Number(v); return isFinite(n) ? n : 0; }
+  function S(fn, d) { try { var v = fn(); return v == null ? (d === undefined ? '' : d) : v; } catch (e) { return d === undefined ? '' : d; } }
+  function tx(v) {
+    if (v == null) return '';
+    return String(v).replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&').replace(/[ \t]+/g, ' ').trim();
+  }
+  function fd(s) { if (!s) return ''; s = String(s); return /^\d{4}-\d{2}-\d{2}/.test(s) ? S(function () { return fmtDate(s.slice(0, 10)); }, s) : s; }
+  function f2(v, d) { return (v === '' || v == null || isNaN(Number(v))) ? '' : Number(v).toFixed(d == null ? 2 : d); }
+  function byDT(x, y) { return ((x.date || '') + (x.time || '')).localeCompare((y.date || '') + (y.time || '')); }
+  function sumsKeys(rows, keys) {
+    var out = [];
+    keys.forEach(function (k) { var s = 0, n = 0; rows.forEach(function (r) { var v = num(r[k]); if (!isNaN(v)) { s += v; n++; } }); if (n) out.push({ k: k, s: s }); });
+    return out;
+  }
+
+  var REG = {};
+  REG.pf = {
+    h: ['Date', 'Time', 'KWH', 'KVAH', 'KWH Diff.', 'KVAH Diff.', 'P.F.', 'Status', 'Sign.'],
+    sum: ['kwhDiff', 'kvahDiff'], sumH: { 'KWH Diff.': 'kwhDiff', 'KVAH Diff.': 'kvahDiff' },
+    enrich: function (a) {
+      var prev = null, out = [];
+      a.slice().sort(byDT).forEach(function (r) {
+        var kd = prev == null ? '' : (gn(r.kwh) - gn(prev.kwh)).toFixed(1), vd = prev == null ? '' : (gn(r.kvah) - gn(prev.kvah)).toFixed(1);
+        out.push(Object.assign({}, r, { kdT: kd, vdT: vd, kwhDiff: kd === '' ? '' : +kd, kvahDiff: vd === '' ? '' : +vd, pfT: (kd !== '' && gn(vd) !== 0) ? (gn(kd) / gn(vd)).toFixed(3) : '' }));
+        prev = r;
+      });
+      return out;
+    },
+    v: function (r) { return [fd(r.date), r.time, r.kwh, r.kvah, r.kdT, r.vdT, r.pfT, r.pfT === '' ? '' : (Number(r.pfT) >= 0.9 ? 'OK' : 'NOT OK'), r.sign]; }
+  };
+  REG.pc = {
+    h: ['Date', 'Time', 'DG 01', 'DG 02', 'Stock', 'Add Stock', 'From', 'To', 'Total Cut', 'DG 01 Cons.', 'DG 02 Cons.', 'Total Cons.', 'Sign.'],
+    sum: ['c1', 'c2'], sumH: { 'DG 01 Cons.': 'c1', 'DG 02 Cons.': 'c2' },
+    v: function (r) { return [fd(r.date), r.time, r.dg1 || '', r.dg2 || '', r.stock || '', r.add || '', r.from || '', r.to || '', S(function () { return timeDuration(r.from, r.to); }), r.c1 || '', r.c2 || '', (gn(r.c1) + gn(r.c2)).toFixed(2), r.sign]; }
+  };
+  REG.dg = {
+    h: ['Date', 'Time', 'DG1 Running Hour', 'DG1 KWH', 'DG1 KVAH', 'DG1 ΔKWH', 'DG1 ΔKVAH', 'DG1 P.F.', 'DG1 Fuel (L)', 'DG1 Battery (V)', 'DG1 Coolant (°C)',
+      'DG2 Running Hour', 'DG2 KWH', 'DG2 KVAH', 'DG2 ΔKWH', 'DG2 ΔKVAH', 'DG2 P.F.', 'DG2 Fuel (L)', 'DG2 Battery (V)', 'DG2 Coolant (°C)', 'Status', 'Remark'],
+    sum: ['dg1dKwh', 'dg1dKvah', 'dg2dKwh', 'dg2dKvah'],
+    sumH: { 'DG1 ΔKWH': 'dg1dKwh', 'DG1 ΔKVAH': 'dg1dKvah', 'DG2 ΔKWH': 'dg2dKwh', 'DG2 ΔKVAH': 'dg2dKvah' },
+    enrich: function (a) {
+      var prev = null, out = [];
+      a.slice().sort(byDT).forEach(function (r) {
+        function d(k) { return prev && r[k] !== '' && prev[k] !== '' ? (gn(r[k]) - gn(prev[k])).toFixed(2) : ''; }
+        var d1k = d('dg1kwh'), d1v = d('dg1kvah'), d2k = d('dg2kwh'), d2v = d('dg2kvah');
+        var pf1 = d1k !== '' && gn(d1v) > 0 ? (gn(d1k) / gn(d1v)).toFixed(3) : '', pf2 = d2k !== '' && gn(d2v) > 0 ? (gn(d2k) / gn(d2v)).toFixed(3) : '';
+        out.push(Object.assign({}, r, { d1kT: d1k, d1vT: d1v, d2kT: d2k, d2vT: d2v, pf1T: pf1, pf2T: pf2, dg1dKwh: d1k === '' ? '' : +d1k, dg1dKvah: d1v === '' ? '' : +d1v, dg2dKwh: d2k === '' ? '' : +d2k, dg2dKvah: d2v === '' ? '' : +d2v }));
+        prev = r;
+      });
+      return out;
+    },
+    v: function (r) {
+      var st = function (p) { return p + (p !== '' ? ' — ' + S(function () { return dgPfStatus(p); }) : ''); };
+      return [fd(r.date), r.time, r.dg1hr, r.dg1kwh, r.dg1kvah, r.d1kT, r.d1vT, st(r.pf1T), r.dg1fuel, r.dg1batt, r.dg1coolant,
+        r.dg2hr, r.dg2kwh, r.dg2kvah, r.d2kT, r.d2vT, st(r.pf2T), r.dg2fuel, r.dg2batt, r.dg2coolant, r.status, r.remark];
+    }
+  };
+  REG.airCompressor = {
+    h: ['Date', 'Machine No.', 'KWH', 'Unit Consumption/Day', 'Unit Consumption/Hour', 'Run Hour Reading', 'Load Hour Reading', 'Total Run Hour', 'Total Load Hour'],
+    sum: ['kwhDay', 'totalRun', 'totalLoad'], sumH: { 'Unit Consumption/Day': 'kwhDay', 'Total Run Hour': 'totalRun', 'Total Load Hour': 'totalLoad' },
+    enrich: function (a) { airCompressorNormalize(); return airCompressorCalcRows(a); },
+    v: function (r) {
+      var q = function (v) { return v === '' || v == null ? '' : (typeof v === 'number' ? v.toFixed(2) : v); };
+      return [fd(r.date), r.machine, q(r.kwh), q(r.kwhDay), q(r.kwhHour), q(r.runHour), q(r.loadHour), q(r.totalRun), q(r.totalLoad)];
+    }
+  };
+  REG.bd = {
+    h: ['Date', 'Machine Detail', 'Breakdown Reason', 'B/D Type (E/M)', 'Department/ Section', 'From', 'To', 'Breakdown Hours', 'Action Taken', 'Spare Parts Used', 'Qty', 'Attended By', 'Status'],
+    sum: ['hours'], sumH: { 'Breakdown Hours': 'hours' },
+    v: function (r) { return [fd(r.date), r.machine, r.reason, r.type, r.section, r.from, r.to, gn(r.hours).toFixed(2), r.action, r.spare, r.qty, r.attended, r.status]; }
+  };
+  REG.mr = {
+    h: ['Sr. No.', 'Status', 'Request Date / Time', 'Machine', 'Machine No.', 'Section', 'Problem', 'Request By', 'Received By', 'Maint. Date/Time', 'Observation', 'Action Taken', 'Spare', 'Handover', 'Total Time', 'History Card'],
+    sum: [],
+    v: function (r) {
+      return [r.sr, r.status, (fd(r.pdate) + ' ' + (r.ptime || '')).trim(), r.machine, r.machineNo, r.section, r.problem, r.reqBy, r.recvBy, (fd(r.mdate) + ' ' + (r.mtime || '')).trim(), r.observation, r.action,
+        S(function () { return formatSpareParts(legacySpareParts(r)); }, r.spare || ''), (fd(r.hdate) + ' ' + (r.htime || '')).trim(), r.duration, (r.history || '') + (r.historyBy ? ' — ' + r.historyBy : '')];
+    }
+  };
+  REG.mh = {
+    h: ['Date', 'Machine No.', 'Machine Name', 'Make', 'Reason of Break Down', 'Attended By', 'Action Taken', 'Spares Parts Used', 'Total B/D Hours', 'Cost of Maint.', 'Source Sr. No.'],
+    sum: ['bdHours', 'cost'], sumH: { 'Total B/D Hours': 'bdHours', 'Cost of Maint.': 'cost' },
+    v: function (r) { return [fd(r.date), r.machineNo, r.machine, r.make, r.reason, r.attendedBy, r.action, r.spares, r.bdHours, r.cost === '' || r.cost == null ? '' : f2(r.cost), r.sourceSr || '']; }
+  };
+  REG.pm = {
+    h: ['Date', 'Checklist', 'Machine No.', 'Start', 'End', 'Checked By', 'Verified By'], sum: [],
+    sort: function (a, b) { return String(b.date || '').localeCompare(String(a.date || '')); },
+    v: function (r) { return [fd(r.date), r.template, r.machineNo, r.start, r.end, r.checkedBy, r.verifiedBy]; }
+  };
+  REG.meeting = {
+    h: ['Date & Time', 'Topic / Agenda', 'Discussion Notes', 'Action Points', 'Assigned To', 'Target Date', 'Status'], sum: [],
+    sort: function (a, b) { return ((b.date || '') + (b.time || '')).localeCompare((a.date || '') + (a.time || '')); },
+    v: function (r) { return [(fd(r.date) + ' ' + (r.time || '')).trim(), r.topic, r.notes, r.action, r.assigned, fd(r.target), r.status]; }
+  };
+  REG.spares = {
+    h: ['Sr. No.', 'Item Code', 'Part Description', 'Part Specification', 'Make', 'Min Qty', 'Max Qty', 'Available Qty', 'Status', 'Location'], sum: [],
+    v: function (r) { return [r.sno, r.code, r.desc, r.spec, r.make, r.min, r.max, S(function () { return inventoryAvailableQty(r); }, r.availableQty), S(function () { return spareStatus(r); }), r.loc]; }
+  };
+  REG.critical = {
+    h: ['S.No', 'Item Code', 'Part Description', 'Specification', 'Min Qty', 'Max Qty', 'M/c No.', 'Location', 'Avail Qty', 'Status', 'Remark'], sum: [],
+    v: function (r) { return [r.sno, r.code, r.desc, r.spec, r.min, r.max, r.machine, r.loc, r.avail, S(function () { return criticalStatus(r); }), r.remark]; }
+  };
+  REG.sparePurchase = {
+    h: ['Part Description', 'Specification', 'Qty', 'Urgency', 'Source', 'Stage / Status', 'Machine / Ref', 'Req. Date', 'PR No.', 'PR Date', 'PO No.', 'PO Date', 'Vendor', 'Sent On', 'Expected Delivery', 'Received Date', 'Qty Received', 'Cost (₹)', 'Challan / Invoice', 'Remark'],
+    sum: ['cost'], sumH: { 'Cost (₹)': 'cost' },
+    v: function (r) {
+      return [r.desc, r.spec, r.qty, r.urgency, r.source || 'Manual', S(function () { return purStatusOf(r); }, r.status), r.refInfo, fd(r.reqDate), r.prNo, fd(r.prDate), r.po, fd(r.poDate || r.ordDate), r.vendor, fd(r.sentDate), fd(r.expDate), fd(r.recDate), r.recQty,
+        gn(r.cost) > 0 ? f2(r.cost) : '', r.challan, r.remark];
+    }
+  };
+  REG.utility = {
+    h: ['Date', 'Item', 'Qty', 'Location', 'Department', 'Activity', 'Problem / Observation', 'Action Taken', 'Done By', 'Next Date', 'Remark'], sum: [],
+    sort: function (a, b) { return String(b.date || '').localeCompare(String(a.date || '')); },
+    v: function (r) { return [fd(r.date), r.itemName || S(function () { return utilityItemName(r.itemId); }), r.qty, r.location, r.department, r.activity, r.problem, r.action, r.person, fd(r.nextDate), r.remark]; }
+  };
+  REG.tc = {
+    h: ['Sl. No.', 'Furnace No.', 'Location', 'Type', 'Sr. No/ID', 'Replacement Frequency', 'Installation Date', 'Replacement Date', 'Status'], sum: [],
+    v: function (r) { return [r.sno, r.furnace, r.loc, r.type, r.srid, r.freq, fd(r.inst), r.due, r.status]; }
+  };
+  REG.cal = {
+    h: ['Sr.No.', 'Instruments Name', 'Make', 'Inst ID No.', 'Range', 'L.C', 'Location', 'Cali. Date', 'Due Date'], sum: [],
+    v: function (r) { return [r.sno, r.name, r.make, r.idno, r.range, r.lc, r.location, fd(r.date), fd(r.duedate)]; }
+  };
+  REG.machineMaster = {
+    h: ['S. No.', 'Department', 'Machine Number', 'Machine Name', 'Machine Grade', 'Make / Manufacturer', 'Cost Center'], sum: [],
+    v: function (r) { return [r.sno, r.department, r.machineNumber, r.machineName, r.grade, r.make, r.costCenter]; }
+  };
+
+  /* HQ (SAT / Oxy Probe / AMC) aur Power (HPSEBL / Power Cost) modules: unki apni register config se seedha */
+  var HQSUM = { amc: { amount: 'Value (₹)' }, amcLog: { cost: 'Cost (₹)' } };
+  function regOf(m) {
+    if (REG[m.k]) return REG[m.k];
+    var c = S(function () { return HQ_CFG[m.k]; }, null);
+    if (c && c.cols) {
+      var hs = HQSUM[m.k] || {};
+      return (REG[m.k] = {
+        h: c.cols.map(function (x) { return x.h; }), sum: Object.keys(hs), sumH: (function () { var o = {}; Object.keys(hs).forEach(function (k) { o[hs[k]] = k; }); return o; })(),
+        sort: c.sort,
+        v: function (r) { return c.cols.map(function (x) { return S(function () { return x.v(r); }); }); }
+      });
+    }
+    var p = S(function () { return PW[m.k]; }, null);
+    if (p && p.H) {
+      return (REG[m.k] = {
+        h: p.H.map(function (x) { var g = x.g; return g ? (/^ELECTRICITY|^COST VS/.test(g) ? x.l : g.replace(/^600 KVA /, '') + ' ' + x.l) : x.l; }),
+        sum: m.k === 'hpsebBill' ? ['units', 'bill', 'total'] : ['units', 'bill', 'ltr', 'energy'], chunk: 12,
+        enrich: function (a) { return a.slice().sort(function (x, y) { return String(x.date).localeCompare(String(y.date)); }).map(function (r) { return p.calc(r); }); },
+        v: function (r, i) { return p.row(r, i); },
+        foot: function (rows) { return p.foot(rows); }
+      });
+    }
+    return null;
+  }
+  function regTables(m, rg, rows) {
+    if (rg.sort) rows = rows.slice().sort(rg.sort);
+    var H = rg.h, M = rows.map(function (r, i) { var c = S(function () { return rg.v(r, i); }, []); return H.map(function (_, j) { return tx(c[j]); }); }), foot = null;
+    if (rg.foot) foot = S(function () { return rg.foot(rows); }, null);
+    else if (rg.sumH) {
+      var any = false;
+      foot = H.map(function (h) { var k = rg.sumH[h]; if (!k) return ''; var t = 0, n = 0; rows.forEach(function (x) { var v = num(x[k]); if (!isNaN(v)) { t += v; n++; } }); if (n) { any = true; return fmt(t); } return ''; });
+      if (!any) foot = null; else if (!foot[0]) foot[0] = 'Total';
+    }
+    if (foot) foot = foot.map(tx);
+    var idx = H.map(function (_, i) { return i; }), parts = chunkCols(idx, rg.chunk || 10), out = '';
+    parts.forEach(function (pc, pi) {
+      var w = pc.map(function (j) {
+        var tot = 0, n = 0; M.forEach(function (row) { var s = row[j]; if (s) { tot += Math.min(s.length, 60); n++; } });
+        return Math.max(6, Math.min(34, Math.max(n ? tot / n : 0, Math.min(H[j].length, 12))));
+      }), sum = w.reduce(function (a, b) { return a + b; }, 0) || 1;
+      w = w.map(function (x) { return Math.round(x / sum * 970) / 10; });
+      out += '<div class="rp-h">' + esc(m.n) + ' — register details' + (parts.length > 1 ? ' (part ' + (pi + 1) + ' of ' + parts.length + ')' : '') + '</div><div class="rp-tw"><table class="rp-dt"><colgroup><col style="width:3%">' +
+        w.map(function (p) { return '<col style="width:' + p + '%">'; }).join('') + '</colgroup><thead><tr><th>#</th>' + pc.map(function (j) { return '<th>' + esc(H[j]) + '</th>'; }).join('') + '</tr></thead><tbody>' +
+        M.map(function (row, i) { return '<tr><td class="b">' + (i + 1) + '</td>' + pc.map(function (j) { return '<td>' + esc(row[j]).replace(/\n/g, '<br>') + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody>' +
+        (foot ? '<tfoot><tr><td></td>' + pc.map(function (j) { return '<td>' + esc(foot[j] == null ? '' : foot[j]) + '</td>'; }).join('') + '</tr></tfoot>' : '') + '</table></div>';
+    });
+    return out;
+  }
 
   /* record ki tareekh -> {y,m} */
   function ym(v) {
@@ -10029,7 +10220,7 @@ html body main.wrap .dashboard-footer span{color:#4a5a69!important}
 
   /* ek module + period ka poora analysis (HTML report aur WhatsApp/Mail text dono isi se bante hain) */
   function analyse(m, P) {
-    var r = pick(m, P), cols = colsFor(m, r.rows), sm = sums(r.rows, cols), hk = pickHK(sm);
+    var r = pick(m, P), rg = regOf(m), cols = colsFor(m, r.rows), sm = (rg && rg.sum) ? sumsKeys(r.rows, rg.sum) : sums(r.rows, cols), hk = pickHK(sm);
     var A = { r: r, cols: cols, sm: sm, hk: hk, groups: [], open: null, busy: null, prev: null, tat: null, low: null, max: null };
     var present = {};
     r.rows.forEach(function (x) { Object.keys(x).forEach(function (k) { var v = x[k]; if (v !== '' && v != null && typeof v !== 'object') present[k] = 1; }); });
@@ -10075,7 +10266,13 @@ html body main.wrap .dashboard-footer span{color:#4a5a69!important}
     A.groups.slice(0, 3).forEach(function (g) { var t = g.g[0]; o.push('Most frequent ' + pretty(g.k) + ': ' + t.k + ' — ' + t.n + ' record(s), ' + pct(t.n, n) + '%.'); });
     if (A.open != null) o.push(A.open + ' record(s) are still open / pending.');
     if (A.tat != null) o.push('Average turnaround (request to handover): ' + fmt(A.tat) + ' day(s).');
-    if (A.prev) { var d = n - A.prev.n; o.push('Records are ' + (d === 0 ? 'same as' : (d > 0 ? 'up by ' + d + ' vs' : 'down by ' + (-d) + ' vs')) + ' ' + prevText(P) + ' (' + n + ' vs ' + A.prev.n + ').'); }
+    if (P.type === 'y' && !r.snap && n) {
+      var bm = {}, bh = {}; r.rows.forEach(function (x) { var t = recYM(m, x); if (!t) return; var k = t.y * 100 + t.m; bm[k] = (bm[k] || 0) + 1; if (A.hk) { var v = num(x[A.hk]); if (!isNaN(v)) bh[k] = (bh[k] || 0) + v; } });
+      var ks = Object.keys(bm).map(Number).sort(function (a, b) { return bm[b] - bm[a] || a - b; }), ml = function (k) { return MONF[(k % 100) - 1] + ' ' + Math.floor(k / 100); };
+      if (ks.length) o.push('Busiest month: ' + ml(ks[0]) + ' (' + bm[ks[0]] + ' record(s)); lowest active month: ' + ml(ks[ks.length - 1]) + ' (' + bm[ks[ks.length - 1]] + '). Average ' + fmt(n / ks.length) + ' record(s) per active month; ' + ks.length + ' of 12 months have data.');
+      var hs = Object.keys(bh).map(Number).sort(function (a, b) { return bh[b] - bh[a]; });
+      if (A.hk && hs.length > 1) o.push('Highest ' + pretty(A.hk) + ' month: ' + ml(hs[0]) + ' (' + fmt(bh[hs[0]]) + '); lowest: ' + ml(hs[hs.length - 1]) + ' (' + fmt(bh[hs[hs.length - 1]]) + ').');
+    }
     if (A.busy) o.push('Busiest day: ' + dayLbl(A.busy.k) + ' (' + A.busy.n + ' record(s)); entries on ' + A.busy.days + ' day(s).');
     if (A.low) o.push(A.low.length + ' item(s) are at or below minimum stock.');
     return o;
@@ -10131,6 +10328,34 @@ html body main.wrap .dashboard-footer span{color:#4a5a69!important}
   function signBlock() { return '<div class="rp-sign"><div>Prepared by<br>(Maintenance Team)</div><div>Checked by</div><div>Approved by</div></div>'; }
 
   /* ---------- ek module ki report (detailed) ---------- */
+  /* Yearly report: quarter-wise + group x month detail */
+  var QTR = [['Q1 (Apr\u2013Jun)', 0, 3], ['Q2 (Jul\u2013Sep)', 3, 6], ['Q3 (Oct\u2013Dec)', 6, 9], ['Q4 (Jan\u2013Mar)', 9, 12]];
+  function fyKeys(P) { return FYORDER.map(function (mo) { return (mo >= 4 ? P.y : P.y + 1) * 100 + mo; }); }
+  function byMonth(m, rows) { var by = {}; rows.forEach(function (x) { var t = recYM(m, x); if (!t) return; var k = t.y * 100 + t.m; (by[k] = by[k] || []).push(x); }); return by; }
+  function yearlyExtra(m, A, P) {
+    if (P.type !== 'y' || A.r.snap || !A.r.rows.length) return '';
+    var rows = A.r.rows, keys = fyKeys(P), by = byMonth(m, rows), sk = A.sm.slice(0, 4), h = '';
+    h += '<div class="rp-h">Quarter-wise summary (FY ' + fyLabel(P.y) + ')</div><div class="rp-tw"><table><thead><tr><th>Quarter</th>' + thN('Records') + thN('Share %') + sk.map(function (q) { return thN(pretty(q.k)); }).join('') + '</tr></thead><tbody>' +
+      QTR.map(function (q) {
+        var rs = []; keys.slice(q[1], q[2]).forEach(function (k) { rs = rs.concat(by[k] || []); });
+        return '<tr><td>' + q[0] + '</td><td class="n b">' + rs.length + '</td><td class="n">' + pct(rs.length, rows.length) + '%</td>' + sk.map(function (z) { return '<td class="n">' + fmt(sumKey(rs, z.k)) + '</td>'; }).join('') + '</tr>';
+      }).join('') + '</tbody><tfoot><tr><td>Full year</td><td class="n">' + rows.length + '</td><td class="n">100%</td>' + sk.map(function (z) { return '<td class="n">' + fmt(z.s) + '</td>'; }).join('') + '</tr></tfoot></table></div>';
+    var hy = [['First half (Apr\u2013Sep)', 0, 6], ['Second half (Oct\u2013Mar)', 6, 12]];
+    h += '<div class="rp-h">Half-yearly summary</div><div class="rp-tw"><table><thead><tr><th>Half</th>' + thN('Records') + thN('Avg / month') + sk.map(function (q) { return thN(pretty(q.k)); }).join('') + '</tr></thead><tbody>' +
+      hy.map(function (q) {
+        var rs = []; keys.slice(q[1], q[2]).forEach(function (k) { rs = rs.concat(by[k] || []); });
+        return '<tr><td>' + q[0] + '</td><td class="n b">' + rs.length + '</td><td class="n">' + fmt(rs.length / 6) + '</td>' + sk.map(function (z) { return '<td class="n">' + fmt(sumKey(rs, z.k)) + '</td>'; }).join('') + '</tr>';
+      }).join('') + '</tbody></table></div>';
+    A.groups.slice(0, 3).forEach(function (g) {
+      var top = g.g.slice(0, 8); if (!top.length) return;
+      h += '<div class="rp-h">' + esc(pretty(g.k)) + ' \u00d7 month (top ' + top.length + ', FY ' + fyLabel(P.y) + ')</div><div class="rp-tw"><table><thead><tr><th>' + esc(pretty(g.k)) + '</th>' + FYORDER.map(function (mo) { return thN(MON[mo - 1].toUpperCase()); }).join('') + thN('TOTAL') + '</tr></thead><tbody>' +
+        top.map(function (t) {
+          var tot = 0;
+          return '<tr><td>' + esc(t.k) + '</td>' + keys.map(function (k) { var c = (by[k] || []).filter(function (x) { return String(x[g.k] == null ? '' : x[g.k]).trim() === t.k; }).length; tot += c; return '<td class="n">' + (c || '') + '</td>'; }).join('') + '<td class="n b">' + tot + '</td></tr>';
+        }).join('') + '</tbody></table></div>';
+    });
+    return h;
+  }
   function moduleReport(m, P, withLogo) {
     var A = analyse(m, P), r = A.r, cols = A.cols, sm = A.sm, n = r.rows.length;
     var h = head(m.n + ' — ' + typeText(P) + ' Report', (r.snap ? 'Register snapshot (current status)' : periodText(P)) + '  •  Generated ' + stamp(), withLogo);
@@ -10144,11 +10369,11 @@ html body main.wrap .dashboard-footer span{color:#4a5a69!important}
     if (A.busy) k += kpi('Busiest day', dayLbl(A.busy.k) + ' (' + A.busy.n + ')');
     if (A.low) k += kpi('Low-stock items', A.low.length);
     h += '<div class="rp-kpis">' + k + '</div>';
-    if (!n) return h + '<div class="rp-note">Is period me koi record nahi mila' + (r.all ? ' (module me total ' + r.all + ' records hain, doosre mahino/saalon ke).' : '.') + '</div>' + (A.prev && A.prev.n ? cmpTable(A, P) : '');
-    h += obsBox(obs(A, m, P)) + cmpTable(A, P) + periodTable(m, A, P);
+    if (!n) return h + '<div class="rp-note">Is period me koi record nahi mila' + (r.all ? ' (module me total ' + r.all + ' records hain, doosre mahino/saalon ke).' : '.') + '</div>';
+    h += obsBox(obs(A, m, P)) + periodTable(m, A, P) + yearlyExtra(m, A, P);
     A.groups.forEach(function (g) { h += groupTable(g, A.hk, n); });
     h += lowTable(A);
-    h += detailTables(m, r.rows, cols, sm) + (m.k === 'pm' ? pmDetail(r.rows) : '');
+    h += (regOf(m) ? regTables(m, regOf(m), r.rows) : detailTables(m, r.rows, cols, sm)) + (m.k === 'pm' ? pmDetail(r.rows) : '');
     return h + signBlock() + '<div class="rp-foot">Milestone Gears Ltd. UNIT-7 • Maintenance Team</div>';
   }
 
@@ -10165,7 +10390,7 @@ html body main.wrap .dashboard-footer span{color:#4a5a69!important}
       if (m.k === 'mr') D.mr = r.rows;
       if (m.k === 'sparePurchase') D.sp = r.rows;
       if (m.k === 'pm') D.pm = r.rows;
-      if (m.k === 'airCompressor') D.kwh = sumKey(r.rows, 'kwh');
+      if (m.k === 'airCompressor') D.kwh = sumKey(r.rows, 'kwhDay');
       if (m.k === 'spares') r.rows.forEach(function (x) { var mn = num(x.min), q = num(x.availableQty != null ? x.availableQty : x.qty); if (!isNaN(mn) && !isNaN(q) && mn > 0 && q <= mn) D.low++; });
     });
     D.cnt = function (k) { return D.rows.filter(function (x) { return x.m.k === k; })[0].r.rows.length; };
@@ -10175,13 +10400,40 @@ html body main.wrap .dashboard-footer span{color:#4a5a69!important}
     D.machines = groupBy(D.bd, 'machineNumber', 'hours');
     return D;
   }
+  function overallYearly(D, P) {
+    var keys = fyKeys(P), h = '', act = D.rows.filter(function (x) { return !x.r.snap && x.r.rows.length; }), mt = keys.map(function (k) { var t = 0; act.forEach(function (x) { t += (D.months[x.m.k] || {})[k] || 0; }); return t; });
+    var mx = 0, mn = -1; mt.forEach(function (v, i) { if (v > mt[mx]) mx = i; if (v > 0 && (mn < 0 || v < mt[mn])) mn = i; });
+    if (D.tot) h += obsBox(['Busiest month: ' + MONF[(keys[mx] % 100) - 1] + ' ' + Math.floor(keys[mx] / 100) + ' (' + mt[mx] + ' entries)' + (mn >= 0 ? '; quietest active month: ' + MONF[(keys[mn] % 100) - 1] + ' ' + Math.floor(keys[mn] / 100) + ' (' + mt[mn] + ' entries).' : '.'), 'Average ' + fmt(D.tot / 12) + ' entries per month across all modules.', 'Most active module: ' + act.slice().sort(function (a, b) { return b.r.rows.length - a.r.rows.length; })[0].m.n + ' (' + act.slice().sort(function (a, b) { return b.r.rows.length - a.r.rows.length; })[0].r.rows.length + ' entries).']);
+    h += '<div class="rp-h">Month-wise total (all modules)</div><div class="rp-tw"><table><thead><tr><th>Measure</th>' + FYORDER.map(function (mo) { return thN(MON[mo - 1].toUpperCase()); }).join('') + thN('TOTAL') + '</tr></thead><tbody><tr><td>Total entries</td>' + mt.map(function (v) { return '<td class="n">' + v + '</td>'; }).join('') + '<td class="n b">' + D.tot + '</td></tr></tbody></table></div>';
+    h += '<div class="rp-h">Quarter-wise entries (module-wise, FY ' + fyLabel(P.y) + ')</div><div class="rp-tw"><table><thead><tr><th>Module</th>' + QTR.map(function (q) { return thN(q[0]); }).join('') + thN('TOTAL') + '</tr></thead><tbody>' +
+      act.map(function (x) { return '<tr><td>' + esc(x.m.n) + '</td>' + QTR.map(function (q) { var t = 0; keys.slice(q[1], q[2]).forEach(function (k) { t += (D.months[x.m.k] || {})[k] || 0; }); return '<td class="n">' + t + '</td>'; }).join('') + '<td class="n b">' + x.r.rows.length + '</td></tr>'; }).join('') +
+      '</tbody><tfoot><tr><td>Total</td>' + QTR.map(function (q) { var t = 0; mt.slice(q[1], q[2]).forEach(function (v) { t += v; }); return '<td class="n">' + t + '</td>'; }).join('') + '<td class="n">' + D.tot + '</td></tr></tfoot></table></div>';
+    var bdM = MODS.filter(function (m) { return m.k === 'bd'; })[0], mrM = MODS.filter(function (m) { return m.k === 'mr'; })[0], spM = MODS.filter(function (m) { return m.k === 'sparePurchase'; })[0];
+    var tbl = function (title, head, rowsHtml) { return '<div class="rp-h">' + title + '</div><div class="rp-tw"><table><thead><tr><th>Measure</th>' + FYORDER.map(function (mo) { return thN(MON[mo - 1].toUpperCase()); }).join('') + thN(head) + '</tr></thead><tbody>' + rowsHtml + '</tbody></table></div>'; };
+    var line = function (lbl, vals, tot) { return '<tr><td>' + lbl + '</td>' + vals.map(function (v) { return '<td class="n">' + v + '</td>'; }).join('') + '<td class="n b">' + tot + '</td></tr>'; };
+    if (D.bd.length) {
+      var bb = byMonth(bdM, D.bd);
+      h += tbl('Breakdown \u2014 month-wise (count / hours / MTTR)', 'YEAR', line('No. of breakdowns', keys.map(function (k) { return (bb[k] || []).length; }), D.bd.length) +
+        line('B/D hours', keys.map(function (k) { return fmt(sumKey(bb[k] || [], 'hours')); }), fmt(D.bdHrs)) +
+        line('MTTR (hrs / breakdown)', keys.map(function (k) { var a = bb[k] || []; return a.length ? fmt(sumKey(a, 'hours') / a.length) : '\u2013'; }), fmt(D.bdHrs / D.bd.length)));
+    }
+    if (D.mr.length) {
+      var mb = byMonth(mrM, D.mr), cl = function (a) { return a.filter(function (x) { return CLOSED.test(String(x.status || '')); }).length; };
+      h += tbl('Maintenance requests \u2014 month-wise', 'YEAR', line('Requests', keys.map(function (k) { return (mb[k] || []).length; }), D.mr.length) + line('Closed', keys.map(function (k) { return cl(mb[k] || []); }), cl(D.mr)) + line('Open / pending', keys.map(function (k) { var a = mb[k] || []; return a.length - cl(a); }), D.mrOpen));
+    }
+    if (D.sp.length) {
+      var sb = byMonth(spM, D.sp);
+      h += tbl('Spare purchase \u2014 month-wise (records / value)', 'YEAR', line('Records', keys.map(function (k) { return (sb[k] || []).length; }), D.sp.length) + line('Value (\u20b9)', keys.map(function (k) { return fmt(sumKey(sb[k] || [], 'cost')); }), fmt(D.spCost)));
+    }
+    return h;
+  }
   function overallReport(P, withLogo) {
     var D = overallData(P), rows = D.rows, tot = D.tot, bdRows = D.bd, bdHrs = D.bdHrs;
     var h = head('Overall App — ' + typeText(P) + ' Report', periodText(P) + '  •  Generated ' + stamp(), withLogo);
-    h += '<div class="rp-kpis">' + kpi('Total entries in period', tot) + kpi('Entries in ' + prevText(P), D.ptot) + kpi('Breakdowns', bdRows.length) + kpi('Breakdown hours', fmt(bdHrs)) +
+    h += '<div class="rp-kpis">' + kpi('Total entries in period', tot) + kpi('Breakdowns', bdRows.length) + kpi('Breakdown hours', fmt(bdHrs)) +
       kpi('MTTR (hrs / breakdown)', bdRows.length ? fmt(bdHrs / bdRows.length) : '0') + kpi('Maintenance requests', D.cnt('mr')) + kpi('Open requests', D.mrOpen) + kpi('PM check sheets', D.cnt('pm')) +
       kpi('Machine history', D.cnt('mh')) + kpi('Spare purchases', D.cnt('sparePurchase')) + kpi('Purchases pending', D.spPend) + kpi('Purchase value', fmt(D.spCost)) + kpi('Air compressor KWH', fmt(D.kwh)) + kpi('Low-stock spares', D.low) + '</div>';
-    var lines = [tot + ' entries recorded across modules in ' + perText(P) + ' (' + prevText(P) + ': ' + D.ptot + ', ' + chg(tot, D.ptot) + ').'];
+    var lines = [tot + ' entries recorded across modules in ' + perText(P) + '.'];
     if (bdRows.length) lines.push(bdRows.length + ' breakdown(s), total ' + fmt(bdHrs) + ' hrs, MTTR ' + fmt(bdHrs / bdRows.length) + ' hrs' + (D.machines[0] ? '; most affected machine: ' + D.machines[0].k + ' (' + D.machines[0].n + ' BD, ' + fmt(D.machines[0].h) + ' hrs)' : '') + '.');
     if (D.cnt('mr')) lines.push(D.cnt('mr') + ' maintenance request(s), ' + D.mrOpen + ' still open.');
     if (D.cnt('sparePurchase')) lines.push(D.cnt('sparePurchase') + ' spare purchase record(s), ' + D.spPend + ' pending, value ' + fmt(D.spCost) + '.');
@@ -10189,18 +10441,19 @@ html body main.wrap .dashboard-footer span{color:#4a5a69!important}
     if (P.type !== 'd' && busyD) lines.push('Busiest day: ' + pad2(busyD) + (P.type === 'm' ? ' ' + MONF[P.m - 1].slice(0, 3) : '') + ' (' + D.days[busyD] + ' entries).');
     if (D.low) lines.push(D.low + ' spare item(s) are at or below minimum stock.');
     h += obsBox(lines);
-    h += '<div class="rp-h">Module-wise summary</div><div class="rp-tw"><table><thead><tr><th>#</th><th>Module</th><th>Group</th><th class="n">Records</th><th class="n">' + esc(prevText(P).replace(/^./, function (c) { return c.toUpperCase(); })) + '</th><th class="n">Change</th><th>Basis</th></tr></thead><tbody>' +
+    h += '<div class="rp-h">Module-wise summary</div><div class="rp-tw"><table><thead><tr><th>#</th><th>Module</th><th>Group</th><th class="n">Records</th><th class="n">Share %</th><th>Basis</th></tr></thead><tbody>' +
       rows.map(function (x, i) {
         var n = x.r.rows.length, pn = x.p ? x.p.rows.length : null;
-        return '<tr><td class="b">' + (i + 1) + '</td><td>' + esc(x.m.n) + '</td><td>' + esc(x.m.g) + '</td><td class="n b">' + n + '</td><td class="n">' + (pn == null ? '–' : pn) + '</td><td class="n">' + (pn == null ? '–' : chg(n, pn)) + '</td><td>' + (x.r.snap ? 'Register total (snapshot)' : (P.type === 'd' ? 'Entries this day' : (P.type === 'm' ? 'Entries this month' : 'Entries this FY'))) + '</td></tr>';
+        return '<tr><td class="b">' + (i + 1) + '</td><td>' + esc(x.m.n) + '</td><td>' + esc(x.m.g) + '</td><td class="n b">' + n + '</td><td class="n">' + (x.r.snap ? '–' : pct(n, tot) + '%') + '</td><td>' + (x.r.snap ? 'Register total (snapshot)' : (P.type === 'd' ? 'Entries this day' : (P.type === 'm' ? 'Entries this month' : 'Entries this FY'))) + '</td></tr>';
       }).join('') +
-      '</tbody><tfoot><tr><td></td><td>Total (period entries)</td><td></td><td class="n">' + tot + '</td><td class="n">' + D.ptot + '</td><td class="n">' + chg(tot, D.ptot) + '</td><td></td></tr></tfoot></table></div>';
+      '</tbody><tfoot><tr><td></td><td>Total (period entries)</td><td></td><td class="n">' + tot + '</td><td class="n">100%</td><td></td></tr></tfoot></table></div>';
     if (P.type === 'y') {
       h += '<div class="rp-h">Month-wise entries (FY ' + fyLabel(P.y) + ')</div><div class="rp-tw"><table><thead><tr><th>Module</th>' + FYORDER.map(function (mo) { return thN(MON[mo - 1].toUpperCase()); }).join('') + thN('TOTAL') + '</tr></thead><tbody>' +
         rows.filter(function (x) { return !x.r.snap && x.r.rows.length; }).map(function (x) {
           return '<tr><td>' + esc(x.m.n) + '</td>' + FYORDER.map(function (mo) { var y = mo >= 4 ? P.y : P.y + 1; return '<td class="n">' + (((D.months[x.m.k] || {})[y * 100 + mo]) || 0) + '</td>'; }).join('') + '<td class="n b">' + x.r.rows.length + '</td></tr>';
         }).join('') + '</tbody></table></div>';
     }
+    if (P.type === 'y') h += overallYearly(D, P);
     if (P.type === 'm') {
       var ds = Object.keys(D.days).map(Number).sort(function (a, b) { return a - b; });
       if (ds.length) h += '<div class="rp-h">Day-wise entries (all modules)</div><div class="rp-tw"><table><thead><tr><th>Date</th>' + thN('Entries') + '</tr></thead><tbody>' +
@@ -10253,7 +10506,7 @@ html body main.wrap .dashboard-footer span{color:#4a5a69!important}
   };
 
   function excelDoc() { return '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8"><style>' + CSS + '</style></head><body><div class="rp">' + build(false) + '</div></body></html>'; }
-  function shareTitle() { var sc = el('rptScope').value, m = MODS.filter(function (x) { return x.k === sc; })[0], P = getP(); return 'HTP MMS - ' + (m ? m.n : 'Overall App') + ' - ' + typeText(P) + ' Report - ' + perText(P); }
+  function shareTitle() { var sc = el('rptScope').value, m = MODS.filter(function (x) { return x.k === sc; })[0], P = getP(); return 'UNIT 7 - ' + (m ? m.n : 'Overall App') + ' - ' + typeText(P) + ' Report - ' + perText(P); }
   function openLink(url) { var a = document.createElement('a'); a.href = url; a.target = '_blank'; a.rel = 'noopener'; document.body.appendChild(a); a.click(); setTimeout(function () { a.remove(); }, 400); }
 
   /* ---------- PDF: bilkul Print / PDF jaisa format (A4 landscape), seedha file ban kar share hoti hai ---------- */
@@ -10264,7 +10517,7 @@ html body main.wrap .dashboard-footer span{color:#4a5a69!important}
   function canvasJpeg(cv) { return new Promise(function (res, rej) { cv.toBlob(function (b) { if (!b) return rej(new Error('Canvas export fail')); b.arrayBuffer().then(function (ab) { res(new Uint8Array(ab)); }, rej); }, 'image/jpeg', 0.92); }); }
 
   /* report ko page-wise todna: row ke beech me cut nahi, table ka header agle page par dobara */
-  function pdfPaginate() {
+  function pdfPaginate(single) {
     var CW = PDF_W - 2 * PDF_M, CH = PDF_H - 2 * PDF_M - 14;
     var ifr = document.createElement('iframe');
     ifr.style.cssText = 'position:fixed;left:-20000px;top:0;width:' + CW + 'px;height:1000px;border:0;visibility:hidden';
@@ -10274,7 +10527,8 @@ html body main.wrap .dashboard-footer span{color:#4a5a69!important}
     var imgs = Array.prototype.slice.call(d.images);
     return Promise.all(imgs.map(function (im) { return im.complete ? 0 : new Promise(function (r) { im.onload = im.onerror = r; }); })).then(function () {
       var root = d.querySelector('.rp'), pages = [], y0 = 0;
-      for (var guard = 0; guard < 500; guard++) {
+      if (single) { pages.push([0, Math.max(Math.ceil(root.getBoundingClientRect().height), 1)]); guard = 500; }
+      for (var guard = (single ? 500 : 0); guard < 500; guard++) {
         var rr = root.getBoundingClientRect(), t0 = rr.top, total = rr.height;
         if (total - y0 <= CH + 1) { pages.push([y0, Math.max(total, y0 + 1)]); break; }
         var limit = y0 + CH, best = 0;
@@ -10302,11 +10556,11 @@ html body main.wrap .dashboard-footer span{color:#4a5a69!important}
         var h = Math.ceil(pg[1] - pg[0]), ph = fit ? Math.ceil(h + 2 * PDF_M) : PDF_H;
         var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + PDF_W + '" height="' + ph + '"><rect width="100%" height="100%" fill="#ffffff"/><foreignObject x="' + PDF_M + '" y="' + PDF_M + '" width="' + P.CW + '" height="' + h + '"><div xmlns="http://www.w3.org/1999/xhtml" style="width:' + P.CW + 'px;height:' + h + 'px;overflow:hidden;background:#fff"><style>' + P.css + '</style><div style="margin-top:-' + pg[0] + 'px">' + P.xml + '</div></div></foreignObject></svg>';
         return loadSvg(svg).then(function (img) {
-          var cv = document.createElement('canvas'); cv.width = PDF_W * PDF_S; cv.height = ph * PDF_S;
+          var SC = Math.min(PDF_S, 15000 / ph), cv = document.createElement('canvas'); cv.width = Math.round(PDF_W * SC); cv.height = Math.round(ph * SC);
           var cx = cv.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, cv.width, cv.height); cx.drawImage(img, 0, 0, cv.width, cv.height);
-          cx.fillStyle = '#5b6577'; cx.font = (10 * PDF_S) + 'px Arial,Helvetica,sans-serif'; cx.textBaseline = 'alphabetic';
-          cx.textAlign = 'center'; cx.fillText('Page ' + (idx + 1) + ' / ' + P.pages.length, cv.width / 2, (ph - 14) * PDF_S);
-          cx.textAlign = 'left'; cx.fillText('Milestone Gears Ltd. UNIT-7 \u2022 HTP MMS', PDF_M * PDF_S, (ph - 14) * PDF_S);
+          cx.fillStyle = '#5b6577'; cx.font = (10 * SC) + 'px Arial,Helvetica,sans-serif'; cx.textBaseline = 'alphabetic';
+          cx.textAlign = 'center'; if (P.pages.length > 1) cx.fillText('Page ' + (idx + 1) + ' / ' + P.pages.length, cv.width / 2, (ph - 14) * SC);
+          cx.textAlign = 'left'; cx.fillText('Milestone Gears Ltd. UNIT-7 \u2022 HTP MMS', PDF_M * SC, (ph - 14) * SC);
           return canvasJpeg(cv);
         }).then(function (u8) { out.push(u8); });
       });
@@ -10337,7 +10591,7 @@ html body main.wrap .dashboard-footer span{color:#4a5a69!important}
   function pdfFail(e) { pdfNote(''); if (e && e.name === 'AbortError') return; alert('PDF nahi ban payi (' + ((e && e.message) || e) + '). Print / PDF button se PDF save kar lo.'); }
 
   /* ---------- IMAGE (JPEG): WhatsApp par report image ban kar jati hai (page-wise) ---------- */
-  function makeImages() { rptGenerate(); return pdfPaginate().then(function (P) { return pdfRender(P, true); }); }
+  function makeImages() { rptGenerate(); return pdfPaginate(true).then(function (P) { return pdfRender(P, true); }); }
   function imgName(i, n) { return fname() + (n > 1 ? '_page' + (i + 1) : '') + '.jpg'; }
   function pdfNoteHtml(h) { var n = el('rptPdfMsg'); if (n) n.innerHTML = h || ''; }
   var IMG_READY = null;
@@ -10361,7 +10615,7 @@ html body main.wrap .dashboard-footer span{color:#4a5a69!important}
         IMG_READY = { files: files, title: tt };
         return navigator.share({ files: files, title: tt, text: tt }).catch(function (e) {
           if (e && e.name === 'AbortError') return;
-          if (e && e.name === 'NotAllowedError') { pdfNoteHtml('<button type="button" class="primary" style="background:#128c4a!important;border-color:#25d366!important;color:#fff!important" onclick="rptImgShareReady()">\ud83d\udce4 Image tayyar hai (' + files.length + ') \u2014 WhatsApp par bhejo</button>'); return; }
+          if (e && e.name === 'NotAllowedError') { floatShare(files, tt); pdfNoteHtml('<button type="button" class="primary" style="background:#128c4a!important;border-color:#25d366!important;color:#fff!important" onclick="rptImgShareReady()">\ud83d\udce4 Image tayyar hai (' + files.length + ') \u2014 WhatsApp par bhejo</button>'); return; }
           throw e;
         });
       }
@@ -10373,6 +10627,23 @@ html body main.wrap .dashboard-footer span{color:#4a5a69!important}
       }, 900 + jp.length * 500);
     }).catch(pdfFail);
   };
+  /* kisi bhi module se (jaise PF save ke baad) us din ki Daily report seedha image ke roop me WhatsApp par share karna */
+  window.rptShareDaily = function (key, dateStr) {
+    el('rptScope').value = key; el('rptPeriod').value = 'd'; rptSync(); el('rptDay').value = dateStr; rptGenerate();
+    window.rptImgShare();
+  };
+  function floatShare(files, tt) {
+    try {
+      var old = document.getElementById('rptFloatShare'); if (old) old.remove();
+      var d = document.createElement('div'); d.id = 'rptFloatShare';
+      d.style.cssText = 'position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:99999;background:#0b2545;color:#fff;padding:12px 14px;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.45);display:flex;gap:10px;align-items:center;max-width:92vw';
+      d.innerHTML = '<button type="button" style="background:#128c4a;color:#fff;border:1px solid #25d366;border-radius:10px;padding:10px 14px;font-weight:700;font-size:14px">\ud83d\udce4 Report tayyar hai \u2014 WhatsApp par bhejo</button><button type="button" aria-label="Close" style="background:transparent;color:#fff;border:0;font-size:20px;padding:0 4px">\u00d7</button>';
+      var b = d.querySelectorAll('button');
+      b[0].onclick = function () { navigator.share({ files: files, title: tt, text: tt }).then(function () { d.remove(); }).catch(function (e) { if (e && e.name === 'AbortError') return; d.remove(); pdfFail(e); }); };
+      b[1].onclick = function () { d.remove(); };
+      document.body.appendChild(d);
+    } catch (e) { }
+  }
   window.rptImgShareReady = function () {
     if (!IMG_READY) return;
     navigator.share({ files: IMG_READY.files, title: IMG_READY.title, text: IMG_READY.title }).then(function () { pdfNoteHtml(''); }).catch(function (e) { if (e && e.name === 'AbortError') return; pdfFail(e); });
