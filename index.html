@@ -1574,7 +1574,8 @@ function loadEditableMachineMaster() {
                 machineName: m.machineName || '',
                 grade: m.grade || '',
                 make: m.make || '',
-                costCenter: m.costCenter || ''
+                costCenter: m.costCenter || '',
+                origNo: m.origNo || undefined
             })).filter(m => m.machineNumber);
             
             // Agar valid machines milti hain toh hi list update hogi
@@ -3696,7 +3697,7 @@ function utilityPrintWindow(title,content){
   const w=window.open('','_blank','width=1400,height=900');if(!w)return alert('Please allow pop-ups to print.');w.document.write(`<!doctype html><html><head><title>${title}</title><style>@page{size:A4 landscape;margin:8mm}body{font-family:Arial,sans-serif;font-size:9px;color:#111}.title{text-align:center;font-size:16px;font-weight:800}.sub{text-align:center;font-size:12px;font-weight:700;margin:5px 0 10px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #111;padding:4px;vertical-align:top}th{background:#eee;text-align:center}td{text-align:left}</style></head><body><div class="title">Milestone Gears Ltd. UNIT-7</div><div class="sub">${title}</div>${content}<script>window.onload=()=>window.print()<\/script></body></html>`);w.document.close();
 }
 
-function renderAll(){syncSpareCriticalMaster(false);refreshFinancialYearState();renderDashboard();renderPF();renderPC();renderDG();renderMR();renderMachineMaster();renderHistory();initPM();renderBreakdown();renderMTTR();renderSparePartsTable();renderCriticalTable();renderThermocoupleTable();renderCalibrationTable();renderMaintUtility();if(typeof initAirCompressor==='function')initAirCompressor();if(typeof pmPlanMachineSetupOptions==='function')pmPlanMachineSetupOptions()}
+function renderAll(){syncSpareCriticalMaster(false);refreshFinancialYearState();renderDashboard();renderPF();renderPC();renderDG();renderMR();renderMachineMaster();renderHistory();initPM();renderBreakdown();renderMTTR();renderSparePartsTable();renderCriticalTable();renderThermocoupleTable();renderCalibrationTable();renderMaintUtility();if(typeof initAirCompressor==='function')initAirCompressor();if(typeof pmPlanMachineSetupOptions==='function')pmPlanMachineSetupOptions();try{populateMachineDropdown();populateHistoryMachineDropdown();if(typeof populateBreakdownMachineDropdown==='function')populateBreakdownMachineDropdown()}catch(e){}}
 
 const today=new Date().toISOString().slice(0,10);
 loadEditableMachineMaster();
@@ -3925,6 +3926,7 @@ function mmAddMachine(){
 
   if(typeof pmPlanAddMachine==='function'){
     pmPlanAddMachine();
+    if(typeof gsSchedule==='function')gsSchedule(1000);
   } else {
     alert('Add machine function is ready.');
   }
@@ -3940,6 +3942,7 @@ function mmRemoveMachine(){
   if(!m)return alert('Machine number not found.');
   if(!confirm(`Are you sure you want to remove machine ${m.machineNumber} — ${m.machineName}?`))return;
   MACHINE_MASTER.splice(MACHINE_MASTER.indexOf(m),1);
+  try{const rl=JSON.parse(localStorage.getItem('htp7_machine_retired')||'[]');if(rl.indexOf(m.machineNumber)<0)rl.push(m.machineNumber);localStorage.setItem('htp7_machine_retired',JSON.stringify(rl))}catch(e){}
   MACHINE_MASTER.forEach((x,i)=>x.sno=i+1);
   if(typeof saveEditableMachineMaster==='function')saveEditableMachineMaster();
   if(typeof PM_MACHINE_CHECKLIST_MAP!=='undefined'){
@@ -3947,6 +3950,7 @@ function mmRemoveMachine(){
     if(typeof savePMMachineChecklistMap==='function')savePMMachineChecklistMap();
   }
   if(typeof refreshMachineDependentUI==='function')refreshMachineDependentUI();
+  if(typeof gsSchedule==='function')gsSchedule(1000);
   alert('Machine removed successfully from Machine Master.');
 }
 
@@ -5670,9 +5674,16 @@ pmPlanRemoveMachine = function() {
         ];
         
         let changed = false;
+        // Jis device ka Google Sheet sync ho chuka hai wahan server ka Machine Master hi sahi hai: default machines dobara add nahi karni
+        let everSynced = false;
+        try { const gm = JSON.parse(localStorage.getItem('htp_mms_gs_meta_v1') || 'null'); everSynced = !!(gm && (gm.since > 0 || (gm.base && gm.base.machineMaster && Object.keys(gm.base.machineMaster).length))); } catch (e) { }
+        const nk = v => String(v || '').trim().toLowerCase().replace(/\s+/g, ' ');
+        let retired = []; try { retired = JSON.parse(localStorage.getItem('htp7_machine_retired') || '[]').map(nk); } catch (e) { }
         CORE.forEach(orig => {
-            let exists = MACHINE_MASTER.find(m => String(m.machineNumber).trim() === orig.machineNumber);
-            if (!exists) {
+            const ok = nk(orig.machineNumber);
+            // Edit karke number badla ho (origNo) ya user ne machine remove/rename ki ho to usse dobara add nahi karna
+            let exists = MACHINE_MASTER.find(m => nk(m.machineNumber) === ok || nk(m.origNo) === ok) || retired.indexOf(ok) >= 0;
+            if (!exists && !everSynced) {
                 MACHINE_MASTER.push(orig); 
                 changed = true;
             }
@@ -5766,6 +5777,7 @@ pmPlanRemoveMachine = function() {
             machineNumber: String(m.machineNumber || '').trim(),
             machineName: m.machineName || '', grade: m.grade || '',
             make: m.make || '', costCenter: m.costCenter || '',
+            origNo: m.origNo || undefined,
             _sid: m._sid || undefined
           })).filter(m => m.machineNumber);
           validMachines = mmsDedupeList(validMachines);
@@ -6048,6 +6060,10 @@ function editMachineFromMasterList(machineNo) {
     }
     
     const oldNo = m.machineNumber;
+    if (oldNo !== nn) {
+        if (!m.origNo) m.origNo = oldNo;   // asli (purana) number yaad rakho taaki default machine dobara add na ho
+        try { const rl = JSON.parse(localStorage.getItem('htp7_machine_retired') || '[]'); if (rl.indexOf(oldNo) < 0) rl.push(oldNo); localStorage.setItem('htp7_machine_retired', JSON.stringify(rl)); } catch (e) { }
+    }
     m.machineNumber = nn;
     m.machineName = (prompt('Machine Name:', m.machineName) || m.machineName).trim();
     m.department = (prompt('Department / Line:', m.department) || m.department).trim();
@@ -10022,14 +10038,15 @@ html body main.wrap .dashboard-footer span{color:#4a5a69!important}
       if (!any) foot = null; else if (!foot[0]) foot[0] = 'Total';
     }
     if (foot) foot = foot.map(tx);
-    var idx = H.map(function (_, i) { return i; }), parts = chunkCols(idx, rg.chunk || 10), out = '';
+    var idx = H.map(function (_, i) { return i; }), parts = [idx], out = '', wc = ' w' + (H.length <= 10 ? 0 : (H.length <= 14 ? 1 : (H.length <= 19 ? 2 : 3)));
     parts.forEach(function (pc, pi) {
       var w = pc.map(function (j) {
-        var tot = 0, n = 0; M.forEach(function (row) { var s = row[j]; if (s) { tot += Math.min(s.length, 60); n++; } });
-        return Math.max(6, Math.min(34, Math.max(n ? tot / n : 0, Math.min(H[j].length, 12))));
+        var tot = 0, n = 0, mw = 0; M.forEach(function (row) { var s = row[j]; if (s) { tot += Math.min(s.length, 60); n++; var lw = Math.max.apply(null, String(s).split(/[\s\n]+/).map(function (z) { return z.length; })); if (lw > mw) mw = lw; } });
+        var hw = Math.max.apply(null, String(H[j]).split(/\s+/).map(function (z) { return z.length; }));
+        return Math.max(5, Math.min(34, Math.max(n ? tot / n : 0, Math.min(mw, 14) * 1.25 + 1, hw * 1.35 + 2)));
       }), sum = w.reduce(function (a, b) { return a + b; }, 0) || 1;
       w = w.map(function (x) { return Math.round(x / sum * 970) / 10; });
-      out += '<div class="rp-h">' + esc(m.n) + ' — register details' + (parts.length > 1 ? ' (part ' + (pi + 1) + ' of ' + parts.length + ')' : '') + '</div><div class="rp-tw"><table class="rp-dt"><colgroup><col style="width:3%">' +
+      out += '<div class="rp-h">' + esc(m.n) + ' — register details' + (parts.length > 1 ? ' (part ' + (pi + 1) + ' of ' + parts.length + ')' : '') + '</div><div class="rp-tw"><table class="rp-dt' + wc + '"><colgroup><col style="width:3%">' +
         w.map(function (p) { return '<col style="width:' + p + '%">'; }).join('') + '</colgroup><thead><tr><th>#</th>' + pc.map(function (j) { return '<th>' + esc(H[j]) + '</th>'; }).join('') + '</tr></thead><tbody>' +
         M.map(function (row, i) { return '<tr><td class="b">' + (i + 1) + '</td>' + pc.map(function (j) { return '<td>' + esc(row[j]).replace(/\n/g, '<br>') + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody>' +
         (foot ? '<tfoot><tr><td></td>' + pc.map(function (j) { return '<td>' + esc(foot[j] == null ? '' : foot[j]) + '</td>'; }).join('') + '</tr></tfoot>' : '') + '</table></div>';
@@ -10124,7 +10141,7 @@ html body main.wrap .dashboard-footer span{color:#4a5a69!important}
     return w.map(function (x) { return Math.round(x / sum * 970) / 10; });
   }
   function detailTables(m, rows, cols, sm) {
-    var parts = chunkCols(cols, 9), out = '';
+    var parts = [cols], out = '';
     parts.forEach(function (pc, pi) {
       var w = colWidths(rows, pc), hasSum = pc.slice(1).some(function (c) { return sm.some(function (q) { return q.k === c; }); });
       out += '<div class="rp-h">' + esc(m.n) + ' — details' + (parts.length > 1 ? ' (part ' + (pi + 1) + ' of ' + parts.length + ')' : '') + '</div><div class="rp-tw"><table class="rp-dt"><colgroup><col style="width:3%">' +
@@ -10176,6 +10193,8 @@ html body main.wrap .dashboard-footer span{color:#4a5a69!important}
     '.rp table.rp-dt{table-layout:fixed;min-width:860px}.rp table.rp-dt td,.rp table.rp-dt th{overflow-wrap:anywhere;word-break:break-word}' +
     '@media print{@page{size:A4 landscape;margin:8mm}body{margin:0}.rp-tw{overflow:visible}.rp table{font-size:10px}.rp th,.rp td{padding:4px 5px}.rp-h{page-break-after:avoid}.rp tr{page-break-inside:avoid}}';
 
+  var WIDE_CSS = '.rp table.rp-dt.w1 th,.rp table.rp-dt.w1 td{font-size:10px!important;padding:5px 4px!important}.rp table.rp-dt.w2 th,.rp table.rp-dt.w2 td{font-size:9px!important;padding:4px 3px!important}.rp table.rp-dt.w3 th,.rp table.rp-dt.w3 td{font-size:8px!important;padding:3px 2px!important}.rp table.rp-dt.w2{min-width:1300px}.rp table.rp-dt.w3{min-width:1700px}';
+  CSS += WIDE_CSS;
   var PX = 'html body main.wrap section.panel #rptOut .rp table';
   var PANEL_CSS = PX + ' th{background-color:#123c62!important;background-image:none!important;color:#fff!important;border:1px solid #2a4a6b!important}' +
     PX + ' td{background-color:#112b45!important;background-image:none!important;color:#e6f0fa!important;border:1px solid #2a4a6b!important}' +
@@ -10307,15 +10326,7 @@ html body main.wrap .dashboard-footer span{color:#4a5a69!important}
         row('Records', function (k) { return by[k] || 0; }, r.rows.length) +
         sk.map(function (s) { return row(pretty(s.k), function (k) { return (bs[s.k] || {})[k] || 0; }, s.s); }).join('') + '</tbody></table></div>';
     }
-    var dd = {};
-    r.rows.forEach(function (x) {
-      var t = recYM(m, x), d = t && t.d ? t.d : 0, o = dd[d] || (dd[d] = { n: 0, s: {} }); o.n++;
-      sk.forEach(function (s) { var v = num(x[s.k]); if (!isNaN(v)) o.s[s.k] = (o.s[s.k] || 0) + v; });
-    });
-    var days = Object.keys(dd).map(Number).filter(function (d) { return d > 0; }).sort(function (a, b) { return a - b; });
-    if (!days.length) return '';
-    return '<div class="rp-h">Day-wise records (' + MONF[P.m - 1] + ' ' + P.y + ')</div><div class="rp-tw"><table><thead><tr><th>Date</th>' + thN('Records') + sk.map(function (s) { return thN(pretty(s.k)); }).join('') + '</tr></thead><tbody>' +
-      days.map(function (d) { var o = dd[d]; return '<tr><td>' + pad2(d) + ' ' + MONF[P.m - 1].slice(0, 3) + ' ' + P.y + '</td><td class="n b">' + o.n + '</td>' + sk.map(function (s) { return '<td class="n">' + fmt(o.s[s.k] || 0) + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table></div>';
+    return '';
   }
   function lowTable(A) {
     if (!A.low || !A.low.length) return '';
@@ -10328,6 +10339,95 @@ html body main.wrap .dashboard-footer span{color:#4a5a69!important}
   function signBlock() { return '<div class="rp-sign"><div>Prepared by<br>(Maintenance Team)</div><div>Checked by</div><div>Approved by</div></div>'; }
 
   /* ---------- ek module ki report (detailed) ---------- */
+
+  /* ---------- TREND CHART (SVG): Daily = last 7 din, Monthly = din-wise, Yearly = mahine-wise ---------- */
+  function niceMax(v) { if (!(v > 0)) return 1; var p = Math.pow(10, Math.floor(Math.log(v) / Math.LN10)), f = v / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p; }
+  function shortNum(v) { v = Math.round(v * 100) / 100; return Math.abs(v) >= 100000 ? (Math.round(v / 1000) / 100) + 'L' : (Math.abs(v) >= 1000 ? (Math.round(v / 10) / 100) + 'k' : String(v)); }
+  function trendChart(title, labels, bars, line, barName, lineName) {
+    var n = labels.length; if (!n) return '';
+    var hasLine = line && line.some(function (v) { return v > 0; });
+    var W = 1000, H = 250, L = 52, R = hasLine ? 56 : 18, T = 34, B = 40, pw = W - L - R, ph = H - T - B;
+    var mb = niceMax(Math.max.apply(null, bars.concat([0]))), ml = hasLine ? niceMax(Math.max.apply(null, line)) : 1, step = pw / n, bw = Math.min(46, step * 0.58), F = 'font-family="Arial,Helvetica,sans-serif"';
+    var g = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + W + ' ' + H + '" width="100%" style="display:block;background:#0e2238" role="img">';
+    for (var i = 0; i <= 4; i++) {
+      var y = T + ph - ph * i / 4;
+      g += '<line x1="' + L + '" y1="' + y + '" x2="' + (W - R) + '" y2="' + y + '" stroke="#2a4a6b" stroke-width="1"' + (i ? ' stroke-dasharray="4 4"' : '') + '/>' +
+        '<text x="' + (L - 6) + '" y="' + (y + 4) + '" text-anchor="end" font-size="11" fill="#9fc0e0" ' + F + '>' + shortNum(mb * i / 4) + '</text>';
+      if (hasLine) g += '<text x="' + (W - R + 6) + '" y="' + (y + 4) + '" font-size="11" fill="#fbbf24" ' + F + '>' + shortNum(ml * i / 4) + '</text>';
+    }
+    var every = n > 24 ? 3 : (n > 14 ? 2 : 1), pts = [];
+    labels.forEach(function (lb, k) {
+      var cx = L + step * k + step / 2, bh = ph * (bars[k] || 0) / mb;
+      g += '<rect x="' + (cx - bw / 2) + '" y="' + (T + ph - bh) + '" width="' + bw + '" height="' + Math.max(bh, 0) + '" rx="3" fill="#38bdf8"/>';
+      if (n <= 16 && bars[k] > 0) g += '<text x="' + cx + '" y="' + (T + ph - bh - 5) + '" text-anchor="middle" font-size="11" font-weight="700" fill="#e6f0fa" ' + F + '>' + shortNum(bars[k]) + '</text>';
+      if (k % every === 0) g += '<text x="' + cx + '" y="' + (H - B + 16) + '" text-anchor="middle" font-size="11" fill="#cfe3f5" ' + F + '>' + esc(lb) + '</text>';
+      if (hasLine) pts.push([cx, T + ph - ph * (line[k] || 0) / ml, line[k] || 0]);
+    });
+    if (hasLine) {
+      g += '<polyline points="' + pts.map(function (q) { return q[0] + ',' + q[1]; }).join(' ') + '" fill="none" stroke="#fbbf24" stroke-width="2.5" stroke-linejoin="round"/>';
+      pts.forEach(function (q) { g += '<circle cx="' + q[0] + '" cy="' + q[1] + '" r="3.5" fill="#fbbf24"/>'; if (n <= 12 && q[2] > 0) g += '<text x="' + q[0] + '" y="' + (q[1] - 8) + '" text-anchor="middle" font-size="10" fill="#fde68a" ' + F + '>' + shortNum(q[2]) + '</text>'; });
+    }
+    g += '<rect x="' + L + '" y="9" width="12" height="12" rx="2" fill="#38bdf8"/><text x="' + (L + 18) + '" y="20" font-size="12" fill="#e6f0fa" ' + F + '>' + esc(barName) + '</text>';
+    if (hasLine) g += '<line x1="' + (L + 200) + '" y1="15" x2="' + (L + 220) + '" y2="15" stroke="#fbbf24" stroke-width="3"/><circle cx="' + (L + 210) + '" cy="15" r="3.5" fill="#fbbf24"/><text x="' + (L + 228) + '" y="20" font-size="12" fill="#e6f0fa" ' + F + '>' + esc(lineName) + '</text>';
+    return '<div class="rp-h">' + esc(title) + '</div><div class="rp-tw rp-chart">' + g + '</svg></div>';
+  }
+  function trendTitle(P) { return P.type === 'd' ? 'Trend — last 7 days' : (P.type === 'm' ? 'Trend — day-wise (' + MONF[P.m - 1] + ' ' + P.y + ')' : 'Trend — month-wise (FY ' + fyLabel(P.y) + ')'); }
+  function last7(P) {
+    var out = [], base = new Date(P.y, P.m - 1, P.d);
+    for (var i = 6; i >= 0; i--) { var dt = new Date(base.getTime() - i * 864e5); out.push({ type: 'd', y: dt.getFullYear(), m: dt.getMonth() + 1, d: dt.getDate() }); }
+    return out;
+  }
+  function moduleTrend(m, A, P) {
+    if (A.r.snap || !A.r.rows.length) return '';
+    var mk = A.hk || (A.sm[0] && A.sm[0].k), labels = [], bars = [], line = [], i;
+    var tot = function (rows) { return mk ? sumKey(rows, mk) : 0; };
+    if (P.type === 'd') {
+      last7(P).forEach(function (q) { var rs = pick(m, q).rows; labels.push(pad2(q.d) + ' ' + MON[q.m - 1].replace(/^./, function (c) { return c.toUpperCase(); })); bars.push(rs.length); line.push(tot(rs)); });
+    } else if (P.type === 'm') {
+      var dim = new Date(P.y, P.m, 0).getDate(), by = {};
+      A.r.rows.forEach(function (x) { var t = recYM(m, x); if (t && t.d) (by[t.d] = by[t.d] || []).push(x); });
+      for (i = 1; i <= dim; i++) { labels.push(String(i)); bars.push((by[i] || []).length); line.push(tot(by[i] || [])); }
+    } else {
+      var bm = byMonth(m, A.r.rows);
+      fyKeys(P).forEach(function (k) { labels.push(MON[(k % 100) - 1].replace(/^./, function (c) { return c.toUpperCase(); })); bars.push((bm[k] || []).length); line.push(tot(bm[k] || [])); });
+    }
+    return trendChart(trendTitle(P), labels, bars, mk ? line : null, 'Records', mk ? pretty(mk) : '');
+  }
+  function overallTrend(D, P) {
+    var labels = [], bars = [], line = [], bdM = MODS.filter(function (x) { return x.k === 'bd'; })[0], i;
+    if (P.type === 'd') {
+      last7(P).forEach(function (q) { var d2 = overallData(q); labels.push(pad2(q.d) + ' ' + MON[q.m - 1].replace(/^./, function (c) { return c.toUpperCase(); })); bars.push(d2.tot); line.push(d2.bdHrs); });
+    } else if (P.type === 'm') {
+      var dim = new Date(P.y, P.m, 0).getDate(), bd = {};
+      D.bd.forEach(function (x) { var t = recYM(bdM, x); if (t && t.d) bd[t.d] = (bd[t.d] || 0) + gn(x.hours); });
+      for (i = 1; i <= dim; i++) { labels.push(String(i)); bars.push(D.days[i] || 0); line.push(bd[i] || 0); }
+    } else {
+      var bb = byMonth(bdM, D.bd);
+      fyKeys(P).forEach(function (k) {
+        var t = 0; D.rows.forEach(function (x) { if (!x.r.snap) t += (D.months[x.m.k] || {})[k] || 0; });
+        labels.push(MON[(k % 100) - 1].replace(/^./, function (c) { return c.toUpperCase(); })); bars.push(t); line.push(sumKey(bb[k] || [], 'hours'));
+      });
+    }
+    return trendChart(trendTitle(P) + ' (all modules)', labels, bars, line, 'Total entries', 'Breakdown hours');
+  }
+  /* Yearly: har module ka overview (kitna data, main totals, sabse zyada category, peak month) */
+  function moduleOverview(P) {
+    var rows = [], empty = [];
+    MODS.forEach(function (m) {
+      var A = analyse(m, P), n = A.r.rows.length;
+      if (!n) { empty.push(m.n); return; }
+      var tot = A.sm.slice(0, 3).map(function (q) { return pretty(q.k) + ': ' + fmt(q.s); }).join('; ');
+      var tg = A.groups[0] ? pretty(A.groups[0].k) + ': ' + A.groups[0].g[0].k + ' (' + A.groups[0].g[0].n + ')' : '';
+      var pk = '';
+      if (!A.r.snap) { var bm = byMonth(m, A.r.rows), best = null; Object.keys(bm).forEach(function (k) { if (!best || bm[k].length > bm[best].length) best = k; }); if (best) pk = MONF[(best % 100) - 1].slice(0, 3) + ' ' + Math.floor(best / 100) + ' (' + bm[best].length + ')'; }
+      var extra = A.open != null ? 'Open: ' + A.open : (A.low ? 'Low stock: ' + A.low.length : '');
+      rows.push('<tr><td class="b">' + (rows.length + 1) + '</td><td>' + esc(m.n) + '</td><td>' + esc(m.g) + '</td><td class="n b">' + n + (A.r.snap ? ' *' : '') + '</td><td>' + esc(tot || '–') + '</td><td>' + esc(tg || '–') + '</td><td>' + esc(pk || '–') + '</td><td>' + esc(extra) + '</td></tr>');
+    });
+    if (!rows.length) return '';
+    return '<div class="rp-h">Module-wise overview (FY ' + fyLabel(P.y) + ')</div><div class="rp-tw"><table class="rp-dt"><colgroup><col style="width:3%"><col style="width:16%"><col style="width:11%"><col style="width:7%"><col style="width:26%"><col style="width:20%"><col style="width:10%"><col style="width:7%"></colgroup><thead><tr><th>#</th><th>Module</th><th>Group</th>' + thN('Records') + '<th>Main totals</th><th>Top category</th><th>Peak month</th><th>Status</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>' +
+      '<div class="rp-note">* = register / master snapshot (current total).' + (empty.length ? ' No entries this year: ' + esc(empty.join(', ')) + '.' : '') + '</div>';
+  }
+
   /* Yearly report: quarter-wise + group x month detail */
   var QTR = [['Q1 (Apr\u2013Jun)', 0, 3], ['Q2 (Jul\u2013Sep)', 3, 6], ['Q3 (Oct\u2013Dec)', 6, 9], ['Q4 (Jan\u2013Mar)', 9, 12]];
   function fyKeys(P) { return FYORDER.map(function (mo) { return (mo >= 4 ? P.y : P.y + 1) * 100 + mo; }); }
@@ -10370,7 +10470,7 @@ html body main.wrap .dashboard-footer span{color:#4a5a69!important}
     if (A.low) k += kpi('Low-stock items', A.low.length);
     h += '<div class="rp-kpis">' + k + '</div>';
     if (!n) return h + '<div class="rp-note">Is period me koi record nahi mila' + (r.all ? ' (module me total ' + r.all + ' records hain, doosre mahino/saalon ke).' : '.') + '</div>';
-    h += obsBox(obs(A, m, P)) + periodTable(m, A, P) + yearlyExtra(m, A, P);
+    h += obsBox(obs(A, m, P)) + (withLogo ? moduleTrend(m, A, P) : '') + periodTable(m, A, P) + yearlyExtra(m, A, P);
     A.groups.forEach(function (g) { h += groupTable(g, A.hk, n); });
     h += lowTable(A);
     h += (regOf(m) ? regTables(m, regOf(m), r.rows) : detailTables(m, r.rows, cols, sm)) + (m.k === 'pm' ? pmDetail(r.rows) : '');
@@ -10441,6 +10541,7 @@ html body main.wrap .dashboard-footer span{color:#4a5a69!important}
     if (P.type !== 'd' && busyD) lines.push('Busiest day: ' + pad2(busyD) + (P.type === 'm' ? ' ' + MONF[P.m - 1].slice(0, 3) : '') + ' (' + D.days[busyD] + ' entries).');
     if (D.low) lines.push(D.low + ' spare item(s) are at or below minimum stock.');
     h += obsBox(lines);
+    if (withLogo) h += overallTrend(D, P);
     h += '<div class="rp-h">Module-wise summary</div><div class="rp-tw"><table><thead><tr><th>#</th><th>Module</th><th>Group</th><th class="n">Records</th><th class="n">Share %</th><th>Basis</th></tr></thead><tbody>' +
       rows.map(function (x, i) {
         var n = x.r.rows.length, pn = x.p ? x.p.rows.length : null;
@@ -10453,12 +10554,7 @@ html body main.wrap .dashboard-footer span{color:#4a5a69!important}
           return '<tr><td>' + esc(x.m.n) + '</td>' + FYORDER.map(function (mo) { var y = mo >= 4 ? P.y : P.y + 1; return '<td class="n">' + (((D.months[x.m.k] || {})[y * 100 + mo]) || 0) + '</td>'; }).join('') + '<td class="n b">' + x.r.rows.length + '</td></tr>';
         }).join('') + '</tbody></table></div>';
     }
-    if (P.type === 'y') h += overallYearly(D, P);
-    if (P.type === 'm') {
-      var ds = Object.keys(D.days).map(Number).sort(function (a, b) { return a - b; });
-      if (ds.length) h += '<div class="rp-h">Day-wise entries (all modules)</div><div class="rp-tw"><table><thead><tr><th>Date</th>' + thN('Entries') + '</tr></thead><tbody>' +
-        ds.map(function (d) { return '<tr><td>' + pad2(d) + ' ' + MONF[P.m - 1].slice(0, 3) + ' ' + P.y + '</td><td class="n b">' + D.days[d] + '</td></tr>'; }).join('') + '</tbody></table></div>';
-    }
+    if (P.type === 'y') h += moduleOverview(P) + overallYearly(D, P);
     if (bdRows.length) {
       h += '<div class="rp-h">Breakdown — machine-wise</div><div class="rp-tw"><table><thead><tr><th>Machine</th>' + thN('Breakdowns') + thN('Hours') + thN('MTTR (hrs)') + '</tr></thead><tbody>' +
         D.machines.slice().sort(function (a, b) { return b.h - a.h; }).slice(0, 15).map(function (x) { return '<tr><td>' + esc(x.k) + '</td><td class="n">' + x.n + '</td><td class="n">' + fmt(x.h) + '</td><td class="n b">' + fmt(x.h / x.n) + '</td></tr>'; }).join('') + '</tbody></table></div>';
@@ -10591,7 +10687,7 @@ html body main.wrap .dashboard-footer span{color:#4a5a69!important}
   function pdfFail(e) { pdfNote(''); if (e && e.name === 'AbortError') return; alert('PDF nahi ban payi (' + ((e && e.message) || e) + '). Print / PDF button se PDF save kar lo.'); }
 
   /* ---------- IMAGE (JPEG): WhatsApp par report image ban kar jati hai (page-wise) ---------- */
-  function makeImages() { rptGenerate(); return pdfPaginate(true).then(function (P) { return pdfRender(P, true); }); }
+  function makeImages() { rptGenerate(); return pdfPaginate().then(function (P) { return pdfRender(P, true); }); }
   function imgName(i, n) { return fname() + (n > 1 ? '_page' + (i + 1) : '') + '.jpg'; }
   function pdfNoteHtml(h) { var n = el('rptPdfMsg'); if (n) n.innerHTML = h || ''; }
   var IMG_READY = null;
