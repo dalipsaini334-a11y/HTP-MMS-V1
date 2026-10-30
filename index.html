@@ -8,6 +8,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="HTP Maintenance">
 <link rel="manifest" href="manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -6638,8 +6640,8 @@ const PUR_OPEN = ['Planned', 'PR Raised', 'PO Created', 'Sent to Vendor', 'Order
 const PUR_TABS = [
     { st: 'Planned',        label: 'Requirement',    icon: '📝', color: '#2563eb', help: 'REQUIREMENT: Low stock / Breakdown ki wajah se part chahiye, abhi PR nahi bana. PR banne par "PR Raised" dabao aur PR Number daalo.' },
     { st: 'PR Raised',      label: 'PR Raised',      icon: '📄', color: '#7c3aed', help: 'PR RAISED: PR Number mil gaya, ab Store PO banayega. PO ban jaye to "PO Created" dabao aur PO Number daalo.' },
-    { st: 'PO Created',     label: 'PO Created',     icon: '🧾', color: '#0891b2', help: 'PO CREATED: Store ne PO bana diya (PO Number mila), vendor ko bhejna baaki hai. Vendor ko bhej diya to "Sent to Vendor" dabao.' },
-    { st: 'Sent to Vendor', label: 'Sent to Vendor', icon: '🚚', color: '#d97706', help: 'SENT TO VENDOR: PO vendor ko bhej diya gaya, maal aana baaki hai. Maal aane par "Mark Received" dabao.' },
+    { st: 'PO Created',     label: 'PO Created',     icon: '🧾', color: '#0e7490', help: 'PO CREATED: Store ne PO bana diya (PO Number mila), vendor ko bhejna baaki hai. Vendor ko bhej diya to "Sent to Vendor" dabao.' },
+    { st: 'Sent to Vendor', label: 'Sent to Vendor', icon: '🚚', color: '#b45309', help: 'SENT TO VENDOR: PO vendor ko bhej diya gaya, maal aana baaki hai. Maal aane par "Mark Received" dabao.' },
     { st: 'Received',       label: 'Received',       icon: '✅', color: '#15803d', help: 'RECEIVED: maal company me aa gaya. Stock Spare Inventory me add hota hai.' },
     { st: 'Cancelled',      label: 'Cancelled',      icon: '✖',  color: '#6b7280', help: 'CANCELLED: band / cancel kiye gaye records. "Re-plan" se wapas Requirement me aa sakte hain.' }
 ];
@@ -9753,6 +9755,51 @@ html:not(.aam-tl) body main.wrap section.panel .card button.secondary:not(.dange
 html:not(.aam-tl) body main.wrap section.panel .card button.primary,html:not(.aam-tl) body main.wrap section.panel .utility-form-card button.primary,html:not(.aam-tl) body main.wrap section.panel .airc-card button.primary{background:linear-gradient(135deg,#1d5b8e,#2a7fc4)!important;color:#fff!important;border:1px solid #5aa5e0!important}
 }
 </style>
+<style id="mmsFontFix">
+/* ===== font fix: dark/navy surfaces par white text saaf dikhe (screen only, print formats Arial hi rahenge) ===== */
+@media screen{
+html body,html body input,html body select,html body textarea,html body button,html body table,html body #rptOut .rp{font-family:Inter,Roboto,"Segoe UI","Helvetica Neue",system-ui,-apple-system,sans-serif}
+html body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility}
+html body table td,html body table th{font-feature-settings:"tnum" 1,"lnum" 1}
+html body #appSidebar .tab{font-weight:600;letter-spacing:.2px}
+html body #appSidebar .nav-group-title{font-weight:700;letter-spacing:.7px}
+html body header .app-brand .title{font-weight:700;letter-spacing:.2px}
+html body main.wrap .module-tile>b{font-weight:700;letter-spacing:.1px}
+html:not(.aam-tl) body main.wrap section.panel table td{font-weight:500;letter-spacing:.1px}
+html:not(.aam-tl) body main.wrap section.panel table th{font-weight:700;letter-spacing:.3px}
+html:not(.aam-tl) body main.wrap section.panel .card label,html:not(.aam-tl) body main.wrap section.panel .field label{font-weight:600;letter-spacing:.2px}
+html:not(.aam-tl) body main.wrap section.panel .card input,html:not(.aam-tl) body main.wrap section.panel .card select,html:not(.aam-tl) body main.wrap section.panel .card textarea{font-weight:500;letter-spacing:.1px}
+html:not(.aam-tl) body main.wrap section.panel .note,html:not(.aam-tl) body main.wrap section.panel .note *{font-weight:500;letter-spacing:.1px;line-height:1.5}
+html body #rptOut .rp .rp-title{font-weight:800;letter-spacing:.1px}
+html body #rptOut .rp .rp-box,html body #rptOut .rp table td{font-weight:500}
+}
+</style>
+<style id="mmsDarkFix">
+/* ===== dark mode readability: dark text on dark surface / light text on light surface fixes ===== */
+@media screen{
+/* grey helper notes on dark cards */
+html:not(.aam-tl) body main.wrap #mttrSavedInfo,html:not(.aam-tl) body main.wrap #sp_count,html:not(.aam-tl) body main.wrap .history-note,html:not(.aam-tl) body main.wrap .airc-note,html:not(.aam-tl) body main.wrap .airc-note b,html:not(.aam-tl) body main.wrap .airc-head span,html:not(.aam-tl) body main.wrap .rolehint,html:not(.aam-tl) body main.wrap .dash-empty,html:not(.aam-tl) body main.wrap .pm-evidence-actions+div,html:not(.aam-tl) body main.wrap .pm-evidence span{color:#b9d3ec!important}
+/* Cards / Table switch */
+html:not(.aam-tl) body main.wrap .aam-seg button:not(.on){color:#d6e6f5!important}
+html:not(.aam-tl) body main.wrap .aam-seg{border-color:#5f87b0!important}
+/* SAT / HT quality form section headings */
+html:not(.aam-tl) body main.wrap section.panel .form>div.wide:not(:has(input)):not(:has(select)):not(:has(textarea)):not(:has(button)){color:#e6f0fa!important;border-color:#3b6288!important}
+/* light chips / rows inside dark cards: text must be dark */
+html:not(.aam-tl) body main.wrap .dash-row,html:not(.aam-tl) body main.wrap .dash-row *{color:#1d2b3a!important}
+html:not(.aam-tl) body main.wrap .dash-row small{color:#4a5a69!important}
+html:not(.aam-tl) body main.wrap .pm-system .pm-stage span:not(.active){color:#1c2b39!important}
+html:not(.aam-tl) body main.wrap section.panel .pm-evidence-actions label.secondary{color:#0b2545!important}
+html:not(.aam-tl) body main.wrap section.panel table.pm-yearly-table small,html:not(.aam-tl) body main.wrap section.panel table.pm-calendar small,html:not(.aam-tl) body main.wrap section.panel #pmYearCalendarBody small{color:#3f4d5a!important}
+/* dashboard tiles + hero date */
+html body main.wrap .module-tile>small{color:#3f4d5a!important;font-weight:600}
+html body main.wrap .dash-date-box span,html body main.wrap .dash-date-box small{color:#dbe8f5!important}
+/* status pills */
+html body .aam-pl.good{background:#0a7d4d!important}
+html body .aam-pl.warn{color:#2b1700!important}
+html:not(.aam-tl) body main.wrap section.panel [style*="color:#777"],html:not(.aam-tl) body main.wrap section.panel [style*="color: #777"]{color:#b9d3ec!important}
+html body main.wrap .dashboard-footer span{color:#4a5a69!important}
+}
+</style>
 <script type="text/mms-defer" id="mms-reports">
 /* ===== REPORTS: har module ki + poore app ki Monthly / Yearly report (app ke navy colour me) ===== */
 (function () {
@@ -9774,7 +9821,9 @@ html:not(.aam-tl) body main.wrap section.panel .card button.primary,html:not(.aa
     { k: 'amc', n: 'AMC & Service Contracts', g: 'AMC & Service', master: 1 }, { k: 'amcLog', n: 'AMC Service Visit Log', g: 'AMC & Service' }
   ];
   var COLS = {
-    bd: ['date', 'machineNumber', 'reason', 'type', 'section', 'from', 'to', 'hours', 'action', 'status'],
+    bd: ['date', 'machineNumber', 'reason', 'type', 'section', 'from', 'to', 'hours', 'action', 'spare', 'qty', 'attended', 'status'],
+    mr: ['sr', 'pdate', 'machineNo', 'machine', 'section', 'problem', 'observation', 'action', 'spare', 'reqBy', 'recvBy', 'mdate', 'hdate', 'status'],
+    sparePurchase: ['sno', 'desc', 'qty', 'urgency', 'status', 'prNo', 'prDate', 'po', 'poDate', 'vendor', 'recDate', 'recQty', 'cost', 'remark'],
     mh: ['date', 'machineNo', 'machine', 'reason', 'action', 'spares', 'attendedBy', 'bdHours', 'cost'],
     pm: ['date', 'machineNo', 'template', 'start', 'end', 'checkedBy', 'verifiedBy'],
     airCompressor: ['date', 'machine', 'kwh', 'runHour', 'loadHour'],
@@ -9784,7 +9833,7 @@ html:not(.aam-tl) body main.wrap section.panel .card button.primary,html:not(.aa
     tc: ['furnace', 'loc', 'type', 'srid', 'freq', 'inst', 'due', 'status'],
     cal: ['name', 'make', 'idno', 'range', 'location', 'date', 'duedate']
   };
-  var SKIPKEY = /^(id|_sid|ts|deleted|updatedAt|savedAt|createdAt|evidence|sourceRef|sourceSr|sourceMrSr|spareLink|auto|entries|checklistRows|sno)$/i;
+  var SKIPKEY = /^(id|_sid|ts|deleted|updatedAt|savedAt|createdAt|evidence|sourceRef|sourceSr|sourceMrSr|spareLink|auto|entries|checklistRows|sno)$|^_|hash$|^sync|image|photo|attachment/i;
   var NODATE = /due|next|expect|deliver|valid|expir|end|renew|updated|saved|created|sched|plan/i;
   var MON = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
   var MONF = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -9827,10 +9876,19 @@ html:not(.aam-tl) body main.wrap section.panel .card button.primary,html:not(.aa
     return { rows: rows, snap: false, all: all.length };
   }
   function colsFor(m, rows) {
-    var want = COLS[m.k], cnt = {}, order = [];
-    rows.forEach(function (r) { Object.keys(r).forEach(function (k) { if (SKIPKEY.test(k)) return; var v = r[k]; if (v == null || v === '' || typeof v === 'object') return; if (typeof v === 'string' && v.length > 300) return; if (!(k in cnt)) { cnt[k] = 0; order.push(k); } cnt[k]++; }); });
-    if (want) { var w = want.filter(function (k) { return cnt[k]; }); if (w.length) return w; }
-    return order.sort(function (a, b) { return cnt[b] - cnt[a] || order.indexOf(a) - order.indexOf(b); }).slice(0, 9);
+    var want = COLS[m.k] || [], cnt = {}, order = [];
+    rows.forEach(function (r) {
+      Object.keys(r).forEach(function (k) {
+        if (SKIPKEY.test(k)) return; var v = r[k];
+        if (v == null || v === '') return;
+        if (typeof v === 'object' && !flat(v, 0)) return;
+        if (typeof v === 'string' && /^data:/i.test(v)) return;
+        if (!(k in cnt)) { cnt[k] = 0; order.push(k); } cnt[k]++;
+      });
+    });
+    var first = want.filter(function (k) { return cnt[k]; });
+    var rest = order.filter(function (k) { return first.indexOf(k) < 0; }).sort(function (a, b) { return cnt[b] - cnt[a] || order.indexOf(a) - order.indexOf(b); });
+    return first.concat(rest);
   }
   function sums(rows, cols) {
     var out = [];
@@ -9841,7 +9899,68 @@ html:not(.aam-tl) body main.wrap section.panel .card button.primary,html:not(.aa
     });
     return out.slice(0, 4);
   }
-  function cell(v) { var s = String(v == null ? '' : v); return esc(s.length > 70 ? s.slice(0, 68) + '…' : s); }
+  /* nested value (array / object) ko padhne layak text me badalna — kuch bhi chhootna nahi chahiye */
+  function flat(v, d) {
+    if (v == null || v === '') return '';
+    var t = typeof v;
+    if (t === 'string') return /^data:/i.test(v) ? '' : v.trim();
+    if (t === 'number' || t === 'boolean') return String(v);
+    if (Array.isArray(v)) {
+      var items = v.map(function (x) { return flat(x, (d || 0) + 1); }).filter(Boolean);
+      if (items.length > 1 && v.some(function (x) { return x && typeof x === 'object'; })) items = items.map(function (x, i) { return (i + 1) + ') ' + x; });
+      return items.join(d ? '; ' : '\n');
+    }
+    if (t === 'object') {
+      return Object.keys(v).filter(function (k) { return !SKIPKEY.test(k); }).map(function (k) { var x = flat(v[k], (d || 0) + 1); return x ? pretty(k) + ': ' + x : ''; }).filter(Boolean).join(', ');
+    }
+    return '';
+  }
+  function cell(v) { return esc(flat(v, 0)).replace(/\n/g, '<br>'); }
+  /* bahut saare columns ho to table ko hisson me todna (har hisse me pehla column dobara), taaki kuch cut na ho */
+  function chunkCols(cols, size) {
+    if (cols.length <= size) return [cols];
+    var a = cols[0], rest = cols.slice(1), per = size - 1, out = [];
+    for (var i = 0; i < rest.length; i += per) out.push([a].concat(rest.slice(i, i + per)));
+    return out;
+  }
+  function colWidths(rows, cols) {
+    var w = cols.map(function (c) {
+      var tot = 0, n = 0;
+      rows.forEach(function (x) { var s = flat(x[c], 0); if (s) { tot += s.length; n++; } });
+      return Math.max(6, Math.min(34, Math.max(n ? tot / n : 0, Math.min(pretty(c).length, 12))));
+    });
+    var sum = w.reduce(function (a, b) { return a + b; }, 0) || 1;
+    return w.map(function (x) { return Math.round(x / sum * 970) / 10; });
+  }
+  function detailTables(m, rows, cols, sm) {
+    var parts = chunkCols(cols, 9), out = '';
+    parts.forEach(function (pc, pi) {
+      var w = colWidths(rows, pc), hasSum = pc.slice(1).some(function (c) { return sm.some(function (q) { return q.k === c; }); });
+      out += '<div class="rp-h">' + esc(m.n) + ' — details' + (parts.length > 1 ? ' (part ' + (pi + 1) + ' of ' + parts.length + ')' : '') + '</div><div class="rp-tw"><table class="rp-dt"><colgroup><col style="width:3%">' +
+        w.map(function (p) { return '<col style="width:' + p + '%">'; }).join('') + '</colgroup><thead><tr><th>#</th>' + pc.map(function (c) { return '<th>' + esc(pretty(c)) + '</th>'; }).join('') + '</tr></thead><tbody>' +
+        rows.map(function (x, i) { return '<tr><td class="b">' + (i + 1) + '</td>' + pc.map(function (c) { return '<td>' + cell(x[c]) + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody>' +
+        (hasSum ? '<tfoot><tr><td colspan="2">Total</td>' + pc.slice(1).map(function (c) { var q = sm.filter(function (z) { return z.k === c; })[0]; return '<td>' + (q ? fmt(q.s) : '') + '</td>'; }).join('') + '</tr></tfoot>' : '') + '</table></div>';
+    });
+    return out;
+  }
+  /* PM check sheet: har record ke andar ki checklist (observation / work done / remark / spare) poori dikhana */
+  function pmDetail(rows) {
+    var out = '';
+    rows.forEach(function (r) {
+      var cl = r.checklistRows, en = Array.isArray(r.entries) ? r.entries : [];
+      if (!Array.isArray(cl) || !cl.length) { try { cl = (PM_CHECKLISTS[r.template] || {}).rows || []; } catch (e) { cl = []; } }
+      var lines = [], blank = 0, N = Math.max(cl.length, en.length);
+      for (var i = 0; i < N; i++) {
+        var c = cl[i] || {}, e = en[i] || {}, sp = flat(e.spareUsed, 0);
+        if (!(e.observation || e.workDone || e.remark || sp)) { blank++; continue; }
+        lines.push('<tr><td class="b">' + cell(c.sno != null && c.sno !== '' ? c.sno : i + 1) + '</td><td>' + cell(c.freq) + '</td><td>' + cell(c.activity) + '</td><td>' + cell(e.observation) + '</td><td>' + cell(e.workDone) + '</td><td>' + cell(e.remark) + '</td><td>' + cell(sp) + '</td></tr>');
+      }
+      var ttl = 'PM Check Sheet — ' + (r.template || '') + (r.machineNo ? ' — ' + r.machineNo : '') + (r.date ? ' — ' + r.date : '') + (r.checkedBy ? ' • Checked by: ' + r.checkedBy : '') + (r.verifiedBy ? ' • Verified by: ' + r.verifiedBy : '');
+      out += '<div class="rp-h">' + esc(ttl) + '</div><div class="rp-tw"><table class="rp-dt"><colgroup><col style="width:5%"><col style="width:8%"><col style="width:27%"><col style="width:20%"><col style="width:17%"><col style="width:13%"><col style="width:10%"></colgroup><thead><tr><th>S.No</th><th>Freq</th><th>Activity</th><th>Observation</th><th>Work Done</th><th>Remark</th><th>Spare Used</th></tr></thead><tbody>' +
+        (lines.length ? lines.join('') : '<tr><td colspan="7">Is check sheet me koi observation / work entry nahi bhari gayi.</td></tr>') + '</tbody></table></div>' + (blank && lines.length ? '<div class="rp-note">' + blank + ' checklist point(s) me koi entry nahi thi (OK / blank).</div>' : '');
+    });
+    return out;
+  }
 
   /* ---------- CSS (screen + print + Excel) ---------- */
   var CSS = '.rp{font-family:Arial,Helvetica,sans-serif;color:#0b1f4a;max-width:1100px;margin:0 auto;-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
@@ -9860,6 +9979,10 @@ html:not(.aam-tl) body main.wrap section.panel .card button.primary,html:not(.aa
     '.rp table tfoot td{background-color:#0b2545!important;color:#fff!important;font-weight:800}' +
     '.rp-tw{overflow-x:auto;border:1.5px solid #123c62;border-radius:0 0 10px 10px;background-color:#0e2238}' +
     '.rp-foot{text-align:center;font-size:11px;color:#5b6577;margin-top:12px}' +
+    '.rp-box{background-color:#0e2238;color:#e6f0fa;border:1.5px solid #123c62;border-radius:0 0 10px 10px;padding:10px 14px 10px 8px;font-size:12.5px;line-height:1.65}.rp-box ul{margin:0;padding-left:22px}.rp-box li{margin:2px 0}' +
+    '.rp-sign{display:flex;gap:22px;margin-top:30px}.rp-sign div{flex:1;border-top:1.5px solid #123c62;padding-top:6px;font-size:11px;font-weight:700;color:#44474f;text-align:center}' +
+    '.rp table td{overflow-wrap:break-word;word-break:normal}' +
+    '.rp table.rp-dt{table-layout:fixed;min-width:860px}.rp table.rp-dt td,.rp table.rp-dt th{overflow-wrap:anywhere;word-break:break-word}' +
     '@media print{@page{size:A4 landscape;margin:8mm}body{margin:0}.rp-tw{overflow:visible}.rp table{font-size:10px}.rp th,.rp td{padding:4px 5px}.rp-h{page-break-after:avoid}.rp tr{page-break-inside:avoid}}';
 
   var PX = 'html body main.wrap section.panel #rptOut .rp table';
@@ -9876,58 +9999,225 @@ html:not(.aam-tl) body main.wrap section.panel .card button.primary,html:not(.aa
   function typeText(P) { return P.type === 'd' ? 'Daily' : (P.type === 'm' ? 'Monthly' : 'Yearly'); }
   function periodText(P) { if (P.type === 'd') return String(P.d).padStart(2, '0') + ' ' + MONF[P.m - 1] + ' ' + P.y; return P.type === 'm' ? MONF[P.m - 1] + ' ' + P.y : 'Financial Year ' + fyLabel(P.y) + ' (Apr ' + P.y + ' – Mar ' + (P.y + 1) + ')'; }
 
-  /* ---------- ek module ki report ---------- */
-  function moduleReport(m, P, withLogo) {
-    var r = pick(m, P), cols = colsFor(m, r.rows), sm = sums(r.rows, cols);
-    var h = head(m.n + ' — ' + typeText(P) + ' Report', (r.snap ? 'Register snapshot (current status)' : periodText(P)) + '  •  Generated ' + stamp(), withLogo);
-    h += '<div class="rp-kpis">' + kpi(r.snap ? 'Total records' : 'Records in period', r.rows.length) + sm.map(function (s) { return kpi('Total ' + pretty(s.k), fmt(s.s)); }).join('');
-    if (m.k === 'bd' && r.rows.length) { var hrs = 0; r.rows.forEach(function (x) { var v = num(x.hours); if (!isNaN(v)) hrs += v; }); h += kpi('MTTR (hrs / breakdown)', fmt(hrs / r.rows.length)); }
-    h += '</div>';
-    if (!r.rows.length) return h + '<div class="rp-note">Is period me koi record nahi mila' + (r.all ? ' (module me total ' + r.all + ' records hain, doosre mahino/saalon ke).' : '.') + '</div>';
-    if (P.type === 'y' && !r.snap) {
-      var by = {}; r.rows.forEach(function (x) { var t = recYM(m, x), k = t.y * 100 + t.m; by[k] = (by[k] || 0) + 1; });
-      h += '<div class="rp-h">Month-wise records</div><div class="rp-tw"><table><thead><tr>' + FYORDER.map(function (mo) { return '<th class="n">' + MON[mo - 1].toUpperCase() + '</th>'; }).join('') + '<th class="n">TOTAL</th></tr></thead><tbody><tr>' +
-        FYORDER.map(function (mo) { var y = mo >= 4 ? P.y : P.y + 1; return '<td class="n">' + (by[y * 100 + mo] || 0) + '</td>'; }).join('') + '<td class="n b">' + r.rows.length + '</td></tr></tbody></table></div>';
-    }
-    h += '<div class="rp-h">' + esc(m.n) + ' — details</div><div class="rp-tw"><table><thead><tr><th>#</th>' + cols.map(function (c) { return '<th>' + esc(pretty(c)) + '</th>'; }).join('') + '</tr></thead><tbody>' +
-      r.rows.map(function (x, i) { return '<tr><td class="b">' + (i + 1) + '</td>' + cols.map(function (c) { return '<td>' + cell(x[c]) + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody>' +
-      (sm.length ? '<tfoot><tr><td>Total</td>' + cols.map(function (c) { var s = sm.filter(function (q) { return q.k === c; })[0]; return '<td>' + (s ? fmt(s.s) : '') + '</td>'; }).join('') + '</tr></tfoot>' : '') + '</table></div>';
-    return h + '<div class="rp-foot">Milestone Gears Ltd. UNIT-7 • Maintenance Team</div>';
+    /* ---------- helpers: grouping / comparison / analysis ---------- */
+  var GORDER = ['status', 'type', 'section', 'department', 'dept', 'urgency', 'source', 'vendor', 'template', 'furnace', 'machineNumber', 'machineNo', 'machine', 'attended', 'attendedBy', 'person', 'checkedBy', 'reqBy', 'activity', 'grade'];
+  var CLOSED = /close|complet|done|resolv|receiv|rectif|finish|cancel/i;
+  function pad2(n) { return String(n).padStart(2, '0'); }
+  function dayLbl(k) { var p = String(k).split('-'); return pad2(+p[2]) + ' ' + MONF[+p[1] - 1].slice(0, 3); }
+  function prevP(P) {
+    if (P.type === 'd') { var d = new Date(P.y, P.m - 1, P.d - 1); return { type: 'd', y: d.getFullYear(), m: d.getMonth() + 1, d: d.getDate() }; }
+    if (P.type === 'm') return P.m === 1 ? { type: 'm', y: P.y - 1, m: 12 } : { type: 'm', y: P.y, m: P.m - 1 };
+    return { type: 'y', y: P.y - 1 };
+  }
+  function prevText(P) { return P.type === 'd' ? 'previous day' : (P.type === 'm' ? 'previous month' : 'previous FY'); }
+  function sumKey(rows, k) { var s = 0; rows.forEach(function (r) { var v = num(r[k]); if (!isNaN(v)) s += v; }); return s; }
+  function pickHK(sm) {
+    var a = sm.filter(function (s) { return /hour|hrs/i.test(s.k); })[0] || sm.filter(function (s) { return /cost|amount|bill/i.test(s.k); })[0];
+    return a ? a.k : null;
+  }
+  function pct(a, b) { return b ? Math.round(a * 1000 / b) / 10 : 0; }
+  function chg(a, b) { if (!b) return a ? 'new' : '–'; var p = Math.round((a - b) / b * 1000) / 10; return (p > 0 ? '+' : '') + p + '%'; }
+  function groupBy(rows, key, hk) {
+    var g = {};
+    rows.forEach(function (r) {
+      var v = r[key]; if (v == null || v === '' || typeof v === 'object') return; v = String(v).trim(); if (!v) return;
+      var o = g[v] || (g[v] = { k: v, n: 0, h: 0 }); o.n++;
+      if (hk) { var x = num(r[hk]); if (!isNaN(x)) o.h += x; }
+    });
+    return Object.keys(g).map(function (k) { return g[k]; }).sort(function (a, b) { return b.n - a.n || b.h - a.h; });
   }
 
-  /* ---------- poore app ki report ---------- */
-  function overallReport(P, withLogo) {
-    var rows = [], months = {}, tot = 0, bdRows = [], bdHrs = 0, kwh = 0, low = 0;
-    MODS.forEach(function (m) {
-      var r = pick(m, P); rows.push({ m: m, r: r });
-      if (!r.snap) { tot += r.rows.length; r.rows.forEach(function (x) { var t = recYM(m, x), k = t.y * 100 + t.m; (months[m.k] = months[m.k] || {})[k] = (months[m.k][k] || 0) + 1; }); }
-      if (m.k === 'bd') { bdRows = r.rows; r.rows.forEach(function (x) { var v = num(x.hours); if (!isNaN(v)) bdHrs += v; }); }
-      if (m.k === 'airCompressor') r.rows.forEach(function (x) { var v = num(x.kwh); if (!isNaN(v)) kwh += v; });
-      if (m.k === 'spares') r.rows.forEach(function (x) { var mn = num(x.min), q = num(x.availableQty != null ? x.availableQty : x.qty); if (!isNaN(mn) && !isNaN(q) && mn > 0 && q <= mn) low++; });
+  /* ek module + period ka poora analysis (HTML report aur WhatsApp/Mail text dono isi se bante hain) */
+  function analyse(m, P) {
+    var r = pick(m, P), cols = colsFor(m, r.rows), sm = sums(r.rows, cols), hk = pickHK(sm);
+    var A = { r: r, cols: cols, sm: sm, hk: hk, groups: [], open: null, busy: null, prev: null, tat: null, low: null, max: null };
+    var present = {};
+    r.rows.forEach(function (x) { Object.keys(x).forEach(function (k) { var v = x[k]; if (v !== '' && v != null && typeof v !== 'object') present[k] = 1; }); });
+    GORDER.forEach(function (k) {
+      if (!present[k] || A.groups.length >= 4) return;
+      if (k === 'machine' && (present.machineNumber || present.machineNo)) return;
+      var g = groupBy(r.rows, k, hk);
+      if (g.length >= 2 && g.length <= 40 && (g[0].n > 1 || g.length <= 6)) A.groups.push({ k: k, g: g });
     });
-    function cnt(k) { return rows.filter(function (x) { return x.m.k === k; })[0].r.rows.length; }
-    var h = head('Overall App — ' + typeText(P) + ' Report', periodText(P) + '  •  Generated ' + stamp(), withLogo);
-    h += '<div class="rp-kpis">' + kpi('Total entries in period', tot) + kpi('Breakdowns', bdRows.length) + kpi('Breakdown hours', fmt(bdHrs)) +
-      kpi('MTTR (hrs / breakdown)', bdRows.length ? fmt(bdHrs / bdRows.length) : '0') + kpi('Maintenance requests', cnt('mr')) + kpi('PM check sheets', cnt('pm')) +
-      kpi('Machine history', cnt('mh')) + kpi('Spare purchases', cnt('sparePurchase')) + kpi('Air compressor KWH', fmt(kwh)) + kpi('Low-stock spares', low) + '</div>';
-    h += '<div class="rp-h">Module-wise summary</div><div class="rp-tw"><table><thead><tr><th>#</th><th>Module</th><th>Group</th><th class="n">Records</th><th>Basis</th></tr></thead><tbody>' +
-      rows.map(function (x, i) { return '<tr><td class="b">' + (i + 1) + '</td><td>' + esc(x.m.n) + '</td><td>' + esc(x.m.g) + '</td><td class="n b">' + x.r.rows.length + '</td><td>' + (x.r.snap ? 'Register total (snapshot)' : (P.type === 'd' ? 'Entries this day' : (P.type === 'm' ? 'Entries this month' : 'Entries this FY'))) + '</td></tr>'; }).join('') +
-      '</tbody><tfoot><tr><td></td><td>Total (period entries)</td><td></td><td class="n">' + tot + '</td><td></td></tr></tfoot></table></div>';
+    if (present.status && /^(bd|mr|sparePurchase|amcLog)$/.test(m.k)) {
+      var o = 0; r.rows.forEach(function (x) { var s = String(x.status || '').trim(); if (s && !CLOSED.test(s)) o++; }); A.open = o;
+    }
+    if (!r.snap && P.type !== 'd') {
+      var c = {}; r.rows.forEach(function (x) { var t = recYM(m, x); if (t && t.d) { var k = t.y + '-' + pad2(t.m) + '-' + pad2(t.d); c[k] = (c[k] || 0) + 1; } });
+      var best = null; Object.keys(c).forEach(function (k) { if (!best || c[k] > c[best]) best = k; });
+      if (best) A.busy = { k: best, n: c[best], days: Object.keys(c).length };
+    }
+    if (!r.snap) {
+      var pr = pick(m, prevP(P)); A.prev = { n: pr.rows.length, s: {} };
+      sm.forEach(function (s) { A.prev.s[s.k] = sumKey(pr.rows, s.k); });
+    }
+    if (m.k === 'mr') {
+      var tt = 0, nn = 0;
+      r.rows.forEach(function (x) { var a = new Date(x.pdate), b = new Date(x.hdate); if (!isNaN(a) && !isNaN(b) && b >= a) { tt += (b - a) / 864e5; nn++; } });
+      if (nn) A.tat = tt / nn;
+    }
+    if (hk && /hour|hrs/i.test(hk)) {
+      var mx = null; r.rows.forEach(function (x) { var v = num(x[hk]); if (!isNaN(v) && (!mx || v > mx.v)) mx = { v: v, d: x.date || '' }; }); A.max = mx;
+    }
+    if (m.k === 'spares' || m.k === 'critical') {
+      A.low = r.rows.filter(function (x) { var mn = num(x.min), q = num(x.availableQty != null ? x.availableQty : (x.avail != null ? x.avail : x.qty)); return !isNaN(mn) && !isNaN(q) && mn > 0 && q <= mn; });
+    }
+    return A;
+  }
+  function perText(P) { return periodText(P).replace(/ \(Apr.*$/, ''); }
+  function obs(A, m, P) {
+    var r = A.r, o = [], n = r.rows.length;
+    o.push(r.snap ? 'Register currently holds ' + n + ' record(s).' : n + ' record(s) found for ' + perText(P) + '.');
+    if (A.hk && n) {
+      var s = A.sm.filter(function (q) { return q.k === A.hk; })[0];
+      if (s) o.push('Total ' + pretty(A.hk) + ': ' + fmt(s.s) + ' (average ' + fmt(s.s / n) + ' per record' + (A.max && n > 1 ? '; highest ' + fmt(A.max.v) + (A.max.d ? ' on ' + A.max.d : '') : '') + ').');
+    }
+    A.groups.slice(0, 3).forEach(function (g) { var t = g.g[0]; o.push('Most frequent ' + pretty(g.k) + ': ' + t.k + ' — ' + t.n + ' record(s), ' + pct(t.n, n) + '%.'); });
+    if (A.open != null) o.push(A.open + ' record(s) are still open / pending.');
+    if (A.tat != null) o.push('Average turnaround (request to handover): ' + fmt(A.tat) + ' day(s).');
+    if (A.prev) { var d = n - A.prev.n; o.push('Records are ' + (d === 0 ? 'same as' : (d > 0 ? 'up by ' + d + ' vs' : 'down by ' + (-d) + ' vs')) + ' ' + prevText(P) + ' (' + n + ' vs ' + A.prev.n + ').'); }
+    if (A.busy) o.push('Busiest day: ' + dayLbl(A.busy.k) + ' (' + A.busy.n + ' record(s)); entries on ' + A.busy.days + ' day(s).');
+    if (A.low) o.push(A.low.length + ' item(s) are at or below minimum stock.');
+    return o;
+  }
+  function cmpTable(A, P) {
+    if (!A.prev) return '';
+    var n = A.r.rows.length, rows = [['Records', n, A.prev.n]];
+    A.sm.slice(0, 3).forEach(function (s) { rows.push([pretty(s.k), s.s, A.prev.s[s.k] || 0]); });
+    return '<div class="rp-h">Comparison with ' + prevText(P) + '</div><div class="rp-tw"><table><thead><tr><th>Measure</th><th class="n">This period</th><th class="n">Previous</th><th class="n">Change</th><th class="n">Change %</th></tr></thead><tbody>' +
+      rows.map(function (x) { var d = x[1] - x[2]; return '<tr><td>' + esc(x[0]) + '</td><td class="n b">' + fmt(x[1]) + '</td><td class="n">' + fmt(x[2]) + '</td><td class="n">' + (d > 0 ? '+' : '') + fmt(d) + '</td><td class="n">' + chg(x[1], x[2]) + '</td></tr>'; }).join('') + '</tbody></table></div>';
+  }
+  function groupTable(g, hk, total, title) {
+    var lim = 10, sh = g.g.slice(0, lim);
+    return '<div class="rp-h">' + esc(title || (pretty(g.k) + '-wise summary')) + '</div><div class="rp-tw"><table><thead><tr><th>' + esc(pretty(g.k)) + '</th><th class="n">Records</th><th class="n">Share %</th>' + (hk ? '<th class="n">' + esc(pretty(hk)) + '</th>' : '') + '</tr></thead><tbody>' +
+      sh.map(function (x) { return '<tr><td>' + esc(x.k) + '</td><td class="n b">' + x.n + '</td><td class="n">' + pct(x.n, total) + '%</td>' + (hk ? '<td class="n">' + fmt(x.h) + '</td>' : '') + '</tr>'; }).join('') +
+      (g.g.length > lim ? '<tr><td colspan="' + (hk ? 4 : 3) + '">+ ' + (g.g.length - lim) + ' more</td></tr>' : '') + '</tbody></table></div>';
+  }
+  function thN(t) { return '<th class="n">' + esc(t) + '</th>'; }
+  function periodTable(m, A, P) {
+    var r = A.r; if (r.snap || P.type === 'd' || !r.rows.length) return '';
+    var sk = A.sm.slice(0, 2);
     if (P.type === 'y') {
-      h += '<div class="rp-h">Month-wise entries (FY ' + fyLabel(P.y) + ')</div><div class="rp-tw"><table><thead><tr><th>Module</th>' + FYORDER.map(function (mo) { return '<th class="n">' + MON[mo - 1].toUpperCase() + '</th>'; }).join('') + '<th class="n">TOTAL</th></tr></thead><tbody>' +
+      var by = {}, bs = {};
+      r.rows.forEach(function (x) {
+        var t = recYM(m, x), k = t.y * 100 + t.m; by[k] = (by[k] || 0) + 1;
+        sk.forEach(function (s) { var v = num(x[s.k]); if (!isNaN(v)) { bs[s.k] = bs[s.k] || {}; bs[s.k][k] = (bs[s.k][k] || 0) + v; } });
+      });
+      var row = function (lbl, get, tot) {
+        return '<tr><td>' + esc(lbl) + '</td>' + FYORDER.map(function (mo) { var y = mo >= 4 ? P.y : P.y + 1; return '<td class="n">' + fmt(get(y * 100 + mo)) + '</td>'; }).join('') + '<td class="n b">' + fmt(tot) + '</td></tr>';
+      };
+      return '<div class="rp-h">Month-wise trend (FY ' + fyLabel(P.y) + ')</div><div class="rp-tw"><table><thead><tr><th>Measure</th>' + FYORDER.map(function (mo) { return thN(MON[mo - 1].toUpperCase()); }).join('') + thN('TOTAL') + '</tr></thead><tbody>' +
+        row('Records', function (k) { return by[k] || 0; }, r.rows.length) +
+        sk.map(function (s) { return row(pretty(s.k), function (k) { return (bs[s.k] || {})[k] || 0; }, s.s); }).join('') + '</tbody></table></div>';
+    }
+    var dd = {};
+    r.rows.forEach(function (x) {
+      var t = recYM(m, x), d = t && t.d ? t.d : 0, o = dd[d] || (dd[d] = { n: 0, s: {} }); o.n++;
+      sk.forEach(function (s) { var v = num(x[s.k]); if (!isNaN(v)) o.s[s.k] = (o.s[s.k] || 0) + v; });
+    });
+    var days = Object.keys(dd).map(Number).filter(function (d) { return d > 0; }).sort(function (a, b) { return a - b; });
+    if (!days.length) return '';
+    return '<div class="rp-h">Day-wise records (' + MONF[P.m - 1] + ' ' + P.y + ')</div><div class="rp-tw"><table><thead><tr><th>Date</th>' + thN('Records') + sk.map(function (s) { return thN(pretty(s.k)); }).join('') + '</tr></thead><tbody>' +
+      days.map(function (d) { var o = dd[d]; return '<tr><td>' + pad2(d) + ' ' + MONF[P.m - 1].slice(0, 3) + ' ' + P.y + '</td><td class="n b">' + o.n + '</td>' + sk.map(function (s) { return '<td class="n">' + fmt(o.s[s.k] || 0) + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table></div>';
+  }
+  function lowTable(A) {
+    if (!A.low || !A.low.length) return '';
+    var lim = 25;
+    return '<div class="rp-h">Low-stock items (available ≤ minimum)</div><div class="rp-tw"><table><thead><tr><th>#</th><th>Code</th><th>Description</th>' + thN('Min') + thN('Available') + '</tr></thead><tbody>' +
+      A.low.slice(0, lim).map(function (x, i) { return '<tr><td class="b">' + (i + 1) + '</td><td>' + cell(x.code) + '</td><td>' + cell(x.desc) + '</td><td class="n">' + cell(x.min) + '</td><td class="n b">' + cell(x.availableQty != null ? x.availableQty : (x.avail != null ? x.avail : x.qty)) + '</td></tr>'; }).join('') +
+      (A.low.length > lim ? '<tr><td colspan="5">+ ' + (A.low.length - lim) + ' more</td></tr>' : '') + '</tbody></table></div>';
+  }
+  function obsBox(lines) { return '<div class="rp-h">Summary &amp; observations</div><div class="rp-box"><ul>' + lines.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul></div>'; }
+  function signBlock() { return '<div class="rp-sign"><div>Prepared by<br>(Maintenance Team)</div><div>Checked by</div><div>Approved by</div></div>'; }
+
+  /* ---------- ek module ki report (detailed) ---------- */
+  function moduleReport(m, P, withLogo) {
+    var A = analyse(m, P), r = A.r, cols = A.cols, sm = A.sm, n = r.rows.length;
+    var h = head(m.n + ' — ' + typeText(P) + ' Report', (r.snap ? 'Register snapshot (current status)' : periodText(P)) + '  •  Generated ' + stamp(), withLogo);
+    var k = kpi(r.snap ? 'Total records' : 'Records in period', n);
+    sm.forEach(function (s) { k += kpi('Total ' + pretty(s.k), fmt(s.s)); });
+    if (n && A.hk && m.k !== 'bd') { var sh = sm.filter(function (q) { return q.k === A.hk; })[0]; if (sh) k += kpi('Avg ' + pretty(A.hk) + ' / record', fmt(sh.s / n)); }
+    if (m.k === 'bd' && n) k += kpi('MTTR (hrs / breakdown)', fmt(sumKey(r.rows, 'hours') / n));
+    if (A.max && n > 1) k += kpi('Highest ' + pretty(A.hk), fmt(A.max.v));
+    if (A.open != null) k += kpi('Open / pending', A.open);
+    if (A.tat != null) k += kpi('Avg turnaround (days)', fmt(A.tat));
+    if (A.busy) k += kpi('Busiest day', dayLbl(A.busy.k) + ' (' + A.busy.n + ')');
+    if (A.low) k += kpi('Low-stock items', A.low.length);
+    h += '<div class="rp-kpis">' + k + '</div>';
+    if (!n) return h + '<div class="rp-note">Is period me koi record nahi mila' + (r.all ? ' (module me total ' + r.all + ' records hain, doosre mahino/saalon ke).' : '.') + '</div>' + (A.prev && A.prev.n ? cmpTable(A, P) : '');
+    h += obsBox(obs(A, m, P)) + cmpTable(A, P) + periodTable(m, A, P);
+    A.groups.forEach(function (g) { h += groupTable(g, A.hk, n); });
+    h += lowTable(A);
+    h += detailTables(m, r.rows, cols, sm) + (m.k === 'pm' ? pmDetail(r.rows) : '');
+    return h + signBlock() + '<div class="rp-foot">Milestone Gears Ltd. UNIT-7 • Maintenance Team</div>';
+  }
+
+  /* ---------- poore app ki report (detailed) ---------- */
+  function overallData(P) {
+    var D = { rows: [], months: {}, days: {}, tot: 0, ptot: 0, bd: [], bdHrs: 0, kwh: 0, low: 0, mr: [], sp: [], pm: [] };
+    MODS.forEach(function (m) {
+      var r = pick(m, P), pr = r.snap ? null : pick(m, prevP(P)); D.rows.push({ m: m, r: r, p: pr });
+      if (!r.snap) {
+        D.tot += r.rows.length; D.ptot += pr.rows.length;
+        r.rows.forEach(function (x) { var t = recYM(m, x), k = t.y * 100 + t.m; (D.months[m.k] = D.months[m.k] || {})[k] = ((D.months[m.k] || {})[k] || 0) + 1; if (t.d) D.days[t.d] = (D.days[t.d] || 0) + 1; });
+      }
+      if (m.k === 'bd') { D.bd = r.rows; D.bdHrs = sumKey(r.rows, 'hours'); }
+      if (m.k === 'mr') D.mr = r.rows;
+      if (m.k === 'sparePurchase') D.sp = r.rows;
+      if (m.k === 'pm') D.pm = r.rows;
+      if (m.k === 'airCompressor') D.kwh = sumKey(r.rows, 'kwh');
+      if (m.k === 'spares') r.rows.forEach(function (x) { var mn = num(x.min), q = num(x.availableQty != null ? x.availableQty : x.qty); if (!isNaN(mn) && !isNaN(q) && mn > 0 && q <= mn) D.low++; });
+    });
+    D.cnt = function (k) { return D.rows.filter(function (x) { return x.m.k === k; })[0].r.rows.length; };
+    D.mrOpen = D.mr.filter(function (x) { var s = String(x.status || '').trim(); return s && !CLOSED.test(s); }).length;
+    D.spPend = D.sp.filter(function (x) { var s = String(x.status || '').trim(); return !s || !CLOSED.test(s); }).length;
+    D.spCost = sumKey(D.sp, 'cost');
+    D.machines = groupBy(D.bd, 'machineNumber', 'hours');
+    return D;
+  }
+  function overallReport(P, withLogo) {
+    var D = overallData(P), rows = D.rows, tot = D.tot, bdRows = D.bd, bdHrs = D.bdHrs;
+    var h = head('Overall App — ' + typeText(P) + ' Report', periodText(P) + '  •  Generated ' + stamp(), withLogo);
+    h += '<div class="rp-kpis">' + kpi('Total entries in period', tot) + kpi('Entries in ' + prevText(P), D.ptot) + kpi('Breakdowns', bdRows.length) + kpi('Breakdown hours', fmt(bdHrs)) +
+      kpi('MTTR (hrs / breakdown)', bdRows.length ? fmt(bdHrs / bdRows.length) : '0') + kpi('Maintenance requests', D.cnt('mr')) + kpi('Open requests', D.mrOpen) + kpi('PM check sheets', D.cnt('pm')) +
+      kpi('Machine history', D.cnt('mh')) + kpi('Spare purchases', D.cnt('sparePurchase')) + kpi('Purchases pending', D.spPend) + kpi('Purchase value', fmt(D.spCost)) + kpi('Air compressor KWH', fmt(D.kwh)) + kpi('Low-stock spares', D.low) + '</div>';
+    var lines = [tot + ' entries recorded across modules in ' + perText(P) + ' (' + prevText(P) + ': ' + D.ptot + ', ' + chg(tot, D.ptot) + ').'];
+    if (bdRows.length) lines.push(bdRows.length + ' breakdown(s), total ' + fmt(bdHrs) + ' hrs, MTTR ' + fmt(bdHrs / bdRows.length) + ' hrs' + (D.machines[0] ? '; most affected machine: ' + D.machines[0].k + ' (' + D.machines[0].n + ' BD, ' + fmt(D.machines[0].h) + ' hrs)' : '') + '.');
+    if (D.cnt('mr')) lines.push(D.cnt('mr') + ' maintenance request(s), ' + D.mrOpen + ' still open.');
+    if (D.cnt('sparePurchase')) lines.push(D.cnt('sparePurchase') + ' spare purchase record(s), ' + D.spPend + ' pending, value ' + fmt(D.spCost) + '.');
+    var busyD = Object.keys(D.days).sort(function (a, b) { return D.days[b] - D.days[a]; })[0];
+    if (P.type !== 'd' && busyD) lines.push('Busiest day: ' + pad2(busyD) + (P.type === 'm' ? ' ' + MONF[P.m - 1].slice(0, 3) : '') + ' (' + D.days[busyD] + ' entries).');
+    if (D.low) lines.push(D.low + ' spare item(s) are at or below minimum stock.');
+    h += obsBox(lines);
+    h += '<div class="rp-h">Module-wise summary</div><div class="rp-tw"><table><thead><tr><th>#</th><th>Module</th><th>Group</th><th class="n">Records</th><th class="n">' + esc(prevText(P).replace(/^./, function (c) { return c.toUpperCase(); })) + '</th><th class="n">Change</th><th>Basis</th></tr></thead><tbody>' +
+      rows.map(function (x, i) {
+        var n = x.r.rows.length, pn = x.p ? x.p.rows.length : null;
+        return '<tr><td class="b">' + (i + 1) + '</td><td>' + esc(x.m.n) + '</td><td>' + esc(x.m.g) + '</td><td class="n b">' + n + '</td><td class="n">' + (pn == null ? '–' : pn) + '</td><td class="n">' + (pn == null ? '–' : chg(n, pn)) + '</td><td>' + (x.r.snap ? 'Register total (snapshot)' : (P.type === 'd' ? 'Entries this day' : (P.type === 'm' ? 'Entries this month' : 'Entries this FY'))) + '</td></tr>';
+      }).join('') +
+      '</tbody><tfoot><tr><td></td><td>Total (period entries)</td><td></td><td class="n">' + tot + '</td><td class="n">' + D.ptot + '</td><td class="n">' + chg(tot, D.ptot) + '</td><td></td></tr></tfoot></table></div>';
+    if (P.type === 'y') {
+      h += '<div class="rp-h">Month-wise entries (FY ' + fyLabel(P.y) + ')</div><div class="rp-tw"><table><thead><tr><th>Module</th>' + FYORDER.map(function (mo) { return thN(MON[mo - 1].toUpperCase()); }).join('') + thN('TOTAL') + '</tr></thead><tbody>' +
         rows.filter(function (x) { return !x.r.snap && x.r.rows.length; }).map(function (x) {
-          return '<tr><td>' + esc(x.m.n) + '</td>' + FYORDER.map(function (mo) { var y = mo >= 4 ? P.y : P.y + 1; return '<td class="n">' + (((months[x.m.k] || {})[y * 100 + mo]) || 0) + '</td>'; }).join('') + '<td class="n b">' + x.r.rows.length + '</td></tr>';
+          return '<tr><td>' + esc(x.m.n) + '</td>' + FYORDER.map(function (mo) { var y = mo >= 4 ? P.y : P.y + 1; return '<td class="n">' + (((D.months[x.m.k] || {})[y * 100 + mo]) || 0) + '</td>'; }).join('') + '<td class="n b">' + x.r.rows.length + '</td></tr>';
         }).join('') + '</tbody></table></div>';
     }
-    if (bdRows.length) {
-      var byM = {}; bdRows.forEach(function (x) { var k = String(x.machineNumber || x.machine || '-'); var o = byM[k] || (byM[k] = { n: 0, h: 0 }); o.n++; var v = num(x.hours); if (!isNaN(v)) o.h += v; });
-      h += '<div class="rp-h">Breakdown — machine-wise</div><div class="rp-tw"><table><thead><tr><th>Machine</th><th class="n">Breakdowns</th><th class="n">Hours</th><th class="n">MTTR (hrs)</th></tr></thead><tbody>' +
-        Object.keys(byM).sort(function (a, b) { return byM[b].h - byM[a].h; }).map(function (k) { return '<tr><td>' + esc(k) + '</td><td class="n">' + byM[k].n + '</td><td class="n">' + fmt(byM[k].h) + '</td><td class="n b">' + fmt(byM[k].h / byM[k].n) + '</td></tr>'; }).join('') + '</tbody></table></div>';
+    if (P.type === 'm') {
+      var ds = Object.keys(D.days).map(Number).sort(function (a, b) { return a - b; });
+      if (ds.length) h += '<div class="rp-h">Day-wise entries (all modules)</div><div class="rp-tw"><table><thead><tr><th>Date</th>' + thN('Entries') + '</tr></thead><tbody>' +
+        ds.map(function (d) { return '<tr><td>' + pad2(d) + ' ' + MONF[P.m - 1].slice(0, 3) + ' ' + P.y + '</td><td class="n b">' + D.days[d] + '</td></tr>'; }).join('') + '</tbody></table></div>';
     }
-    return h + '<div class="rp-note">Kisi ek module ki poori detail chahiye to upar "Report for" me us module ko chuno.</div><div class="rp-foot">Milestone Gears Ltd. UNIT-7 • Maintenance Team</div>';
+    if (bdRows.length) {
+      h += '<div class="rp-h">Breakdown — machine-wise</div><div class="rp-tw"><table><thead><tr><th>Machine</th>' + thN('Breakdowns') + thN('Hours') + thN('MTTR (hrs)') + '</tr></thead><tbody>' +
+        D.machines.slice().sort(function (a, b) { return b.h - a.h; }).slice(0, 15).map(function (x) { return '<tr><td>' + esc(x.k) + '</td><td class="n">' + x.n + '</td><td class="n">' + fmt(x.h) + '</td><td class="n b">' + fmt(x.h / x.n) + '</td></tr>'; }).join('') + '</tbody></table></div>';
+      ['type', 'section'].forEach(function (key) { var g = groupBy(bdRows, key, 'hours'); if (g.length) h += groupTable({ k: key, g: g }, 'hours', bdRows.length, 'Breakdown — ' + (key === 'type' ? 'type-wise (E = Electrical / M = Mechanical)' : 'department / section-wise')); });
+    }
+    var sg = groupBy(D.mr, 'status', null); if (sg.length) h += groupTable({ k: 'status', g: sg }, null, D.mr.length, 'Maintenance requests — status-wise');
+    var pg = groupBy(D.sp, 'status', 'cost'); if (pg.length) h += groupTable({ k: 'status', g: pg }, 'cost', D.sp.length, 'Spare purchase — status-wise (stage / value)');
+    var pmg = groupBy(D.pm, 'machineNo', null); if (pmg.length) h += groupTable({ k: 'machineNo', g: pmg }, null, D.pm.length, 'PM check sheets — machine-wise');
+    return h + '<div class="rp-note">Kisi ek module ki poori detail chahiye to upar "Report for" me us module ko chuno.</div>' + signBlock() + '<div class="rp-foot">Milestone Gears Ltd. UNIT-7 • Maintenance Team</div>';
   }
 
-  /* ---------- panel ---------- */
+/* ---------- panel ---------- */
   function fyChoices() {
     var set = {}, now = new Date(); set[fyOf({ y: now.getFullYear(), m: now.getMonth() + 1 })] = 1;
     MODS.forEach(function (m) { if (m.master) return; list(m).forEach(function (r) { var t = recYM(m, r); if (t) set[fyOf(t)] = 1; }); });
@@ -9962,7 +10252,153 @@ html:not(.aam-tl) body main.wrap section.panel .card button.primary,html:not(.aa
     var cur = el('rptFy').value; el('rptFy').innerHTML = fyChoices().map(function (y) { return '<option value="' + y + '">FY ' + fyLabel(y) + '</option>'; }).join(''); if (cur) el('rptFy').value = cur;
   };
 
-  var PCSS = '#reports .rpt-ctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;align-items:end}#reports .rpt-btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}#reports .rpt-btns button{flex:1 1 140px}#reports #rptOut{margin-top:14px}';
+  function excelDoc() { return '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8"><style>' + CSS + '</style></head><body><div class="rp">' + build(false) + '</div></body></html>'; }
+  function shareTitle() { var sc = el('rptScope').value, m = MODS.filter(function (x) { return x.k === sc; })[0], P = getP(); return 'HTP MMS - ' + (m ? m.n : 'Overall App') + ' - ' + typeText(P) + ' Report - ' + perText(P); }
+  function openLink(url) { var a = document.createElement('a'); a.href = url; a.target = '_blank'; a.rel = 'noopener'; document.body.appendChild(a); a.click(); setTimeout(function () { a.remove(); }, 400); }
+
+  /* ---------- PDF: bilkul Print / PDF jaisa format (A4 landscape), seedha file ban kar share hoti hai ---------- */
+  var PDF_W = 1123, PDF_H = 794, PDF_M = 30, PDF_S = 2;
+  function pdfCss() { return CSS.replace('@media print{@page{size:A4 landscape;margin:8mm}body{margin:0}', '@media all{') + '.rp-tw{overflow:visible!important}.rp table.rp-dt{min-width:0!important}'; }
+  function xmlEsc(t) { return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+  function loadSvg(svg) { return new Promise(function (res, rej) { var i = new Image(); i.onload = function () { res(i); }; i.onerror = function () { rej(new Error('Page render fail')); }; i.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg); }); }
+  function canvasJpeg(cv) { return new Promise(function (res, rej) { cv.toBlob(function (b) { if (!b) return rej(new Error('Canvas export fail')); b.arrayBuffer().then(function (ab) { res(new Uint8Array(ab)); }, rej); }, 'image/jpeg', 0.92); }); }
+
+  /* report ko page-wise todna: row ke beech me cut nahi, table ka header agle page par dobara */
+  function pdfPaginate() {
+    var CW = PDF_W - 2 * PDF_M, CH = PDF_H - 2 * PDF_M - 14;
+    var ifr = document.createElement('iframe');
+    ifr.style.cssText = 'position:fixed;left:-20000px;top:0;width:' + CW + 'px;height:1000px;border:0;visibility:hidden';
+    document.body.appendChild(ifr);
+    var d = ifr.contentDocument; d.open();
+    d.write('<!doctype html><html><head><meta charset="utf-8"><style>body{margin:0;background:#fff}' + pdfCss() + '</style></head><body><div class="rp">' + build(true) + '</div></body></html>'); d.close();
+    var imgs = Array.prototype.slice.call(d.images);
+    return Promise.all(imgs.map(function (im) { return im.complete ? 0 : new Promise(function (r) { im.onload = im.onerror = r; }); })).then(function () {
+      var root = d.querySelector('.rp'), pages = [], y0 = 0;
+      for (var guard = 0; guard < 500; guard++) {
+        var rr = root.getBoundingClientRect(), t0 = rr.top, total = rr.height;
+        if (total - y0 <= CH + 1) { pages.push([y0, Math.max(total, y0 + 1)]); break; }
+        var limit = y0 + CH, best = 0;
+        var cand = root.querySelectorAll('.rp-head,.rp-kpis,.rp-box,.rp-note,.rp-sign,tbody tr,tfoot tr');
+        for (var i = 0; i < cand.length; i++) { var bot = cand[i].getBoundingClientRect().bottom - t0; if (bot <= limit + 0.5 && bot > y0 + 24 && bot > best) best = bot; }
+        var y1 = best || limit;
+        pages.push([y0, y1]);
+        var rows = root.querySelectorAll('tbody tr,tfoot tr'), nx = null;
+        for (var j = 0; j < rows.length; j++) { var tp = rows[j].getBoundingClientRect().top - t0; if (tp >= y1 - 1) { nx = rows[j]; break; } }
+        if (nx && Math.abs(nx.getBoundingClientRect().top - t0 - y1) < 3) {
+          var tb = nx.closest('table'), th = tb && tb.querySelector('thead tr');
+          if (th && !(nx.parentNode.tagName === 'TBODY' && nx === nx.parentNode.firstElementChild)) nx.parentNode.insertBefore(th.cloneNode(true), nx);
+        }
+        y0 = y1;
+      }
+      var xml = new XMLSerializer().serializeToString(root), css = xmlEsc(pdfCss());
+      document.body.removeChild(ifr);
+      return { pages: pages, xml: xml, css: css, CW: CW, CH: CH };
+    });
+  }
+  function pdfRender(P, fit) {
+    var out = [];
+    return P.pages.reduce(function (chain, pg, idx) {
+      return chain.then(function () {
+        var h = Math.ceil(pg[1] - pg[0]), ph = fit ? Math.ceil(h + 2 * PDF_M) : PDF_H;
+        var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + PDF_W + '" height="' + ph + '"><rect width="100%" height="100%" fill="#ffffff"/><foreignObject x="' + PDF_M + '" y="' + PDF_M + '" width="' + P.CW + '" height="' + h + '"><div xmlns="http://www.w3.org/1999/xhtml" style="width:' + P.CW + 'px;height:' + h + 'px;overflow:hidden;background:#fff"><style>' + P.css + '</style><div style="margin-top:-' + pg[0] + 'px">' + P.xml + '</div></div></foreignObject></svg>';
+        return loadSvg(svg).then(function (img) {
+          var cv = document.createElement('canvas'); cv.width = PDF_W * PDF_S; cv.height = ph * PDF_S;
+          var cx = cv.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, cv.width, cv.height); cx.drawImage(img, 0, 0, cv.width, cv.height);
+          cx.fillStyle = '#5b6577'; cx.font = (10 * PDF_S) + 'px Arial,Helvetica,sans-serif'; cx.textBaseline = 'alphabetic';
+          cx.textAlign = 'center'; cx.fillText('Page ' + (idx + 1) + ' / ' + P.pages.length, cv.width / 2, (ph - 14) * PDF_S);
+          cx.textAlign = 'left'; cx.fillText('Milestone Gears Ltd. UNIT-7 \u2022 HTP MMS', PDF_M * PDF_S, (ph - 14) * PDF_S);
+          return canvasJpeg(cv);
+        }).then(function (u8) { out.push(u8); });
+      });
+    }, Promise.resolve()).then(function () { return out; });
+  }
+  function buildPdf(jpegs) {
+    var parts = [], pos = 0, offs = [], n = jpegs.length, PW = 842, PH = 595;
+    function bytes(str) { var u = new Uint8Array(str.length); for (var i = 0; i < str.length; i++) u[i] = str.charCodeAt(i) & 255; return u; }
+    function add(x) { var u = typeof x === 'string' ? bytes(x) : x; parts.push(u); pos += u.length; }
+    add('%PDF-1.4\n%\u00e2\u00e3\u00cf\u00d3\n');
+    var kids = []; for (var i = 0; i < n; i++) kids.push((3 + 3 * i) + ' 0 R');
+    offs[1] = pos; add('1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n');
+    offs[2] = pos; add('2 0 obj\n<< /Type /Pages /Kids [' + kids.join(' ') + '] /Count ' + n + ' >>\nendobj\n');
+    for (var k = 0; k < n; k++) {
+      var pg = 3 + 3 * k, ct = pg + 1, im = pg + 2, cs = 'q ' + PW + ' 0 0 ' + PH + ' 0 0 cm /Im0 Do Q';
+      offs[pg] = pos; add(pg + ' 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + PW + ' ' + PH + '] /Resources << /XObject << /Im0 ' + im + ' 0 R >> >> /Contents ' + ct + ' 0 R >>\nendobj\n');
+      offs[ct] = pos; add(ct + ' 0 obj\n<< /Length ' + cs.length + ' >>\nstream\n' + cs + '\nendstream\nendobj\n');
+      offs[im] = pos; add(im + ' 0 obj\n<< /Type /XObject /Subtype /Image /Width ' + (PDF_W * PDF_S) + ' /Height ' + (PDF_H * PDF_S) + ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ' + jpegs[k].length + ' >>\nstream\n'); add(jpegs[k]); add('\nendstream\nendobj\n');
+    }
+    var total = 2 + 3 * n, xr = pos, x = 'xref\n0 ' + (total + 1) + '\n0000000000 65535 f \n';
+    for (var q = 1; q <= total; q++) x += String(offs[q]).padStart(10, '0') + ' 00000 n \n';
+    add(x + 'trailer\n<< /Size ' + (total + 1) + ' /Root 1 0 R >>\nstartxref\n' + xr + '\n%%EOF\n');
+    return new Blob(parts, { type: 'application/pdf' });
+  }
+  function makePdf() { rptGenerate(); return pdfPaginate().then(pdfRender).then(buildPdf); }
+  function pdfNote(t) { var n = el('rptPdfMsg'); if (n) n.textContent = t || ''; }
+  function saveBlob(blob, name) { var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 800); }
+  function pdfFail(e) { pdfNote(''); if (e && e.name === 'AbortError') return; alert('PDF nahi ban payi (' + ((e && e.message) || e) + '). Print / PDF button se PDF save kar lo.'); }
+
+  /* ---------- IMAGE (JPEG): WhatsApp par report image ban kar jati hai (page-wise) ---------- */
+  function makeImages() { rptGenerate(); return pdfPaginate().then(function (P) { return pdfRender(P, true); }); }
+  function imgName(i, n) { return fname() + (n > 1 ? '_page' + (i + 1) : '') + '.jpg'; }
+  function pdfNoteHtml(h) { var n = el('rptPdfMsg'); if (n) n.innerHTML = h || ''; }
+  var IMG_READY = null;
+  function imgFiles(jp) {
+    var files = [];
+    jp.forEach(function (u8, i) { try { files.push(new File([u8], imgName(i, jp.length), { type: 'image/jpeg' })); } catch (e) { } });
+    return files.length === jp.length ? files : null;
+  }
+  function imgDownloadAll(jp) {
+    jp.forEach(function (u8, i) { setTimeout(function () { saveBlob(new Blob([u8], { type: 'image/jpeg' }), imgName(i, jp.length)); }, i * 500); });
+  }
+  window.rptImgDownload = function () {
+    pdfNote('\u23f3 Image ban rahi hai\u2026');
+    makeImages().then(function (jp) { pdfNote(''); imgDownloadAll(jp); }).catch(pdfFail);
+  };
+  window.rptImgShare = function () {
+    pdfNote('\u23f3 Image ban rahi hai\u2026');
+    makeImages().then(function (jp) {
+      pdfNote(''); var tt = shareTitle(), files = imgFiles(jp);
+      if (files && files.length <= 30 && navigator.share && navigator.canShare && navigator.canShare({ files: files })) {
+        IMG_READY = { files: files, title: tt };
+        return navigator.share({ files: files, title: tt, text: tt }).catch(function (e) {
+          if (e && e.name === 'AbortError') return;
+          if (e && e.name === 'NotAllowedError') { pdfNoteHtml('<button type="button" class="primary" style="background:#128c4a!important;border-color:#25d366!important;color:#fff!important" onclick="rptImgShareReady()">\ud83d\udce4 Image tayyar hai (' + files.length + ') \u2014 WhatsApp par bhejo</button>'); return; }
+          throw e;
+        });
+      }
+      /* share-sheet nahi (desktop / purana browser): images download karo, phir WhatsApp kholo */
+      imgDownloadAll(jp);
+      setTimeout(function () {
+        openLink('https://wa.me/?text=' + encodeURIComponent(tt));
+        alert('Report ki ' + jp.length + ' image download ho gayi hai. Ab WhatsApp me Attach (\ud83d\udcce) \u2192 Gallery / Photos se wo image(s) chuno aur bhej do.');
+      }, 900 + jp.length * 500);
+    }).catch(pdfFail);
+  };
+  window.rptImgShareReady = function () {
+    if (!IMG_READY) return;
+    navigator.share({ files: IMG_READY.files, title: IMG_READY.title, text: IMG_READY.title }).then(function () { pdfNoteHtml(''); }).catch(function (e) { if (e && e.name === 'AbortError') return; pdfFail(e); });
+  };
+  window.rptPdfDownload = function () {
+    pdfNote('\u23f3 PDF ban rahi hai\u2026');
+    makePdf().then(function (b) { pdfNote(''); saveBlob(b, fname() + '.pdf'); }).catch(pdfFail);
+  };
+  /* kind: 'wa' ya 'mail' — phone par share-sheet khulti hai (usme WhatsApp / Gmail chuno), PDF attach ho kar jati hai */
+  window.rptPdfShare = function (kind) {
+    pdfNote('\u23f3 PDF ban rahi hai\u2026');
+    makePdf().then(function (blob) {
+      pdfNote(''); var name = fname() + '.pdf', f = null;
+      try { f = new File([blob], name, { type: 'application/pdf' }); } catch (e) { f = null; }
+      if (f && navigator.share && navigator.canShare && navigator.canShare({ files: [f] })) return navigator.share({ files: [f], title: shareTitle(), text: shareTitle() });
+      saveBlob(blob, name);
+      var tt = shareTitle();
+      setTimeout(function () {
+        if (kind === 'mail') openLink('mailto:?subject=' + encodeURIComponent(tt) + '&body=' + encodeURIComponent('Please find the attached report (PDF).\r\n\r\n' + tt));
+        else openLink('https://wa.me/?text=' + encodeURIComponent(tt));
+        alert('PDF download ho gayi hai (' + name + '). Ab ' + (kind === 'mail' ? 'Mail' : 'WhatsApp') + ' me us file ko Attach karke bhej do.');
+      }, 900);
+    }).catch(pdfFail);
+  };
+
+  var PCSS = '#reports .rpt-ctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;align-items:end}#reports .rpt-btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}#reports .rpt-btns button{flex:1 1 140px}#reports #rptOut{margin-top:14px}#reports .rpt-share{margin-top:14px;padding-top:12px;border-top:1px dashed #3b6288}#reports .rpt-share h4{margin:0 0 8px;font-size:13px}';
   function init() {
     var sc = document.querySelector('#appSidebar .side-scroll') || document.querySelector('.app-sidebar .side-scroll'), main = document.querySelector('main.wrap');
     if (!sc || !main || el('reports')) return;
@@ -9972,13 +10408,14 @@ html:not(.aam-tl) body main.wrap section.panel .card button.primary,html:not(.aa
     Object.keys(gs).forEach(function (g) { opts += '<optgroup label="' + esc(g) + '">' + gs[g].map(function (m) { return '<option value="' + m.k + '">' + esc(m.n) + '</option>'; }).join('') + '</optgroup>'; });
     var s = document.createElement('section'); s.id = 'reports'; s.className = 'panel official-module';
     s.innerHTML = '<style>' + PCSS + '</style><div class="card"><div class="head">Milestone Gears Ltd. UNIT-7</div><div class="head2">DAILY, MONTHLY &amp; YEARLY REPORTS</div>' +
-      '<div class="note" style="margin:6px 0 12px">Kisi bhi module ki ya poore app ki Daily / Monthly / Yearly report banao. Yearly = Financial Year (Apr–Mar). Report ko Print / PDF ya Excel me le sakte ho.</div>' +
+      '<div class="note" style="margin:6px 0 12px">Kisi bhi module ki ya poore app ki Daily / Monthly / Yearly report banao. Yearly = Financial Year (Apr–Mar). Report ko Print / PDF ya Excel me le sakte ho, aur PDF WhatsApp / Email par share bhi kar sakte ho.</div>' +
       '<div class="rpt-ctl"><div class="field"><label>Report for</label><select id="rptScope" onchange="rptGenerate()">' + opts + '</select></div>' +
       '<div class="field"><label>Report type</label><select id="rptPeriod" onchange="rptSync();rptGenerate()"><option value="d">Daily</option><option value="m">Monthly</option><option value="y">Yearly (FY Apr–Mar)</option></select></div>' +
       '<div class="field" id="rptDayWrap" style="display:none"><label>Date</label><input type="date" id="rptDay" value="' + dv + '" onchange="rptGenerate()"></div>' +
       '<div class="field" id="rptMonthWrap"><label>Month</label><input type="month" id="rptMonth" value="' + mv + '" onchange="rptGenerate()"></div>' +
       '<div class="field" id="rptFyWrap" style="display:none"><label>Financial year</label><select id="rptFy" onchange="rptGenerate()"></select></div></div>' +
-      '<div class="rpt-btns"><button type="button" class="primary" onclick="rptGenerate()">📊 Generate Report</button><button type="button" class="secondary" onclick="rptPrint()">🖨️ Print / PDF</button><button type="button" class="secondary" onclick="rptExcel()">📥 Excel</button></div></div>' +
+      '<div class="rpt-btns"><button type="button" class="primary" onclick="rptGenerate()">📊 Generate Report</button><button type="button" class="secondary" onclick="rptPrint()">🖨️ Print / PDF</button><button type="button" class="secondary" onclick="rptExcel()">📥 Excel</button></div>' +
+      '<div class=\"rpt-share\"><h4>📤 Share report</h4><div class=\"rpt-btns\"><button type=\"button\" class=\"primary\" style=\"background:#128c4a!important;border-color:#25d366!important;color:#fff!important\" onclick=\"rptImgShare()\">🟢 WhatsApp (Image)</button><button type=\"button\" class=\"secondary\" onclick=\"rptPdfShare(\'mail\')\">✉️ Email (PDF)</button><button type=\"button\" class=\"secondary\" onclick=\"rptPdfDownload()\">⬇️ Download PDF</button><button type=\"button\" class=\"secondary\" onclick=\"rptImgDownload()\">🖼️ Download Image</button></div><div id=\"rptPdfMsg\" class=\"note\" style=\"margin-top:8px\"></div><div class=\"note\" style=\"margin-top:8px\">WhatsApp button report ko page-wise JPEG image bana kar share-sheet kholta hai (image seedha WhatsApp me jati hai, PDF nahi). Email button PDF attach karta hai.</div></div></div>' +
       '<div id="rptOut"></div>';
     main.appendChild(s);
     var g = document.createElement('div'); g.className = 'nav-group'; g.id = 'reportsNavGroup';
@@ -10024,7 +10461,7 @@ var NAVS=[
  {id:'pm',label:'PM sheet',ic:'check'},
  {id:'more',label:'Modules',ic:'apps'}
 ];
-var PAL=['#0148b1','#e8710a','#d93025','#188038','#7b1fa2','#00838f','#c2185b','#3949ab','#546e7a','#8d6e63'];
+var PAL=['#0148b1','#b85209','#d93025','#188038','#7b1fa2','#00838f','#c2185b','#3949ab','#546e7a','#8d6e63'];
 function mix(h,t,a){var n=parseInt(h.slice(1),16),r=[n>>16&255,n>>8&255,n&255].map(function(v,i){return Math.round(v*(1-a)+t[i]*a)});return '#'+r.map(function(v){return ('0'+v.toString(16)).slice(-2)}).join('')}
 function pal(i){var c=PAL[((i%PAL.length)+PAL.length)%PAL.length];return{c:c,s:mix(c,[255,255,255],.88),d:mix(c,[0,0,0],.5)}}
 function tagGroups(){document.querySelectorAll('#appSidebar .nav-group').forEach(function(g,i){if(g.getAttribute('data-aam')===String(i))return;var p=pal(i);g.setAttribute('data-aam',i);g.style.setProperty('--g',p.c);g.style.setProperty('--gs',p.s);g.style.setProperty('--gd',p.d)})}
