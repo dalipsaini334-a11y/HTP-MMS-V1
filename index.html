@@ -2500,7 +2500,7 @@ let calDueSoon=calibrationDueSoon(30);setText('dashCalDue',calDueSoon.length);le
                 'critical':'Critical Spares', 'tc':'Thermocouple', 'cal':'Calibration', 'utility':'Utility', 
                 'airCompressor':'Air Compressor', 'pmMaster':'PM Master Schedule', 'pmMonthly':'Monthly PM',
                 'meeting':'Meeting Log', 'sparePurchase':'Spare Purchase', 'machineMaster':'Machine Master', 'powerCost':'Power Cost (Unit 7)', 'hpsebBill':'HPSEBL Bill (Unit 7)',
-                'satReport':'SAT Report (CQI-9)', 'satTemp':'SAT Temp Verification (FR-HT-39)', 'oxyMV':'Oxy Probe MV Check (FR-HT-40)', 'oxyImp':'O2 Probe Impedance (FR-HT-41)', 'oxyRep':'Oxy Probe Replacement (FMT-HT-71)', 'amc':'AMC Contracts', 'amcLog':'AMC Service Visit Log'
+                'satReport':'SAT Report (CQI-9)', 'satTemp':'SAT Temp Verification (FR-HT-39)', 'oxyMV':'Oxy Probe MV Check (FR-HT-40)', 'oxyImp':'O2 Probe Impedance (FR-HT-41)', 'oxyRep':'Oxy Probe Replacement (FMT-HT-71)', 'amc':'AMC Contracts', 'amcLog':'AMC Service Visit Log', 'printFmt':'Print Formats'
             };
 
             if (recentAudits.length > 0) {
@@ -4571,7 +4571,7 @@ const GS_CFG_KEY='htp_mms_gs_cfg_v1',GS_META_KEY='htp_mms_gs_meta_v1';
 // LIVE BACKEND: shared by every browser/device. The token must match Code.gs.
 // Device-local localStorage is still used for cache/state, but the Google Sheet is the shared source.
 const GS_DEFAULT_URL='https://script.google.com/macros/s/AKfycbwhKmOBMXzuIcMOFwFeSyQ32ZBfSOfcc99yv1sfFmElA_TSN6Q8Rf2OSKyUN8I4Bg16/exec';
-const GS_ALL=['pf','pc','dg','mr','mh','pm','bd','spares','critical','tc','cal','utility','airCompressor','machineMaster','users','pmPlan','pmCheck','pmMap', 'audit','meeting','sparePurchase','powerCost','hpsebBill','satReport','satTemp','oxyMV','oxyImp','oxyRep','mttr','amc','amcLog'];
+const GS_ALL=['pf','pc','dg','mr','mh','pm','bd','spares','critical','tc','cal','utility','airCompressor','machineMaster','users','pmPlan','pmCheck','pmMap', 'audit','meeting','sparePurchase','powerCost','hpsebBill','satReport','satTemp','oxyMV','oxyImp','oxyRep','mttr','amc','amcLog','printFmt'];
 // PM Plan schedule / PM checklists / machine-checklist map pehle localStorage me alag save
 // hote the aur kabhi sync hi nahi hote the - isliye ek device ka PM schedule change dusre
 // device par nahi dikhta tha. Ab inhe bhi upar wale GS_ALL engine se hi sync karte hain.
@@ -4631,8 +4631,8 @@ function gsHash(str){let h1=0xdeadbeef,h2=0x41c6ce57;for(let i=0,ch;i<str.length
 function gsClean(r){return JSON.stringify(r,function(k,v){if(k==='evidence')return undefined;if((k==='h'||k==='s'||k==='p')&&this&&typeof this.u==='string'&&this.role!==undefined)return undefined;return v})}
 /* ===== Sheet report tabs: one tab per module (and per month), same columns as the print formats ===== */
 const GS_MONTHLY=['pf','pc','dg','mr','bd','mh','airCompressor','utility','pm','pmPlan','meeting'];
-const GS_MASTERS=['mttr','spares','critical','tc','cal','machineMaster','utility', 'audit','meeting','sparePurchase','powerCost','hpsebBill','satReport','satTemp','oxyMV','oxyImp','oxyRep','amc','amcLog']; 
-const GS_TAB={pf:'PowerFactor',pc:'PowerCut',dg:'DG',mr:'MaintReq',bd:'Breakdown',mh:'MachHistory',airCompressor:'AirCompressor',utility:'UtilityLog',spares:'SpareParts',critical:'CriticalSpares',tc:'Thermocouple',cal:'Calibration',machineMaster:'MachineMaster', audit:'AuditLog',meeting:'MeetingLog',sparePurchase:'SparePurchase',powerCost:'PowerCost',hpsebBill:'HPSEBLBill',pm:'PMCheckSheet',pmPlan:'PMPlan',satReport:'SATReport',satTemp:'SATTemp',oxyMV:'OxyMV',oxyImp:'OxyImpedance',oxyRep:'OxyReplace',amc:'AMCContracts',amcLog:'AMCServiceLog',mttr:'MTTR'};
+const GS_MASTERS=['mttr','spares','critical','tc','cal','machineMaster','utility', 'audit','meeting','sparePurchase','powerCost','hpsebBill','satReport','satTemp','oxyMV','oxyImp','oxyRep','amc','amcLog','printFmt']; 
+const GS_TAB={pf:'PowerFactor',pc:'PowerCut',dg:'DG',mr:'MaintReq',bd:'Breakdown',mh:'MachHistory',airCompressor:'AirCompressor',utility:'UtilityLog',spares:'SpareParts',critical:'CriticalSpares',tc:'Thermocouple',cal:'Calibration',machineMaster:'MachineMaster', audit:'AuditLog',meeting:'MeetingLog',sparePurchase:'SparePurchase',powerCost:'PowerCost',hpsebBill:'HPSEBLBill',pm:'PMCheckSheet',pmPlan:'PMPlan',satReport:'SATReport',satTemp:'SATTemp',oxyMV:'OxyMV',oxyImp:'OxyImpedance',oxyRep:'OxyReplace',amc:'AMCContracts',amcLog:'AMCServiceLog',mttr:'MTTR',printFmt:'PrintFormats'};
 const GS_COMPANY='Milestone Gears Ltd. UNIT-7';
 function gsMonthKey(d){d=String(d||'').slice(0,7);return /^\d{4}-\d{2}$/.test(d)?d:''}
 function gsNextMonth(mk){const y=+mk.slice(0,4),m=+mk.slice(5,7);return m===12?(y+1)+'-01':y+'-'+String(m+1).padStart(2,'0')}
@@ -4647,7 +4647,7 @@ function gsRecMonth(mod,r){
  if(mod==='mr')return gsMonthKey(r.pdate||r.mdate||r.hdate)||null;
  if(mod==='utility')return gsIsUtilLog(r)?(gsMonthKey(r.date)||null):'*';
  if(['pf','pc','dg','bd','mh','airCompressor'].indexOf(mod)>=0)return gsMonthKey(r.date)||null;
- if(['spares','critical','tc','cal','machineMaster', 'audit','sparePurchase','powerCost','hpsebBill','satReport','satTemp','oxyMV','oxyImp','oxyRep','mttr','amc','amcLog'].indexOf(mod)>=0)return '*';
+ if(['spares','critical','tc','cal','machineMaster', 'audit','sparePurchase','powerCost','hpsebBill','satReport','satTemp','oxyMV','oxyImp','oxyRep','mttr','amc','amcLog','printFmt'].indexOf(mod)>=0)return '*';
  if(mod==='meeting'||mod==='pm')return gsMonthKey(r.date)||null;
  if(mod==='pmPlan')return r.t==='m'?'*':(gsPmKeyMonth(r.k)||null);
  return null;
@@ -11116,6 +11116,465 @@ build();bind();hook();sync();setupBack();initCards();
 window.addEventListener('load',function(){setTimeout(sync,300)});
 setInterval(sync,2500);
 })();
+</script>
+<script type="text/mms-defer" id="print-format-manager">
+/* =====================================================================
+   PRINT FORMAT MANAGER  (Admin only)
+   Har module ke print ka format (company naam, title, Format No./Rev/Date, signature
+   labels, column headings, page size/orientation/margin/scale, header/footer note)
+   app ke andar se badalne ke liye. Settings data.printFmt me save hoti hain aur
+   baaki modules ki tarah Google Sheet se sync hoti hain, isliye sab devices par
+   wahi format print hota hai. Editor sirf Admin ko dikhta hai; print par format
+   sabke liye lagta hai.
+   ===================================================================== */
+(function () {
+  'use strict';
+  if (window.__pfm) return; window.__pfm = 1;
+  var $ = function (id) { return document.getElementById(id); };
+  var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  var norm = function (s) { return String(s == null ? '' : s).replace(/\s+/g, ' ').trim(); };
+
+  if (typeof KEY !== 'undefined' && !KEY.printFmt) KEY.printFmt = 'htp7_print_formats_v1';
+  if (typeof data !== 'undefined' && !Array.isArray(data.printFmt)) data.printFmt = (typeof load === 'function') ? load('printFmt') : [];
+
+  /* ---------------- catalog: kaun-kaun se prints ---------------- */
+  // k=key, n=naam, g=group, fn=wrap hone wale functions, d=sample print ka code, box=in-page print container
+  var CAT = [
+    { k: '_all', n: '★ All Modules (common settings)', g: 'Common' },
+    { k: 'pf', n: 'Power Factor Log', g: 'Utility & Energy', fn: ['printReadingLog'], d: "printReadingLog('pf')" },
+    { k: 'pc', n: 'Power Cut Detail', g: 'Utility & Energy', fn: ['printReadingLog'], d: "printReadingLog('pc')" },
+    { k: 'dg', n: 'DG Daily Reading', g: 'Utility & Energy', fn: ['printReadingLog'], d: "printReadingLog('dg')" },
+    { k: 'airCompressor', n: 'Air Compressor KWH', g: 'Utility & Energy', fn: ['printAirCompressor'], d: 'printAirCompressor()' },
+    { k: 'powerCost', n: 'Power Cost (Unit 7)', g: 'Utility & Energy', fn: ['pwPrint'], d: "pwPrint('powerCost')" },
+    { k: 'hpsebBill', n: 'HPSEBL Bill (Unit 7)', g: 'Utility & Energy', fn: ['pwPrint'], d: "pwPrint('hpsebBill')" },
+    { k: 'mr', n: 'Maintenance Request Slip', g: 'Maintenance', fn: ['printMR', 'printSavedMR'], box: 'printSlip' },
+    { k: 'mrMonth', n: 'Maintenance Request - Monthly Register', g: 'Maintenance', fn: ['printMRMonth'], d: 'printMRMonth()', box: 'mrMonthPrintPage' },
+    { k: 'bd', n: 'Breakdown Register (Monthly)', g: 'Maintenance', fn: ['printBreakdownMonth'], d: 'printBreakdownMonth()', box: 'breakdownPrintPages' },
+    { k: 'mttr', n: 'MTTR / MTBF Report', g: 'Maintenance', fn: ['printMTTRReport'], d: 'printMTTRReport()', box: 'mttrPrintPage' },
+    { k: 'mh', n: 'Machine History Card', g: 'Maintenance', fn: ['printHistoryRow', 'printHistoryCurrent'], box: 'printHistory' },
+    { k: 'meeting', n: 'Daily Meeting Register', g: 'Maintenance', fn: ['printMeetingLog'], d: 'printMeetingLog()' },
+    { k: 'pm', n: 'PM Check Sheet', g: 'Preventive Maintenance', fn: ['printPM'], d: 'printPM(0)' },
+    { k: 'pmPlan', n: 'PM Monthly Work Register', g: 'Preventive Maintenance', fn: ['printPMPlan'], d: 'printPMPlan()' },
+    { k: 'pmYearly', n: 'Yearly PM Calendar', g: 'Preventive Maintenance', fn: ['printPMYearlyCalendar'], d: 'printPMYearlyCalendar()' },
+    { k: 'spares', n: 'Spare Parts Inventory', g: 'Spares & Stores', fn: ['printSpareParts'], d: 'printSpareParts()' },
+    { k: 'lowStock', n: 'Low Stock Spares Report', g: 'Spares & Stores', fn: ['printLowStockSpares'], d: 'printLowStockSpares()' },
+    { k: 'critical', n: 'Critical Spares Register', g: 'Spares & Stores', fn: ['printCriticalSpares'], d: 'printCriticalSpares()' },
+    { k: 'purchase', n: 'Spare Part Purchase Register', g: 'Spares & Stores', fn: ['printPurchaseRegister'], d: 'printPurchaseRegister()' },
+    { k: 'utilityMaster', n: 'Maint & Utility Item Master', g: 'Spares & Stores', fn: ['printUtilityMaster'], d: 'printUtilityMaster()' },
+    { k: 'utilityHistory', n: 'Maint & Utility History', g: 'Spares & Stores', fn: ['printUtilityHistory'], d: 'printUtilityHistory()' },
+    { k: 'tc', n: 'Thermocouple Replacement Plan', g: 'Planning & Compliance', fn: ['printThermocouplePlan'], d: 'printThermocouplePlan()' },
+    { k: 'cal', n: 'Periodic Calibration Plan', g: 'Planning & Compliance', fn: ['printCalibrationPlan'], d: 'printCalibrationPlan()' },
+    { k: 'mm', n: 'Machine Master List', g: 'Master Data', fn: ['printMachineMaster'], d: 'printMachineMaster()' },
+    { k: 'satReport', n: 'SAT Report (FR-HT-42)', g: 'HT Quality (CQI-9)', fn: ['hqPrintSatReportSel', 'hqPrintSatReport'], d: 'hqPrintSatReportSel()' },
+    { k: 'satRegister', n: 'SAT Register (12 months)', g: 'HT Quality (CQI-9)', fn: ['hqPrintSatRegister'], d: 'hqPrintSatRegister()' },
+    { k: 'satTemp', n: 'SAT Temp Verification (FR-HT-39)', g: 'HT Quality (CQI-9)', fn: ['hqPrintSatTemp'], d: 'hqPrintSatTemp()' },
+    { k: 'oxyMV', n: 'Oxy Probe MV Check (FR-HT-40)', g: 'HT Quality (CQI-9)', fn: ['hqPrintMV'], d: 'hqPrintMV()' },
+    { k: 'oxyImp', n: 'O2 Probe Impedance (FR-HT-41)', g: 'HT Quality (CQI-9)', fn: ['hqPrintImp'], d: 'hqPrintImp()' },
+    { k: 'oxyRep', n: 'Oxy Probe Replacement (FMT-HT-71)', g: 'HT Quality (CQI-9)', fn: ['hqPrintRep'], d: 'hqPrintRep()' },
+    { k: 'amcContracts', n: 'AMC & Service Register', g: 'AMC & Service', fn: ['hqPrintAmcContracts'], d: 'hqPrintAmcContracts()' },
+    { k: 'amcLog', n: 'AMC Service Visit Log', g: 'AMC & Service', fn: ['hqPrintAmcLog'], d: 'hqPrintAmcLog()' },
+    { k: 'amcPlan', n: 'AMC Service Plan', g: 'AMC & Service', fn: ['hqPrintAmcPlan'], d: 'hqPrintAmcPlan()' }
+  ];
+  var BYK = {}; CAT.forEach(function (c) { BYK[c.k] = c; });
+  var PAGE_SIZES = ['A3', 'A4', 'A5', 'Letter', 'Legal'];
+
+  function sess() { try { return (typeof mmsSession === 'function') ? mmsSession() : null; } catch (e) { return null; } }
+  function isAdmin() { var s = sess(); return !!(s && s.role === 'Admin'); }
+
+  /* ---------------- config lookup ---------------- */
+  var draft = {};              // preview ke dauran unsaved settings
+  function rec(key) {
+    if (draft[key]) return draft[key];
+    var a = (typeof data !== 'undefined' && data.printFmt) || [];
+    for (var i = 0; i < a.length; i++) if (a[i] && a[i].key === key) return a[i];
+    return null;
+  }
+  function pick(a, b) { return (a !== undefined && a !== null && a !== '') ? a : b; }
+  function effective(key) {
+    var g = rec('_all') || {}, m = rec(key) || {};
+    return {
+      company: g.company || '',
+      size: pick(m.size, g.size) || '', orient: pick(m.orient, g.orient) || '',
+      margin: pick(m.margin, g.margin), scale: pick(m.scale, g.scale),
+      hdr: pick(m.hdr, g.hdr) || '', ftr: pick(m.ftr, g.ftr) || '',
+      rules: (m.rules || []).concat(g.rules || [])
+    };
+  }
+  function hasAny(e) {
+    return !!(e.company || e.size || e.orient || (e.margin !== undefined && e.margin !== null && e.margin !== '') ||
+      (e.scale !== undefined && e.scale !== null && e.scale !== '' && +e.scale !== 100) || e.hdr || e.ftr || (e.rules && e.rules.length));
+  }
+
+  /* ---------------- text rules ---------------- */
+  var KW = /(FMT|FR-|DOC|REV|ISSUE|EFFECTIVE|APPROVED|CHECKED|PREPARED|VERIFIED|SIGN|MILESTONE|H\.?O\.?D|WORK DONE|ENGG|FREQUENCY|DATE\s*[:=\-])/i;
+  function where(node) {      // 'h' = header/footer text, 'c' = column heading, null = data
+    var p = node.parentNode; if (!p || p.nodeType !== 1) return null;
+    if (/^(SCRIPT|STYLE|TEXTAREA|OPTION|TITLE|NOSCRIPT)$/.test(p.nodeName)) return null;
+    var t = norm(node.nodeValue); if (t.length < 2 || t.length > 220) return null;
+    var inT = p.closest ? p.closest('table') : null;
+    if (!inT) return 'h';
+    if (p.closest('th') || p.closest('.label') || /^(B|STRONG)$/.test(p.nodeName)) return 'c';
+    if (KW.test(t) && !/^[\d.\-\/: ]+$/.test(t) && t.length <= 140) return 'h';
+    return null;
+  }
+  function mkRule(o, n, w) {
+    var i = 0; while (i < o.length && i < n.length && o.charAt(i) === n.charAt(i)) i++;
+    var j = 0; while (j < o.length - i && j < n.length - i && o.charAt(o.length - 1 - j) === n.charAt(n.length - 1 - j)) j++;
+    return { o: o, n: n, w: w || 'h', d: /\d/.test(o) ? 1 : 0, pre: o.slice(0, i), f: o.slice(i, o.length - j), r: n.slice(i, n.length - j), post: o.slice(o.length - j) };
+  }
+  function applyRule(t, ru) {         // t = normalised text, returns new text or null
+    if (ru.c) { if (ru.f && ru.f.length >= 2 && t.indexOf(ru.f) >= 0) return t.split(ru.f).join(ru.r || ''); return null; }
+    if (t === ru.o) return ru.n;
+    if (ru.d) {                       // date / month wali lines: sirf fixed words badlo, dynamic hissa waisa hi rahe
+      var pre = ru.pre || '', post = ru.post || '';
+      if ((pre + ru.f).length >= 4 && t.indexOf(pre + ru.f) === 0) return pre + ru.r + t.slice((pre + ru.f).length);
+      if ((ru.f + post).length >= 4 && t.length >= (ru.f + post).length && t.slice(t.length - (ru.f + post).length) === ru.f + post) return t.slice(0, t.length - (ru.f + post).length) + ru.r + post;
+    }
+    return null;
+  }
+  var CO_RE = /Milestone\s+Gears\s+Ltd\.?(?:\s*\(?\s*UNIT\s*-?\s*7\s*\)?)?/gi;
+  function rewriteText(t, w, eff) {
+    var cur = t, i, out;
+    for (i = 0; i < eff.rules.length; i++) {
+      var ru = eff.rules[i]; if (!ru) continue;
+      if (!ru.c && ru.w && ru.w !== w) continue;
+      out = applyRule(cur, ru); if (out !== null) cur = out;
+    }
+    if (eff.company) cur = cur.replace(CO_RE, function () { return eff.company; });
+    return cur;
+  }
+  function rewriteRoot(root, eff, undo) {
+    var doc = root.ownerDocument || document, tw = doc.createTreeWalker(root, 4, null, false), nodes = [], n;
+    while ((n = tw.nextNode())) nodes.push(n);
+    nodes.forEach(function (nd) {
+      var w = where(nd), raw = nd.nodeValue, t = norm(raw);
+      if (!t) return;
+      var cur;
+      if (w) cur = rewriteText(t, w, eff);
+      else if (eff.company && CO_RE.test(t)) { CO_RE.lastIndex = 0; cur = t.replace(CO_RE, function () { return eff.company; }); }
+      else { CO_RE.lastIndex = 0; var cr = eff.rules.filter(function (r) { return r && r.c; }); if (!cr.length) return; cur = t; cr.forEach(function (ru) { var o = applyRule(cur, ru); if (o !== null) cur = o; }); }
+      CO_RE.lastIndex = 0;
+      if (cur !== t) {
+        var lead = raw.match(/^\s*/)[0], trail = raw.match(/\s*$/)[0];
+        if (undo) undo.push([nd, raw]);
+        nd.nodeValue = lead + cur + trail;
+      }
+    });
+  }
+
+  /* ---------------- page css / notes ---------------- */
+  function origPageSize(doc) {
+    var txt = ''; [].forEach.call(doc.querySelectorAll('style'), function (s) { txt += s.textContent + '\n'; });
+    var m, re = /@page\s*[^{]*\{[^}]*size\s*:\s*([^;}]+)/gi, last = '';
+    while ((m = re.exec(txt))) last = m[1];
+    return { size: (/(A3|A4|A5|Letter|Legal)/i.exec(last) || [])[1] || '', orient: (/(landscape|portrait)/i.exec(last) || [])[1] || '' };
+  }
+  function pageCss(doc, e, inpage) {
+    var css = '', o = inpage ? {} : origPageSize(doc), sz = '';
+    if (e.size || e.orient) { sz = (e.size || o.size || 'A4') + ' ' + (e.orient || o.orient || 'portrait'); }
+    var mg = (e.margin !== undefined && e.margin !== null && e.margin !== '' && !isNaN(+e.margin)) ? (+e.margin) + 'mm' : '';
+    if (sz || mg) css = '@page{' + (sz ? 'size:' + sz + ';' : '') + (mg ? 'margin:' + mg + ';' : '') + '}';
+    return css;
+  }
+  var NOTE_ST = 'text-align:center;font:600 11px Arial,Helvetica,sans-serif;color:#000;margin:2mm 0;white-space:pre-line';
+  function addNote(root, txt, atEnd, bag) {
+    if (!txt) return;
+    var d = (root.ownerDocument || document).createElement('div');
+    d.setAttribute('data-pf-note', '1'); d.setAttribute('style', NOTE_ST); d.textContent = txt;
+    if (atEnd) root.appendChild(d); else root.insertBefore(d, root.firstChild);
+    if (bag) bag.push(d);
+  }
+  function scaleOf(e) { var s = +e.scale; return (s && s > 20 && s < 300 && s !== 100) ? s / 100 : 0; }
+
+  /* ---------------- popup (print window) ---------------- */
+  function applyPopup(w, key) {
+    if (w.__pfDone) return; var e = effective(key); w.__pfDone = 1;
+    if (!hasAny(e)) return;
+    var d = w.document; if (!d || !d.body) return;
+    rewriteRoot(d.body, e, null);
+    try { if (d.title) d.title = rewriteText(norm(d.title), 'h', e); } catch (x) { }
+    addNote(d.body, e.hdr, false); addNote(d.body, e.ftr, true);
+    var css = pageCss(d, e), sc = scaleOf(e);
+    if (sc) css += 'body{zoom:' + sc + '}';
+    if (css) { var st = d.createElement('style'); st.setAttribute('data-pf-style', '1'); st.textContent = css; (d.head || d.documentElement).appendChild(st); }
+  }
+  var stack = [];
+  function curKey() { return stack.length ? stack[stack.length - 1] : null; }
+  var oOpen = window.open;
+  window.open = function () {
+    var k = curKey(), w = oOpen.apply(this, arguments);
+    try {
+      if (k && w && w.document) {
+        var d = w.document, oc = d.close;
+        d.close = function () { var r = oc.apply(d, arguments); try { applyPopup(w, k); } catch (x) { console.warn('PFM', x); } return r; };
+        w.addEventListener('beforeprint', function () { try { applyPopup(w, k); } catch (x) { } });
+      }
+    } catch (x) { }
+    return w;
+  };
+
+  /* ---------------- in-page print (slip, history, breakdown, MTTR ...) ---------------- */
+  var oPrint = window.print;
+  window.print = function () {
+    var k = curKey(), meta = k && BYK[k], undo = null;
+    if (meta && meta.box && !window.__pfDetecting) { try { undo = applyInPage(k, meta); } catch (x) { console.warn('PFM', x); } }
+    if (undo) {
+      var done = function () { window.removeEventListener('afterprint', done); try { undo(); } catch (x) { } };
+      window.addEventListener('afterprint', done); setTimeout(done, 20000);
+    }
+    return oPrint.apply(this, arguments);
+  };
+  function applyInPage(key, meta) {
+    var e = effective(key); if (!hasAny(e)) return null;
+    var box = $(meta.box); if (!box) return null;
+    var undo = [], notes = [], styleEl = null, oldZoom = box.style.zoom;
+    rewriteRoot(box, e, undo);
+    var host = box.firstElementChild || box;
+    addNote(host, e.hdr, false, notes); addNote(host, e.ftr, true, notes);
+    var css = pageCss(document, e, true); if (css) { styleEl = document.createElement('style'); styleEl.textContent = css; document.head.appendChild(styleEl); }
+    var sc = scaleOf(e); if (sc) box.style.zoom = sc;
+    return function () {
+      undo.forEach(function (u) { try { u[0].nodeValue = u[1]; } catch (x) { } });
+      notes.forEach(function (n) { try { n.remove(); } catch (x) { } });
+      if (styleEl) try { styleEl.remove(); } catch (x) { }
+      box.style.zoom = oldZoom || '';
+    };
+  }
+
+  /* ---------------- print functions ko wrap karna (kaun sa module print ho raha hai) ---------------- */
+  var KEYOF = {
+    printReadingLog: function (a) { return a[0]; },
+    pwPrint: function (a) { return a[0]; }
+  };
+  var STATIC = {};
+  CAT.forEach(function (c) { (c.fn || []).forEach(function (f) { if (!KEYOF[f] && !STATIC[f]) STATIC[f] = c.k; }); });
+  function wrapAll() {
+    var names = {}; CAT.forEach(function (c) { (c.fn || []).forEach(function (f) { names[f] = 1; }); });
+    Object.keys(names).forEach(function (name) {
+      var o = window[name]; if (typeof o !== 'function' || o.__pf) return;
+      var w = function () {
+        var k = KEYOF[name] ? KEYOF[name](arguments) : STATIC[name];
+        stack.push(k);
+        try { return o.apply(this, arguments); } finally { stack.pop(); }
+      };
+      w.__pf = 1; try { window[name] = w; } catch (x) { }
+    });
+  }
+  wrapAll();
+  // baad me define hone wale (late-loaded) functions ke liye ek baar aur
+  setTimeout(wrapAll, 1500); setTimeout(wrapAll, 5000);
+
+  /* ---------------- sample print capture (editor ke liye) ---------------- */
+  function capture(code) {
+    var html = '', al = '', oo = window.open, op = window.print, oa = window.alert, oc = window.confirm;
+    var fake = { document: { write: function (h) { html += h; }, writeln: function (h) { html += h; }, open: function () { }, close: function () { } }, focus: function () { }, print: function () { }, close: function () { }, addEventListener: function () { }, onload: null };
+    window.__pfDetecting = 1;
+    window.open = function () { return fake; }; window.print = function () { }; window.alert = function (m) { al = String(m || ''); }; window.confirm = function () { return true; };
+    try { (new Function(code)).call(window); } catch (x) { al = 'ERR ' + x.message; }
+    finally { window.open = oo; window.print = op; window.alert = oa; window.confirm = oc; window.__pfDetecting = 0; }
+    try { window.dispatchEvent(new Event('afterprint')); } catch (x) { }
+    return { html: html, alert: al };
+  }
+  function sampleHtml(meta) {
+    var out = { html: '', alert: '' };
+    if (meta.d) out = capture(meta.d);
+    if (!out.html && meta.box) {
+      var b = $(meta.box);
+      if (b) { var c = b.cloneNode(true); [].forEach.call(c.querySelectorAll('[id^="ps_"],[id^="ph_"]'), function (x) { x.textContent = ''; }); [].forEach.call(c.querySelectorAll('img,svg,script,style'), function (x) { x.remove(); }); out.html = c.innerHTML; }
+    }
+    return out;
+  }
+  function collect(html) {
+    var doc = new DOMParser().parseFromString('<!doctype html><html><body>' + html + '</body></html>', 'text/html');
+    if (/<html[\s>]/i.test(html)) doc = new DOMParser().parseFromString(html, 'text/html');
+    [].forEach.call(doc.querySelectorAll('script,style,svg,img'), function (x) { x.remove(); });
+    var tw = doc.createTreeWalker(doc.body, 4, null, false), n, seen = {}, out = [];
+    while ((n = tw.nextNode())) {
+      var w = where(n); if (!w) continue; var t = norm(n.nodeValue);
+      if (seen[w + '|' + t]) continue; seen[w + '|' + t] = 1; out.push({ t: t, w: w });
+      if (out.length >= 90) break;
+    }
+    return out;
+  }
+
+  /* ---------------- editor UI ---------------- */
+  var st = null;       // current editing state
+  var CSS = '#printFormats .pfm-help{font-size:12px;color:#9fc0e0;margin:6px 0 10px;line-height:1.5}' +
+    '#printFormats .pfm-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:10px 0}' +
+    '#printFormats .card label{display:block;font-size:11px;font-weight:700;margin-bottom:3px;text-transform:uppercase;letter-spacing:.3px}' +
+    '#printFormats .card input,#printFormats .card select{width:100%;box-sizing:border-box;font-size:14px}' +
+    '#printFormats .pfm-sec{font-size:13px;font-weight:800;margin:16px 0 6px;color:#7fe0d2;border-bottom:1px solid rgba(159,192,224,.35);padding-bottom:4px}' +
+    '#printFormats .pfm-row{display:grid;grid-template-columns:1fr;gap:4px;padding:8px 0;border-bottom:1px dashed rgba(159,192,224,.3)}' +
+    '#printFormats .pfm-row small{font-size:12px;color:#cfe3f7;word-break:break-word}' +
+    '#printFormats .pfm-row.chg input{outline:2px solid #2dd4bf}' +
+    '#printFormats .pfm-tag{display:inline-block;font-size:10px;font-weight:800;border-radius:6px;padding:1px 6px;margin-right:6px;background:rgba(159,192,224,.22);color:#cfe3f7}' +
+    '#printFormats .pfm-btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}' +
+    '#printFormats .pfm-btns button{flex:1 1 130px;padding:10px 12px;border-radius:9px;border:1px solid #7fe0d2;background:transparent;color:#7fe0d2;font-weight:800;font-size:14px;cursor:pointer}' +
+    '#printFormats .pfm-btns button.pri{background:#0f766e;border-color:#0f766e;color:#fff}' +
+    '#printFormats .pfm-btns button.dng{border-color:#ff8a80;color:#ff8a80}' +
+    '#printFormats .pfm-rule{display:grid;grid-template-columns:1fr 1fr auto;gap:6px;margin-bottom:6px;align-items:center}' +
+    '#printFormats .pfm-rule button{padding:8px 10px;border-radius:8px;border:1px solid #ff8a80;background:transparent;color:#ff8a80;font-weight:800}' +
+    '#printFormats .pfm-stat{font-size:12px;font-weight:700;margin:6px 0;color:#cfe3f7}';
+
+  function buildPanel() {
+    var main = document.querySelector('main.wrap'); if (!main || $('printFormats')) return;
+    var s = document.createElement('section'); s.id = 'printFormats'; s.className = 'panel official-module';
+    var groups = {}, order = [];
+    CAT.forEach(function (c) { if (!groups[c.g]) { groups[c.g] = []; order.push(c.g); } groups[c.g].push(c); });
+    var opts = order.map(function (g) { return '<optgroup label="' + esc(g) + '">' + groups[g].map(function (c) { return '<option value="' + c.k + '">' + esc(c.n) + '</option>'; }).join('') + '</optgroup>'; }).join('');
+    s.innerHTML = '<style>' + CSS + '</style>' +
+      '<div class="card"><div class="head">🖨️ Print Format Manager <span style="font-size:11px;font-weight:700;opacity:.8">(ADMIN ONLY)</span></div>' +
+      '<div class="pfm-help">Yahan se kisi bhi module ke print ka format badlo - code change ki zaroorat nahi. Module chuno, jo text badalna hai (company naam, Format No., Rev, Date, signature, column heading) uske samne naya text likho, page size / margin set karo aur <b>Save</b> dabao. Naya format sabhi users ke print par lagega (Google Sheet sync ke baad dusre devices par bhi).</div>' +
+      '<label>Module</label><select id="pfmSel" onchange="pfmPick(this.value)">' + opts + '</select></div>' +
+      '<div class="card" id="pfmEd"></div>';
+    main.appendChild(s);
+  }
+  function ensureNav() {
+    var adm = isAdmin(), btn = $('sidebarPrintFmtTab');
+    if (adm) {
+      if (!$('printFormats')) buildPanel();
+      if (!btn) {
+        var sc = document.querySelector('.app-sidebar .side-scroll'); if (!sc) return;
+        var mt = $('sidebarMeetingTab'), grp = mt ? mt.parentNode : $('pfmNavGroup');
+        if (!grp) { grp = document.createElement('div'); grp.className = 'nav-group'; grp.id = 'pfmNavGroup'; grp.innerHTML = '<div class="nav-group-title">ADMIN TOOLS</div>'; sc.appendChild(grp); }
+        var b = document.createElement('button'); b.type = 'button'; b.className = 'tab'; b.id = 'sidebarPrintFmtTab'; b.setAttribute('data-target', 'printFormats');
+        b.setAttribute('onclick', "showTab('printFormats',this);pfmOpen()"); b.innerHTML = '<span>🖨️</span> Print Format Manager';
+        grp.appendChild(b);
+      }
+    } else {
+      if (btn) btn.remove();
+      var p = $('printFormats');
+      if (p) { if (p.classList.contains('active')) { try { var d = document.querySelector('.app-sidebar .tab[data-target="dashboard"]'); showTab('dashboard', d); } catch (x) { } } p.remove(); }
+      var g = $('pfmNavGroup'); if (g && !g.querySelector('.tab')) g.remove();
+      st = null;
+    }
+  }
+
+  function field(id, label, val, type, ph) { return '<div><label>' + label + '</label><input id="' + id + '" type="' + (type || 'text') + '" value="' + esc(val == null ? '' : val) + '" placeholder="' + esc(ph || '') + '"></div>'; }
+  function sel(id, label, val, list, blank) {
+    return '<div><label>' + label + '</label><select id="' + id + '"><option value="">' + blank + '</option>' + list.map(function (x) { var v = Array.isArray(x) ? x[0] : x, l = Array.isArray(x) ? x[1] : x; return '<option value="' + v + '"' + (v === val ? ' selected' : '') + '>' + l + '</option>'; }).join('') + '</select></div>';
+  }
+  function g(id) { var e = $(id); return e ? e.value : ''; }
+
+  window.pfmOpen = function () { if (!isAdmin()) return; ensureNav(); var s = $('pfmSel'); pfmPick(s ? s.value : '_all'); };
+  window.pfmPick = function (key) {
+    if (!isAdmin()) return; key = key || '_all';
+    var s = $('pfmSel'); if (s) s.value = key;
+    var meta = BYK[key], r = JSON.parse(JSON.stringify(rec(key) || { key: key })), ed = $('pfmEd'); if (!ed || !meta) return;
+    st = { key: key, meta: meta, rec: r, lines: [], vals: [], rules: (r.rules || []).slice(), custom: [] };
+    st.rules = st.rules.filter(function (x) { if (x.c) { st.custom.push({ f: x.f, r: x.r }); return false; } return true; });
+    var isAll = key === '_all';
+    var html = '<div class="head2">' + esc(meta.n) + '</div><div class="pfm-stat" id="pfmStat">' + (rec(key) ? '✅ Custom format saved hai' : 'Default (original) format chal raha hai') + '</div>';
+    if (isAll) html += '<div class="pfm-sec">Company name (sabhi prints me)</div><div class="pfm-grid" style="grid-template-columns:1fr">' + field('pfmCompany', 'Company name (poora likho, UNIT bhi)', r.company, 'text', 'Milestone Gears Ltd. UNIT-7') + '</div><div class="pfm-help">Khali chhodo to original naam hi print hoga.</div>';
+    html += '<div class="pfm-sec">Page setup' + (isAll ? ' (default - module me alag set na ho to ye lagega)' : ' (khali = original)') + '</div><div class="pfm-grid">' +
+      sel('pfmSize', 'Paper size', r.size || '', PAGE_SIZES, 'As designed') +
+      sel('pfmOrient', 'Orientation', r.orient || '', [['portrait', 'Portrait'], ['landscape', 'Landscape']], 'As designed') +
+      field('pfmMargin', 'Margin (mm)', r.margin, 'number', 'e.g. 8') + field('pfmScale', 'Print scale (%)', r.scale, 'number', '100') + '</div>' +
+      '<div class="pfm-sec">Extra header / footer line</div><div class="pfm-grid" style="grid-template-columns:1fr">' +
+      field('pfmHdr', 'Header note (print ke sabse upar)', r.hdr, 'text', 'e.g. CONTROLLED COPY') + field('pfmFtr', 'Footer note (print ke sabse neeche)', r.ftr, 'text', 'e.g. Doc. owner: Maintenance Dept.') + '</div>';
+    if (!isAll) html += '<div class="pfm-sec">Print me aane wala text - badalna ho to naya text likho</div><div id="pfmLines"><div class="pfm-help">⏳ Sample print load ho raha hai...</div></div>';
+    html += '<div class="pfm-sec">Custom find &amp; replace' + (isAll ? ' (sabhi modules)' : '') + '</div><div class="pfm-help">Koi bhi shabd/vakya jo print me aata hai (kam se kam 2 akshar) - har jagah se badal diya jayega.</div><div id="pfmCustom"></div>' +
+      '<div class="pfm-btns"><button type="button" onclick="pfmAddRule()">+ Add rule</button></div>' +
+      '<div class="pfm-btns"><button type="button" class="pri" onclick="pfmSave()">💾 Save</button>' + (isAll ? '' : '<button type="button" onclick="pfmPreview()">👁️ Preview print</button>') + '<button type="button" class="dng" onclick="pfmReset()">↩ Reset to default</button></div>';
+    ed.innerHTML = html;
+    renderCustom();
+    if (!isAll) setTimeout(loadLines, 30);
+  };
+
+  function renderCustom() {
+    var c = $('pfmCustom'); if (!c || !st) return;
+    c.innerHTML = st.custom.map(function (x, i) {
+      return '<div class="pfm-rule"><input placeholder="Find" value="' + esc(x.f) + '" oninput="pfmRuleEdit(' + i + ',\'f\',this.value)"><input placeholder="Replace with" value="' + esc(x.r) + '" oninput="pfmRuleEdit(' + i + ',\'r\',this.value)"><button type="button" onclick="pfmDelRule(' + i + ')">✕</button></div>';
+    }).join('');
+  }
+  window.pfmAddRule = function () { if (!st) return; st.custom.push({ f: '', r: '' }); renderCustom(); };
+  window.pfmDelRule = function (i) { if (!st) return; st.custom.splice(i, 1); renderCustom(); };
+  window.pfmRuleEdit = function (i, k, v) { if (st && st.custom[i]) st.custom[i][k] = v; };
+  window.pfmDelSaved = function (i) { if (!st) return; st.stale.splice(i, 1); showStale(); };
+
+  function loadLines() {
+    if (!st) return; var key = st.key, host = $('pfmLines'); if (!host) return;
+    var res = sampleHtml(st.meta), lines = res.html ? collect(res.html) : [];
+    if (!st || st.key !== key) return;
+    st.lines = lines; st.vals = []; st.shown = [];
+    if (!lines.length) { host.innerHTML = '<div class="pfm-help">Is module ka sample print abhi nahi ban paya' + (res.alert ? ' (' + esc(res.alert) + ')' : '') + '. Pehle is module me kuch record save karo, ya neeche "Custom find &amp; replace" se text badlo.</div><div id="pfmStale"></div>'; st.stale = st.rules.slice(); showStale(); return; }
+    var used = [];
+    var rows = lines.map(function (ln, i) {
+      var shown = ln.t, old = null;
+      for (var k = 0; k < st.rules.length; k++) { var o = applyRule(ln.t, st.rules[k]); if (o !== null && (!st.rules[k].w || st.rules[k].w === ln.w)) { shown = o; old = st.rules[k]; break; } }
+      if (old) used.push(old); ln.old = old; st.vals[i] = shown; st.shown[i] = shown;
+      return '<div class="pfm-row' + (shown !== ln.t ? ' chg' : '') + '" id="pfmRow' + i + '"><div><span class="pfm-tag">' + (ln.w === 'c' ? 'COLUMN / LABEL' : 'HEADER / FOOTER') + '</span><small>' + esc(ln.t) + '</small></div><input value="' + esc(shown) + '" oninput="pfmLine(' + i + ',this.value)"></div>';
+    }).join('');
+    host.innerHTML = '<div class="pfm-help">Upar wali line = abhi jo print hota hai. Neeche box me naya text likho. Date / month wali lines me sirf fixed shabd badlo - month apne aap update hota rahega.</div>' + rows + '<div id="pfmStale"></div>';
+    st.stale = st.rules.filter(function (r) { return used.indexOf(r) < 0; });
+    showStale();
+  }
+  function showStale() {
+    var h = $('pfmStale'); if (!h || !st) return;
+    if (!st.stale || !st.stale.length) { h.innerHTML = ''; return; }
+    h.innerHTML = '<div class="pfm-sec">Saved rules jo abhi ke sample se match nahi hue</div><div class="pfm-help">(Ye tab bhi lagenge jab print me wahi text aayega.)</div>' + st.stale.map(function (r, i) {
+      return '<div class="pfm-rule"><input readonly value="' + esc(r.o || r.f) + '"><input readonly value="' + esc(r.n != null ? r.n : r.r) + '"><button type="button" onclick="pfmDelSaved(' + i + ')">✕</button></div>';
+    }).join('');
+  }
+  window.pfmLine = function (i, v) { if (!st) return; st.vals[i] = v; var r = $('pfmRow' + i); if (r) r.classList.toggle('chg', v !== st.lines[i].t); };
+
+  function collectRec() {
+    var key = st.key, r = { id: 'pf-' + key, key: key, name: st.meta.n };
+    if (key === '_all') r.company = g('pfmCompany').trim();
+    r.size = g('pfmSize'); r.orient = g('pfmOrient');
+    var mg = g('pfmMargin').trim(), sc = g('pfmScale').trim();
+    r.margin = (mg !== '' && !isNaN(+mg) && +mg >= 0 && +mg <= 40) ? +mg : '';
+    r.scale = (sc !== '' && !isNaN(+sc) && +sc >= 30 && +sc <= 200) ? +sc : '';
+    r.hdr = g('pfmHdr').trim(); r.ftr = g('pfmFtr').trim();
+    var rules = [];
+    (st.lines || []).forEach(function (ln, i) {
+      var cur = st.vals[i]; if (cur === undefined) return;
+      if (cur === st.shown[i]) { if (ln.old) rules.push(ln.old); }
+      else if (cur !== ln.t) rules.push(mkRule(ln.t, cur, ln.w));
+    });
+    (st.stale || []).forEach(function (x) { rules.push(x); });
+    st.custom.forEach(function (c) { if (c.f && c.f.length >= 2) rules.push({ c: 1, f: c.f, r: c.r || '' }); });
+    r.rules = rules;
+    return r;
+  }
+  function isEmptyRec(r) { return !r.company && !r.size && !r.orient && r.margin === '' && r.scale === '' && !r.hdr && !r.ftr && !(r.rules && r.rules.length); }
+
+  window.pfmSave = function () {
+    if (!isAdmin()) return alert('Print Format Manager sirf Admin ke liye hai.');
+    if (!st) return;
+    var r = collectRec(), a = data.printFmt, idx = -1, i;
+    for (i = 0; i < a.length; i++) if (a[i] && a[i].key === st.key) { idx = i; break; }
+    if (isEmptyRec(r)) { if (idx >= 0) a.splice(idx, 1); }
+    else {
+      r.upd = new Date().toISOString(); r.by = (sess() || {}).u || '';
+      if (idx >= 0) r.id = a[idx].id || r.id;
+      if (idx >= 0) a[idx] = r; else a.push(r);
+    }
+    persist('printFmt');
+    var s = $('pfmStat'); if (s) s.textContent = isEmptyRec(r) ? 'Default (original) format chal raha hai' : '✅ Saved - ab se isi format me print hoga';
+    var key = st.key; setTimeout(function () { pfmPick(key); var s2 = $('pfmStat'); if (s2 && rec(key)) s2.textContent = '✅ Saved - ab se isi format me print hoga'; }, 50);
+  };
+  window.pfmReset = function () {
+    if (!isAdmin() || !st) return;
+    if (!confirm('"' + st.meta.n + '" ka print format original (default) par wapas karna hai?')) return;
+    var a = data.printFmt, i; for (i = a.length - 1; i >= 0; i--) if (a[i] && a[i].key === st.key) a.splice(i, 1);
+    persist('printFmt'); pfmPick(st.key);
+  };
+  window.pfmPreview = function () {
+    if (!isAdmin() || !st || !st.meta.d && !st.meta.box) return;
+    var key = st.key, r = collectRec(); draft[key] = r;
+    try {
+      if (st.meta.d) (new Function(st.meta.d)).call(window);
+      else alert('Is module ka preview uske apne Print button se dekho (record select karke). Save karne ke baad wahi naya format use karega.');
+    } catch (x) { alert('Preview nahi ban paya: ' + x.message); }
+    finally { delete draft[key]; }
+  };
+
+  /* ---------------- boot ---------------- */
+  ensureNav();
+  setInterval(ensureNav, 1500);
+})();
+
 </script>
 </body>
 </html>
