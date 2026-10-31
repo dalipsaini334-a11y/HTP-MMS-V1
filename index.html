@@ -762,6 +762,7 @@ main.wrap{margin-left:252px;padding:94px 22px 25px;max-width:none}.sidebar-overl
   </div>
 
   <div class="utility-form-card">
+    <div id="pcLiveBanner"></div>
     <div class="utility-section-head"><span>POWER INTERRUPTION ENTRY</span><span>One record for each interruption / daily entry</span></div>
     <div class="form">
       <div class="utility-subgroup">A. DATE & DG AVAILABILITY</div>
@@ -773,18 +774,18 @@ main.wrap{margin-left:252px;padding:94px 22px 25px;max-width:none}.sidebar-overl
       <div class="field utility-field"><label>Add Stock</label><input id="pc_addstock" type="number" step="0.01"></div>
 
       <div class="utility-subgroup">B. POWER INTERRUPTION TIMING</div>
-      <div class="field utility-field"><label>Power Cut From</label><input id="pc_from" type="time"></div>
-      <div class="field utility-field"><label>Power Restored To</label><input id="pc_to" type="time"></div>
+      <div class="field utility-field"><label>Power Cut From <button type="button" class="secondary" style="padding:1px 7px;font-size:10px;margin-left:6px" onclick="setv('pc_from',getLiveTimeString());pcSyncBtn()">Now</button></label><input id="pc_from" type="time" oninput="pcSyncBtn()"></div>
+      <div class="field utility-field"><label>Power Restored To <button type="button" class="secondary" style="padding:1px 7px;font-size:10px;margin-left:6px" onclick="setv('pc_to',getLiveTimeString());pcSyncBtn()">Now</button></label><input id="pc_to" type="time" oninput="pcSyncBtn()"></div>
       <div class="field utility-field"><label>DG 01 Consumed</label><input id="pc_c1" type="number" step="0.01"></div>
       <div class="field utility-field"><label>DG 02 Consumed</label><input id="pc_c2" type="number" step="0.01"></div>
       <div class="field utility-field"><label>Recorded / Verified By</label><input id="pc_sign" placeholder="Name / Sign."></div>
     </div>
     <div class="utility-actions">
-      <button class="primary" onclick="savePC()">✓ Save Power Cut</button>
+      <button id="pcSaveBtn" class="primary" onclick="savePC()">🔴 Save Power Cut</button>
       <button class="secondary" onclick="clearPC()">↺ Clear</button>
       <button class="secondary" onclick="printReadingLog('pc')">🖨️ Print Official Log</button>
     </div>
-    <div class="utility-note"><b>Automatic calculation:</b> Total power-cut duration is calculated from From/To time and Total Consumption is calculated as DG-01 Consumption + DG-02 Consumption.</div>
+    <div class="utility-note"><b>Flow:</b> Power cut hote hi <i>From</i> time daal kar Save karo (Power Cut report WhatsApp pe jayegi). Power aane par us entry me <i>Power Restored To</i> time + DG Consumed daal kar Save karo (Power Restored report jayegi).<br><b>Automatic calculation:</b> Total power-cut duration is calculated from From/To time and Total Consumption is calculated as DG-01 Consumption + DG-02 Consumption.</div>
   </div>
 
   <div class="utility-table-card">
@@ -2682,6 +2683,7 @@ function clearPC(){
   edit.pc=null;
   const today=new Date().toISOString().slice(0,10);
   setv('pc_date',today);
+  pcSyncBtn();
 }
 function editPC(i){if(!mmsGuardEdit('pc'))return;
   const r=data.pc[i]; if(!r)return;
@@ -2691,17 +2693,89 @@ function editPC(i){if(!mmsGuardEdit('pc'))return;
     pc_stock:r.stock,pc_addstock:r.add,pc_from:r.from,pc_to:r.to,
     pc_c1:r.c1,pc_c2:r.c2,pc_sign:r.sign
   }).forEach(([k,v])=>setv(k,v));
+  pcSyncBtn();
   document.getElementById('pc')?.scrollIntoView({behavior:'smooth',block:'start'});
 }
+/* ===== POWER CUT FLOW: (1) Power cut start -> report, (2) Power restored -> report ===== */
+function pcFmtDur(from,to){return timeDuration(from,to)||'--:--';}
+function pcMsgStart(r){
+  let m=`⚡ *POWER CUT REPORT*\n`+
+        `🏢 Unit-7 | Milestone Gears Ltd.\n`+
+        `📅 Date: ${fmtDate(r.date)} | ⏰ Time: ${r.time||r.from}\n\n`+
+        `📊 *Power Cut Details:*\n`+
+        `• Power Cut From: ${r.from}\n`+
+        `• Power Restored: Pending\n`;
+  if(r.dg1||r.dg2||r.stock){
+    m+=`\n⛽ *DG Availability / Stock:*\n`+
+       `• DG-01: ${r.dg1||0}\n`+
+       `• DG-02: ${r.dg2||0}\n`+
+       `• Available Stock: ${r.stock||0}\n`;
+  }
+  if(r.sign) m+=`\n👤 Recorded By: ${r.sign}\n`;
+  return m+`\n🔴 *STATUS: POWER CUT (RESTORATION PENDING)*`;
+}
+function pcMsgRestored(r){
+  let m=`⚡ *POWER RESTORED REPORT*\n`+
+        `🏢 Unit-7 | Milestone Gears Ltd.\n`+
+        `📅 Date: ${fmtDate(r.date)} | ⏰ Time: ${r.to}\n\n`+
+        `📊 *Power Cut Details:*\n`+
+        `• Power Cut From: ${r.from}\n`+
+        `• Power Restored At: ${r.to}\n\n`+
+        `📈 *Duration:*\n`+
+        `• Total Power Cut: ${pcFmtDur(r.from,r.to)} hrs\n`;
+  if(r.sign) m+=`\n👤 Recorded By: ${r.sign}\n`;
+  return m+`\n✅ *STATUS: POWER RESTORED*`;
+}
+function pcShare(msg){window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');}
+/* Daily Report ki image (PF jaisi) share hoti hai; image na ban paye to text message fallback */
+function pcShareReport(r,msg){
+  if(typeof window.rptShareDaily==='function'){
+    try{
+      window.__pcRec=r;
+      setTimeout(function(){ if(window.__pcRec===r) window.__pcRec=null; },30000);
+      window.rptShareDaily('pc',r.date);return;
+    }catch(e){window.__pcRec=null;console.warn('rptShareDaily',e);}
+  }
+  pcShare(msg);
+}
+
+/* Save button label + live banner */
+function pcSyncBtn(){
+  const b=document.getElementById('pcSaveBtn'); if(!b) return;
+  const to=(document.getElementById('pc_to')||{}).value||'';
+  const old=(edit.pc!==null&&data.pc[edit.pc])?data.pc[edit.pc]:null;
+  if(old&&old.to) b.textContent='✓ Update Power Cut';
+  else if(to) b.textContent='🟢 Save Power Restored';
+  else b.textContent='🔴 Save Power Cut';
+}
+function pcRestoreFlow(i){
+  editPC(i);
+  if(!f('pc_to')) setv('pc_to',getLiveTimeString());
+  pcSyncBtn();
+  setTimeout(()=>{const e=document.getElementById('pc_c1'); if(e) e.focus();},400);
+}
+function pcRenderBanner(){
+  const el=document.getElementById('pcLiveBanner'); if(!el) return;
+  const pend=[];
+  data.pc.forEach((r,i)=>{ if(r.from&&!r.to) pend.push({r,i}); });
+  if(!pend.length){el.innerHTML='';return;}
+  el.innerHTML=pend.map(p=>`<div style="margin:10px 14px;padding:10px 12px;border:1.5px solid #dc2626;background:#fef2f2;color:#991b1b;border-radius:8px;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap"><div><b>🔴 POWER CUT CHAL RAHI HAI</b><br><span style="font-size:12px">${fmtDate(p.r.date)} • From ${esc(p.r.from)} • Restoration time pending</span></div><button type="button" class="primary" style="background:#16a34a;border-color:#16a34a" onclick="pcRestoreFlow(${p.i})">🟢 Power Aa Gayi — Restore Entry</button></div>`).join('');
+}
+
 function savePC() {
     if(!mmsGuardSave('pc')) return;
-    
-    // Naya Validation Check
-    if (f('pc_from').trim() === '' || f('pc_to').trim() === '' || f('pc_c1').trim() === '' || f('pc_c2').trim() === '') {
-        return alert('Please enter Power Cut timings (From/To) and both DG Consumption readings before saving.');
-    }
 
     const old = edit.pc !== null ? data.pc[edit.pc] : null;
+    const hasTo = f('pc_to').trim() !== '';
+
+    if (!f('pc_date')) return alert('Date required');
+    if (f('pc_from').trim() === '') return alert('Please enter Power Cut From time.');
+
+    // Power restored (ya poori entry ek saath) ho to DG consumption zaroori
+    if (hasTo && (f('pc_c1').trim() === '' || f('pc_c2').trim() === '')) {
+        return alert('Power Restored save karne ke liye DG 01 aur DG 02 Consumed (diesel) bharna zaroori hai (DG nahi chala to 0 daalo).');
+    }
+
     const r = {
         id: old?.id || Date.now(),
         date: f('pc_date'),
@@ -2717,20 +2791,28 @@ function savePC() {
         sign: f('pc_sign'),
         updatedAt: new Date().toISOString()
     };
-    
-    if(!r.date) return alert('Date required');
-    
-    if(edit.pc !== null) data.pc[edit.pc] = r;
-    else data.pc.push(r);
-    
+
     const wasEdit = edit.pc !== null;
+    const wasPending = !!(old && old.from && !old.to);   // pehle se chalu power cut
+    const isRestoreNow = hasTo && (wasPending || !wasEdit);  // restore ya naya complete entry
+    const isStartOnly = !hasTo;
+
+    if(wasEdit) data.pc[edit.pc] = r;
+    else data.pc.push(r);
+
     persist('pc');
     edit.pc = null;
     clearPC();
     renderPC();
     renderDashboard();
-    
-    alert(wasEdit ? 'Power Cut entry updated successfully.' : 'Power Cut entry saved successfully.');
+
+    if (isStartOnly) {
+        if (confirm('Power Cut saved (From ' + r.from + ').\n\nKya Power Cut report (image) WhatsApp pe bhejni hai?')) pcShareReport(r,pcMsgStart(r));
+    } else if (isRestoreNow) {
+        if (confirm('Power Restored saved. Duration: ' + pcFmtDur(r.from, r.to) + ' hrs.\n\nKya Power Restored report (image) WhatsApp pe bhejni hai?')) pcShareReport(r,pcMsgRestored(r));
+    } else {
+        alert('Power Cut entry updated successfully.');
+    }
 }
 
 function renderPC(){
@@ -2744,8 +2826,9 @@ function renderPC(){
   });
   document.getElementById('pcBody').innerHTML=filtered.map(r=>{
     let i=data.pc.indexOf(r), tot=r.c1+r.c2;
-    return `<tr><td>${fmtDate(r.date)}</td><td>${esc(r.time)}</td><td class="num">${r.dg1||''}</td><td class="num">${r.dg2||''}</td><td class="num">${r.stock||''}</td><td class="num">${r.add||''}</td><td>${r.from||''}</td><td>${r.to||''}</td><td>${timeDuration(r.from,r.to)}</td><td class="num">${r.c1||''}</td><td class="num">${r.c2||''}</td><td class="num">${tot.toFixed(2)}</td><td>${esc(r.sign)}</td><td><div class="editbar"><button class="secondary" onclick="editPC(${i})">Edit</button><button class="danger" onclick="delRow('pc',${i})">Delete</button></div></td></tr>`;
+    return `<tr><td>${fmtDate(r.date)}</td><td>${esc(r.time)}</td><td class="num">${r.dg1||''}</td><td class="num">${r.dg2||''}</td><td class="num">${r.stock||''}</td><td class="num">${r.add||''}</td><td>${r.from||''}</td><td>${r.to?r.to:(r.from?'<b style="color:#dc2626">🔴 ON</b>':'')}</td><td>${r.to?timeDuration(r.from,r.to):(r.from?'<b style="color:#dc2626">Chalu hai</b>':'')}</td><td class="num">${r.c1||''}</td><td class="num">${r.c2||''}</td><td class="num">${tot.toFixed(2)}</td><td>${esc(r.sign)}</td><td><div class="editbar">${(r.from&&!r.to)?`<button class="primary" style="background:#16a34a;border-color:#16a34a" onclick="pcRestoreFlow(${i})">🟢 Power Aaya</button>`:''}<button class="secondary" onclick="editPC(${i})">Edit</button><button class="danger" onclick="delRow('pc',${i})">Delete</button></div></td></tr>`;
   }).join('');
+  pcRenderBanner();pcSyncBtn();
   let selVal=f('pc_month');
   setText('pcMonthTitle', selVal ? selVal.toUpperCase() : '');
   let totalMinutes=0,totalC1=0,totalC2=0;
@@ -10614,8 +10697,24 @@ html body main.wrap .dashboard-footer span{color:#4a5a69!important}
     if (type === 'm') { var v = el('rptMonth').value, t = ym(v); if (!t) { var n = new Date(); t = { y: n.getFullYear(), m: n.getMonth() + 1 }; } return { type: 'm', y: t.y, m: t.m }; }
     return { type: 'y', y: +el('rptFy').value };
   }
+  /* Power Cut: sirf wahi record aur wahi fields (PF jaisa daily report look) - window.__pcRec set ho tab */
+  function pcOnlyReport(r, withLogo) {
+    var P = getP(), done = !!r.to, dur = done ? (timeDuration(r.from, r.to) || '--:--') : '';
+    var hasDg = !!(r.dg1 || r.dg2 || r.stock);
+    var h = head('Power Cut Detail \u2014 ' + (done ? 'Power Restored' : 'Power Cut') + ' Report', periodText(P) + '  \u2022  Generated ' + stamp(), withLogo);
+    h += '<div class="rp-kpis">' + kpi('Date', fmtDate(r.date)) + kpi('Power Cut From', r.from || '') + kpi('Power Restored At', done ? r.to : 'Pending') + kpi('Total Duration', done ? dur + ' hrs' : 'Pending') + '</div>';
+    var th = ['Date', 'Time'], td = [fmtDate(r.date), r.time || ''];
+    if (hasDg) { th.push('DG 01 Stock', 'DG 02 Stock', 'Available Stock'); td.push(r.dg1 || 0, r.dg2 || 0, r.stock || 0); }
+    th.push('Power Cut From', 'Power Restored At', 'Total Duration'); td.push(r.from || '', done ? r.to : 'Pending', done ? dur : 'Pending');
+    if (r.sign) { th.push('Recorded By'); td.push(r.sign); }
+    th.push('Status'); td.push(done ? 'POWER RESTORED' : 'POWER CUT');
+    h += '<div class="rp-h">Power cut record</div><div class="rp-tw"><table><thead><tr>' + th.map(function (x) { return '<th>' + esc(x) + '</th>'; }).join('') + '</tr></thead><tbody><tr>' + td.map(function (x) { return '<td>' + esc(String(x)) + '</td>'; }).join('') + '</tr></tbody></table></div>';
+    h += signBlock() + footBlock();
+    return '<div class="rp-c">' + h + '</div>';
+  }
   function build(withLogo) {
     var P = getP(), sc = el('rptScope').value;
+    if (sc === 'pc' && P.type === 'd' && window.__pcRec) return pcOnlyReport(window.__pcRec, withLogo);
     if (sc === '*') return overallReport(P, withLogo);
     var m = MODS.filter(function (x) { return x.k === sc; })[0];
     return moduleReport(m, P, withLogo);
