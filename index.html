@@ -643,7 +643,7 @@ main.wrap{margin-left:252px;padding:94px 22px 25px;max-width:none}.sidebar-overl
     <div class="dash-stat" onclick="dashGoBreakdowns()" style="cursor:pointer" title="Is mahine ka Breakdown Register kholo"><div class="ico">🔧</div><div><div class="label">MONTH BREAKDOWNS</div><div class="value" id="dashBreakdowns">0</div></div><small id="dashBDSub">Current month</small></div>
     <div class="dash-stat" onclick="openPMPlanFromDashboard()" style="cursor:pointer"><div class="ico">🧰</div><div><div class="label">PM DUE / PLANNED</div><div class="value" id="dashPM">0</div></div><small id="dashPMSub">Current month</small></div>
     <div class="dash-stat" onclick="dashGoCalibration()" style="cursor:pointer" title="Overdue + 30 din me due instruments kholo"><div class="ico">📏</div><div><div class="label">CALIBRATION DUE</div><div class="value" id="dashCalDue">0</div></div><small id="dashCalSub">Overdue + next 30 days</small></div>
-    <div class="dash-stat" onclick="goDash('spares')" style="cursor:pointer"><div class="ico">⚠️</div><div><div class="label">LOW STOCK ITEMS</div><div class="value" id="dashLowStock">0</div></div><small>Below Min. Level</small></div>
+    <div class="dash-stat" id="dashLowStockCard" onclick="dashGoLowStock()" style="cursor:pointer" title="Low stock parts ki list kholo"><div class="ico">⚠️</div><div><div class="label">LOW STOCK ITEMS</div><div class="value" id="dashLowStock">0</div></div><small id="dashLowStockSub">Below Min. Level</small></div>
   </div>
 
   <div class="dash-section-title"><span>QUICK ACCESS</span><small>Frequently used maintenance functions</small></div>
@@ -1738,7 +1738,7 @@ function inventoryAvailableQty(r){
   return Math.max(0,num(r.avail));
 }
 function inventoryHasStock(r){return inventoryAvailableQty(r)>0;}
-function spareStatus(r){const a=inventoryAvailableQty(r),min=num(r.min),max=num(r.max);if(a<=min)return 'LOW';if(max>0&&a>=max)return 'FULL';return 'OK';}
+function spareStatus(r){const a=inventoryAvailableQty(r),min=num(r.min),max=num(r.max);if(a<min)return 'LOW';if(max>0&&a>=max)return 'FULL';return 'OK';}
 function spareStatusClass(r){return spareStatus(r)==='LOW'?'req-open':spareStatus(r)==='FULL'?'req-closed':'';}
 function syncSpareAvailable(r,n){if(!r)return;const unit=String(r.qty||'').replace(/^[-+]?\d+(?:\.\d+)?\s*/,'').trim();r.qty=unit?String(Math.max(0,n))+' '+unit:String(Math.max(0,n));r.availableQty=Math.max(0,n);}
 function restoreInventoryQty(list,id,returnQty){
@@ -2336,7 +2336,7 @@ function printSpareParts(){
 
 /* ================= CRITICAL SPARES LEVEL MONITORING REGISTER MODULE (FMT-MNT-11) ================= */
 function clearCriticalForm(){edit.critical=null;setv('cs_id','');setv('cs_sno',data.critical.length+1);['cs_code','cs_desc','cs_spec','cs_min','cs_max','cs_machine','cs_loc','cs_avail','cs_remark'].forEach(id=>setv(id,''));const btn=document.querySelector('#criticalSpares .primary');if(btn)btn.textContent='Save Critical Spare';}
-function criticalStatus(r){return num(r.avail)<=num(r.min)?'Low':'OK';}
+function criticalStatus(r){return num(r.avail)<num(r.min)?'Low':'OK';}
 function saveCriticalSpare(){
  if(!mmsGuardSave('critical'))return;
   let old=edit.critical!==null?data.critical[edit.critical]:null;
@@ -2619,6 +2619,8 @@ let calDueSoon=calibrationDueSoon(30);setText('dashCalDue',calDueSoon.length);{l
             dashLowStockListEl.innerHTML = '<div class="dash-empty" style="color:#198754;">✓ All spares are sufficiently stocked</div>';
         }
     }
+
+    if (typeof dashRefreshLowStock === 'function') { try { dashRefreshLowStock(); } catch (e) {} }
 
     // 2. ADMIN ACTIVITY LOG UPDATE
     let adminGrid = document.getElementById('adminActivityGrid');
@@ -10682,7 +10684,7 @@ html body main.wrap .dashboard-footer span{color:#4a5a69!important}
       var mx = null; r.rows.forEach(function (x) { var v = num(x[hk]); if (!isNaN(v) && (!mx || v > mx.v)) mx = { v: v, d: x.date || '' }; }); A.max = mx;
     }
     if (m.k === 'spares' || m.k === 'critical') {
-      A.low = r.rows.filter(function (x) { var mn = num(x.min), q = num(x.availableQty != null ? x.availableQty : (x.avail != null ? x.avail : x.qty)); return !isNaN(mn) && !isNaN(q) && mn > 0 && q <= mn; });
+      A.low = r.rows.filter(function (x) { var mn = num(x.min), q = num(x.availableQty != null ? x.availableQty : (x.avail != null ? x.avail : x.qty)); return !isNaN(mn) && !isNaN(q) && mn > 0 && q < mn; });
     }
     return A;
   }
@@ -10705,7 +10707,7 @@ html body main.wrap .dashboard-footer span{color:#4a5a69!important}
       if (A.hk && hs.length > 1) o.push('Highest ' + pretty(A.hk) + ' month: ' + ml(hs[0]) + ' (' + fmt(bh[hs[0]]) + '); lowest: ' + ml(hs[hs.length - 1]) + ' (' + fmt(bh[hs[hs.length - 1]]) + ').');
     }
     if (A.busy) o.push('Busiest day: ' + dayLbl(A.busy.k) + ' (' + A.busy.n + ' record(s)); entries on ' + A.busy.days + ' day(s).');
-    if (A.low) o.push(A.low.length + ' item(s) are at or below minimum stock.');
+    if (A.low) o.push(A.low.length + ' item(s) are below minimum stock.');
     return o;
   }
   function cmpTable(A, P) {
@@ -10907,7 +10909,7 @@ html body main.wrap .dashboard-footer span{color:#4a5a69!important}
       if (m.k === 'sparePurchase') D.sp = r.rows;
       if (m.k === 'pm') D.pm = r.rows;
       if (m.k === 'airCompressor') D.kwh = sumKey(r.rows, 'kwhDay');
-      if (m.k === 'spares') r.rows.forEach(function (x) { var mn = num(x.min), q = num(x.availableQty != null ? x.availableQty : x.qty); if (!isNaN(mn) && !isNaN(q) && mn > 0 && q <= mn) D.low++; });
+      if (m.k === 'spares') r.rows.forEach(function (x) { var mn = num(x.min), q = num(x.availableQty != null ? x.availableQty : x.qty); if (!isNaN(mn) && !isNaN(q) && mn > 0 && q < mn) D.low++; });
     });
     D.cnt = function (k) { return D.rows.filter(function (x) { return x.m.k === k; })[0].r.rows.length; };
     D.mrOpen = D.mr.filter(function (x) { var s = String(x.status || '').trim(); return s && !CLOSED.test(s); }).length;
@@ -10955,7 +10957,7 @@ html body main.wrap .dashboard-footer span{color:#4a5a69!important}
     if (D.cnt('sparePurchase')) lines.push(D.cnt('sparePurchase') + ' spare purchase record(s), ' + D.spPend + ' pending, value ' + fmt(D.spCost) + '.');
     var busyD = Object.keys(D.days).sort(function (a, b) { return D.days[b] - D.days[a]; })[0];
     if (P.type !== 'd' && busyD) lines.push('Busiest day: ' + pad2(busyD) + (P.type === 'm' ? ' ' + MONF[P.m - 1].slice(0, 3) : '') + ' (' + D.days[busyD] + ' entries).');
-    if (D.low) lines.push(D.low + ' spare item(s) are at or below minimum stock.');
+    if (D.low) lines.push(D.low + ' spare item(s) are below minimum stock.');
     h += obsBox(lines);
     var dly = P.type === 'd';
     if (withLogo && !dly) h += overallTrend(D, P);
@@ -13151,6 +13153,352 @@ setInterval(sync,2500);
   };
   try { setMRRole(mrRole); populateMaintenanceRequests(); } catch (e) { console.warn('mrflow init', e); }
   setInterval(function () { try { var s = G('mr'); if (s && s.classList.contains('active')) renderMR(); } catch (e) { } }, 60000);
+})();
+</script>
+
+<style id="ls-mr-ui-css">
+/* ===== Low stock KPI alert + Maintenance Request slip UI (v81) ===== */
+.dash-stat.dash-stat-alert{border-color:#e8b4b0!important;box-shadow:0 0 0 2px rgba(192,57,43,.12)}
+.ls-tag{display:inline-block;font-size:9px;font-weight:800;letter-spacing:.4px;padding:1px 6px;border-radius:999px;background:#fde8e8;color:#b91c1c;vertical-align:middle}
+.ls-tag.ls-u4{background:#e8f0fe;color:#1d4ed8}
+#mr .mr-hide{display:none!important}
+#mr.mrui .card>.form{background:transparent!important;border:0!important;padding:0!important;gap:12px!important}
+#mr.mrui .rolebar{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#mr.mrui .rolebar button{padding:12px 8px;font-weight:700;border-radius:10px}
+#mr.mrui .rolebar .rolehint{grid-column:1/-1;padding:0;line-height:1.4}
+.mrstep{margin:10px 0 12px;padding:12px;background:#fff;border:1px solid #d6e0e6;border-radius:12px}
+.mst-row{display:flex;align-items:center}
+.mst{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0;flex:0 0 auto;width:23%}
+.mst i{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font:700 13px Arial;font-style:normal;background:#e5ebee;color:#667}
+.mst span{font-size:11px;font-weight:700;color:#778;text-align:center;line-height:1.15}
+.mst.done i{background:#15803d;color:#fff}.mst.done span{color:#15803d}
+.mst.now i{background:#0f766e;color:#fff;box-shadow:0 0 0 4px rgba(15,118,110,.2)}.mst.now span{color:#0f766e}
+.mst-row u{flex:1;height:3px;background:#dfe6ea;margin:0 2px 16px;border-radius:2px;text-decoration:none}
+.mst-line{margin-top:10px;padding-top:9px;border-top:1px dashed #d6e0e6;font-size:12.5px;color:#334;line-height:1.45}
+.mrpri{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:4px}
+.mrpri-l{grid-column:1/-1;font-size:12px;font-weight:700;color:#53616b}
+.mrpri button{display:flex;flex-direction:column;align-items:center;gap:1px;padding:10px 4px;border:2px solid #d6e0e6;background:#fff;border-radius:10px;font-weight:700;font-size:13px;color:#334}
+.mrpri button small{font-size:9.5px;font-weight:600;color:#a33}
+.mrpri button.on[data-p="Normal"]{border-color:#15803d;background:#ecfdf3;color:#166534}
+.mrpri button.on[data-p="Urgent"]{border-color:#d97706;background:#fff7e6;color:#9a5b00}
+.mrpri button.on[data-p="Breakdown"]{border-color:#dc2626;background:#fef2f2;color:#b91c1c}
+.mrpri button:disabled{opacity:.55}
+.mrsec{background:#fff;border:1px solid #d6e0e6;border-left:5px solid var(--sc,#0f766e);border-radius:12px;overflow:hidden}
+.mrsec.act{box-shadow:0 2px 10px rgba(0,0,0,.09);border-color:var(--sc)}
+.mrsec:not(.act){opacity:.93}
+.mrsec-h{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#f3f8f7;background:color-mix(in srgb,var(--sc) 9%,#fff);border-bottom:1px solid #e3eaee}
+.mrsec-h>div{flex:1;min-width:0}.mrsec-h b{display:block;font-size:14px;color:#17232d}.mrsec-h small{display:block;font-size:11px;color:#65727d;margin-top:1px}
+.mrsec-n{width:26px;height:26px;border-radius:50%;background:var(--sc);color:#fff;display:grid;place-items:center;font:700 13px Arial;flex:0 0 auto}
+.mrsec-h em{font-style:normal;font-size:9.5px;font-weight:800;letter-spacing:.5px;color:#fff;background:var(--sc);border-radius:999px;padding:3px 8px}
+.mrsec-h em:empty{display:none}
+.mrsec-body{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;padding:12px}
+.mrsec-body>.mrw,.mrsec-body>.mrpri,.mrsec-body>.mrtimes,.mrsec-body>.mrquick{grid-column:1/-1}
+.mrsec-body>.field{min-width:0}
+#mr .mrquick{display:grid!important;grid-template-columns:repeat(3,1fr);gap:8px;padding:10px;background:#f1f8f6;border:1px dashed #0f766e;border-radius:10px}
+#mr .mrquick b{grid-column:1/-1;font-size:12px;color:#0f766e}
+#mr .mrquick button{padding:11px 4px;font-weight:700;font-size:12.5px;border-radius:9px}
+.mrtimes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.mrtimes div{background:#f4f8f6;border:1px solid #dbe7e2;border-radius:10px;padding:8px;text-align:center}
+.mrtimes small{display:block;font-size:10px;color:#65727d;font-weight:700}.mrtimes b{font:700 17px Arial;color:#0f766e}
+.mrsum{margin:0 0 12px}
+.mrsum:empty{display:none}
+#mr:not(.role-maint) .mrsum{display:none}
+.mrsum-top{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;padding:11px 12px 6px;background:#eff6ff;border:1px solid #bfd6f6;border-bottom:0;border-radius:12px 12px 0 0}
+.mrsum-top b{font-size:15px;color:#17324d}.mrsum-top span{font-size:12px;color:#53616b}
+.mrsum-age{margin-left:auto;font-size:11px;font-weight:700;color:#0f766e;background:#e0f2ef;padding:2px 8px;border-radius:999px}.mrsum-age.od{color:#b91c1c;background:#fde8e8}
+.mrsum-prob{padding:4px 12px 8px;background:#eff6ff;border:1px solid #bfd6f6;border-top:0;border-bottom:0;font-size:14px;color:#17232d;line-height:1.45;white-space:pre-wrap}
+.mrsum-meta{padding:7px 12px 10px;background:#f6faff;border:1px solid #bfd6f6;border-top:1px dashed #bfd6f6;border-radius:0 0 12px 12px;font-size:11.5px;color:#53616b;line-height:1.5}
+.mrsum-empty{padding:14px;background:#fffbeb;border:1px dashed #d9b44a;border-radius:12px;font-size:13px;color:#7a5b00;text-align:center}
+#mr.mrui .actions.wide{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;padding:12px;background:#fff;border:1px solid #d6e0e6;border-radius:12px}
+#mr.mrui .actions.wide button{padding:12px 8px;font-weight:700;border-radius:10px}
+@media(max-width:520px){
+  .mst span{font-size:10px}.mst i{width:26px;height:26px}
+  .mrsec-body{grid-template-columns:1fr 1fr;padding:10px;gap:8px}
+  #mr .mrquick{grid-template-columns:1fr}
+  #mr.mrui .actions.wide{grid-template-columns:1fr 1fr}
+  #mr.mrui .actions.wide #mrSaveBtn{grid-column:1/-1}
+}
+</style>
+<script type="text/mms-defer" id="ls-mr-ui">
+(function () {
+  'use strict';
+  if (window.__lsMrUi) return; window.__lsMrUi = 1;
+  var G = function (id) { return document.getElementById(id); };
+  var E = function (s) { return (typeof esc === 'function') ? esc(s) : String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+
+  /* =====================================================================
+     1) LOW STOCK KPI  (Available < Minimum)
+        - Spare Inventory + Critical Spares Register dono se, har part sirf ek baar
+        - stock / min badalte hi card + list turant update
+        - card dabane par Spare Inventory ka LOW filter khulta hai
+     ===================================================================== */
+  function lsKey(d, s) {
+    if (typeof spareLinkKey === 'function') return spareLinkKey(d, s);
+    return String(d || '').trim().toLowerCase() + '||' + String(s || '').trim().toLowerCase();
+  }
+  function lowEntries() {
+    var map = {};
+    function get(d, s) {
+      var k = lsKey(d, s); if (!k.split('||')[0]) return null;
+      return map[k] || (map[k] = { desc: String(d || '').trim(), spec: String(s || '').trim(), low: false, avail: null, min: 0, inInv: false, crit: false, u4: false });
+    }
+    (data.spares || []).forEach(function (r) {
+      var e = get(r.desc, r.spec); if (!e) return;
+      e.inInv = true; if (r.u4) e.u4 = true;
+      var a = inventoryAvailableQty(r), mn = num(r.min);
+      if (a < mn) { if (!e.low || a - mn < e.avail - e.min) { e.avail = a; e.min = mn; } e.low = true; }
+      else if (!e.low && e.avail === null) { e.avail = a; e.min = mn; }
+    });
+    (data.critical || []).forEach(function (c) {
+      var e = get(c.desc, c.spec); if (!e) return;
+      e.crit = true;
+      var a = num(c.avail), mn = num(c.min);
+      if (a < mn) { if (!e.low || a - mn < e.avail - e.min) { e.avail = a; e.min = mn; } e.low = true; }
+    });
+    return Object.keys(map).map(function (k) { return map[k]; })
+      .filter(function (e) { return e.low; })
+      .sort(function (x, y) { return (x.avail - x.min) - (y.avail - y.min); });
+  }
+  window.lowStockEntries = lowEntries;
+
+  var lastSig = '';
+  function sigOf(a) { return a.map(function (e) { return e.desc + '|' + e.spec + '|' + e.avail + '|' + e.min; }).join(';'); }
+  function paintLow(force) {
+    var a; try { a = lowEntries(); } catch (e) { return; }
+    var sig = sigOf(a), val = G('dashLowStock');
+    if (!force && sig === lastSig && val && val.textContent === String(a.length)) return;
+    lastSig = sig;
+    if (val) val.textContent = a.length;
+    var sub = G('dashLowStockSub');
+    if (sub) {
+      var cr = a.filter(function (e) { return e.crit; }).length;
+      sub.textContent = a.length ? (a.length + ' part Min. se kam' + (cr ? ' • ' + cr + ' critical' : '')) : 'Sab stock theek hai';
+      sub.style.color = a.length ? '#b91c1c' : '';
+    }
+    var card = G('dashLowStockCard'); if (card) card.classList.toggle('dash-stat-alert', a.length > 0);
+    var box = G('dashLowStockList');
+    if (box) {
+      if (!a.length) box.innerHTML = '<div class="dash-empty" style="color:#198754;">✓ All spares are sufficiently stocked</div>';
+      else box.innerHTML = a.slice(0, 8).map(function (e) {
+        var tags = (e.crit ? ' <span class="ls-tag">CRITICAL</span>' : '') + (e.u4 ? ' <span class="ls-tag ls-u4">UNIT 4</span>' : '');
+        return '<div class="dash-row" style="background:#fff4f4;border-left:3px solid #c0392b;cursor:pointer" onclick="dashGoLowStock()"><span><b>' + E(e.desc) + '</b>' + tags + '<br><small style="color:#666">' + (e.spec ? E(e.spec) : 'General') + '</small></span><span style="text-align:right;">Avail: <b style="color:#c0392b;font-size:14px;">' + e.avail + '</b><br><small>Min: ' + e.min + ' • Kam: ' + (e.min - e.avail) + '</small></span></div>';
+      }).join('') + (a.length > 8 ? '<div class="dash-empty">+' + (a.length - 8) + ' aur - Spare Inventory me dekho</div>' : '');
+    }
+  }
+  window.dashRefreshLowStock = function () { paintLow(true); };
+  window.dashGoLowStock = function () {
+    try { goDash('spares'); } catch (e) { }
+    setTimeout(function () {
+      var s = G('sp_fstatus'); if (s) { s.value = 'LOW'; try { renderSparePartsTable(); } catch (e) { } }
+    }, 80);
+  };
+
+  var _rd = window.renderDashboard;
+  if (typeof _rd === 'function') window.renderDashboard = function () { var r = _rd.apply(this, arguments); try { paintLow(true); } catch (e) { } return r; };
+  var _persist = window.persist;
+  if (typeof _persist === 'function') window.persist = function (k) {
+    var r = _persist.apply(this, arguments);
+    if (k === 'spares' || k === 'critical') setTimeout(function () { paintLow(false); }, 30);
+    return r;
+  };
+  var _rk = window.refreshKPIs;
+  if (typeof _rk === 'function') window.refreshKPIs = function () {
+    var r = _rk.apply(this, arguments);
+    try { var el = G('mmsKPIs'); if (el) el.innerHTML = el.innerHTML.replace(/(Low Stock Items:\s*<b>)\d+(<\/b>)/, '$1' + lowEntries().length + '$2'); } catch (e) { }
+    return r;
+  };
+  setInterval(function () { try { paintLow(false); } catch (e) { } }, 2000);
+  window.addEventListener('storage', function () { setTimeout(function () { paintLow(false); }, 100); });
+
+  /* =====================================================================
+     2) MAINTENANCE REQUEST SLIP UI  (workflow ke hisab se)
+        Request (Production) -> Work Started -> Work Done -> Verified & Closed
+     ===================================================================== */
+  var PRI = { Normal: '🟢 Normal', Urgent: '🟠 Urgent', Breakdown: '🔴 Breakdown' };
+  var STEPS = ['Request', 'Work Started', 'Work Done', 'Closed'];
+  var built = false;
+
+  function fieldOf(id) { var e = G(id); return e ? e.closest('.field') : null; }
+  function section(n, title, hint, cls, color, ids, extra) {
+    var d = document.createElement('div');
+    d.className = 'mrsec ' + (cls || ''); d.id = 'mrSec' + n; d.style.gridColumn = '1 / -1'; d.style.setProperty('--sc', color);
+    d.innerHTML = '<div class="mrsec-h"><span class="mrsec-n">' + n + '</span><div><b>' + title + '</b><small>' + hint + '</small></div><em id="mrSecTag' + n + '"></em></div><div class="mrsec-body"></div>';
+    var body = d.querySelector('.mrsec-body');
+    if (extra) body.appendChild(extra);
+    ids.forEach(function (id) { var f = typeof id === 'string' ? fieldOf(id) : id; if (f) { if (f.classList.contains('wide')) f.classList.add('mrw'); body.appendChild(f); } });
+    return d;
+  }
+  function build() {
+    if (built) return; var sec = G('mr'); if (!sec) return;
+    var form = sec.querySelector('.card > .form'); if (!form) return;
+    built = true; sec.classList.add('mrui');
+
+    /* stepper */
+    var banner = G('mrFlowBanner'), st = document.createElement('div'); st.id = 'mrStepper'; st.className = 'mrstep';
+    if (banner && banner.parentNode) banner.parentNode.insertBefore(st, banner.nextSibling);
+
+    /* priority chips (select hidden but still the source of truth) */
+    var chips = document.createElement('div'); chips.className = 'mrpri'; chips.id = 'mrPriChips';
+    chips.innerHTML = '<div class="mrpri-l">Priority</div>' + Object.keys(PRI).map(function (p) { return '<button type="button" data-p="' + p + '">' + PRI[p] + (p === 'Breakdown' ? '<small>machine ruki hui</small>' : '') + '</button>'; }).join('');
+    chips.addEventListener('click', function (ev) {
+      var b = ev.target.closest('button[data-p]'); if (!b) return; var s = G('mr_priority'); if (!s || s.disabled) return;
+      s.value = b.getAttribute('data-p'); s.dispatchEvent(new Event('change', { bubbles: true })); sync();
+    });
+    var priF = fieldOf('mr_priority'); if (priF) priF.classList.add('mr-hide');
+
+    /* request summary (maintenance mode) */
+    var sum = document.createElement('div'); sum.id = 'mrReqSummary'; sum.className = 'mrsum';
+    form.parentNode.insertBefore(sum, form);
+
+    /* time strip */
+    var ts = document.createElement('div'); ts.id = 'mrTimes'; ts.className = 'mrtimes';
+
+    var quick = null; [].slice.call(form.querySelectorAll('.field.wide.maintOnly')).forEach(function (f) { if (f.querySelector('button[onclick^="mrFlow"]')) quick = f; });
+    if (quick) quick.classList.add('mrquick');
+
+    var s1 = section(1, 'Request Details', 'Production operator bharta hai', '', '#2563eb', ['mr_sr', 'mr_priority', 'mr_pdate', 'mr_ptime', 'mr_machine_no', 'mr_machine', 'mr_section', 'mr_grade', 'mr_make', 'mr_req_by', 'mr_req_code', 'mr_prod_sign', 'mr_problem'], chips);
+    var s2 = section(2, 'Maintenance — Kaam', 'Request lo → kaam karo → spare / observation likho', 'maintOnly', '#0f766e', [quick, 'mr_status', 'mr_recv_by', 'mr_recv_code', 'mr_mdate', 'mr_mtime', 'mr_maint_sign', 'mr_observation', 'mr_action', 'mr_spare', 'mr_maint_cost']);
+    var s3 = section(3, 'Handover & Close', 'Machine production ko wapas dena', 'maintOnly', '#15803d', ['mr_hdate', 'mr_htime', 'mr_hprod_sign', 'mr_hmaint_sign', 'mr_duration', 'mr_history', 'mr_history_by'], ts);
+    form.insertBefore(s3, form.firstChild); form.insertBefore(s2, s3); form.insertBefore(s1, s2);
+
+    sec.addEventListener('input', debounced); sec.addEventListener('change', debounced);
+  }
+
+  var tm = null; function debounced() { clearTimeout(tm); tm = setTimeout(sync, 120); }
+  function curRec() { try { var i = edit.mr; return (i !== null && i !== undefined && data.mr[i]) ? data.mr[i] : null; } catch (e) { return null; } }
+  function hm(m) { if (m === null || m === undefined) return '--:--'; var p = function (n) { return (n < 10 ? '0' : '') + n; }; return p(Math.floor(m / 60)) + ':' + p(m % 60); }
+  function mins(d1, t1, d2, t2) { try { var a = dateTimeMinutes(d1, t1), b = dateTimeMinutes(d2, t2); if (a === null || b === null || b < a) return null; return Math.round(b - a); } catch (e) { return null; } }
+  function val(id) { var e = G(id); return e ? e.value : ''; }
+
+  function sync() {
+    var sec = G('mr'); if (!sec || !built) return;
+    var r = curRec(), maint = sec.classList.contains('role-maint');
+    var status = r ? (r.status || 'Open') : '';
+
+    /* priority chips */
+    var ps = G('mr_priority'), pv = ps ? ps.value : 'Normal';
+    [].forEach.call(sec.querySelectorAll('#mrPriChips button'), function (b) { var on = b.getAttribute('data-p') === pv; b.classList.toggle('on', on); b.disabled = !!(ps && ps.disabled); });
+
+    /* stepper */
+    var cur = !r ? 0 : ({ 'Open': 0, 'In Progress': 1, 'Waiting for Spare': 1, 'Work Done': 2, 'Closed': 3 }[status]);
+    if (cur === undefined) cur = 0;
+    var cancelled = status === 'Cancelled', closed = status === 'Closed';
+    var h = STEPS.map(function (n, k) {
+      var cl = cancelled ? 'todo' : (closed || k < cur) ? 'done' : (k === cur ? 'now' : 'todo');
+      return '<div class="mst ' + cl + '"><i>' + (cl === 'done' ? '✔' : (k + 1)) + '</i><span>' + n + '</span></div>';
+    }).join('<u></u>');
+    var line = !r ? '🆕 Nayi request — Priority chuno, machine aur problem likho, phir Save dabao.'
+      : ('<b>Sr. #' + E(r.sr) + '</b> • ' + E(PRI[r.priority] || PRI.Normal) + ' • <b style="color:' + (cancelled ? '#6b7280' : '#0f766e') + '">' + E(status) + '</b>' + (status === 'Waiting for Spare' ? ' ⏳ spare ka intezaar' : '') + (r.waitReason && status === 'Waiting for Spare' ? ' (' + E(r.waitReason) + ')' : ''));
+    var stEl = G('mrStepper'); if (stEl) stEl.innerHTML = '<div class="mst-row">' + h + '</div><div class="mst-line">' + line + '</div>';
+
+    /* request summary for maintenance person */
+    var sm = G('mrReqSummary');
+    if (sm) {
+      if (!maint) sm.innerHTML = '';
+      else if (!r) sm.innerHTML = '<div class="mrsum-empty">👆 Upar se request chuno, ya neeche register me <b>▶ Take</b> dabao.</div>';
+      else {
+        var age = ''; try { var t0 = dateTimeMinutes(r.pdate, r.ptime || '00:00'); if (t0 !== null && ['Open', 'In Progress', 'Waiting for Spare'].indexOf(status) >= 0) { var hrs = Math.floor((Date.now() / 60000 - t0) / 60); if (hrs >= 0) age = '<span class="mrsum-age' + (hrs >= 24 ? ' od' : '') + '">⏱ ' + hrs + ' ghante se pending</span>'; } } catch (e) { }
+        sm.innerHTML = '<div class="mrsum-top"><b>' + E(r.machine || '') + '</b><span>' + E(r.machineNo || '') + (r.section ? ' • ' + E(r.section) : '') + '</span>' + age + '</div>' +
+          '<div class="mrsum-prob">' + E(r.problem || '—') + '</div>' +
+          '<div class="mrsum-meta">Request: <b>' + E(r.reqBy || '—') + '</b>' + (r.reqCode ? ' (' + E(r.reqCode) + ')' : '') + ' • ' + E(typeof fmtDate === 'function' ? fmtDate(r.pdate) : r.pdate) + ' ' + E(r.ptime || '') + (r.reopenReason ? '<br>↩ Reopen karan: ' + E(r.reopenReason) : '') + '</div>';
+      }
+    }
+
+    /* active section highlight (maintenance mode) */
+    var act = !r ? 1 : ((status === 'Open' || status === 'In Progress' || status === 'Waiting for Spare') ? 2 : (status === 'Work Done' ? 3 : 0));
+    [1, 2, 3].forEach(function (n) {
+      var s = G('mrSec' + n); if (!s) return;
+      s.classList.toggle('act', maint ? n === act : n === 1);
+      var tg = G('mrSecTag' + n); if (!tg) return;
+      tg.textContent = (n === act && maint) ? 'ABHI YAHAN' : '';
+    });
+
+    /* time strip */
+    var T = G('mrTimes');
+    if (T) {
+      var resp = mins(val('mr_pdate'), val('mr_ptime'), val('mr_mdate'), val('mr_mtime')), fix = mins(val('mr_mdate'), val('mr_mtime'), val('mr_hdate'), val('mr_htime')), tot = mins(val('mr_pdate'), val('mr_ptime'), val('mr_hdate'), val('mr_htime'));
+      T.innerHTML = '<div><small>Response</small><b>' + hm(resp) + '</b></div><div><small>Fix time</small><b>' + hm(fix) + '</b></div><div><small>Total downtime</small><b>' + hm(tot) + '</b></div>';
+    }
+  }
+  window.mrUiSync = sync;
+
+  /* Waiting for Spare wali request bhi dropdown me aaye (pehle sirf Open / In Progress aati thi) */
+  window.populateMaintenanceRequests = function () {
+    var sel = G('mr_select_existing'); if (!sel) return; var cur = sel.value;
+    var W = { Breakdown: 0, Urgent: 1, Normal: 2 }, I = { Breakdown: '🔴', Urgent: '🟠', Normal: '🟢' };
+    sel.innerHTML = '<option value="">-- Select Open / In Progress / Waiting Request --</option>';
+    data.mr.filter(function (r) { return ['Open', 'In Progress', 'Waiting for Spare'].indexOf(r.status) >= 0; })
+      .sort(function (a, b) { var pa = W[a.priority] === undefined ? 2 : W[a.priority], pb = W[b.priority] === undefined ? 2 : W[b.priority]; return (pa - pb) || ((Number(a.sr) || 0) - (Number(b.sr) || 0)); })
+      .forEach(function (r) { var o = document.createElement('option'); o.value = data.mr.indexOf(r); o.textContent = (I[r.priority] || '🟢') + ' #' + r.sr + ' | ' + (r.machineNo || '') + ' | ' + (r.machine || '') + ' | ' + r.status; sel.appendChild(o); });
+    if ([].some.call(sel.options, function (o) { return o.value === cur; })) sel.value = cur;
+  };
+
+  ['loadMaintenanceRequest', 'editMR', 'clearMR', 'setMRRole', 'saveMR'].forEach(function (n) {
+    var o = window[n]; if (typeof o !== 'function') return;
+    window[n] = function () { var r = o.apply(this, arguments); setTimeout(sync, 30); setTimeout(sync, 400); return r; };
+  });
+
+  try { build(); sync(); paintLow(true); } catch (e) { console.warn('ls/mr ui init', e); }
+  setInterval(function () { try { var s = G('mr'); if (s && s.classList.contains('active')) { build(); sync(); } } catch (e) { } }, 1500);
+})();
+</script>
+
+<script type="text/mms-defer" id="spare-critical-link">
+(function () {
+  'use strict';
+  if (window.__spCrLink) return; window.__spCrLink = 1;
+  var SNAP_KEY = 'htp7_spcr_snap_v1', FIELDS = ['min', 'max', 'avail', 'code', 'loc'];
+  var lastSnap = null;
+  function loadSnap() { try { return JSON.parse(localStorage.getItem(SNAP_KEY) || '{}') || {}; } catch (e) { return {}; } }
+  function T(v) { return String(v == null ? '' : v).trim(); }
+  function spVals(s) { return { min: num(s.min), max: num(s.max), avail: inventoryAvailableQty(s), code: T(s.code), loc: T(s.loc) }; }
+  function crVals(c) { return { min: num(c.min), max: num(c.max), avail: Math.max(0, num(c.avail)), code: T(c.code), loc: T(c.loc) }; }
+  function newer(a, b) { var x = Date.parse(a.updatedAt || ''), y = Date.parse(b.updatedAt || ''); return !isNaN(x) && !isNaN(y) && x > y; }
+  function findCritical(s) { var k = spareLinkKey(s.desc, s.spec); if (!k.split('||')[0]) return null; var l = data.critical || []; for (var i = 0; i < l.length; i++) if (spareLinkKey(l[i].desc, l[i].spec) === k) return l[i]; return null; }
+
+  /* Teen-tarfa merge: jo side last sync ke baad badli wahi jeetti hai */
+  function reconcile(source) {
+    var snap = loadSnap(), ch = false, now = new Date().toISOString();
+    (data.spares || []).forEach(function (s) {
+      var c = findCritical(s); if (!c) return;
+      var key = spareLinkKey(s.desc, s.spec), sv = spVals(s), cv = crVals(c), base = snap[key];
+      FIELDS.forEach(function (k) {
+        if (sv[k] === cv[k]) return;
+        var win, text = (k === 'code' || k === 'loc');
+        if (source === 'critical') win = 'c';
+        else {
+          var sCh = base ? sv[k] !== base[k] : null, cCh = base ? cv[k] !== base[k] : null;
+          if (base && cCh && !sCh) win = 'c';
+          else if (base && sCh && !cCh) win = 's';
+          else if (text && sv[k] === '') win = 'c';
+          else if (text && cv[k] === '') win = 's';
+          else win = newer(c, s) ? 'c' : 's';
+        }
+        if (win === 'c') {
+          if (k === 'avail') { syncSpareAvailable(s, cv.avail); }
+          else s[k] = cv[k];
+          s.updatedAt = now; ch = true;
+        } else if (text) { c[k] = sv[k]; c.updatedAt = now; ch = true; }
+      });
+    });
+    return ch;
+  }
+  function saveSnap() {
+    var out = {};
+    (data.spares || []).forEach(function (s) { var c = findCritical(s); if (!c) return; out[spareLinkKey(s.desc, s.spec)] = spVals(s); });
+    var str = JSON.stringify(out);
+    if (str !== lastSnap) { lastSnap = str; try { localStorage.setItem(SNAP_KEY, str); } catch (e) { } }
+  }
+  var orig = window.syncSpareCriticalMaster;
+  if (typeof orig !== 'function') return;
+  window.syncSpareCriticalMaster = function (persistNow, source) {
+    var changed = false;
+    try { changed = reconcile(source || 'spares'); } catch (e) { console.warn('spcr reconcile', e); }
+    var r = orig.apply(this, arguments);
+    try { saveSnap(); if (changed && !persistNow) { persist('spares'); persist('critical'); } } catch (e) { }
+    return r;
+  };
+  window.__spCrReconcile = reconcile;
 })();
 </script>
 
