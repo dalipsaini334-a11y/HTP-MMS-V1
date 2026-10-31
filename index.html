@@ -638,11 +638,11 @@ main.wrap{margin-left:252px;padding:94px 22px 25px;max-width:none}.sidebar-overl
   </div>
 
   <div class="dash-stats modern-stats">
-    <div class="dash-stat"><div class="ico">🏭</div><div><div class="label">TOTAL MACHINES</div><div class="value" id="dashMachines">0</div></div><small>Master</small></div>
-    <div class="dash-stat"><div class="ico">🛠️</div><div><div class="label">OPEN REQUESTS</div><div class="value" id="dashOpen">0</div></div><small>Pending</small></div>
-    <div class="dash-stat"><div class="ico">🔧</div><div><div class="label">MONTH BREAKDOWNS</div><div class="value" id="dashBreakdowns">0</div></div><small>Current month</small></div>
+    <div class="dash-stat" onclick="dashGoMachines()" style="cursor:pointer" title="Machine Master kholo"><div class="ico">🏭</div><div><div class="label">TOTAL MACHINES</div><div class="value" id="dashMachines">0</div></div><small id="dashMachinesSub">Master</small></div>
+    <div class="dash-stat" onclick="dashGoOpenRequests()" style="cursor:pointer" title="Saari open requests (har mahine ki) kholo"><div class="ico">🛠️</div><div><div class="label">OPEN REQUESTS</div><div class="value" id="dashOpen">0</div></div><small id="dashOpenSub">Pending</small></div>
+    <div class="dash-stat" onclick="dashGoBreakdowns()" style="cursor:pointer" title="Is mahine ka Breakdown Register kholo"><div class="ico">🔧</div><div><div class="label">MONTH BREAKDOWNS</div><div class="value" id="dashBreakdowns">0</div></div><small id="dashBDSub">Current month</small></div>
     <div class="dash-stat" onclick="openPMPlanFromDashboard()" style="cursor:pointer"><div class="ico">🧰</div><div><div class="label">PM DUE / PLANNED</div><div class="value" id="dashPM">0</div></div><small id="dashPMSub">Current month</small></div>
-    <div class="dash-stat" onclick="goDash('calibration')" style="cursor:pointer"><div class="ico">📏</div><div><div class="label">CALIBRATION DUE</div><div class="value" id="dashCalDue">0</div></div><small>Next 30 days</small></div>
+    <div class="dash-stat" onclick="dashGoCalibration()" style="cursor:pointer" title="Overdue + 30 din me due instruments kholo"><div class="ico">📏</div><div><div class="label">CALIBRATION DUE</div><div class="value" id="dashCalDue">0</div></div><small id="dashCalSub">Overdue + next 30 days</small></div>
     <div class="dash-stat" onclick="goDash('spares')" style="cursor:pointer"><div class="ico">⚠️</div><div><div class="label">LOW STOCK ITEMS</div><div class="value" id="dashLowStock">0</div></div><small>Below Min. Level</small></div>
   </div>
 
@@ -666,7 +666,7 @@ main.wrap{margin-left:252px;padding:94px 22px 25px;max-width:none}.sidebar-overl
     <div class="dash-card"><div class="card-title-row"><div><h3>Open Maintenance Requests</h3><small>Requests requiring attention</small></div><button class="mini-nav" onclick="goDash('mr')">Open Requests →</button></div><div class="dash-list" id="dashRecentMR"></div></div>
   </div>
 
-  <div class="dash-grid modern-grid"><div class="dash-card"><div class="card-title-row"><div><h3>Calibration Due Soon</h3><small>Instruments due in the next 30 days</small></div><button class="mini-nav" onclick="goDash('calibration')">Open Calibration Plan →</button>
+  <div class="dash-grid modern-grid"><div class="dash-card"><div class="card-title-row"><div><h3>Calibration Overdue &amp; Due Soon</h3><small>Overdue pehle, phir next 30 days me due</small></div><button class="mini-nav" onclick="goDash('calibration')">Open Calibration Plan →</button>
     </div>
     <div class="dash-list" id="dashCalDueList"></div>
    </div>
@@ -940,9 +940,9 @@ main.wrap{margin-left:252px;padding:94px 22px 25px;max-width:none}.sidebar-overl
 <div class="card">
 <div class="toolbar">
 <label style="font-size:12px;font-weight:700">Month</label>
-<select id="mr_month" onchange="renderMR()"></select>
+<select id="mr_month" onchange="if(f('mr_filter_status')==='__open')setv('mr_filter_status','');renderMR()"></select>
 <input id="mr_search" placeholder="Search machine, employee, problem, Sr. No..." oninput="renderMR()">
-<select id="mr_filter_status" onchange="renderMR()"><option value="">All Status</option><option>Open</option><option>In Progress</option><option>Waiting for Spare</option><option>Work Done</option><option>Closed</option><option>Cancelled</option></select>
+<select id="mr_filter_status" onchange="renderMR()"><option value="">All Status</option><option value="__open">🔴 All Open (har mahine ki)</option><option>Open</option><option>In Progress</option><option>Waiting for Spare</option><option>Work Done</option><option>Closed</option><option>Cancelled</option></select>
 <button class="secondary" onclick="exportMRCSV()">Export CSV</button>
 <button class="secondary" onclick="printMRMonth()">🖨️ Print Selected Month</button>
 </div>
@@ -1242,9 +1242,9 @@ main.wrap{margin-left:252px;padding:94px 22px 25px;max-width:none}.sidebar-overl
     <div class="field wide"><label>Location / Description</label><input id="tc_loc" placeholder="Controling & Recording..."></div>
     <div class="field"><label>Type</label><input id="tc_type" value="K"></div>
     <div class="field"><label>Serial No. / ID</label><input id="tc_srid" placeholder="TC-01"></div>
-    <div class="field"><label>Frequency</label><input id="tc_freq" value="YEARLY"></div>
-    <div class="field"><label>Installation Date</label><input id="tc_inst" type="date"></div>
-    <div class="field"><label>Replacement Date</label><input id="tc_due" placeholder="JAN-2026"></div>
+    <div class="field"><label>Frequency</label><input id="tc_freq" value="YEARLY" list="tc_freqList" oninput="tcAutoDue()"><datalist id="tc_freqList"><option value="QUARTERLY"><option value="HALF YEARLY"><option value="YEARLY"><option value="2 YEARS"><option value="3 YEARS"></datalist></div>
+    <div class="field"><label>Installation Date</label><input id="tc_inst" type="date" onchange="tcAutoDue()"></div>
+    <div class="field"><label>Replacement Date</label><input id="tc_due" placeholder="Auto (Installation + Frequency) - ya JAN-2026 likho"></div>
     <div class="field"><label>Status</label><select id="tc_status"><option>Planned</option><option>Completed</option><option>Overdue</option></select></div>
     <div class="actions wide">
       <button class="primary" onclick="saveThermocouple()">Save Thermocouple Plan</button>
@@ -1254,6 +1254,7 @@ main.wrap{margin-left:252px;padding:94px 22px 25px;max-width:none}.sidebar-overl
   </div>
 </div>
 <div class="card">
+  <div id="tcSummary" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px"></div>
   <div class="tablewrap"><table class="tbl"><thead><tr><th>SL. NO.</th><th>FURNACE NO.</th><th>LOCATION</th><th>TYPE</th><th>SR. NO/ID</th><th>REPLACEMENT FREQUENCY</th><th>INSTALLATION DATE</th><th>REPLACEMENT DATE</th><th>STATUS</th><th>Action</th></tr></thead><tbody id="tcBody"></tbody></table></div>
 </div>
 </section>
@@ -1272,8 +1273,9 @@ main.wrap{margin-left:252px;padding:94px 22px 25px;max-width:none}.sidebar-overl
     <div class="field"><label>Range</label><input id="cal_range" placeholder="0-1200°C"></div>
     <div class="field"><label>Least Count (L.C)</label><input id="cal_lc" placeholder="1°C"></div>
     <div class="field"><label>Location</label><input id="cal_location" placeholder="SQF-01-safety"></div>
-    <div class="field"><label>Calibration Date</label><input id="cal_date" type="date"></div>
-    <div class="field"><label>Due Date</label><input id="cal_duedate" type="date"></div>
+    <div class="field"><label>Calibration Date</label><input id="cal_date" type="date" onchange="calAutoDue()"></div>
+    <div class="field"><label>Frequency</label><input id="cal_freq" value="YEARLY" list="cal_freqList" oninput="calAutoDue()"><datalist id="cal_freqList"><option value="QUARTERLY"><option value="HALF YEARLY"><option value="YEARLY"><option value="2 YEARS"></datalist></div>
+    <div class="field"><label>Due Date (khali chhodo to Cali. Date + Frequency se auto)</label><input id="cal_duedate" type="date"></div>
     <div class="actions wide">
       <button class="primary" onclick="saveCalibration()">Save Instrument</button>
       <button class="secondary" onclick="clearCalForm()">Clear</button>
@@ -1282,8 +1284,10 @@ main.wrap{margin-left:252px;padding:94px 22px 25px;max-width:none}.sidebar-overl
   </div>
 </div>
 <div class="card">
+  <div id="calFocusBar" class="utility-help" style="display:none"></div>
+  <div id="calSummary" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px"></div>
   <div class="toolbar"><input id="cal_search" placeholder="Search instrument name, ID, make..." oninput="renderCalibrationTable()"></div>
-  <div class="tablewrap"><table class="tbl"><thead><tr><th>Sr.No.</th><th>Instruments Name</th><th>Make</th><th>Inst ID No.</th><th>Range</th><th>L.C</th><th>Location</th><th>Cali. Date</th><th>Due Date</th><th>Action</th></tr></thead><tbody id="calBody"></tbody></table></div>
+  <div class="tablewrap"><table class="tbl"><thead><tr><th>Sr.No.</th><th>Instruments Name</th><th>Make</th><th>Inst ID No.</th><th>Range</th><th>L.C</th><th>Location</th><th>Cali. Date</th><th>Due Date</th><th>Status</th><th>Action</th></tr></thead><tbody id="calBody"></tbody></table></div>
 </div>
 </section>
 
@@ -1678,22 +1682,49 @@ function parseFlexDate(s){
   let d=new Date(s);
   return isNaN(d)?null:d;
 }
-function tcFreqYears(freq){
+function tcFreqMonths(freq){
   let f=String(freq||'').toUpperCase();
-  if(f.includes('TWO')||f.includes('2 YEAR'))return 2;
-  if(f.includes('THREE')||f.includes('3 YEAR'))return 3;
-  return 1;
+  if(/QUARTER|3\s*MONTH|THREE\s*MONTH/.test(f))return 3;
+  if(/HALF|6\s*MONTH|SIX\s*MONTH|SEMI/.test(f))return 6;
+  if(/^\s*MONTH|1\s*MONTH/.test(f))return 1;
+  let y=f.match(/(\d+(?:\.\d+)?)\s*(?:YEAR|YR)/);if(y&&Number(y[1])>0&&!/^1(\.0+)?$/.test(y[1]))return Math.round(Number(y[1])*12);
+  if(/TWO|\bBI\s*-?ANNUAL|2\s*YEAR/.test(f))return 24;
+  if(/THREE|3\s*YEAR/.test(f))return 36;
+  return 12;
 }
+function tcFreqYears(freq){return tcFreqMonths(freq)/12;}
+function tcAddMonths(d,n){let x=new Date(d.getFullYear(),d.getMonth()+n,1);let last=new Date(x.getFullYear(),x.getMonth()+1,0).getDate();x.setDate(Math.min(d.getDate(),last));return x;}
 function tcNextDueLabel(instDateStr,freq){
   let base=parseFlexDate(instDateStr)||new Date();
-  let years=tcFreqYears(freq);
-  let due=new Date(base.getFullYear()+years,base.getMonth(),base.getDate());
+  let due=tcAddMonths(base,tcFreqMonths(freq));
   return due.toLocaleDateString('en-US',{month:'short',year:'numeric'}).replace(' ','-').toUpperCase();
 }
-function applyThermocoupleReplacement(tcId,replaceDateStr){
+// Replacement due date: "JAN-2026" jaisa label ho to us mahine ka aakhri din, warna Installation Date + Frequency
+function tcDueDate(r){
+  if(!r)return null;
+  let t=String(r.due||'').trim();
+  let m=t.match(/^([A-Za-z]{3,9})[-\s\/\.](\d{2,4})$/);
+  if(m){let mons=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'],mi=mons.indexOf(m[1].slice(0,3).toLowerCase()),y=Number(m[2]);if(y<100)y+=2000;if(mi>=0)return new Date(y,mi+1,0);}
+  if(t){let d=parseFlexDate(t);if(d)return d;}
+  let b=parseFlexDate(r.inst);return b?tcAddMonths(b,tcFreqMonths(r.freq)):null;
+}
+// Status khud nikalta hai: Completed (manual) ho to wahi, warna due date se Overdue / Due Soon (30 din) / Planned
+function tcEffStatus(r){
+  if(!r)return '';
+  if(String(r.status||'')==='Completed')return 'Completed';
+  let d=tcDueDate(r);if(!d)return r.status||'Planned';
+  let t=new Date();t.setHours(0,0,0,0);
+  let days=Math.floor((d-t)/86400000);
+  return days<0?'Overdue':(days<=30?'Due Soon':'Planned');
+}
+function tcStatusStyle(st){return st==='Overdue'?'background:#fee2e2;color:#b91c1c;font-weight:bold':st==='Due Soon'?'background:#fef3c7;color:#b45309;font-weight:bold':st==='Completed'?'color:#15803d;font-weight:bold':'';}
+function applyThermocoupleReplacement(tcId,replaceDateStr,newSrid,note){
   if(!tcId)return false;
-  let r=data.tc.find(x=>x.id===tcId);if(!r)return false;
+  let r=data.tc.find(x=>sameId(x.id,tcId));if(!r)return false;   // pehle === tha: select ki string id aur number id match nahi hoti thi, replacement lagti hi nahi thi
   let d=replaceDateStr||new Date().toISOString().slice(0,10);
+  if(!Array.isArray(r.history))r.history=[];
+  r.history.push({date:d,oldInst:r.inst||'',oldSrid:r.srid||'',oldDue:r.due||'',newSrid:newSrid||r.srid||'',note:note||'',at:new Date().toISOString()});
+  if(newSrid)r.srid=newSrid;
   r.inst=d;r.due=tcNextDueLabel(d,r.freq);r.status='Planned';r.updatedAt=new Date().toISOString();
   persist('tc');renderThermocoupleTable();
   return true;
@@ -1938,15 +1969,30 @@ function populatePMTCSelect(){
   s.innerHTML='<option value="">-- None --</option>'+tcOptionList();
   if([...s.options].some(o=>o.value===cur))s.value=cur;
 }
+function calIso(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+// Calibration status: days<0 Overdue, 0..30 Due within 30 days, baaki OK, date na ho to No due date
+function calInfo(r){
+  let d=parseFlexDate(r&&r.duedate);
+  if(!d)return {st:'No due date',days:null,rank:3,d:null};
+  d.setHours(0,0,0,0);let now=new Date();now.setHours(0,0,0,0);
+  let days=Math.round((d-now)/86400000);
+  return {st:days<0?'Overdue':(days<=30?'Due within 30 days':'OK'),days:days,rank:days<0?0:(days<=30?1:2),d:d};
+}
+function calStatusStyle(st){return st==='Overdue'?'background:#fee2e2;color:#b91c1c;font-weight:bold':st==='Due within 30 days'?'background:#fef3c7;color:#b45309;font-weight:bold':st==='OK'?'color:#15803d;font-weight:bold':'color:#6b7280';}
+function calStatusText(i){
+  if(i.days===null)return 'No due date';
+  if(i.days<0)return 'Overdue '+(-i.days)+' day'+(i.days===-1?'':'s');
+  if(i.days===0)return 'Due today';
+  return i.days<=30?'Due in '+i.days+' day'+(i.days===1?'':'s'):'OK';
+}
+// Sequence: pehle Overdue (sabse purana sabse upar), phir 30 din ke andar due (sabse nazdeek pehle), phir OK, aakhir me bina due date wale
+function calSorted(list){
+  return list.slice().sort((x,y)=>{let a=calInfo(x),b=calInfo(y);return (a.rank-b.rank)||((a.days??1e9)-(b.days??1e9))||(num(x.sno)-num(y.sno));});
+}
+// Dashboard ke liye: Overdue + agle `days` din me due, sequence ke saath (diff<0 = overdue)
 function calibrationDueSoon(days){
-  let now=new Date();now.setHours(0,0,0,0);
   let out=[];
-  data.cal.forEach(r=>{
-    let d=parseFlexDate(r.duedate);if(!d)return;
-    d.setHours(0,0,0,0);
-    let diff=Math.round((d-now)/86400000);
-    if(diff>=0&&diff<=days)out.push({r,diff,d});
-  });
+  data.cal.forEach(r=>{let i=calInfo(r);if(i.days===null)return;if(i.days<=days)out.push({r,diff:i.days,d:i.d});});
   out.sort((a,b)=>a.diff-b.diff);
   return out;
 }
@@ -2330,53 +2376,121 @@ function printCriticalSpares(){
 }
 
 /* ================= THERMOCOUPLE REPLACEMENT PLAN & AUDIT CONTROL MODULE (FMT-HT-70) ================= */
-function clearTCForm(){edit.tc=null;setv('tc_id','');setv('tc_sno',data.tc.length+1);setv('tc_furnace','');setv('tc_loc','');setv('tc_type','K');setv('tc_srid','');setv('tc_freq','YEARLY');setv('tc_inst','');setv('tc_due','');setv('tc_status','Planned');const btn=document.querySelector('#thermocouple .primary');if(btn)btn.textContent='Save Thermocouple Plan';}
+function clearTCForm(){edit.tc=null;setv('tc_id','');setv('tc_sno',data.tc.length+1);setv('tc_furnace','');setv('tc_loc','');setv('tc_type','K');setv('tc_srid','');setv('tc_freq','YEARLY');setv('tc_inst','');setv('tc_due','');{let e=document.getElementById('tc_due');if(e)e.dataset.auto='';}setv('tc_status','Planned');const btn=document.querySelector('#thermocouple .primary');if(btn)btn.textContent='Save Thermocouple Plan';}
 function saveThermocouple(){
  if(!mmsGuardSave('tc'))return;
   let old=edit.tc!==null?data.tc[edit.tc]:null;
-  let r={id:old?.id||Date.now(),sno:num(f('tc_sno'))||data.tc.length+1,furnace:f('tc_furnace'),loc:f('tc_loc'),type:f('tc_type'),srid:f('tc_srid'),freq:f('tc_freq'),inst:f('tc_inst'),due:f('tc_due'),status:f('tc_status'),updatedAt:new Date().toISOString()};
+  let r=Object.assign({},old||{},{id:old?.id||Date.now(),sno:num(f('tc_sno'))||data.tc.length+1,furnace:f('tc_furnace'),loc:f('tc_loc'),type:f('tc_type'),srid:f('tc_srid'),freq:f('tc_freq'),inst:f('tc_inst'),due:(f('tc_due')||'').trim(),status:f('tc_status'),updatedAt:new Date().toISOString()});
   if(!r.furnace.trim())return alert('Please enter Furnace No.');
+  if(!r.due&&r.inst)r.due=tcNextDueLabel(r.inst,r.freq);   // Replacement Date khali ho to Installation + Frequency se khud bharo
   let wasEdit=edit.tc!==null;
   if(wasEdit)data.tc[edit.tc]=r;else data.tc.push(r);
   persist('tc');edit.tc=null;clearTCForm();renderThermocoupleTable();
   alert(wasEdit?'Thermocouple plan updated successfully.':'Thermocouple plan saved successfully.');
 }
+function tcAutoDue(){
+  let inst=f('tc_inst');if(!inst)return;
+  let el=document.getElementById('tc_due');if(!el)return;
+  let cur=(el.value||'').trim();
+  // sirf tab badlo jab khali ho ya pehle ka auto-bhara label ho (manual likhi hui date ko mat chhedo)
+  if(!cur||el.dataset.auto==='1'){el.value=tcNextDueLabel(inst,f('tc_freq'));el.dataset.auto='1';}
+}
 function renderThermocoupleTable(){
   let body=document.getElementById('tcBody');if(!body)return;
   let a=data.tc;
-  body.innerHTML=a.map(r=>{let idx=data.tc.indexOf(r);return `<tr><td>${esc(r.sno)}</td><td>${esc(r.furnace)}</td><td>${esc(r.loc)}</td><td>${esc(r.type)}</td><td>${esc(r.srid)}</td><td>${esc(r.freq)}</td><td>${esc(fmtDate(r.inst))}</td><td>${esc(r.due)}</td><td>${esc(r.status)}</td><td class="editbar"><button class="secondary" onclick="editThermocouple(${idx})">Edit</button><button class="danger" onclick="deleteThermocouple(${idx})">Delete</button></td></tr>`}).join('')||'<tr><td colspan="10">No thermocouple records found.</td></tr>';
+  let cnt={Overdue:0,'Due Soon':0,Planned:0,Completed:0};
+  a.forEach(r=>{let st=tcEffStatus(r);cnt[st]=(cnt[st]||0)+1;});
+  let sm=document.getElementById('tcSummary');
+  if(sm){const chip=(t,n,c)=>`<span style="padding:6px 12px;border-radius:20px;font-weight:bold;border:2px solid ${c};color:${c}">${t}: ${n}</span>`;
+    sm.innerHTML=a.length?chip('⚠ Overdue',cnt.Overdue,'#b91c1c')+chip('⏰ Due in 30 days',cnt['Due Soon'],'#b45309')+chip('📅 Planned',cnt.Planned,'#2563eb')+chip('✅ Completed',cnt.Completed,'#15803d'):'';}
+  body.innerHTML=a.map(r=>{let idx=data.tc.indexOf(r),st=tcEffStatus(r),hn=(r.history||[]).length;return `<tr><td>${esc(r.sno)}</td><td>${esc(r.furnace)}</td><td>${esc(r.loc)}</td><td>${esc(r.type)}</td><td>${esc(r.srid)}</td><td>${esc(r.freq)}</td><td>${esc(fmtDate(r.inst))}</td><td>${esc(r.due)}</td><td style="${tcStatusStyle(st)}">${esc(st)}</td><td class="editbar"><button class="secondary" onclick="tcMarkReplaced(${idx})">✅ Replaced</button>${hn?`<button class="secondary" onclick="tcShowHistory(${idx})">📜 History (${hn})</button>`:''}<button class="secondary" onclick="editThermocouple(${idx})">Edit</button><button class="danger" onclick="deleteThermocouple(${idx})">Delete</button></td></tr>`}).join('')||'<tr><td colspan="10">No thermocouple records found.</td></tr>';
   populateBDTCSelect();populatePMTCSelect();
 }
-function editThermocouple(i){if(!mmsGuardEdit('tc'))return;let r=data.tc[i];if(!r)return;edit.tc=i;setv('tc_id',r.id);setv('tc_sno',r.sno);setv('tc_furnace',r.furnace);setv('tc_loc',r.loc);setv('tc_type',r.type);setv('tc_srid',r.srid);setv('tc_freq',r.freq);setv('tc_inst',r.inst);setv('tc_due',r.due);setv('tc_status',r.status);const btn=document.querySelector('#thermocouple .primary');if(btn)btn.textContent='Update Thermocouple Plan';document.getElementById('thermocouple').scrollIntoView({behavior:'smooth'});}
+// Thermocouple badla gaya (breakdown / PM ke bina bhi): date + (naya serial no.) daalo -> Installation Date naya, Replacement Date khud agla, purana record History me
+function tcMarkReplaced(i){
+  if(!mmsGuardEdit('tc'))return;let r=data.tc[i];if(!r)return;
+  let d=prompt('Thermocouple kab badla gaya? (YYYY-MM-DD)',new Date().toISOString().slice(0,10));if(d===null)return;
+  d=d.trim();if(!/^\d{4}-\d{2}-\d{2}$/.test(d))return alert('Date format YYYY-MM-DD me likho (jaise 2026-10-31).');
+  let sr=prompt('Naye thermocouple ka Serial No. / ID (nahi badla to khali chhodo):',r.srid||'');if(sr===null)return;
+  let n=prompt('Note / wajah (optional) - jaise Planned replacement / Breakdown:','');if(n===null)return;
+  applyThermocoupleReplacement(r.id,d,sr.trim(),n.trim());
+  alert('Replacement save ho gaya.\nAgli Replacement Date: '+r.due);
+}
+function tcShowHistory(i){
+  let r=data.tc[i];if(!r)return;
+  let h=(r.history||[]).slice().reverse();
+  alert('Replacement History - '+(r.furnace||'')+' ('+(r.srid||'')+')\n\n'+(h.length?h.map((x,k)=>(k+1)+'. '+fmtDate(x.date)+' - badla gaya'+(x.oldSrid?' (purana ID: '+x.oldSrid+(x.oldInst?', laga tha: '+fmtDate(x.oldInst):'')+')':'')+(x.newSrid&&x.newSrid!==x.oldSrid?' -> naya ID: '+x.newSrid:'')+(x.note?' | '+x.note:'')).join('\n'):'Abhi koi replacement record nahi.'));
+}
+function editThermocouple(i){if(!mmsGuardEdit('tc'))return;let r=data.tc[i];if(!r)return;edit.tc=i;setv('tc_id',r.id);setv('tc_sno',r.sno);setv('tc_furnace',r.furnace);setv('tc_loc',r.loc);setv('tc_type',r.type);setv('tc_srid',r.srid);setv('tc_freq',r.freq);setv('tc_inst',r.inst);setv('tc_due',r.due);{let e=document.getElementById('tc_due');if(e)e.dataset.auto='';}setv('tc_status',r.status);const btn=document.querySelector('#thermocouple .primary');if(btn)btn.textContent='Update Thermocouple Plan';document.getElementById('thermocouple').scrollIntoView({behavior:'smooth'});}
 function deleteThermocouple(i){
  if(!mmsGuardDelete('tc'))return;let r=data.tc[i];if(!r)return;if(!confirm('Delete this thermocouple record?'))return;data.tc.splice(i,1);data.tc.forEach((x,k)=>x.sno=k+1);persist('tc');if(edit.tc===i)edit.tc=null;renderThermocoupleTable();alert('Thermocouple record deleted successfully.');}
 function printThermocouplePlan(){
   let a=data.tc;
-  let body=a.map((r,i)=>`<tr><td>${i+1}</td><td>${esc(r.furnace)}</td><td>${esc(r.loc)}</td><td>${esc(r.type)}</td><td>${esc(r.srid)}</td><td>${esc(r.freq)}</td><td>${esc(fmtDate(r.inst))}</td><td>${esc(r.due)}</td><td>${esc(r.status)}</td></tr>`).join('');
+  let body=a.map((r,i)=>`<tr><td>${i+1}</td><td>${esc(r.furnace)}</td><td>${esc(r.loc)}</td><td>${esc(r.type)}</td><td>${esc(r.srid)}</td><td>${esc(r.freq)}</td><td>${esc(fmtDate(r.inst))}</td><td>${esc(r.due)}</td><td>${esc(tcEffStatus(r))}</td></tr>`).join('');
   let w=window.open('','_blank','width=1200,height=800');if(!w)return alert('Please allow pop-ups to print.');
   w.document.write(`<!doctype html><html><head><title>Thermocouple Replacement Plan</title><style>@page{size:A4 landscape;margin:8mm}body{font-family:Arial;font-size:10px}.title{text-align:center;font-size:16px;font-weight:bold}.title img{width:16mm;height:12mm;object-fit:contain;vertical-align:middle;margin-right:5mm}.sub{text-align:center;font-size:13px;font-weight:bold;margin:4px 0 10px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #000;padding:4px;text-align:center}th{background:#eee}</style></head><body><div class="title"><img src="${APP_LOGO}">Milestone Gears Ltd. UNIT-7</div><div class="sub">THERMOCOUPLE REPLACEMENT PLAN & AUDIT CONTROL (FMT-HT-70)</div><table><thead><tr><th>Sl.No.</th><th>Furnace No.</th><th>Location</th><th>Type</th><th>Sr.No/ID</th><th>Replacement Frequency</th><th>Installation Date</th><th>Replacement Date</th><th>Status</th></tr></thead><tbody>${body||'<tr><td colspan="9">No records</td></tr>'}</tbody></table><div class="doc-footer">FMT-MNT-01, REV NO: 01, DATE: 22.04.2022</div><script>window.onload=()=>window.print()<\/script></body></html>`);
   w.document.close();
 }
 
 /* ================= PERIODIC CALIBRATION PLAN OF HT INSTRUMENTS MODULE (FMT-HT-12) ================= */
-function clearCalForm(){edit.cal=null;setv('cal_id','');setv('cal_sno',data.cal.length+1);setv('cal_name','');setv('cal_make','');setv('cal_idno','');setv('cal_range','');setv('cal_lc','');setv('cal_location','');setv('cal_date','');setv('cal_duedate','');const btn=document.querySelector('#calibration .primary');if(btn)btn.textContent='Save Instrument';}
+function clearCalForm(){edit.cal=null;setv('cal_id','');setv('cal_sno',data.cal.length+1);setv('cal_name','');setv('cal_make','');setv('cal_idno','');setv('cal_range','');setv('cal_lc','');setv('cal_location','');setv('cal_date','');setv('cal_freq','YEARLY');setv('cal_duedate','');{let e=document.getElementById('cal_duedate');if(e)e.dataset.auto='';}const btn=document.querySelector('#calibration .primary');if(btn)btn.textContent='Save Instrument';}
+let calFocus='';   // 'attn' = sirf Overdue + 30 din me due (dashboard card se)
+function dashGoCalibration(){
+  calFocus='attn';goDash('calibration');
+  setv('cal_search','');
+  try{renderCalibrationTable();}catch(e){console.warn(e);}
+}
+function calClearFocus(){calFocus='';renderCalibrationTable();}
+function calAutoDue(){
+  let dt=parseFlexDate(f('cal_date'));if(!dt)return;
+  let el=document.getElementById('cal_duedate');if(!el)return;
+  // sirf khali ho ya pehle ki auto-bhari date ho tab badlo (haath se likhi date ko mat chhedo)
+  if(!el.value||el.dataset.auto==='1'){el.value=calIso(tcAddMonths(dt,tcFreqMonths(f('cal_freq'))));el.dataset.auto='1';}
+}
 function saveCalibration(){
  if(!mmsGuardSave('cal'))return;
   let old=edit.cal!==null?data.cal[edit.cal]:null;
-  let r={id:old?.id||Date.now(),sno:num(f('cal_sno'))||data.cal.length+1,name:f('cal_name'),make:f('cal_make'),idno:f('cal_idno'),range:f('cal_range'),lc:f('cal_lc'),location:f('cal_location'),date:f('cal_date'),duedate:f('cal_duedate'),updatedAt:new Date().toISOString()};
+  let r=Object.assign({},old||{},{id:old?.id||Date.now(),sno:num(f('cal_sno'))||data.cal.length+1,name:f('cal_name'),make:f('cal_make'),idno:f('cal_idno'),range:f('cal_range'),lc:f('cal_lc'),location:f('cal_location'),date:f('cal_date'),freq:(f('cal_freq')||'').trim()||'YEARLY',duedate:f('cal_duedate'),updatedAt:new Date().toISOString()});
   if(!r.name.trim())return alert('Please enter Instruments Name.');
+  if(!r.duedate&&r.date){let d=parseFlexDate(r.date);if(d)r.duedate=calIso(tcAddMonths(d,tcFreqMonths(r.freq)));}   // Due Date khali ho to Cali. Date + Frequency
+  if(r.date&&r.duedate&&r.duedate<r.date&&!confirm('Due Date, Calibration Date se pehle hai. Phir bhi save karein?'))return;
   let wasEdit=edit.cal!==null;
   if(wasEdit)data.cal[edit.cal]=r;else data.cal.push(r);
   persist('cal');edit.cal=null;clearCalForm();renderCalibrationTable();
+  if(typeof renderDashboard==='function')try{renderDashboard()}catch(e){}
   alert(wasEdit?'Instrument updated successfully.':'Instrument saved successfully.');
 }
 function renderCalibrationTable(){
   let body=document.getElementById('calBody');if(!body)return;
   let q=(f('cal_search')||'').toLowerCase();
-  let a=data.cal.filter(r=>!q||Object.values(r).join(' ').toLowerCase().includes(q));
-  body.innerHTML=a.map(r=>{let idx=data.cal.indexOf(r);return `<tr><td>${esc(r.sno)}</td><td>${esc(r.name)}</td><td>${esc(r.make)}</td><td>${esc(r.idno)}</td><td>${esc(r.range)}</td><td>${esc(r.lc)}</td><td>${esc(r.location)}</td><td>${esc(fmtDate(r.date))}</td><td>${esc(fmtDate(r.duedate))}</td><td class="editbar"><button class="secondary" onclick="editCalibration(${idx})">Edit</button><button class="danger" onclick="deleteCalibration(${idx})">Delete</button></td></tr>`}).join('')||'<tr><td colspan="10">No instruments found.</td></tr>';
+  let cnt={0:0,1:0,2:0,3:0};data.cal.forEach(r=>cnt[calInfo(r).rank]++);
+  let sm=document.getElementById('calSummary');
+  if(sm){const chip=(t,n,c)=>`<span style="padding:6px 12px;border-radius:20px;font-weight:bold;border:2px solid ${c};color:${c}">${t}: ${n}</span>`;
+    sm.innerHTML=data.cal.length?chip('⚠ Overdue',cnt[0],'#b91c1c')+chip('⏰ Due in 30 days',cnt[1],'#b45309')+chip('✅ OK',cnt[2],'#15803d')+(cnt[3]?chip('No due date',cnt[3],'#6b7280'):''):'';}
+  let a=calSorted(data.cal.filter(r=>(calFocus!=='attn'||calInfo(r).rank<=1)&&(!q||Object.values(r).join(' ').toLowerCase().includes(q))));
+  let fb=document.getElementById('calFocusBar');
+  if(fb){fb.style.display=calFocus==='attn'?'block':'none';fb.innerHTML=calFocus==='attn'?`<b>Sirf Overdue + agle 30 din me due instruments</b> dikha rahe hain (${a.length}). <button class="secondary" onclick="calClearFocus()">Sab instruments dikhao</button>`:'';}
+  body.innerHTML=a.map(r=>{let idx=data.cal.indexOf(r),i=calInfo(r),hn=(r.history||[]).length;return `<tr><td>${esc(r.sno)}</td><td>${esc(r.name)}</td><td>${esc(r.make)}</td><td>${esc(r.idno)}</td><td>${esc(r.range)}</td><td>${esc(r.lc)}</td><td>${esc(r.location)}</td><td>${esc(fmtDate(r.date))}</td><td>${esc(fmtDate(r.duedate))}</td><td style="${calStatusStyle(i.st)}">${esc(calStatusText(i))}</td><td class="editbar"><button class="secondary" onclick="calMarkDone(${idx})">✅ Calibrated</button>${hn?`<button class="secondary" onclick="calShowHistory(${idx})">📜 History (${hn})</button>`:''}<button class="secondary" onclick="editCalibration(${idx})">Edit</button><button class="danger" onclick="deleteCalibration(${idx})">Delete</button></td></tr>`}).join('')||'<tr><td colspan="11">No instruments found.</td></tr>';
 }
-function editCalibration(i){if(!mmsGuardEdit('cal'))return;let r=data.cal[i];if(!r)return;edit.cal=i;setv('cal_id',r.id);setv('cal_sno',r.sno);setv('cal_name',r.name);setv('cal_make',r.make);setv('cal_idno',r.idno);setv('cal_range',r.range);setv('cal_lc',r.lc);setv('cal_location',r.location);setv('cal_date',r.date);setv('cal_duedate',r.duedate);const btn=document.querySelector('#calibration .primary');if(btn)btn.textContent='Update Instrument';document.getElementById('calibration').scrollIntoView({behavior:'smooth'});}
+// Instrument calibrate ho gaya: nayi Cali. Date + (certificate no.) -> Due Date khud agli, purani date History me
+function calMarkDone(i){
+  if(!mmsGuardEdit('cal'))return;let r=data.cal[i];if(!r)return;
+  let d=prompt('Calibration kab hua? (YYYY-MM-DD)',new Date().toISOString().slice(0,10));if(d===null)return;
+  d=d.trim();if(!/^\d{4}-\d{2}-\d{2}$/.test(d))return alert('Date format YYYY-MM-DD me likho (jaise 2026-10-31).');
+  let cert=prompt('Calibration Certificate No. (optional):','');if(cert===null)return;
+  let fr=prompt('Agla calibration kitne time baad? (YEARLY / HALF YEARLY / QUARTERLY / 2 YEARS)',r.freq||'YEARLY');if(fr===null)return;
+  fr=fr.trim()||r.freq||'YEARLY';
+  if(!Array.isArray(r.history))r.history=[];
+  r.history.push({date:d,oldDate:r.date||'',oldDue:r.duedate||'',cert:cert.trim(),at:new Date().toISOString()});
+  r.date=d;r.freq=fr;r.duedate=calIso(tcAddMonths(parseFlexDate(d),tcFreqMonths(fr)));r.updatedAt=new Date().toISOString();
+  persist('cal');renderCalibrationTable();if(typeof renderDashboard==='function')try{renderDashboard()}catch(e){}
+  alert('Calibration save ho gaya.\nAgli Due Date: '+fmtDate(r.duedate));
+}
+function calShowHistory(i){
+  let r=data.cal[i];if(!r)return;let h=(r.history||[]).slice().reverse();
+  alert('Calibration History - '+(r.name||'')+' ('+(r.idno||'')+')\n\n'+(h.length?h.map((x,k)=>(k+1)+'. '+fmtDate(x.date)+' calibrate hua'+(x.cert?' | Cert: '+x.cert:'')+(x.oldDate?' (pichhla: '+fmtDate(x.oldDate)+')':'')).join('\n'):'Abhi koi history nahi.'));
+}
+function editCalibration(i){if(!mmsGuardEdit('cal'))return;let r=data.cal[i];if(!r)return;edit.cal=i;setv('cal_id',r.id);setv('cal_sno',r.sno);setv('cal_name',r.name);setv('cal_make',r.make);setv('cal_idno',r.idno);setv('cal_range',r.range);setv('cal_lc',r.lc);setv('cal_location',r.location);setv('cal_date',r.date);setv('cal_freq',r.freq||'YEARLY');setv('cal_duedate',r.duedate);{let e=document.getElementById('cal_duedate');if(e)e.dataset.auto='';}const btn=document.querySelector('#calibration .primary');if(btn)btn.textContent='Update Instrument';document.getElementById('calibration').scrollIntoView({behavior:'smooth'});}
 function deleteCalibration(i){
  if(!mmsGuardDelete('cal'))return;let r=data.cal[i];if(!r)return;if(!confirm('Delete this instrument record?'))return;data.cal.splice(i,1);data.cal.forEach((x,k)=>x.sno=k+1);persist('cal');if(edit.cal===i)edit.cal=null;renderCalibrationTable();alert('Instrument deleted successfully.');}
 function printCalibrationPlan(){
@@ -2433,6 +2547,23 @@ document.addEventListener('DOMContentLoaded',function(){
   const overlay=document.getElementById('sidebarOverlay');
   if(overlay) overlay.addEventListener('click',function(e){e.preventDefault();closeAppSidebar();},true);
 });
+// ---- Dashboard KPI cards click: Total Machines / Open Requests / Month Breakdowns ----
+function dashGoMachines(){
+  goDash('mm');
+  setv('mm_search','');setv('mm_dept_filter','');
+  try{renderMachineMaster();}catch(e){}
+}
+function dashGoOpenRequests(){
+  goDash('mr');
+  setv('mr_search','');setv('mr_filter_status','__open');   // __open = har mahine ki jo requests abhi Closed/Cancelled nahi hain (dashboard ke count jaisi)
+  try{renderMR();}catch(e){console.warn(e);}
+}
+function dashGoBreakdowns(){
+  goDash('bd');
+  let el=document.getElementById('bd_month'),cur=monthLabelFromDate(new Date());
+  if(el&&[...el.options].some(o=>o.value===cur))el.value=cur;
+  try{renderBreakdown();}catch(e){console.warn(e);}
+}
 function goDash(id){let btn=[...document.querySelectorAll('.tab')].find(b=>{let o=b.getAttribute('onclick')||'';return o.includes("showTab('"+id+"'")});showTab(id,btn)}
 function openPMPlanFromDashboard(){const btn=document.querySelector('.app-sidebar .tab[data-target="pmMaster"]');navigateApp('pmMaster',btn);setTimeout(()=>{const panel=document.getElementById('pmMaster');if(panel)panel.scrollIntoView({behavior:'smooth',block:'start'});},0)}
 function dashboardPMStatus(){
@@ -2458,8 +2589,8 @@ function dashboardPMStatus(){
   });
   return {currentLabel,total,planned,completed,pending,overdue,rows:monthRows};
 }
-function renderDashboard(){let now=new Date(),ym=now.getFullYear(),mon=now.getMonth()+1;let monthBD=data.bd.filter(r=>{let d=new Date((r.date||'')+'T00:00:00');return !isNaN(d)&&d.getFullYear()===ym&&d.getMonth()+1===mon});let open=data.mr.filter(r=>{let st=String(r.status||'').toLowerCase();return st!=='closed'&&st!=='complete'&&st!=='cancelled'});setText('dashMachines',MACHINE_MASTER.length);setText('dashOpen',open.length);setText('dashBreakdowns',monthBD.length);let pm=dashboardPMStatus();setText('dashPM',pm.planned+pm.pending+pm.overdue);setText('dashPMTotal',pm.total);setText('dashPMPlanned',pm.planned);setText('dashPMCompleted',pm.completed);setText('dashPMPending',pm.pending);setText('dashPMOverdue',pm.overdue);let dml=document.getElementById('dashPMMonthLabel');if(dml)dml.textContent=pm.currentLabel+' • PM Plan Control';let dms=document.getElementById('dashPMSub');if(dms)dms.textContent=pm.currentLabel;let de={};MACHINE_MASTER.forEach(m=>de[m.department]=(de[m.department]||0)+1);let max=Math.max(1,...Object.values(de));let dept=document.getElementById('dashDepartments');if(dept)dept.innerHTML=Object.entries(de).map(([k,v])=>`<div class="dept-line"><span>${esc(k)}</span><div class="bar"><i style="width:${v/max*100}%"></i></div><b>${v}</b></div>`).join('');let rb=[...data.bd].sort((a,b)=>(b.date||'').localeCompare(a.date||'')||String(b.to||'').localeCompare(String(a.to||''))).slice(0,5);let rbd=document.getElementById('dashRecentBD');if(rbd)rbd.innerHTML=rb.length?rb.map(r=>`<div class="dash-row"><span><b>${esc(r.machine||'')}</b><br>${esc(r.reason||'')}</span><span>${esc(fmtDate(r.date))}<br>${num(r.hours).toFixed(2)} h</span></div>`).join(''):'<div class="dash-empty">No breakdown data available</div>';let rm=open.slice().sort((a,b)=>(b.pdate||'').localeCompare(a.pdate||'')).slice(0,5);let rmr=document.getElementById('dashRecentMR');if(rmr)rmr.innerHTML=rm.length?rm.map(r=>`<div class="dash-row"><span><b>SR ${esc(r.sr||'')}</b><br>${esc(r.machine||'')}</span><span>${typeof mrDashTag==='function'?mrDashTag(r):esc(r.status||'Open')}</span></div>`).join(''):'<div class="dash-empty">No open requests</div>';let dd=document.getElementById('dashDate');if(dd)dd.textContent=now.toLocaleDateString('en-IN',{weekday:'long',day:'2-digit',month:'short',year:'numeric'});
-let calDueSoon=calibrationDueSoon(30);setText('dashCalDue',calDueSoon.length);let cdl=document.getElementById('dashCalDueList');if(cdl)cdl.innerHTML=calDueSoon.length?calDueSoon.slice(0,8).map(x=>`<div class="dash-row"><span><b>${esc(x.r.name||'')}</b><br>${esc(x.r.idno||'')} • ${esc(x.r.location||'')}</span><span>${esc(fmtDate(x.d.toISOString().slice(0,10)))}<br>${x.diff===0?'Due today':'in '+x.diff+' day'+(x.diff===1?'':'s')}</span></div>`).join(''):'<div class="dash-empty">No calibration due in next 30 days</div>';
+function renderDashboard(){let now=new Date(),ym=now.getFullYear(),mon=now.getMonth()+1;let monthBD=data.bd.filter(r=>{let d=new Date((r.date||'')+'T00:00:00');return !isNaN(d)&&d.getFullYear()===ym&&d.getMonth()+1===mon});let open=data.mr.filter(r=>{let st=String(r.status||'').toLowerCase();return st!=='closed'&&st!=='complete'&&st!=='cancelled'});setText('dashMachines',MACHINE_MASTER.length);setText('dashOpen',open.length);setText('dashBreakdowns',monthBD.length);try{setText('dashMachinesSub',new Set(MACHINE_MASTER.map(m=>m.department)).size+' departments');let oc={};open.forEach(r=>{let k=r.status||'Open';oc[k]=(oc[k]||0)+1});setText('dashOpenSub',open.length?Object.keys(oc).map(k=>oc[k]+' '+k).join(' • '):'Koi pending nahi');setText('dashBDSub',monthLabelFromDate(new Date())+' • '+monthBD.reduce((t,r)=>t+num(r.hours),0).toFixed(1)+' hrs downtime');}catch(e){}let pm=dashboardPMStatus();setText('dashPM',pm.planned+pm.pending+pm.overdue);setText('dashPMTotal',pm.total);setText('dashPMPlanned',pm.planned);setText('dashPMCompleted',pm.completed);setText('dashPMPending',pm.pending);setText('dashPMOverdue',pm.overdue);let dml=document.getElementById('dashPMMonthLabel');if(dml)dml.textContent=pm.currentLabel+' • PM Plan Control';let dms=document.getElementById('dashPMSub');if(dms)dms.textContent=pm.currentLabel;let de={};MACHINE_MASTER.forEach(m=>de[m.department]=(de[m.department]||0)+1);let max=Math.max(1,...Object.values(de));let dept=document.getElementById('dashDepartments');if(dept)dept.innerHTML=Object.entries(de).map(([k,v])=>`<div class="dept-line"><span>${esc(k)}</span><div class="bar"><i style="width:${v/max*100}%"></i></div><b>${v}</b></div>`).join('');let rb=[...data.bd].sort((a,b)=>(b.date||'').localeCompare(a.date||'')||String(b.to||'').localeCompare(String(a.to||''))).slice(0,5);let rbd=document.getElementById('dashRecentBD');if(rbd)rbd.innerHTML=rb.length?rb.map(r=>`<div class="dash-row"><span><b>${esc(r.machine||'')}</b><br>${esc(r.reason||'')}</span><span>${esc(fmtDate(r.date))}<br>${num(r.hours).toFixed(2)} h</span></div>`).join(''):'<div class="dash-empty">No breakdown data available</div>';let rm=open.slice().sort((a,b)=>(b.pdate||'').localeCompare(a.pdate||'')).slice(0,5);let rmr=document.getElementById('dashRecentMR');if(rmr)rmr.innerHTML=rm.length?rm.map(r=>`<div class="dash-row"><span><b>SR ${esc(r.sr||'')}</b><br>${esc(r.machine||'')}</span><span>${typeof mrDashTag==='function'?mrDashTag(r):esc(r.status||'Open')}</span></div>`).join(''):'<div class="dash-empty">No open requests</div>';let dd=document.getElementById('dashDate');if(dd)dd.textContent=now.toLocaleDateString('en-IN',{weekday:'long',day:'2-digit',month:'short',year:'numeric'});
+let calDueSoon=calibrationDueSoon(30);setText('dashCalDue',calDueSoon.length);{let ov=calDueSoon.filter(x=>x.diff<0).length,sub=document.getElementById('dashCalSub');setText('dashCalSub',calDueSoon.length?(ov?ov+' overdue • ':'')+(calDueSoon.length-ov)+' due in 30 days':'Sab calibration theek hai');if(sub)sub.style.color=ov?'#b91c1c':'';}let cdl=document.getElementById('dashCalDueList');if(cdl)cdl.innerHTML=calDueSoon.length?calDueSoon.slice(0,8).map(x=>`<div class="dash-row"${x.diff<0?' style="border-left:3px solid #b91c1c"':''}><span><b>${esc(x.r.name||'')}</b><br>${esc(x.r.idno||'')} • ${esc(x.r.location||'')}</span><span>${esc(fmtDate(calIso(x.d)))}<br>${x.diff<0?'<b style="color:#b91c1c">Overdue '+(-x.diff)+' day'+(x.diff===-1?'':'s')+'</b>':(x.diff===0?'<b>Due today</b>':'in '+x.diff+' day'+(x.diff===1?'':'s'))}</span></div>`).join('')+(calDueSoon.length>8?`<div class="dash-empty">+${calDueSoon.length-8} aur - Calibration Plan me dekho</div>`:''):'<div class="dash-empty">Koi calibration overdue ya next 30 days me due nahi</div>';
 // ==========================================================
     // ANTI-FLICKER DASHBOARD UPDATE: LOW STOCK & ADMIN LOG
     // ==========================================================
@@ -3442,14 +3573,18 @@ function refreshMRMonth(){
  s.innerHTML=months.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');
  s.value=months.includes(cur)?cur:(months.includes(now)?now:months[0]);
 }
+function mrIsOpenReq(r){let st=String(r&&r.status||'Open').toLowerCase();return st!=='closed'&&st!=='complete'&&st!=='cancelled';}
+function getOpenMRAll(){
+ return [...data.mr].filter(mrIsOpenReq).sort((a,b)=>(String(a.pdate||a.mdate||a.hdate||'')+String(a.ptime||a.mtime||'')).localeCompare(String(b.pdate||b.mdate||b.hdate||'')+String(b.ptime||b.mtime||'')));
+}
 function getMRMonthRecords(label){
  return [...data.mr].filter(r=>mrRecordMonth(r)===label).sort((a,b)=>(String(a.pdate||a.mdate||a.hdate||'')+String(a.ptime||a.mtime||'')).localeCompare(String(b.pdate||b.mdate||b.hdate||'')+String(b.ptime||b.mtime||'')));
 }
 function renderMR(){
  refreshMRMonth();
  let q=(f('mr_search')||'').toLowerCase(),st=f('mr_filter_status')||'',month=mrSelectedMonth();
- let all=getMRMonthRecords(month);
- let a=all.filter(r=>(!st||r.status===st)&&(!q||JSON.stringify(r).toLowerCase().includes(q)));
+ let all=st==='__open'?getOpenMRAll():getMRMonthRecords(month);
+ let a=all.filter(r=>(!st||st==='__open'||r.status===st)&&(!q||JSON.stringify(r).toLowerCase().includes(q)));
  const head=document.getElementById('mrHead');
  if(mrRole==='production'){
   head.innerHTML='<tr><th>Sr. No.</th><th>Machine</th><th>Machine No.</th><th>Section</th><th>Date</th><th>Time</th><th>Request By</th><th>E-Code</th><th>Problem</th><th>Status</th><th>Action</th></tr>';
@@ -3463,8 +3598,8 @@ function renderMR(){
  document.getElementById('mrTotal').textContent=total;document.getElementById('mrOpen').textContent=open;document.getElementById('mrProgress').textContent=progress;document.getElementById('mrClosed').textContent=closed;document.getElementById('mrCancelled').textContent=cancelled;
 }
 function printMRMonth(){
- const label=mrSelectedMonth(),all=getMRMonthRecords(label),q=(f('mr_search')||'').toLowerCase(),st=f('mr_filter_status')||'';
- const rows=all.filter(r=>(!st||r.status===st)&&(!q||JSON.stringify(r).toLowerCase().includes(q)));
+ const st=f('mr_filter_status')||'',label=st==='__open'?'ALL OPEN REQUESTS (EVERY MONTH)':mrSelectedMonth(),all=st==='__open'?getOpenMRAll():getMRMonthRecords(label),q=(f('mr_search')||'').toLowerCase();
+ const rows=all.filter(r=>(!st||st==='__open'||r.status===st)&&(!q||JSON.stringify(r).toLowerCase().includes(q)));
  const counts={total:rows.length,open:rows.filter(x=>x.status==='Open').length,progress:rows.filter(x=>x.status==='In Progress').length,closed:rows.filter(x=>x.status==='Closed').length,cancelled:rows.filter(x=>x.status==='Cancelled').length};
  const html=`<div class="mr-month-print-page"><div class="mr-month-print-title">Milestone Gears Ltd. UNIT-7 — MAINTENANCE REQUEST / BREAKDOWN REGISTER</div><div class="mr-month-print-sub">SELECTED MONTH: ${esc(label)} &nbsp; | &nbsp; ${esc(fyRangeText())}</div><div class="mr-month-print-summary"><div>Total: ${counts.total}</div><div>Open: ${counts.open}</div><div>In Progress: ${counts.progress}</div><div>Waiting: ${rows.filter(x=>x.status==='Waiting for Spare').length}</div><div>Work Done: ${rows.filter(x=>x.status==='Work Done').length}</div><div>Closed: ${counts.closed}</div><div>Cancelled: ${counts.cancelled}</div></div><table class="mr-month-print-table"><thead><tr><th>Sr.</th><th>Date</th><th>Time</th><th>Machine</th><th>Machine No.</th><th>Section</th><th>Priority</th><th>Problem / Breakdown</th><th>Status</th><th>Received By</th><th>Response</th><th>Action Taken</th><th>Handover</th><th>Total Time</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.sr)}</td><td>${fmtDate(r.pdate||r.mdate||r.hdate)}</td><td>${esc(r.ptime||r.mtime||'')}</td><td>${esc(r.machine)}</td><td>${esc(r.machineNo)}</td><td>${esc(r.section)}</td><td>${esc(r.priority||'Normal')}</td><td>${esc(r.problem||'')}</td><td>${esc(r.status||'')}</td><td>${esc(r.recvBy||r.reqBy||'')}</td><td>${typeof mrRespText==='function'?mrRespText(r):''}</td><td>${esc(r.action||'')}</td><td>${fmtDate(r.hdate)} ${esc(r.htime||'')}</td><td>${esc(r.duration||'')}</td></tr>`).join('')}</tbody></table><div class="mr-month-print-footer">Total Maintenance Requests / Breakdowns for ${esc(label)}: ${counts.total}</div></div>`;
  document.getElementById('mrMonthPrintPage').innerHTML=html;
@@ -4814,7 +4949,7 @@ function gsReport(mod,mk){
  }else if(mod==='tc'){
   rep.title='THERMOCOUPLE REPLACEMENT PLAN & AUDIT CONTROL (FMT-HT-70)';rep.footer='FMT-MNT-01, REV NO: 01, DATE: 22.04.2022';
   rep.headers=['Sl.No.','Furnace No.','Location','Type','Sr.No/ID','Replacement Frequency','Installation Date','Replacement Date','Status'];
-  rep.rows=data.tc.map(function(r,i){return [i+1,r.furnace,r.loc,r.type,r.srid,r.freq,fmtDate(r.inst),r.due,r.status]});
+  rep.rows=data.tc.map(function(r,i){return [i+1,r.furnace,r.loc,r.type,r.srid,r.freq,fmtDate(r.inst),r.due,tcEffStatus(r)]});
  }else if(mod==='cal'){
   rep.title='PERIODIC CALIBRATION PLAN OF HT INSTRUMENTS (FMT-HT-12)';
   rep.headers=['Sr.No.','Instruments Name','Make','Inst ID No.','Range','L.C','Location','Cali. Date','Due Date'];
@@ -9370,7 +9505,7 @@ var CFG=[
  {key:'critical',panel:'criticalSpares',tbody:'csBody',render:'renderCriticalTable',print:['printCriticalSpares'],
   fields:[{id:'status',label:'Status',get:function(r){return typeof criticalStatus==='function'?criticalStatus(r):''}},{id:'machine',label:'Machine No.',get:function(r){return r.machine}},{id:'loc',label:'Location',get:function(r){return r.loc}}]},
  {key:'tc',panel:'thermocouple',tbody:'tcBody',render:'renderThermocoupleTable',print:['printThermocouplePlan'],search:true,
-  fields:[{id:'furnace',label:'Furnace No.',get:function(r){return r.furnace}},{id:'type',label:'TC Type',get:function(r){return r.type}},{id:'status',label:'Status',get:function(r){return r.status}}]},
+  fields:[{id:'furnace',label:'Furnace No.',get:function(r){return r.furnace}},{id:'type',label:'TC Type',get:function(r){return r.type}},{id:'status',label:'Status',get:function(r){return typeof tcEffStatus==='function'?tcEffStatus(r):r.status}}]},
  {key:'cal',panel:'calibration',tbody:'calBody',render:'renderCalibrationTable',print:['printCalibrationPlan'],
   fields:[{id:'due',label:'Calibration Due',fixed:['Overdue','Due within 30 days','OK','No due date'],get:function(r){return dueStatus(r.duedate)}},{id:'make',label:'Make',get:function(r){return r.make}},{id:'location',label:'Location',get:function(r){return r.location}}]},
  {key:'bd',panel:'bd',tbody:'bdBody',render:'renderBreakdown',print:['printBreakdownMonth'],
@@ -12974,8 +13109,9 @@ setInterval(sync,2500);
   window.renderMR = function () {
     refreshMRMonth();
     var q = (f('mr_search') || '').toLowerCase(), stf = f('mr_filter_status') || '', month = mrSelectedMonth();
-    var all = getMRMonthRecords(month);
-    var a = all.filter(function (r) { return (!stf || stOf(r) === stf) && (!q || JSON.stringify(r).toLowerCase().indexOf(q) >= 0); });
+    var openAll = stf === '__open';
+    var all = openAll ? getOpenMRAll() : getMRMonthRecords(month);
+    var a = all.filter(function (r) { return (!stf || openAll || stOf(r) === stf) && (!q || JSON.stringify(r).toLowerCase().indexOf(q) >= 0); });
     var head = G('mrHead'), body = G('mrBody'); if (!head || !body) return;
     var rowSt = function (r) { return (isPending(r) && priOf(r) === 'Breakdown') ? ' style="background:#fff1f1"' : (isOverdue(r) ? ' style="background:#fffbeb"' : ''); };
     if (mrRole === 'production') {
@@ -12993,7 +13129,7 @@ setInterval(sync,2500);
     }
     var c = function (s) { return all.filter(function (x) { return stOf(x) === s; }).length; };
     var T2 = function (id, v) { var e = G(id); if (e) e.textContent = v; };
-    T2('mrMonthLabel', month); T2('mrTotal', all.length); T2('mrOpen', c(ST.OPEN)); T2('mrProgress', c(ST.PROG)); T2('mrWaiting', c(ST.WAIT)); T2('mrWorkDone', c(ST.DONE)); T2('mrClosed', c(ST.CLOSED)); T2('mrCancelled', c(ST.CANC));
+    T2('mrMonthLabel', openAll ? 'All months - Open requests' : month); T2('mrTotal', all.length); T2('mrOpen', c(ST.OPEN)); T2('mrProgress', c(ST.PROG)); T2('mrWaiting', c(ST.WAIT)); T2('mrWorkDone', c(ST.DONE)); T2('mrClosed', c(ST.CLOSED)); T2('mrCancelled', c(ST.CANC));
     T2('mrOverdue', all.filter(isOverdue).length);
     banner(); analytics(all);
   };
