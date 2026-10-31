@@ -6641,8 +6641,12 @@ function purchaseStatusChanged() {
 // Received hone par stock Spare Inventory me add karna (pehle save ke andar tha, ab quick "Mark Received" bhi yahi use karta hai)
 function purchaseAddToInventory(r) {
     let addedToInventory = false;
-    if (confirm(`Status is 'Received'. Do you want to automatically add ${r.recQty} qty of "${r.desc}" to the Spare Parts Inventory master?`)) {
-        let existingSpare = (data.spares || []).find(s => normalizeSpareName(s.desc) === normalizeSpareName(r.desc) && (!r.spec || normalizeSpareName(s.spec) === normalizeSpareName(r.spec)));
+    if (confirm(`Material Received: "${r.desc}" - ${r.recQty} qty.\n\nKya ye qty Spare Parts Inventory me automatic add kar dein?\n\nOK = Haan, stock add karo\nCancel = Nahi (agar aap Inventory / Critical Register me stock khud pehle hi add kar chuke ho - warna double count ho jayega)`)) {
+        // Inventory/Critical sync jis rule se part ko pehchanta hai (spareLinkKey) wahi yahan use karo, warna "6205-2Z" aur "6205 2Z" alag part ban jate the
+        const pKey = spareLinkKey(r.desc, r.spec);
+        let existingSpare = (data.spares || []).find(s => spareLinkKey(s.desc, s.spec) === pKey)
+            || (data.spares || []).find(s => normalizeSpareName(s.desc) === normalizeSpareName(r.desc) && (!r.spec || normalizeSpareName(s.spec) === normalizeSpareName(r.spec)))
+            || (!r.spec ? (data.spares || []).find(s => spareLinkKey(s.desc, '').split('||')[0] === pKey.split('||')[0]) : null);
         if (existingSpare) {
             let cur = inventoryAvailableQty(existingSpare);
             syncSpareAvailable(existingSpare, cur + r.recQty);
@@ -6750,7 +6754,7 @@ const PUR_TABS = [
     { st: 'PO Created',     label: 'PO Created',     icon: '🧾', color: '#0e7490', help: 'PO CREATED: Store ne PO bana diya (PO Number mila), vendor ko bhejna baaki hai. Vendor ko bhej diya to "Sent to Vendor" dabao.' },
     { st: 'Sent to Vendor', label: 'Sent to Vendor', icon: '🚚', color: '#b45309', help: 'SENT TO VENDOR: PO vendor ko bhej diya gaya, maal aana baaki hai. Maal aane par "Mark Received" dabao.' },
     { st: 'Received',       label: 'Received',       icon: '✅', color: '#15803d', help: 'RECEIVED: maal company me aa gaya. Stock Spare Inventory me add hota hai.' },
-    { st: 'Cancelled',      label: 'Cancelled',      icon: '✖',  color: '#6b7280', help: 'CANCELLED: band / cancel kiye gaye records. "Re-plan" se wapas Requirement me aa sakte hain.' }
+    { st: 'Cancelled',      label: 'Cancelled',      icon: '✖',  color: '#6b7280', help: 'CANCELLED: band / cancel kiye gaye records (jinka stock Inventory me theek ho gaya wo bhi "Auto-closed" ke saath yahin aate hain). "Re-plan" se wapas Requirement me aa sakte hain.' }
 ];
 function purStatusOf(r) {
     if (r.status === 'Ordered') return r.vendor ? 'Sent to Vendor' : 'PO Created';
@@ -6783,7 +6787,7 @@ function purUrg(r, plain) {
 const PUR_COLS = (function () {
     const desc = ['Part Description', (r) => `<b>${esc(r.desc)}</b>`];
     const spec = ['Specification', (r) => esc(r.spec)];
-    const remark = ['Remark', (r) => esc(r.remark)];
+    const remark = ['Remark', (r, plain) => esc(r.remark) + purStockHint(r, plain)];
     const qty = (t) => [t, (r) => `<b>${esc(r.qty)}</b>`];
     const urg = ['Urgency', purUrg];
     const src = ['Source', (r) => esc(r.source || 'Manual')];
@@ -6824,6 +6828,7 @@ function renderPurchaseTable() {
     if (!body || !head) return;
     if (!Array.isArray(data.sparePurchase)) data.sparePurchase = [];
     purMigrateLegacy();
+    try { purReconcileResolved(); } catch (e) { console.warn('pur reconcile', e); }   // stock theek ho chuke parts ki purani entries band
     if (!PUR_TABS.some(t => t.st === purTab)) purTab = 'Planned';
 
     let all = data.sparePurchase;
@@ -6924,6 +6929,7 @@ function purchaseReplan(i) {
     if (!purCanEdit()) return;
     let r = data.sparePurchase[i]; if (!r) return;
     r.status = 'Planned'; r.updatedAt = new Date().toISOString();
+    if (r.autoClosed) { r.auto = false; r.autoClosed = false; if (r.source === 'Low Stock') r.source = 'Manual'; }   // jaan-boojh kar wapas layi gayi entry ko auto-close dobara band na kare
     purFinish('Planned');
 }
 
@@ -7026,6 +7032,7 @@ function purLowEntries() {
         const e = get(s.desc, s.spec, s.make); if (!e) return;
         e.recs.push(s);
         if (spareStatus(s) === 'LOW') { e.low = true; e.avail = inventoryAvailableQty(s); e.min = num(s.min); e.max = num(s.max); }
+        else if (!e.low) { e.avail = inventoryAvailableQty(s); e.min = num(s.min); e.max = num(s.max); }   // stock theek hone par bhi avail/min yaad rakho (auto-close ke message ke liye)
     });
     (data.critical || []).forEach(c => {
         const e = get(c.desc, c.spec, ''); if (!e) return;
@@ -7033,6 +7040,49 @@ function purLowEntries() {
         if (criticalStatus(c) === 'Low') { if (!e.low) { e.avail = num(c.avail); e.min = num(c.min); e.max = num(c.max); } e.low = true; }
     });
     return Object.values(map);
+}
+// ---- Stock theek ho gaya to purani Purchase entry ko apne aap band karna ----
+// Pehle: ek baar Planned list me aaya part tab bhi dikhta rehta tha jab aap Spare Inventory / Critical Register me stock khud bhar dete the
+// (ya maal aane ke baad stock add ho jata tha) - kyunki koi bhi code us entry ko band nahi karta tha.
+// Ab:
+//  - "Requirement" stage ki Low-Stock entry (auto ya Source = Low Stock) -> stock Min se upar aate hi "Cancelled" me chali jati hai (record delete nahi hota, "Re-plan" se wapas aa sakta hai).
+//  - PR / PO / Sent-to-Vendor stage ki auto entry -> band nahi hoti (kyunki order chal raha ho sakta hai), par "Stock ab OK hai" ka warning dikhta hai.
+const PUR_STOCK_OK = {};   // purchase record id -> {avail, min}  (sirf dikhane ke liye, save nahi hota)
+function purReconcileResolved() {
+    if (!Array.isArray(data.spares) || !Array.isArray(data.sparePurchase)) return 0;
+    if (!data.spares.length && !(data.critical || []).length) return 0;     // data abhi load nahi hua - kuch band mat karo
+    const sess = (typeof mmsSession === 'function') ? mmsSession() : null;
+    if (!sess) return 0;
+    const byKey = {};
+    purLowEntries().forEach(e => { byKey[e.key] = e; });
+    Object.keys(PUR_STOCK_OK).forEach(k => delete PUR_STOCK_OK[k]);
+    let closed = [], today = new Date().toISOString().slice(0, 10);
+    data.sparePurchase.forEach(p => {
+        if (!p || !PUR_OPEN.includes(p.status)) return;
+        const e = byKey[spareLinkKey(p.desc, p.spec)];
+        if (!e || e.low) return;                                            // part inventory me nahi hai ya abhi bhi low hai -> jaisa hai waisa
+        const st = purStatusOf(p);
+        if (st === 'Planned' && (p.auto || p.source === 'Low Stock')) {
+            p.status = 'Cancelled';
+            p.autoClosed = true;
+            p.remark = ((p.remark || '') + ' | Auto-closed ' + today + ': stock Inventory me theek ho gaya (Available ' + e.avail + ', Min ' + e.min + ')').replace(/^ \| /, '');
+            p.updatedAt = new Date().toISOString();
+            closed.push(p.desc + (p.spec ? ' - ' + p.spec : ''));
+        } else if (p.auto && st !== 'Planned') {
+            PUR_STOCK_OK[p.id] = { avail: e.avail, min: e.min };
+        }
+    });
+    if (closed.length) {
+        persist('sparePurchase');
+        purToast('✅ Stock theek ho gaya, Requirement list se hata diya: ' + closed.slice(0, 3).join(', ') + (closed.length > 3 ? ' +' + (closed.length - 3) + ' aur' : ''));
+    }
+    return closed.length;
+}
+function purStockHint(r, plain) {
+    const s = PUR_STOCK_OK[r.id];
+    if (!s) return '';
+    const t = 'Stock ab Inventory me OK hai (Available ' + s.avail + ', Min ' + s.min + ') - maal aa gaya ho to Received karo, nahi chahiye to Cancel/Delete karo';
+    return plain === true ? ' [' + t + ']' : '<br><span style="color:#b45309;font-weight:bold">⚠ ' + esc(t) + '</span>';
 }
 function purchaseAutoPlanLowStock() {
     if (window.__purAutoBusy) return 0;
@@ -7042,6 +7092,7 @@ function purchaseAutoPlanLowStock() {
     window.__purAutoBusy = true;
     try {
         if (!Array.isArray(data.sparePurchase)) data.sparePurchase = [];
+        if (purReconcileResolved()) { try { renderPurchaseTable(); } catch (e0) {} }
         const entries = purLowEntries();
         const baselineDone = entries.some(e => e.recs.some(r => r.lowPlanned !== undefined));
         const needPlan = entries.filter(e => e.low && !e.recs.some(r => r.lowPlanned));
