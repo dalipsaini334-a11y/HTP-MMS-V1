@@ -882,6 +882,7 @@ main.wrap{margin-left:252px;padding:94px 22px 25px;max-width:none}.sidebar-overl
 <div class="card">
 <div class="head">Milestone Gears Ltd.</div>
 <div class="head2">MAINTENANCE REQUEST SLIP</div>
+<div id="mrFlowBanner"></div>
 <div class="rolebar">
  <button id="mrProdRoleBtn" class="secondary active" onclick="setMRRole('production')">👷 Production Operator</button>
  <button id="mrMaintRoleBtn" class="secondary" onclick="setMRRole('maintenance')">🛠️ Maintenance Person</button>
@@ -893,7 +894,8 @@ main.wrap{margin-left:252px;padding:94px 22px 25px;max-width:none}.sidebar-overl
 </div>
 <div class="form">
 <div class="field"><label>Sr. No.</label><input id="mr_sr" readonly></div>
-<div class="field maintOnly"><label>Request Status</label><select id="mr_status"><option>Open</option><option>In Progress</option><option>Closed</option><option>Cancelled</option></select></div>
+<div class="field"><label>Priority</label><select id="mr_priority"><option value="Normal">🟢 Normal</option><option value="Urgent">🟠 Urgent</option><option value="Breakdown">🔴 Breakdown (machine ruki hui)</option></select></div>
+<div class="field maintOnly"><label>Request Status</label><select id="mr_status"><option>Open</option><option>In Progress</option><option>Waiting for Spare</option><option>Work Done</option><option>Closed</option><option>Cancelled</option></select></div>
 <div class="field prodOnly"><label>Production Date</label><input id="mr_pdate" type="date"></div>
 <div class="field prodOnly"><label>Production Time</label><input id="mr_ptime" type="time"></div>
 <div class="field"><label>Machine Number / Select Machine</label><select id="mr_machine_no" onchange="selectMachine(this.value)"><option value="">-- Select Machine --</option></select></div>
@@ -925,6 +927,7 @@ main.wrap{margin-left:252px;padding:94px 22px 25px;max-width:none}.sidebar-overl
 <div class="field maintOnly"><label>History Card Entry</label><select id="mr_history"><option>Yes</option><option>No</option></select></div>
 <div class="field maintOnly"><label>History Card Updated By</label><input id="mr_history_by"></div>
 
+<div class="field wide maintOnly" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><b style="font-size:12px">Quick steps:</b><button type="button" class="secondary" onclick="mrFlow('start')">▶ Start Work (Accept)</button><button type="button" class="secondary" onclick="mrFlow('wait')">⏳ Waiting for Spare</button><button type="button" class="primary" onclick="mrFlow('done')">✅ Work Done</button></div>
 <div class="actions wide">
 <button class="primary" onclick="saveMR()" id="mrSaveBtn">Save New Maintenance Request</button>
 <button class="secondary" onclick="clearMR()">Clear / New Request</button>
@@ -939,7 +942,7 @@ main.wrap{margin-left:252px;padding:94px 22px 25px;max-width:none}.sidebar-overl
 <label style="font-size:12px;font-weight:700">Month</label>
 <select id="mr_month" onchange="renderMR()"></select>
 <input id="mr_search" placeholder="Search machine, employee, problem, Sr. No..." oninput="renderMR()">
-<select id="mr_filter_status" onchange="renderMR()"><option value="">All Status</option><option>Open</option><option>In Progress</option><option>Closed</option><option>Cancelled</option></select>
+<select id="mr_filter_status" onchange="renderMR()"><option value="">All Status</option><option>Open</option><option>In Progress</option><option>Waiting for Spare</option><option>Work Done</option><option>Closed</option><option>Cancelled</option></select>
 <button class="secondary" onclick="exportMRCSV()">Export CSV</button>
 <button class="secondary" onclick="printMRMonth()">🖨️ Print Selected Month</button>
 </div>
@@ -948,9 +951,13 @@ main.wrap{margin-left:252px;padding:94px 22px 25px;max-width:none}.sidebar-overl
 <div class="stat">Total Requests / Breakdowns: <b id="mrTotal">0</b></div>
 <div class="stat">Open: <b id="mrOpen">0</b></div>
 <div class="stat">In Progress: <b id="mrProgress">0</b></div>
+<div class="stat">Waiting for Spare: <b id="mrWaiting">0</b></div>
+<div class="stat">Work Done (verify baaki): <b id="mrWorkDone">0</b></div>
 <div class="stat">Closed: <b id="mrClosed">0</b></div>
 <div class="stat">Cancelled: <b id="mrCancelled">0</b></div>
+<div class="stat">⚠ 24h+ pending: <b id="mrOverdue">0</b></div>
 </div>
+<div id="mrAnalytics" class="utility-monthly-summary"></div>
 <div class="tablewrap">
 <table class="tbl"><thead id="mrHead"></thead><tbody id="mrBody"></tbody></table>
 </div></div>
@@ -2031,7 +2038,7 @@ function syncBreakdownFromMaintenance(r){
     id:existing?.id||Date.now(), sourceMrSr:String(r.sr), date:r.pdate, machine:r.machine||r.machineNo||'',
     reason:r.problem||'Breakdown maintenance', type:existing?.type||'E/M', section:r.section||'HT', from:r.ptime||'09:00', to:r.htime||'10:00',
     hours:Number((hours||1).toFixed(2)), action:r.action||r.observation||'Attended and resolved', spare:r.spare||'None', qty:r.qty??existing?.qty??'',
-    attended:r.recvBy||r.reqBy||'Maintenance Team', status:r.status||'Closed', auto:true, updatedAt:new Date().toISOString()
+    attended:r.recvBy||r.reqBy||'Maintenance Team', status:(r.status==='Work Done'?'Closed':(r.status||'Closed')), auto:true, updatedAt:new Date().toISOString()
   };
   if(existing) Object.assign(existing,row); else data.bd.push(row);
   persist('bd');
@@ -2450,7 +2457,7 @@ function dashboardPMStatus(){
   });
   return {currentLabel,total,planned,completed,pending,overdue,rows:monthRows};
 }
-function renderDashboard(){let now=new Date(),ym=now.getFullYear(),mon=now.getMonth()+1;let monthBD=data.bd.filter(r=>{let d=new Date((r.date||'')+'T00:00:00');return !isNaN(d)&&d.getFullYear()===ym&&d.getMonth()+1===mon});let open=data.mr.filter(r=>{let st=String(r.status||'').toLowerCase();return st!=='closed'&&st!=='complete'});setText('dashMachines',MACHINE_MASTER.length);setText('dashOpen',open.length);setText('dashBreakdowns',monthBD.length);let pm=dashboardPMStatus();setText('dashPM',pm.planned+pm.pending+pm.overdue);setText('dashPMTotal',pm.total);setText('dashPMPlanned',pm.planned);setText('dashPMCompleted',pm.completed);setText('dashPMPending',pm.pending);setText('dashPMOverdue',pm.overdue);let dml=document.getElementById('dashPMMonthLabel');if(dml)dml.textContent=pm.currentLabel+' • PM Plan Control';let dms=document.getElementById('dashPMSub');if(dms)dms.textContent=pm.currentLabel;let de={};MACHINE_MASTER.forEach(m=>de[m.department]=(de[m.department]||0)+1);let max=Math.max(1,...Object.values(de));let dept=document.getElementById('dashDepartments');if(dept)dept.innerHTML=Object.entries(de).map(([k,v])=>`<div class="dept-line"><span>${esc(k)}</span><div class="bar"><i style="width:${v/max*100}%"></i></div><b>${v}</b></div>`).join('');let rb=[...data.bd].sort((a,b)=>(b.date||'').localeCompare(a.date||'')||String(b.to||'').localeCompare(String(a.to||''))).slice(0,5);let rbd=document.getElementById('dashRecentBD');if(rbd)rbd.innerHTML=rb.length?rb.map(r=>`<div class="dash-row"><span><b>${esc(r.machine||'')}</b><br>${esc(r.reason||'')}</span><span>${esc(fmtDate(r.date))}<br>${num(r.hours).toFixed(2)} h</span></div>`).join(''):'<div class="dash-empty">No breakdown data available</div>';let rm=open.slice().sort((a,b)=>(b.pdate||'').localeCompare(a.pdate||'')).slice(0,5);let rmr=document.getElementById('dashRecentMR');if(rmr)rmr.innerHTML=rm.length?rm.map(r=>`<div class="dash-row"><span><b>SR ${esc(r.sr||'')}</b><br>${esc(r.machine||'')}</span><span>${esc(r.status||'Open')}</span></div>`).join(''):'<div class="dash-empty">No open requests</div>';let dd=document.getElementById('dashDate');if(dd)dd.textContent=now.toLocaleDateString('en-IN',{weekday:'long',day:'2-digit',month:'short',year:'numeric'});
+function renderDashboard(){let now=new Date(),ym=now.getFullYear(),mon=now.getMonth()+1;let monthBD=data.bd.filter(r=>{let d=new Date((r.date||'')+'T00:00:00');return !isNaN(d)&&d.getFullYear()===ym&&d.getMonth()+1===mon});let open=data.mr.filter(r=>{let st=String(r.status||'').toLowerCase();return st!=='closed'&&st!=='complete'&&st!=='cancelled'});setText('dashMachines',MACHINE_MASTER.length);setText('dashOpen',open.length);setText('dashBreakdowns',monthBD.length);let pm=dashboardPMStatus();setText('dashPM',pm.planned+pm.pending+pm.overdue);setText('dashPMTotal',pm.total);setText('dashPMPlanned',pm.planned);setText('dashPMCompleted',pm.completed);setText('dashPMPending',pm.pending);setText('dashPMOverdue',pm.overdue);let dml=document.getElementById('dashPMMonthLabel');if(dml)dml.textContent=pm.currentLabel+' • PM Plan Control';let dms=document.getElementById('dashPMSub');if(dms)dms.textContent=pm.currentLabel;let de={};MACHINE_MASTER.forEach(m=>de[m.department]=(de[m.department]||0)+1);let max=Math.max(1,...Object.values(de));let dept=document.getElementById('dashDepartments');if(dept)dept.innerHTML=Object.entries(de).map(([k,v])=>`<div class="dept-line"><span>${esc(k)}</span><div class="bar"><i style="width:${v/max*100}%"></i></div><b>${v}</b></div>`).join('');let rb=[...data.bd].sort((a,b)=>(b.date||'').localeCompare(a.date||'')||String(b.to||'').localeCompare(String(a.to||''))).slice(0,5);let rbd=document.getElementById('dashRecentBD');if(rbd)rbd.innerHTML=rb.length?rb.map(r=>`<div class="dash-row"><span><b>${esc(r.machine||'')}</b><br>${esc(r.reason||'')}</span><span>${esc(fmtDate(r.date))}<br>${num(r.hours).toFixed(2)} h</span></div>`).join(''):'<div class="dash-empty">No breakdown data available</div>';let rm=open.slice().sort((a,b)=>(b.pdate||'').localeCompare(a.pdate||'')).slice(0,5);let rmr=document.getElementById('dashRecentMR');if(rmr)rmr.innerHTML=rm.length?rm.map(r=>`<div class="dash-row"><span><b>SR ${esc(r.sr||'')}</b><br>${esc(r.machine||'')}</span><span>${typeof mrDashTag==='function'?mrDashTag(r):esc(r.status||'Open')}</span></div>`).join(''):'<div class="dash-empty">No open requests</div>';let dd=document.getElementById('dashDate');if(dd)dd.textContent=now.toLocaleDateString('en-IN',{weekday:'long',day:'2-digit',month:'short',year:'numeric'});
 let calDueSoon=calibrationDueSoon(30);setText('dashCalDue',calDueSoon.length);let cdl=document.getElementById('dashCalDueList');if(cdl)cdl.innerHTML=calDueSoon.length?calDueSoon.slice(0,8).map(x=>`<div class="dash-row"><span><b>${esc(x.r.name||'')}</b><br>${esc(x.r.idno||'')} • ${esc(x.r.location||'')}</span><span>${esc(fmtDate(x.d.toISOString().slice(0,10)))}<br>${x.diff===0?'Due today':'in '+x.diff+' day'+(x.diff===1?'':'s')}</span></div>`).join(''):'<div class="dash-empty">No calibration due in next 30 days</div>';
 // ==========================================================
     // ANTI-FLICKER DASHBOARD UPDATE: LOW STOCK & ADMIN LOG
@@ -3458,15 +3465,15 @@ function printMRMonth(){
  const label=mrSelectedMonth(),all=getMRMonthRecords(label),q=(f('mr_search')||'').toLowerCase(),st=f('mr_filter_status')||'';
  const rows=all.filter(r=>(!st||r.status===st)&&(!q||JSON.stringify(r).toLowerCase().includes(q)));
  const counts={total:rows.length,open:rows.filter(x=>x.status==='Open').length,progress:rows.filter(x=>x.status==='In Progress').length,closed:rows.filter(x=>x.status==='Closed').length,cancelled:rows.filter(x=>x.status==='Cancelled').length};
- const html=`<div class="mr-month-print-page"><div class="mr-month-print-title">Milestone Gears Ltd. UNIT-7 — MAINTENANCE REQUEST / BREAKDOWN REGISTER</div><div class="mr-month-print-sub">SELECTED MONTH: ${esc(label)} &nbsp; | &nbsp; ${esc(fyRangeText())}</div><div class="mr-month-print-summary"><div>Total: ${counts.total}</div><div>Open: ${counts.open}</div><div>In Progress: ${counts.progress}</div><div>Closed: ${counts.closed}</div><div>Cancelled: ${counts.cancelled}</div></div><table class="mr-month-print-table"><thead><tr><th>Sr.</th><th>Date</th><th>Time</th><th>Machine</th><th>Machine No.</th><th>Section</th><th>Problem / Breakdown</th><th>Status</th><th>Received By</th><th>Action Taken</th><th>Handover</th><th>Total Time</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.sr)}</td><td>${fmtDate(r.pdate||r.mdate||r.hdate)}</td><td>${esc(r.ptime||r.mtime||'')}</td><td>${esc(r.machine)}</td><td>${esc(r.machineNo)}</td><td>${esc(r.section)}</td><td>${esc(r.problem||'')}</td><td>${esc(r.status||'')}</td><td>${esc(r.recvBy||r.reqBy||'')}</td><td>${esc(r.action||'')}</td><td>${fmtDate(r.hdate)} ${esc(r.htime||'')}</td><td>${esc(r.duration||'')}</td></tr>`).join('')}</tbody></table><div class="mr-month-print-footer">Total Maintenance Requests / Breakdowns for ${esc(label)}: ${counts.total}</div></div>`;
+ const html=`<div class="mr-month-print-page"><div class="mr-month-print-title">Milestone Gears Ltd. UNIT-7 — MAINTENANCE REQUEST / BREAKDOWN REGISTER</div><div class="mr-month-print-sub">SELECTED MONTH: ${esc(label)} &nbsp; | &nbsp; ${esc(fyRangeText())}</div><div class="mr-month-print-summary"><div>Total: ${counts.total}</div><div>Open: ${counts.open}</div><div>In Progress: ${counts.progress}</div><div>Waiting: ${rows.filter(x=>x.status==='Waiting for Spare').length}</div><div>Work Done: ${rows.filter(x=>x.status==='Work Done').length}</div><div>Closed: ${counts.closed}</div><div>Cancelled: ${counts.cancelled}</div></div><table class="mr-month-print-table"><thead><tr><th>Sr.</th><th>Date</th><th>Time</th><th>Machine</th><th>Machine No.</th><th>Section</th><th>Priority</th><th>Problem / Breakdown</th><th>Status</th><th>Received By</th><th>Response</th><th>Action Taken</th><th>Handover</th><th>Total Time</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.sr)}</td><td>${fmtDate(r.pdate||r.mdate||r.hdate)}</td><td>${esc(r.ptime||r.mtime||'')}</td><td>${esc(r.machine)}</td><td>${esc(r.machineNo)}</td><td>${esc(r.section)}</td><td>${esc(r.priority||'Normal')}</td><td>${esc(r.problem||'')}</td><td>${esc(r.status||'')}</td><td>${esc(r.recvBy||r.reqBy||'')}</td><td>${typeof mrRespText==='function'?mrRespText(r):''}</td><td>${esc(r.action||'')}</td><td>${fmtDate(r.hdate)} ${esc(r.htime||'')}</td><td>${esc(r.duration||'')}</td></tr>`).join('')}</tbody></table><div class="mr-month-print-footer">Total Maintenance Requests / Breakdowns for ${esc(label)}: ${counts.total}</div></div>`;
  document.getElementById('mrMonthPrintPage').innerHTML=html;
  document.body.classList.add('print-mr-list');
  const cleanup=()=>{document.body.classList.remove('print-mr-list');window.removeEventListener('afterprint',cleanup)};
  window.addEventListener('afterprint',cleanup);window.print();
 }
 function exportMRCSV(){
- let headers=['Sr No','Status','Production Date','Production Time','Machine Name','Machine Number','Section','Request By','E-Code','Production Supervisor Sign','Received By','Maintenance Code','Maintenance Date','Maintenance Time','Maintenance Sign','Problem','Observation','Action Taken','Spare Parts','Qty','Handover Date','Handover Time','Production Sign','Maintenance Engineer Sign','Total Time','History Card Entry','History Card Updated By'];
- let rows=data.mr.map(r=>[r.sr,r.status,r.pdate,r.ptime,r.machine,r.machineNo,r.section,r.reqBy,r.reqCode,r.prodSign,r.recvBy,r.recvCode,r.mdate,r.mtime,r.maintSign,r.problem,r.observation,formatSpareParts(legacySpareParts(r)),formatSpareQty(legacySpareParts(r)),r.hdate,r.htime,r.hprodSign,r.hmaintSign,r.duration,r.history,r.historyBy]);
+ let headers=['Sr No','Status','Production Date','Production Time','Machine Name','Machine Number','Section','Request By','E-Code','Production Supervisor Sign','Received By','Maintenance Code','Maintenance Date','Maintenance Time','Maintenance Sign','Problem','Observation','Action Taken','Spare Parts','Qty','Handover Date','Handover Time','Production Sign','Maintenance Engineer Sign','Total Time','History Card Entry','History Card Updated By','Priority','Response Time','Total Downtime','Verified By','Verified At','Waiting Reason','Cancel Reason','Reopen Count'];
+ let rows=data.mr.map(r=>[r.sr,r.status,r.pdate,r.ptime,r.machine,r.machineNo,r.section,r.reqBy,r.reqCode,r.prodSign,r.recvBy,r.recvCode,r.mdate,r.mtime,r.maintSign,r.problem,r.observation,formatSpareParts(legacySpareParts(r)),formatSpareQty(legacySpareParts(r)),r.hdate,r.htime,r.hprodSign,r.hmaintSign,r.duration,r.history,r.historyBy,r.priority||'Normal',(typeof mrRespText==='function'?mrRespText(r):''),(typeof mrTotalText==='function'?mrTotalText(r):''),r.verifiedBy||'',r.verifiedAt||'',r.waitReason||'',r.cancelReason||'',r.reopenCount||0]);
  let csv=[headers,...rows].map(row=>row.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\n');
  let blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='Maintenance_Request_Slips.csv';a.click();URL.revokeObjectURL(url)
 }
@@ -4540,7 +4547,7 @@ function addFY(){if(!requireRole(['Admin']))return;let y=parseInt(prompt('Enter 
 function applyFY(){let v=document.getElementById('mmsFY')?.value;if(!v)return;localStorage.setItem('htp_mms_selected_fy',v);audit('FY_SELECT','system',v);alert('FY '+v+' selected. Existing module calculations remain unchanged; this selector is stored for future reporting/sync use.')}
 function queueSync(){if(!requireRole(['Admin','Technician']))return;let q={queuedAt:new Date().toISOString(),data:JSON.parse(JSON.stringify(data))};localStorage.setItem(SYNC_KEY,JSON.stringify(q));audit('SYNC_QUEUE','system','Offline snapshot prepared for Google Sheet sync');document.getElementById('mmsSyncStatus').textContent='✓ Sync queue prepared locally at '+new Date(q.queuedAt).toLocaleString()}
 function clearSyncQueue(){if(!requireRole(['Admin']))return;localStorage.removeItem(SYNC_KEY);document.getElementById('mmsSyncStatus').textContent='Sync queue cleared.'}
-function refreshKPIs(){let el=document.getElementById('mmsKPIs');if(!el)return;let open=(data.mr||[]).filter(r=>!['closed','complete'].includes(String(r.status||'').toLowerCase())).length,bd=(data.bd||[]).length,pm=(data.pm||[]).length,sp=(data.spares||[]).filter(r=>spareStatus(r)==='LOW').length;el.innerHTML=`Open Requests: <b>${open}</b><br>Breakdown Records: <b>${bd}</b><br>PM Records: <b>${pm}</b><br>Low Stock Items: <b>${sp}</b>`}
+function refreshKPIs(){let el=document.getElementById('mmsKPIs');if(!el)return;let open=(data.mr||[]).filter(r=>!['closed','complete','cancelled'].includes(String(r.status||'').toLowerCase())).length,bd=(data.bd||[]).length,pm=(data.pm||[]).length,sp=(data.spares||[]).filter(r=>spareStatus(r)==='LOW').length;el.innerHTML=`Open Requests: <b>${open}</b><br>Breakdown Records: <b>${bd}</b><br>PM Records: <b>${pm}</b><br>Low Stock Items: <b>${sp}</b>`}
 function openTools(){let s=session();if(!s){alert('Please login first.');return}if(s.role!=='Admin'){alert('System Tools is available to Admin only.');return}document.getElementById('mmsUpgradePanel').classList.add('open');setBadge();refreshAudit();initFY();refreshKPIs();populatePermUserSelect();let q=localStorage.getItem(SYNC_KEY);document.getElementById('mmsSyncStatus').textContent=q?'✓ Sync queue is ready.':'No sync queue prepared.'}
 function closeTools(){document.getElementById('mmsUpgradePanel').classList.remove('open')}
 async function changePassword(){
@@ -4771,9 +4778,9 @@ function gsReport(mod,mk){
   const a=getMRMonthRecords(label);
   const c=function(s){return a.filter(function(x){return x.status===s}).length};
   rep.title='MAINTENANCE REQUEST / BREAKDOWN REGISTER';rep.sub='MONTH: '+label+'   |   '+fyRangeText(new Date(mk+'-01T00:00:00'));
-  rep.headers=['Sr.','Date','Time','Machine','Machine No.','Section','Problem / Breakdown','Status','Received By','Action Taken','Handover','Total Time'];
-  rep.rows=a.map(function(r){return [r.sr,fmtDate(r.pdate||r.mdate||r.hdate),r.ptime||r.mtime||'',r.machine,r.machineNo,r.section,r.problem||'',r.status||'',r.recvBy||r.reqBy||'',r.action||'',(fmtDate(r.hdate)+' '+(r.htime||'')).trim(),r.duration||'']});
-  rep.summary=[['Total',a.length],['Open',c('Open')],['In Progress',c('In Progress')],['Closed',c('Closed')],['Cancelled',c('Cancelled')]];
+  rep.headers=['Sr.','Date','Time','Machine','Machine No.','Section','Priority','Problem / Breakdown','Status','Received By','Response','Action Taken','Handover','Total Time'];
+  rep.rows=a.map(function(r){return [r.sr,fmtDate(r.pdate||r.mdate||r.hdate),r.ptime||r.mtime||'',r.machine,r.machineNo,r.section,r.priority||'Normal',r.problem||'',r.status||'',r.recvBy||r.reqBy||'',(typeof mrRespText==='function'?mrRespText(r):''),r.action||'',(fmtDate(r.hdate)+' '+(r.htime||'')).trim(),r.duration||'']});
+  rep.summary=[['Total',a.length],['Open',c('Open')],['In Progress',c('In Progress')],['Waiting',c('Waiting for Spare')],['Work Done',c('Work Done')],['Closed',c('Closed')],['Cancelled',c('Cancelled')]];
  }else if(mod==='mh'){
   const a=data.mh.filter(inMonth).sort(function(x,y){return (x.date||'').localeCompare(y.date||'')});
   rep.title='MACHINE HISTORY RECORD';rep.sub='MONTH: '+label;
@@ -12035,11 +12042,11 @@ setInterval(sync,2500);
     var r = { id: CFG_ID, key: CFG_KEY, mods: {}, ts: Date.now() }; a.push(r); return r;
   }
   function mcfg(k, create) {
-    var r = getRec(create), blank = { custom: [], hidden: [], hcols: [] };
+    var r = getRec(create), blank = { custom: [], hidden: [], hcols: [], labels: {}, clabels: {} };
     if (!r) return blank;
     r.mods = r.mods || {};
-    if (!r.mods[k]) { if (!create) return blank; r.mods[k] = { custom: [], hidden: [], hcols: [] }; }
-    var m = r.mods[k]; m.custom = m.custom || []; m.hidden = m.hidden || []; m.hcols = m.hcols || []; return m;
+    if (!r.mods[k]) { if (!create) return blank; r.mods[k] = { custom: [], hidden: [], hcols: [], labels: {}, clabels: {} }; }
+    var m = r.mods[k]; m.custom = m.custom || []; m.hidden = m.hidden || []; m.hcols = m.hcols || []; m.labels = m.labels || {}; m.clabels = m.clabels || {}; return m;
   }
   function sig() { var r = getRec(false); return r ? JSON.stringify(r.mods || {}) : ''; }
   function saveCfg(note) {
@@ -12103,12 +12110,51 @@ setInterval(sync,2500);
     return null;
   }
   function fid(k, id) { return 'cf__' + k + '__' + id; }
+  function dispLabel(d) { return d.label + (d.unit ? ' (' + d.unit + ')' : ''); }
+  function hasNum(v) { return v !== undefined && v !== null && v !== '' && isFinite(Number(v)); }
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+  /* default value: date ke liye 'today', time ke liye 'now' bhi chalta hai */
+  function defVal(d) {
+    var v = (d.def === undefined || d.def === null) ? '' : String(d.def), n = new Date();
+    if (d.type === 'date' && v.toLowerCase() === 'today') return n.getFullYear() + '-' + pad2(n.getMonth() + 1) + '-' + pad2(n.getDate());
+    if (d.type === 'time' && v.toLowerCase() === 'now') return pad2(n.getHours()) + ':' + pad2(n.getMinutes());
+    return v;
+  }
+  function typeName(d) {
+    if (d.type === 'select' && d.options && d.options.length === 2 && d.options[0] === 'Yes' && d.options[1] === 'No') return 'yes/no';
+    return { text: 'text', number: 'number', date: 'date', time: 'time', select: 'dropdown', textarea: 'long text' }[d.type] || d.type;
+  }
+  function labelTextNode(lb) { for (var n = lb.firstChild; n; n = n.nextSibling) if (n.nodeType === 3 && n.nodeValue.trim()) return n; return null; }
+  function origLabel(lb) { var a = lb.getAttribute('data-cf-orig'); if (a !== null) return a; var tn = labelTextNode(lb); return (tn ? tn.nodeValue : lb.textContent).trim(); }
+  function thKey(th) { var a = th.getAttribute('data-cf-orig'); return norm(a !== null ? a : th.textContent); }
+  /* number field ki value check: min / max */
+  function numErr(d, v) {
+    var n = Number(v); if (!isFinite(n)) return '"' + d.label + '" me number likho.';
+    if (hasNum(d.min) && n < Number(d.min)) return '"' + d.label + '" kam se kam ' + d.min + ' honi chahiye.';
+    if (hasNum(d.max) && n > Number(d.max)) return '"' + d.label + '" zyada se zyada ' + d.max + ' ho sakti hai.';
+    return '';
+  }
   function fieldHtml(k, d) {
-    var inp, id = fid(k, d.id);
+    var inp, id = fid(k, d.id), ph = d.hint ? ' placeholder="' + esc(d.hint) + '"' : '';
     if (d.type === 'select') inp = '<select id="' + id + '"><option value=""></option>' + (d.options || []).map(function (o) { return '<option>' + esc(o) + '</option>'; }).join('') + '</select>';
-    else if (d.type === 'textarea') inp = '<textarea id="' + id + '"></textarea>';
-    else inp = '<input id="' + id + '" type="' + (d.type === 'number' ? 'number" step="any' : (d.type === 'date' ? 'date' : 'text')) + '">';
-    return '<div class="field utility-field cf-field"><label>' + esc(d.label) + (d.req ? ' *' : '') + '</label>' + inp + '</div>';
+    else if (d.type === 'textarea') inp = '<textarea id="' + id + '"' + ph + '></textarea>';
+    else if (d.type === 'number') inp = '<input id="' + id + '" type="number" step="any"' + (hasNum(d.min) ? ' min="' + esc(d.min) + '"' : '') + (hasNum(d.max) ? ' max="' + esc(d.max) + '"' : '') + ph + '>';
+    else inp = '<input id="' + id + '" type="' + (d.type === 'date' ? 'date' : (d.type === 'time' ? 'time' : 'text')) + '"' + ph + '>';
+    return '<div class="field utility-field cf-field"' + (d.wide ? ' style="grid-column:1/-1"' : '') + (d.hint ? ' title="' + esc(d.hint) + '"' : '') + '><label>' + esc(dispLabel(d)) + (d.req ? ' *' : '') + '</label>' + inp + '</div>';
+  }
+  function applyLabels(k) {
+    var sec = secOf(k), M = MOD[k]; if (!sec || M.cell) return;
+    var c = mcfg(k, false), has = Object.keys(c.labels).length, any = sec.querySelector('label[data-cf-orig]');
+    if (!has && !any) return;
+    builtinFields(k).forEach(function (f) {
+      var lb = f.lb; if (!lb) return; var tn = labelTextNode(lb); if (!tn) return;
+      var nl = c.labels[f.id], hasAttr = lb.getAttribute('data-cf-orig') !== null, trail = /\s$/.test(tn.nodeValue) ? ' ' : '';
+      if (nl) {
+        if (!hasAttr) lb.setAttribute('data-cf-orig', tn.nodeValue.trim());
+        var star = /\s*\*$/.test(lb.getAttribute('data-cf-orig')) && !/\*/.test(nl) ? ' *' : '';
+        if (tn.nodeValue.trim() !== nl + star) tn.nodeValue = nl + star + trail;
+      } else if (hasAttr) { tn.nodeValue = lb.getAttribute('data-cf-orig') + trail; lb.removeAttribute('data-cf-orig'); }
+    });
   }
   function injectForm(k) {
     var sec = secOf(k); if (!sec) return;
@@ -12117,6 +12163,7 @@ setInterval(sync,2500);
     // hide built-in (sirf is module ke prefix wale)
     [].slice.call(sec.querySelectorAll('.cf-hide[data-fmk="' + k + '"]')).forEach(function (e) { e.classList.remove('cf-hide'); e.removeAttribute('data-fmk'); });
     c.hidden.forEach(function (id) { var el = $(id); if (el && sec.contains(el)) { var f = el.closest('.field') || el.parentElement; if (f) { f.classList.add('cf-hide'); f.setAttribute('data-fmk', k); } } });
+    applyLabels(k);
     if (!c.custom.length) { if (old) old.remove(); return; }
     var s = JSON.stringify(c.custom);
     if (old && old.getAttribute('data-sig') === s) return;
@@ -12127,7 +12174,7 @@ setInterval(sync,2500);
     var blk = document.createElement('div'); blk.className = 'cf-block'; blk.setAttribute('data-sig', s); blk.setAttribute('data-k', k);
     blk.innerHTML = '<div class="cf-title">ADDITIONAL FIELDS</div><div class="form">' + c.custom.map(function (d) { return fieldHtml(k, d); }).join('') + '</div>';
     anchor.parentNode.insertBefore(blk, anchor);
-    c.custom.forEach(function (d) { var e = $(fid(k, d.id)); if (e && keep[d.id] !== undefined) e.value = keep[d.id]; });
+    c.custom.forEach(function (d) { var e = $(fid(k, d.id)); if (e) e.value = (keep[d.id] !== undefined) ? keep[d.id] : defVal(d); });
   }
 
   /* ---------- tables ---------- */
@@ -12140,28 +12187,35 @@ setInterval(sync,2500);
   }
   function applyTables(k) {
     var sec = secOf(k); if (!sec) return;
-    var c = mcfg(k, false), M = MOD[k];
+    var c = mcfg(k, false), M = MOD[k], cc = c.custom.filter(function (d) { return d.inTable !== false; });
     tablesOf(k).forEach(function (t) {
       [].slice.call(t.querySelectorAll('.cf-th[data-k="' + k + '"],.cf-td[data-k="' + k + '"]')).forEach(function (e) { e.remove(); });
       [].slice.call(t.querySelectorAll('.cf-colhide')).forEach(function (e) { e.classList.remove('cf-colhide'); });
       var hr = t.tHead.rows[0], ths = [].slice.call(hr.cells).filter(function (x) { return !x.classList.contains('cf-th'); }), rows = [].slice.call(t.tBodies[0].rows);
       if (!ths.length) return;
       var plain = function (tr) { return [].slice.call(tr.cells).filter(function (x) { return !x.classList.contains('cf-td'); }); };
+      /* column header rename (original naam data-cf-orig me safe rehta hai) */
+      ths.forEach(function (th) {
+        if (th.children.length) return;
+        var key = thKey(th), nl = c.clabels[key], oa = th.getAttribute('data-cf-orig');
+        if (nl) { if (oa === null) th.setAttribute('data-cf-orig', th.textContent.trim()); if (th.textContent !== nl) th.textContent = nl; }
+        else if (oa !== null) { th.textContent = oa; th.removeAttribute('data-cf-orig'); }
+      });
       if (c.hcols.length) ths.forEach(function (th, i) {
-        if (c.hcols.indexOf(norm(th.textContent)) >= 0) {
+        if (c.hcols.indexOf(thKey(th)) >= 0) {
           th.classList.add('cf-colhide');
           rows.forEach(function (tr) { var p = plain(tr); if (p.length === ths.length) p[i].classList.add('cf-colhide'); });
         }
       });
-      if (c.custom.length) {
+      if (cc.length) {
         var map = rows.map(function (tr) { return plain(tr).length === ths.length ? recOfRow(k, tr) : null; });
         if (!map.some(Boolean)) return;
         var last = ths[ths.length - 1], before = /^(actions?|)$/.test(norm(last.textContent)) ? last : null;
-        c.custom.forEach(function (d) { var th = document.createElement('th'); th.className = 'cf-th'; th.setAttribute('data-k', k); th.textContent = d.label; hr.insertBefore(th, before); });
+        cc.forEach(function (d) { var th = document.createElement('th'); th.className = 'cf-th'; th.setAttribute('data-k', k); th.textContent = dispLabel(d); hr.insertBefore(th, before); });
         rows.forEach(function (tr, i) {
           var p = plain(tr); if (p.length !== ths.length) return;
           var ref = before ? p[p.length - 1] : null, rec = map[i];
-          c.custom.forEach(function (d) {
+          cc.forEach(function (d) {
             var td = document.createElement('td'); td.className = 'cf-td'; td.setAttribute('data-k', k); td.setAttribute('data-f', d.id);
             td.textContent = (rec && rec.cf && rec.cf[d.id]) || '';
             if (M.cell && rec) { td.classList.add('cf-edit'); td.title = 'Click karke value badlo'; }
@@ -12205,9 +12259,10 @@ setInterval(sync,2500);
       var o = d.options || []; v = prompt(d.label + ' - number chuno (khali = hata do):\n' + o.map(function (x, i) { return (i + 1) + ') ' + x; }).join('\n'), cur ? String(o.indexOf(cur) + 1) : '');
       if (v === null) return; v = v.trim(); if (v !== '') { var n = parseInt(v, 10); if (!(n >= 1 && n <= o.length)) return alert('Galat number.'); v = o[n - 1]; }
     } else {
-      v = prompt(d.label + (d.type === 'date' ? ' (YYYY-MM-DD)' : (d.type === 'number' ? ' (number)' : '')) + ':', cur); if (v === null) return; v = v.trim();
-      if (v !== '' && d.type === 'number' && !isFinite(Number(v))) return alert('Number likho.');
+      v = prompt(dispLabel(d) + (d.type === 'date' ? ' (YYYY-MM-DD)' : (d.type === 'time' ? ' (HH:MM)' : (d.type === 'number' ? ' (number)' : ''))) + ':', cur || defVal(d)); if (v === null) return; v = v.trim();
+      if (v !== '' && d.type === 'number') { var ne = numErr(d, v); if (ne) return alert(ne); }
       if (v !== '' && d.type === 'date' && !/^\d{4}-\d{2}-\d{2}$/.test(v)) return alert('Date YYYY-MM-DD format me likho.');
+      if (v !== '' && d.type === 'time' && !/^([01]\d|2[0-3]):[0-5]\d$/.test(v)) return alert('Time HH:MM format me likho (jaise 14:30).');
     }
     if (d.req && v === '') return alert('Ye field zaroori hai.');
     if (v === '') delete cf[d.id]; else cf[d.id] = v;
@@ -12215,7 +12270,7 @@ setInterval(sync,2500);
   }
 
   /* ---------- save / edit / clear hooks ---------- */
-  function clearCF(k) { mcfg(k, false).custom.forEach(function (d) { var e = $(fid(k, d.id)); if (e) e.value = ''; }); }
+  function clearCF(k) { mcfg(k, false).custom.forEach(function (d) { var e = $(fid(k, d.id)); if (e) e.value = defVal(d); }); }
   function snapCtx(secId) {
     var items = [];
     keysOfSec(secId).forEach(function (k) {
@@ -12226,7 +12281,7 @@ setInterval(sync,2500);
         tablesOf(k).forEach(function (t) { var r = [], ok = true; [].slice.call(t.tBodies[0].rows).forEach(function (tr) { var x = recOfRow(k, tr); r.push(x); }); if (r.length && r.every(Boolean) && r.length > best.length) best = r; });
         recs = best;
       }
-      if (c.custom.length || c.hcols.length) items.push({ k: k, custom: c.custom.slice(), hcols: c.hcols.slice(), recs: recs });
+      if (c.custom.length || c.hcols.length || Object.keys(c.clabels).length) items.push({ k: k, custom: c.custom.filter(function (d) { return d.inPrint !== false; }), hcols: c.hcols.slice(), clabels: Object.assign({}, c.clabels), recs: recs });
     });
     return items;
   }
@@ -12248,9 +12303,14 @@ setInterval(sync,2500);
     }
   }, true);
   function hookSave(ev, k, c) {
-    var M = MOD[k], vals = {}, missing = null;
-    c.custom.forEach(function (d) { var e = $(fid(k, d.id)), v = e ? String(e.value).trim() : ''; vals[d.id] = v; if (d.req && !v && !missing) missing = d; });
+    var M = MOD[k], vals = {}, missing = null, bad = '';
+    c.custom.forEach(function (d) {
+      var e = $(fid(k, d.id)), v = e ? String(e.value).trim() : ''; vals[d.id] = v;
+      if (d.req && !v && !missing) missing = d;
+      if (v && d.type === 'number' && !bad) bad = numErr(d, v);
+    });
     if (missing) { alert('"' + missing.label + '" bharna zaroori hai.'); ev.stopPropagation(); ev.preventDefault(); return; }
+    if (bad) { alert(bad); ev.stopPropagation(); ev.preventDefault(); return; }
     var before = new Map(); (M.arr() || []).forEach(function (r) { before.set(r, JSON.stringify(r)); });
     var act = activeEdit[k];
     setTimeout(function () {
@@ -12301,9 +12361,12 @@ setInterval(sync,2500);
             }
             ths = [].slice.call(hr.cells);
           }
+          if (t.tHead.rows.length === 1 && it.clabels && Object.keys(it.clabels).length) {
+            ths.forEach(function (th) { var nl = it.clabels[norm(th.textContent)]; if (nl) { th.textContent = nl; changed = true; } });
+          }
           if (it.custom.length && it.recs.length && rows.length === it.recs.length && used.indexOf(t) < 0 && t.tHead.rows.length === 1 && rows.every(function (tr) { return tr.cells.length === ths.length; })) {
             used.push(t);
-            it.custom.forEach(function (d) { var th = doc.createElement('th'); th.textContent = d.label; hr.appendChild(th); });
+            it.custom.forEach(function (d) { var th = doc.createElement('th'); th.textContent = dispLabel(d); hr.appendChild(th); });
             rows.forEach(function (tr, i) { it.custom.forEach(function (d) { var td = doc.createElement('td'); td.textContent = (it.recs[i].cf && it.recs[i].cf[d.id]) || ''; tr.appendChild(td); }); });
             changed = true;
           }
@@ -12325,7 +12388,7 @@ setInterval(sync,2500);
   };
 
   /* ---------- Manager window ---------- */
-  var cur = null;
+  var cur = null, editId = null;
   function guard() {
     if (!isAdmin()) { alert('Ye option sirf Admin ke liye hai.'); return Promise.resolve(false); }
     var f = window.MMS && window.MMS.reauth;
@@ -12341,17 +12404,18 @@ setInterval(sync,2500);
       if (/^(hidden|button|submit|file|checkbox|radio)$/.test(inp.type)) return;
       if (/^(.*search|.*filter|.*month|.*year|.*_f[a-z]+)$/i.test(inp.id) && !inp.closest('.field')) return;
       var f = inp.closest('.field'), lb = (f && f.querySelector('label')) || (inp.id && sec.querySelector('label[for="' + inp.id + '"]'));
-      var t = lb ? lb.textContent.trim() : (inp.getAttribute('placeholder') || '');
+      var t = lb ? origLabel(lb) : (inp.getAttribute('placeholder') || '');
       if (!t) return;
-      seen[inp.id] = 1; out.push({ id: inp.id, label: t });
+      seen[inp.id] = 1; out.push({ id: inp.id, label: t, lb: lb || null, can: !!(lb && labelTextNode(lb)) });
     });
     return out;
   }
   function colList(k) {
     var out = [], seen = {};
     tablesOf(k).forEach(function (t) { [].slice.call(t.tHead.rows[0].cells).forEach(function (th) {
-      if (th.classList.contains('cf-th')) return; var n = norm(th.textContent);
-      if (!n || /^(actions?)$/.test(n) || seen[n]) return; seen[n] = 1; out.push({ n: n, label: th.textContent.trim() });
+      if (th.classList.contains('cf-th')) return; var n = thKey(th);
+      if (!n || /^(actions?)$/.test(n) || seen[n]) return; seen[n] = 1;
+      var oa = th.getAttribute('data-cf-orig'); out.push({ n: n, label: (oa !== null ? oa : th.textContent).trim(), can: !th.children.length });
     }); });
     return out;
   }
@@ -12364,68 +12428,133 @@ setInterval(sync,2500);
       var t = ev.target.closest('[data-fm]'); if (ev.target === m) return closeMgr(); if (!t) return;
       act(t.getAttribute('data-fm'), t.getAttribute('data-a'), t.getAttribute('data-b'));
     });
-    m.addEventListener('change', function (ev) { if (ev.target.id === 'fmMod') { cur = ev.target.value; renderMgr(); } if (ev.target.id === 'fmType') renderMgr(true); });
+    m.addEventListener('change', function (ev) { if (ev.target.id === 'fmMod') { cur = ev.target.value; editId = null; renderMgr(); } if (ev.target.id === 'fmType') renderMgr(true); });
     return m;
   }
   function openMgr(k) {
     if (!isAdmin()) return alert('Ye option sirf Admin ke liye hai.');
     cur = (k && MOD[k] && secOf(k)) ? k : (LIST.filter(function (m) { return $(m[2]); })[0] || [])[0];
-    ensureModal().classList.add('open'); renderMgr();
+    editId = null; ensureModal().classList.add('open'); renderMgr();
   }
   function closeMgr() { var m = $('fmModal'); if (m) m.classList.remove('open'); }
+  var FM_IDS = ['fmLabel', 'fmType', 'fmOpts', 'fmReq', 'fmDef', 'fmHint', 'fmUnit', 'fmMin', 'fmMax', 'fmWide', 'fmTbl', 'fmPrn'];
+  function fmToggle() {
+    var ty = $('fmType'); if (!ty) return; var t = ty.value;
+    if ($('fmOptsW')) $('fmOptsW').style.display = t === 'select' ? '' : 'none';
+    ['fmUnitW', 'fmMinW', 'fmMaxW'].forEach(function (i) { if ($(i)) $(i).style.display = t === 'number' ? '' : 'none'; });
+    if ($('fmDef')) $('fmDef').placeholder = t === 'date' ? 'YYYY-MM-DD ya today' : (t === 'time' ? 'HH:MM ya now' : (t === 'number' ? 'number' : 'optional'));
+  }
   function renderMgr(keepForm) {
     var body = $('fmBody'); if (!body) return;
-    var keep = {}; if (keepForm) ['fmLabel', 'fmOpts', 'fmReq', 'fmType'].forEach(function (i) { var e = $(i); if (e) keep[i] = e.type === 'checkbox' ? e.checked : e.value; });
+    var keep = {}; if (keepForm) FM_IDS.forEach(function (i) { var e = $(i); if (e) keep[i] = e.type === 'checkbox' ? e.checked : e.value; });
     var c = mcfg(cur, false), M = MOD[cur];
+    var ed = editId ? c.custom.filter(function (q) { return q.id === editId; })[0] : null; if (editId && !ed) editId = null;
     var h = '<div class="fm-row"><label>Module</label><select id="fmMod">' + LIST.filter(function (m) { return $(m[2]); }).map(function (m) { return '<option value="' + m[0] + '"' + (m[0] === cur ? ' selected' : '') + '>' + esc(m[1]) + '</option>'; }).join('') + '</select></div>';
     h += '<div class="fm-note">Har badlav ke liye Admin PIN / password poocha jayega. Field hatane par purana data delete nahi hota.</div>';
+    var cust = function () {
+      return c.custom.map(function (d, i) {
+        return '<div class="fm-item' + (editId === d.id ? ' sel' : '') + '"><span>' + esc(d.label) + (d.unit ? ' (' + esc(d.unit) + ')' : '') + (d.req ? ' *' : '') + '</span><em>new · ' + esc(typeName(d)) + (d.def ? ' · default' : '') + (d.inTable === false ? ' · table me nahi' : '') + (d.inPrint === false ? ' · print me nahi' : '') + '</em>' +
+          '<button type="button" data-fm="mv" data-a="' + esc(d.id) + '" data-b="-1"' + (i === 0 ? ' disabled' : '') + '>↑</button><button type="button" data-fm="mv" data-a="' + esc(d.id) + '" data-b="1"' + (i === c.custom.length - 1 ? ' disabled' : '') + '>↓</button>' +
+          '<button type="button" data-fm="edit" data-a="' + esc(d.id) + '">Edit</button><button type="button" class="del" data-fm="delcf" data-a="' + esc(d.id) + '">Delete</button></div>';
+      }).join('');
+    };
     if (!M.cell) {
       h += '<h4>Form fields</h4><div class="fm-list">';
       builtinFields(cur).forEach(function (f) {
-        var hid = c.hidden.indexOf(f.id) >= 0;
-        h += '<div class="fm-item' + (hid ? ' off' : '') + '"><span>' + esc(f.label) + '</span><em>built-in</em><button type="button" data-fm="hide" data-a="' + esc(f.id) + '">' + (hid ? 'Show' : 'Remove') + '</button></div>';
+        var hid = c.hidden.indexOf(f.id) >= 0, rn = c.labels[f.id];
+        h += '<div class="fm-item' + (hid ? ' off' : '') + '"><span>' + esc(f.label) + (rn ? ' → <b>' + esc(rn) + '</b>' : '') + '</span><em>built-in</em>' + (f.can ? '<button type="button" data-fm="rnf" data-a="' + esc(f.id) + '">Rename</button>' : '') + '<button type="button" data-fm="hide" data-a="' + esc(f.id) + '">' + (hid ? 'Show' : 'Remove') + '</button></div>';
       });
-      c.custom.forEach(function (d) {
-        h += '<div class="fm-item"><span>' + esc(d.label) + (d.req ? ' *' : '') + '</span><em>new · ' + esc(d.type) + '</em><button type="button" class="del" data-fm="delcf" data-a="' + esc(d.id) + '">Delete</button></div>';
-      });
-      h += '</div>';
+      h += cust() + '</div>';
     } else {
       h += '<div class="fm-note">Is module me nayi field table ke column ki tarah aati hai: us column ke cell par click karke value bharo / badlo.</div>';
-      if (c.custom.length) { h += '<h4>New fields</h4><div class="fm-list">'; c.custom.forEach(function (d) { h += '<div class="fm-item"><span>' + esc(d.label) + (d.req ? ' *' : '') + '</span><em>new · ' + esc(d.type) + '</em><button type="button" class="del" data-fm="delcf" data-a="' + esc(d.id) + '">Delete</button></div>'; }); h += '</div>'; }
+      if (c.custom.length) h += '<h4>New fields</h4><div class="fm-list">' + cust() + '</div>';
     }
     h += '<h4>Register table columns</h4><div class="fm-list">';
     var cols = colList(cur);
     if (!cols.length) h += '<div class="fm-note">Is module ka table abhi screen par nahi hai. Module kholkar dobara aao.</div>';
     cols.forEach(function (x) {
-      var hid = c.hcols.indexOf(x.n) >= 0;
-      h += '<div class="fm-item' + (hid ? ' off' : '') + '"><span>' + esc(x.label) + '</span><em>column</em><button type="button" data-fm="hcol" data-a="' + esc(x.n) + '">' + (hid ? 'Show' : 'Remove') + '</button></div>';
+      var hid = c.hcols.indexOf(x.n) >= 0, rn = c.clabels[x.n];
+      h += '<div class="fm-item' + (hid ? ' off' : '') + '"><span>' + esc(x.label) + (rn ? ' → <b>' + esc(rn) + '</b>' : '') + '</span><em>column</em>' + (x.can ? '<button type="button" data-fm="rnc" data-a="' + esc(x.n) + '">Rename</button>' : '') + '<button type="button" data-fm="hcol" data-a="' + esc(x.n) + '">' + (hid ? 'Show' : 'Remove') + '</button></div>';
     });
     h += '</div>';
-    h += '<h4>➕ Add new field</h4><div class="fm-add"><input id="fmLabel" placeholder="Field name (e.g. Operator Name)" maxlength="40"><select id="fmType"><option value="text">Text</option><option value="number">Number</option><option value="date">Date</option><option value="select">Dropdown</option><option value="textarea">Long text</option></select>' +
-      '<input id="fmOpts" placeholder="Dropdown options, comma se alag (A, B, C)" style="display:none"><label class="fm-chk"><input type="checkbox" id="fmReq"> Required</label><button type="button" data-fm="add" class="pri">Add Field</button></div>';
-    h += '<div class="fm-note">Nayi field aur hidden column print / Excel me bhi aate hain (jahan print table ki rows screen ke register se match karti hain).</div>';
+    var Fl = function (lbl, inner, id) { return '<label class="fm-f"' + (id ? ' id="' + id + '"' : '') + '><span>' + lbl + '</span>' + inner + '</label>'; };
+    h += '<h4>' + (ed ? '✏️ Edit field: ' + esc(ed.label) : '➕ Add new field') + '</h4><div class="fm-add fm-adv">' +
+      Fl('Field name', '<input id="fmLabel" placeholder="e.g. Operator Name" maxlength="40">') +
+      Fl('Type', '<select id="fmType"><option value="text">Text</option><option value="number">Number</option><option value="date">Date</option><option value="time">Time</option><option value="select">Dropdown</option><option value="yesno">Yes / No</option><option value="textarea">Long text</option></select>') +
+      Fl('Dropdown options (comma se alag)', '<input id="fmOpts" placeholder="A, B, C">', 'fmOptsW') +
+      Fl('Default value', '<input id="fmDef" placeholder="optional" maxlength="60">') +
+      Fl('Hint / placeholder', '<input id="fmHint" placeholder="optional" maxlength="60">') +
+      Fl('Unit', '<input id="fmUnit" placeholder="kg, hrs, ₹" maxlength="10">', 'fmUnitW') +
+      Fl('Min value', '<input id="fmMin" type="number" step="any">', 'fmMinW') + Fl('Max value', '<input id="fmMax" type="number" step="any">', 'fmMaxW') +
+      '<div class="fm-checks"><label class="fm-chk"><input type="checkbox" id="fmReq"> Required</label><label class="fm-chk"><input type="checkbox" id="fmWide"> Full width</label><label class="fm-chk"><input type="checkbox" id="fmTbl"> Table me dikhao</label><label class="fm-chk"><input type="checkbox" id="fmPrn"> Print / Excel me</label></div>' +
+      '<div class="fm-btns"><button type="button" data-fm="add" class="pri">' + (ed ? 'Save Changes' : 'Add Field') + '</button>' + (ed ? '<button type="button" data-fm="cancel">Cancel</button>' : '') + '</div></div>';
+    h += '<div class="fm-note">Nayi field aur hidden / renamed column print / Excel me bhi aate hain (jahan print table ki rows screen ke register se match karti hain). Field ka naam badalne se purani entries ki value safe rehti hai.</div>';
     body.innerHTML = h;
-    var ty = $('fmType'); if (ty) { Object.keys(keep).forEach(function (i) { var e = $(i); if (e) { if (e.type === 'checkbox') e.checked = keep[i]; else e.value = keep[i]; } }); $('fmOpts').style.display = ty.value === 'select' ? '' : 'none'; }
+    var src = null;
+    if (keepForm) src = keep;
+    else if (ed) src = { fmLabel: ed.label, fmType: ed.type, fmOpts: (ed.options || []).join(', '), fmReq: !!ed.req, fmDef: ed.def || '', fmHint: ed.hint || '', fmUnit: ed.unit || '', fmMin: hasNum(ed.min) ? ed.min : '', fmMax: hasNum(ed.max) ? ed.max : '', fmWide: !!ed.wide, fmTbl: ed.inTable !== false, fmPrn: ed.inPrint !== false };
+    else src = { fmTbl: true, fmPrn: true };
+    Object.keys(src).forEach(function (i) { var e = $(i); if (!e) return; if (e.type === 'checkbox') e.checked = !!src[i]; else e.value = src[i]; });
+    fmToggle();
+    if (ed && !keepForm) { var lbl = $('fmLabel'); if (lbl && lbl.scrollIntoView) lbl.scrollIntoView({ block: 'center' }); }
   }
-  function act(a, x) {
+  function act(a, x, y) {
     if (a === 'close') return closeMgr();
+    if (a === 'cancel') { editId = null; return renderMgr(); }
+    if (a === 'edit') { editId = x; return renderMgr(); }
     if (a === 'hide' && (mcfg(cur, false).hidden.indexOf(x) < 0) && !confirm('Ye field screen se hat jayegi.\nAgar ye save ke liye zaroori field hai to save rukk sakta hai. Continue?')) return;
     guard().then(function (ok) {
       if (!ok) return;
       var c = mcfg(cur, true), i;
       if (a === 'hide') { i = c.hidden.indexOf(x); if (i >= 0) c.hidden.splice(i, 1); else c.hidden.push(x); saveCfg(cur + ' field ' + x + (i >= 0 ? ' shown' : ' hidden')); }
       else if (a === 'hcol') { i = c.hcols.indexOf(x); if (i >= 0) c.hcols.splice(i, 1); else c.hcols.push(x); saveCfg(cur + ' column ' + x + (i >= 0 ? ' shown' : ' hidden')); }
+      else if (a === 'rnf' || a === 'rnc') {
+        var isF = a === 'rnf', map = isF ? c.labels : c.clabels, it = (isF ? builtinFields(cur) : colList(cur).map(function (q) { return { id: q.n, label: q.label }; })).filter(function (q) { return q.id === x; })[0];
+        if (!it) return;
+        var v = prompt('Naya naam likho (khali chhodo = original "' + it.label + '" wapas):', map[x] || it.label); if (v === null) return;
+        v = v.trim().replace(/\s+/g, ' ');
+        if (v.length > 40) return alert('Naam 40 akshar se chhota rakho.');
+        if (v === '' || v === it.label) delete map[x];
+        else {
+          var nv = norm(v), others = (isF ? builtinFields(cur).map(function (q) { return { id: q.id, label: q.label }; }) : colList(cur).map(function (q) { return { id: q.n, label: q.label }; }));
+          if (c.custom.some(function (q) { return norm(q.label) === nv; }) || others.some(function (q) { return q.id !== x && (norm(q.label) === nv || (map[q.id] && norm(map[q.id]) === nv)); })) return alert('Is naam ki field / column pehle se hai.');
+          map[x] = v;
+        }
+        saveCfg(cur + (isF ? ' field ' : ' column ') + it.label + ' renamed: ' + (map[x] || '(original)'));
+      }
+      else if (a === 'mv') {
+        var j = -1; c.custom.forEach(function (q, n) { if (q.id === x) j = n; });
+        var t2 = j + (+y); if (j < 0 || t2 < 0 || t2 >= c.custom.length) return;
+        var tmp = c.custom[j]; c.custom[j] = c.custom[t2]; c.custom[t2] = tmp; saveCfg(cur + ' field order changed: ' + tmp.label);
+      }
       else if (a === 'delcf') {
         var d = c.custom.filter(function (q) { return q.id === x; })[0]; if (!d) return;
         if (!confirm('"' + d.label + '" field delete karni hai?\nPurani entries me bhari value screen se hat jayegi.')) return;
-        c.custom = c.custom.filter(function (q) { return q.id !== x; }); saveCfg(cur + ' field deleted: ' + d.label);
+        c.custom = c.custom.filter(function (q) { return q.id !== x; }); if (editId === x) editId = null; saveCfg(cur + ' field deleted: ' + d.label);
       } else if (a === 'add') {
-        var label = ($('fmLabel').value || '').trim(), type = $('fmType').value, opts = ($('fmOpts').value || '').split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+        var V = function (id) { var e = $(id); return e ? String(e.value || '').trim() : ''; }, Ck = function (id) { var e = $(id); return !!(e && e.checked); };
+        var label = V('fmLabel'), type = V('fmType'), opts = V('fmOpts').split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+        var def = V('fmDef'), hint = V('fmHint'), unit = V('fmUnit'), mn = V('fmMin'), mx = V('fmMax');
         if (!label) return alert('Field ka naam likho.');
-        if (c.custom.some(function (q) { return norm(q.label) === norm(label); }) || builtinFields(cur).some(function (q) { return norm(q.label) === norm(label); }) || colList(cur).some(function (q) { return q.n === norm(label); })) return alert('Is naam ki field / column pehle se hai.');
-        if (type === 'select' && opts.length < 2) return alert('Dropdown ke liye kam se kam 2 options likho.');
-        c.custom.push({ id: 'f' + Date.now().toString(36) + Math.floor(Math.random() * 99), label: label, type: type, options: type === 'select' ? opts : [], req: !!$('fmReq').checked });
-        saveCfg(cur + ' field added: ' + label);
+        if (type === 'yesno') { type = 'select'; opts = ['Yes', 'No']; }
+        var nl = norm(label);
+        if (c.custom.some(function (q) { return q.id !== editId && norm(q.label) === nl; }) || builtinFields(cur).some(function (q) { return norm(q.label) === nl || (c.labels[q.id] && norm(c.labels[q.id]) === nl); }) || colList(cur).some(function (q) { return q.n === nl || (c.clabels[q.n] && norm(c.clabels[q.n]) === nl); })) return alert('Is naam ki field / column pehle se hai.');
+        if (type === 'select') {
+          if (opts.length < 2) return alert('Dropdown ke liye kam se kam 2 options likho.');
+          if (def && opts.indexOf(def) < 0) return alert('Default value options me se ek honi chahiye.');
+        } else opts = [];
+        if (type === 'number') {
+          if ((mn !== '' && !isFinite(Number(mn))) || (mx !== '' && !isFinite(Number(mx)))) return alert('Min / Max number me likho.');
+          if (mn !== '' && mx !== '' && Number(mn) > Number(mx)) return alert('Min value, Max se badi nahi ho sakti.');
+          if (def !== '') { var dn = Number(def); if (!isFinite(dn)) return alert('Default value number honi chahiye.'); if (mn !== '' && dn < Number(mn)) return alert('Default value Min se kam hai.'); if (mx !== '' && dn > Number(mx)) return alert('Default value Max se zyada hai.'); }
+        } else { mn = ''; mx = ''; unit = ''; }
+        if (type === 'date' && def !== '' && def.toLowerCase() !== 'today' && !/^\d{4}-\d{2}-\d{2}$/.test(def)) return alert('Default date YYYY-MM-DD ho ya "today" likho.');
+        if (type === 'time' && def !== '' && def.toLowerCase() !== 'now' && !/^([01]\d|2[0-3]):[0-5]\d$/.test(def)) return alert('Default time HH:MM ho ya "now" likho.');
+        if (type === 'date' || type === 'time') def = def.toLowerCase() === 'today' || def.toLowerCase() === 'now' ? def.toLowerCase() : def;
+        var props = { label: label, type: type, options: opts, req: Ck('fmReq'), def: def, hint: hint, unit: unit, min: mn === '' ? '' : Number(mn), max: mx === '' ? '' : Number(mx), wide: Ck('fmWide'), inTable: Ck('fmTbl'), inPrint: Ck('fmPrn') };
+        var ex = editId ? c.custom.filter(function (q) { return q.id === editId; })[0] : null;
+        if (ex) { Object.keys(props).forEach(function (p) { ex[p] = props[p]; }); editId = null; saveCfg(cur + ' field edited: ' + label); }
+        else { props.id = 'f' + Date.now().toString(36) + Math.floor(Math.random() * 99); c.custom.push(props); saveCfg(cur + ' field added: ' + label); }
       }
       renderMgr();
     });
@@ -12441,13 +12570,18 @@ setInterval(sync,2500);
     '.fm-list{max-height:220px;overflow:auto;border:1px solid #d8e2e8;border-radius:8px}.fm-item{display:flex;gap:8px;align-items:center;padding:6px 8px;border-bottom:1px solid #eef2f4;font-size:12px}.fm-item:last-child{border-bottom:0}.fm-item span{flex:1}.fm-item em{font-size:10px;color:#65727d}.fm-item.off span{text-decoration:line-through;opacity:.5}' +
     '.fm-item button,.fm-add button{border:1px solid #17324d;background:#fff;color:#17324d;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer}.fm-item button.del{color:#c0392b;border-color:#c0392b}.fm-add{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.fm-add input,.fm-add select{padding:7px;border:1px solid #d8e2e8;border-radius:6px;font-size:12px}.fm-add input[id=fmLabel]{flex:1;min-width:180px}.fm-add input[id=fmOpts]{flex:1 0 100%}.fm-chk{font-size:12px;display:flex;gap:4px;align-items:center}.fm-add button.pri{background:#17324d;color:#fff}';
   document.head.appendChild(st);
+  var st2 = document.createElement('style');
+  st2.textContent = '.fm-item{flex-wrap:wrap}.fm-item.sel{background:#eaf6f4}.fm-item button:disabled{opacity:.35;cursor:default}.fm-item b{color:#0f766e}' +
+    '.fm-adv{align-items:flex-end}.fm-adv .fm-f{display:flex;flex-direction:column;gap:2px;flex:1 1 150px;font-size:11px;font-weight:700;color:#17324d}.fm-adv .fm-f input,.fm-adv .fm-f select{width:100%;box-sizing:border-box}' +
+    '.fm-checks{display:flex;flex-wrap:wrap;gap:6px 14px;width:100%;padding:2px 0}.fm-btns{display:flex;gap:8px;width:100%}.fm-btns button{flex:1}';
+  document.head.appendChild(st2);
 
   function toolsBox() {
     if ($('fmToolsBox')) return;
     var hs = [].slice.call(document.querySelectorAll('#mmsUpgradePanel .mms-box h3')), h = hs.filter(function (x) { return /Module Access Control/.test(x.textContent); })[0];
     if (!h) return;
     var bx = document.createElement('div'); bx.className = 'mms-box'; bx.id = 'fmToolsBox';
-    bx.innerHTML = '<h3>🧱 Field Manager</h3><div class="sub">Kisi bhi module me nayi field add karo ya purani field / table column hatao. Sirf Admin, PIN/password ke saath.</div><button type="button" id="fmToolsBtn">Open Field Manager</button>';
+    bx.innerHTML = '<h3>🧱 Field Manager</h3><div class="sub">Kisi bhi module me field add / edit / rename / reorder karo, default value, min-max, unit aur table / print me dikhana set karo, ya purani field / column hatao. Sirf Admin, PIN/password ke saath.</div><button type="button" id="fmToolsBtn">Open Field Manager</button>';
     h.parentNode.insertAdjacentElement('afterend', bx);
     $('fmToolsBtn').onclick = function () { if (typeof MMS !== 'undefined' && MMS.closeTools) { try { MMS.closeTools(); } catch (e) { } } openMgr(); };
   }
@@ -12459,5 +12593,305 @@ setInterval(sync,2500);
   window.FieldManager = { open: openMgr, apply: applyAll, xform: xform };
 })();
 </script>
+<script type="text/mms-defer" id="mr-flow">
+/* ===== MAINTENANCE REQUEST — FULL WORKFLOW =====
+   Request (Priority) -> Accept / In Progress -> Waiting for Spare -> Work Done -> Production Verify -> Closed
+   (+ Reopen, Cancel with reason, WhatsApp report har step par, overdue >24h alert, monthly analytics) */
+(function () {
+  'use strict';
+  if (window.__mrFlow) return; window.__mrFlow = 1;
+  var ST = { OPEN: 'Open', PROG: 'In Progress', WAIT: 'Waiting for Spare', DONE: 'Work Done', CLOSED: 'Closed', CANC: 'Cancelled' };
+  var PENDING = [ST.OPEN, ST.PROG, ST.WAIT];
+  var PRI_W = { Breakdown: 0, Urgent: 1, Normal: 2 };
+  var PRI_TXT = { Breakdown: '🔴 BREAKDOWN (Machine Ruki Hui)', Urgent: '🟠 URGENT', Normal: '🟢 NORMAL' };
+  var ST_COL = { 'Open': '#b7791f', 'In Progress': '#2563eb', 'Waiting for Spare': '#7c3aed', 'Work Done': '#0f766e', 'Closed': '#15803d', 'Cancelled': '#6b7280' };
+  var G = function (id) { return document.getElementById(id); };
+  var p2 = function (n) { return (n < 10 ? '0' : '') + n; };
+  function nowD() { var n = new Date(); return n.getFullYear() + '-' + p2(n.getMonth() + 1) + '-' + p2(n.getDate()); }
+  function nowT() { var n = new Date(); return p2(n.getHours()) + ':' + p2(n.getMinutes()); }
+  function isAdmin() { try { var s = mmsSession(); return !!(s && s.role === 'Admin'); } catch (e) { return false; } }
+  function who() { try { var s = mmsSession() || {}; return s.name || s.user || s.username || s.id || ''; } catch (e) { return ''; } }
+  function stOf(r) { return (r && r.status) || ST.OPEN; }
+  function priOf(r) { return (r && PRI_W[r.priority] !== undefined) ? r.priority : 'Normal'; }
+  function log(r, st, note) { r.log = Array.isArray(r.log) ? r.log : []; r.log.push({ t: new Date().toISOString(), st: st, by: who(), note: note || '' }); }
+  function mins(d1, t1, d2, t2) { var a = dateTimeMinutes(d1, t1), b = dateTimeMinutes(d2, t2); if (a === null || b === null || b < a) return null; return Math.round(b - a); }
+  function hm(m) { return (m === null || m === undefined) ? '--:--' : p2(Math.floor(m / 60)) + ':' + p2(m % 60); }
+  function times(r) { return { resp: mins(r.pdate, r.ptime, r.mdate, r.mtime), fix: mins(r.mdate, r.mtime, r.hdate, r.htime), total: mins(r.pdate, r.ptime, r.hdate, r.htime) }; }
+  function ageHrs(r) { var t = dateTimeMinutes(r.pdate, r.ptime || '00:00'); return t === null ? null : (Date.now() / 60000 - t) / 60; }
+  function isPending(r) { return PENDING.indexOf(stOf(r)) >= 0; }
+  function isOverdue(r) { var a = ageHrs(r); return isPending(r) && a !== null && a >= 24; }
+  function badge(r) {
+    var st = stOf(r), od = isOverdue(r) ? ' <b style="color:#dc2626" title="24 ghante se zyada pending">⚠ ' + Math.floor(ageHrs(r)) + 'h</b>' : '';
+    return '<b style="color:' + (ST_COL[st] || '#555') + '">' + esc(st) + '</b>' + od;
+  }
+  function priBadge(r) { var p = priOf(r); return '<b style="color:' + (p === 'Breakdown' ? '#dc2626' : (p === 'Urgent' ? '#d97706' : '#15803d')) + '">' + (p === 'Breakdown' ? '🔴 ' : (p === 'Urgent' ? '🟠 ' : '🟢 ')) + p + '</b>'; }
+  function refreshAll() {
+    try { renderMR(); populateMaintenanceRequests(); renderDashboard(); } catch (e) { console.warn(e); }
+    try { renderBreakdown(); renderMTTR(); renderHistory(); } catch (e) { }
+  }
+
+  /* ---------- WhatsApp messages (PF jaisa format) ---------- */
+  function evOf(r) { return { 'Open': 'new', 'In Progress': 'accepted', 'Waiting for Spare': 'waiting', 'Work Done': 'workdone', 'Closed': 'closed', 'Cancelled': 'cancelled' }[stOf(r)] || 'new'; }
+  function msg(r, ev) {
+    ev = ev || evOf(r); var T = times(r);
+    var HEAD = { new: '🔧 *MAINTENANCE REQUEST*', accepted: '▶️ *REQUEST ACCEPTED — WORK STARTED*', resumed: '▶️ *WORK RESUMED*', waiting: '⏳ *WAITING FOR SPARE*', workdone: '✅ *WORK DONE — VERIFICATION PENDING*', closed: '🔒 *REQUEST CLOSED*', reopened: '↩️ *REQUEST REOPENED*', cancelled: '❌ *REQUEST CANCELLED*' }[ev] || '🔧 *MAINTENANCE REQUEST*';
+    var dt = (ev === 'new' && r.pdate) ? r.pdate : nowD(), tm = (ev === 'new' && r.ptime) ? r.ptime : nowT();
+    var m = HEAD + '\n🏢 Unit-7 | Milestone Gears Ltd.\n📅 Date: ' + fmtDate(dt) + ' | ⏰ Time: ' + tm + '\n\n📋 *Request Details:*\n' +
+      '• Sr. No.: ' + (r.sr || '') + '\n• Machine: ' + (r.machine || '') + ' (' + (r.machineNo || '') + ')\n• Section: ' + (r.section || '') + '\n• Priority: ' + PRI_TXT[priOf(r)] + '\n• Requested By: ' + (r.reqBy || '') + '\n' +
+      (ev !== 'new' && r.pdate ? '• Raised On: ' + fmtDate(r.pdate) + (r.ptime ? ' ' + r.ptime : '') + '\n' : '');
+    var prob = r.problem || ''; if (ev !== 'new' && prob.length > 140) prob = prob.slice(0, 140) + '...';
+    m += '\n⚠️ *Problem:*\n' + prob + '\n';
+    var started = r.mdate ? fmtDate(r.mdate) + (r.mtime ? ' ' + r.mtime : '') : '';
+    if (ev === 'accepted' || ev === 'resumed' || ev === 'waiting' || ev === 'workdone' || ev === 'closed') {
+      m += '\n🛠️ *Maintenance:*\n• Received By: ' + (r.recvBy || '') + '\n' + (started ? '• Work Started: ' + started + '\n' : '') + (ev === 'accepted' ? '• Response Time: ' + hm(T.resp) + ' hrs\n' : '');
+    }
+    if (ev === 'waiting') m += '• Spare / Reason: ' + (r.waitReason || '') + '\n';
+    if (ev === 'workdone' || ev === 'closed') {
+      if (r.action) m += '\n🔩 *Action Taken:*\n' + r.action + '\n';
+      var sp = (typeof formatSpareParts === 'function' && typeof legacySpareParts === 'function') ? formatSpareParts(legacySpareParts(r)) : '';
+      if (sp) m += '• Spare Used: ' + sp + '\n';
+      m += '\n⏱️ *Time Summary:*\n• Response Time: ' + hm(T.resp) + ' hrs\n• Fix Time: ' + hm(T.fix) + ' hrs\n• Total Downtime: ' + hm(T.total) + ' hrs\n';
+    }
+    if (ev === 'closed' && r.verifiedBy) m += '\n✔️ Verified By: ' + r.verifiedBy + (r.verifiedAt ? ' (' + new Date(r.verifiedAt).toLocaleString('en-IN') + ')' : '') + '\n';
+    if (ev === 'reopened') m += '\n↩️ *Reopen Reason:*\n' + (r.reopenReason || '') + '\n';
+    if (ev === 'cancelled') m += '\n❌ *Cancel Reason:*\n' + (r.cancelReason || '') + '\n';
+    var S = { new: 'OPEN', accepted: 'IN PROGRESS', resumed: 'IN PROGRESS', waiting: 'WAITING FOR SPARE', workdone: 'WORK DONE (PRODUCTION VERIFICATION PENDING)', closed: 'CLOSED', reopened: 'REOPENED — IN PROGRESS', cancelled: 'CANCELLED' }[ev] || stOf(r).toUpperCase();
+    return m + '\n📌 *STATUS: ' + S + '*';
+  }
+  window.mrMessage = function (r, ev) { return msg(r, ev); };
+  function share(r, ev) { window.open('https://wa.me/?text=' + encodeURIComponent(msg(r, ev)), '_blank'); }
+  function offer(r, ev, label) { if (confirm(label + ' report WhatsApp pe bhejni hai?')) share(r, ev); }
+  window.sendCurrentWhatsApp = function () {
+    var r = edit.mr !== null ? data.mr[edit.mr] : { sr: f('mr_sr'), machine: f('mr_machine'), machineNo: f('mr_machine_no'), section: f('mr_section'), reqBy: f('mr_req_by'), pdate: f('mr_pdate'), ptime: f('mr_ptime'), problem: f('mr_problem'), status: ST.OPEN, priority: f('mr_priority') };
+    share(r, evOf(r));
+  };
+
+  /* ---------- request list for maintenance (priority first) ---------- */
+  window.populateMaintenanceRequests = function () {
+    var sel = G('mr_select_existing'); if (!sel) return; var cur = sel.value;
+    sel.innerHTML = '<option value="">-- Select Open / In Progress / Waiting Request --</option>';
+    data.mr.filter(isPending).sort(function (a, b) { return (PRI_W[priOf(a)] - PRI_W[priOf(b)]) || ((Number(a.sr) || 0) - (Number(b.sr) || 0)); }).forEach(function (r) {
+      var o = document.createElement('option'); o.value = data.mr.indexOf(r);
+      o.textContent = '#' + r.sr + ' | ' + (priOf(r) === 'Breakdown' ? '🔴' : (priOf(r) === 'Urgent' ? '🟠' : '🟢')) + ' ' + priOf(r) + ' | ' + (r.machineNo || '') + ' | ' + (r.machine || '') + ' | ' + stOf(r) + (isOverdue(r) ? ' ⚠' : '');
+      sel.appendChild(o);
+    });
+    if ([].some.call(sel.options, function (o) { return o.value === cur; })) sel.value = cur;
+  };
+
+  /* ---------- SAVE (production: new request / maintenance: update with status rules) ---------- */
+  window.saveMR = function () {
+    if (!mmsGuardSave('mr')) return;
+    var spareParts = sparePartsFromForm();
+    var chk = validateUnlistedSpareRecords(spareParts); if (!chk.ok) return alert(chk.msg);
+    updateSpareLegacyFields();
+    var r = { sr: f('mr_sr'), status: f('mr_status') || ST.OPEN, priority: f('mr_priority') || 'Normal', pdate: f('mr_pdate'), ptime: f('mr_ptime'), machine: f('mr_machine'), machineNo: f('mr_machine_no'), section: f('mr_section'), grade: f('mr_grade'), make: f('mr_make'), spareParts: spareParts, qty: formatSpareQty(spareParts), reqBy: f('mr_req_by'), reqCode: f('mr_req_code'), prodSign: f('mr_prod_sign'), recvBy: f('mr_recv_by'), recvCode: f('mr_recv_code'), mdate: f('mr_mdate'), mtime: f('mr_mtime'), maintSign: f('mr_maint_sign'), problem: f('mr_problem'), observation: f('mr_observation'), action: f('mr_action'), spare: f('mr_spare'), hdate: f('mr_hdate'), htime: f('mr_htime'), hprodSign: f('mr_hprod_sign'), hmaintSign: f('mr_hmaint_sign'), duration: dateTimeDuration(f('mr_mdate'), f('mr_mtime'), f('mr_hdate'), f('mr_htime')), history: f('mr_history'), historyBy: f('mr_history_by'), maintCost: f('mr_maint_cost') };
+
+    if (mrRole === 'production') {
+      if (!r.pdate || !r.machineNo || !r.reqBy || !r.problem) return alert('Please enter Date, Machine, Request Given By and Problem.');
+      r.sr = r.sr || String(nextMRSerial());
+      if (edit.mr === null && !r.ptime) r.ptime = nowT();
+      var saved;
+      if (edit.mr !== null && data.mr[edit.mr]) {
+        var old = data.mr[edit.mr];
+        if (stOf(old) !== ST.OPEN && !isAdmin()) return alert('Ye request ab "' + stOf(old) + '" hai. Maintenance ke accept karne ke baad request badli nahi ja sakti.');
+        ['pdate', 'ptime', 'machine', 'machineNo', 'section', 'grade', 'make', 'reqBy', 'reqCode', 'prodSign', 'problem', 'priority'].forEach(function (k) { old[k] = r[k]; });
+        log(old, 'Edited', 'Request details edited'); saved = Object.assign({}, old);
+      } else {
+        r.status = ST.OPEN; r.log = []; log(r, ST.OPEN, 'Request raised (' + r.priority + ')'); data.mr.push(r); saved = Object.assign({}, r);
+      }
+      persist('mr'); edit.mr = null; clearMR(); renderMR(); renderDashboard(); populateMaintenanceRequests();
+      alert('Maintenance Request saved successfully. Sr. No. ' + saved.sr + (saved.priority === 'Breakdown' ? '\n\n🔴 BREAKDOWN priority — maintenance ko turant batao.' : ''));
+      if (confirm('Do you want to share the Daily Maintenance Request Report (' + fmtDate(saved.pdate || saved.mdate || saved.hdate) + ') on WhatsApp?')) {
+        var sd = saved.pdate || saved.mdate || saved.hdate;
+        if (typeof window.rptShareDaily === 'function' && sd) { try { window.rptShareDaily('mr', sd); } catch (e) { sendWhatsAppFor(saved); } } else sendWhatsAppFor(saved);
+      }
+      return;
+    }
+
+    /* ----- maintenance ----- */
+    if (edit.mr === null) { var ix = (G('mr_select_existing') || {}).value; if (ix !== '' && ix !== undefined) edit.mr = Number(ix); }
+    if (edit.mr === null) return alert('Please select an Open / In Progress request first.');
+    var o = data.mr[edit.mr]; if (!o) return;
+    var prev = stOf(o), ns = r.status;
+    if ((prev === ST.CLOSED || prev === ST.CANC) && !isAdmin()) return alert('Ye request "' + prev + '" ho chuki hai. Ab badlav sirf Admin kar sakta hai.');
+    if (ns === ST.OPEN && prev !== ST.OPEN) ns = prev;
+    var note = '';
+    if (ns === ST.CLOSED && !o.verifiedAt) {
+      if (isAdmin()) { o.verifiedBy = 'Admin (direct close)'; o.verifiedAt = new Date().toISOString(); }
+      else { ns = ST.DONE; note = '\n\nClosed sirf Production ke Verify karne ke baad hota hai, isliye status "Work Done" rakha gaya.'; }
+    }
+    if ([ST.PROG, ST.WAIT, ST.DONE].indexOf(ns) >= 0) {
+      if (!r.recvBy.trim()) return alert('Request Received By (Employee Name) bharna zaroori hai.');
+      if (!r.mdate) { r.mdate = nowD(); setv('mr_mdate', r.mdate); } if (!r.mtime) { r.mtime = nowT(); setv('mr_mtime', r.mtime); }
+    }
+    if (ns === ST.DONE) {
+      if (!(r.action || '').trim()) return alert('Work Done ke liye Action Taken bharna zaroori hai.');
+      if (!r.hdate) { r.hdate = nowD(); setv('mr_hdate', r.hdate); } if (!r.htime) { r.htime = nowT(); setv('mr_htime', r.htime); }
+      r.duration = dateTimeDuration(r.mdate, r.mtime, r.hdate, r.htime); setv('mr_duration', r.duration);
+      if (!r.duration) return alert('Handover time, Maintenance start time se pehle nahi ho sakta. Date / time check karo.');
+    }
+    var extra = window.__mrExtra || {}; window.__mrExtra = null;
+    if (ns === ST.CANC) {
+      var why = extra.cancelReason || o.cancelReason || prompt('Request cancel karne ka karan likho:', '');
+      if (why === null || !String(why).trim()) return alert('Cancel karne ka karan likhna zaroori hai.');
+      extra.cancelReason = String(why).trim();
+    }
+    if (ns === ST.WAIT && !(extra.waitReason || o.waitReason)) {
+      var wr = prompt('Kaun sa spare / kya wajah se kaam ruka hai?', ''); if (wr === null || !wr.trim()) return alert('Wajah likhna zaroori hai.'); extra.waitReason = wr.trim();
+    }
+    if (!mrReconcileSpares(legacySpareParts(o), r.spareParts)) return;
+    o.status = ns; o.recvBy = r.recvBy; o.recvCode = r.recvCode; o.mdate = r.mdate; o.mtime = r.mtime; o.maintSign = r.maintSign; o.observation = r.observation; o.action = r.action; o.spare = r.spare; o.spareParts = r.spareParts; o.qty = r.qty; o.hdate = r.hdate; o.htime = r.htime; o.hprodSign = r.hprodSign; o.hmaintSign = r.hmaintSign; o.duration = r.duration; o.history = r.history; o.historyBy = r.historyBy; o.maintCost = r.maintCost;
+    if (extra.waitReason) o.waitReason = extra.waitReason; if (extra.cancelReason) o.cancelReason = extra.cancelReason;
+    if (ns === ST.DONE && prev !== ST.DONE) o.workDoneAt = new Date().toISOString();
+    if (ns !== prev) log(o, ns, ns === ST.WAIT ? o.waitReason : (ns === ST.CANC ? o.cancelReason : ''));
+    else log(o, 'Updated', 'Maintenance update');
+    var hu = false, bu = false;
+    if (ns === ST.DONE || ns === ST.CLOSED) { hu = syncHistoryFromMaintenance(o); bu = syncBreakdownFromMaintenance(o); }
+    persist('mr'); var saved2 = Object.assign({}, o); edit.mr = null; clearMR(); refreshAll();
+    alert('Maintenance update saved for Sr. No. ' + saved2.sr + ' (' + ns + ')' + (hu ? '\n\nMachine History Card automatically updated.' : '') + (bu ? '\n\nBreakdown Monthly Report and MTTR are automatically updated.' : '') +
+      (ns === ST.DONE ? '\n\nAb Production mode me ja kar "✔ Verify & Close" karwao.' : '') + note);
+    if (ns !== prev) {
+      var ev = ns === ST.PROG ? (prev === ST.WAIT ? 'resumed' : 'accepted') : ({ 'Waiting for Spare': 'waiting', 'Work Done': 'workdone', 'Closed': 'closed', 'Cancelled': 'cancelled' }[ns]);
+      var lbl = { accepted: 'Request Accepted', resumed: 'Work Resumed', waiting: 'Waiting for Spare', workdone: 'Work Done', closed: 'Request Closed', cancelled: 'Request Cancelled' }[ev];
+      if (ev) offer(saved2, ev, lbl);
+    }
+  };
+
+  /* ---------- Maintenance quick steps (buttons) ---------- */
+  function selIdx() { if (edit.mr !== null) return edit.mr; var v = (G('mr_select_existing') || {}).value; return (v !== '' && v !== undefined) ? Number(v) : null; }
+  window.mrFlow = function (kind) {
+    if (mrRole !== 'maintenance') return alert('Pehle "Maintenance Person" mode chuno.');
+    var i = selIdx(); if (i === null || !data.mr[i]) return alert('Pehle upar se request select karo.');
+    var r = data.mr[i];
+    if (!f('mr_recv_by').trim()) { alert('Request Received By (Employee Name) bharo.'); var e = G('mr_recv_by'); if (e) e.focus(); return; }
+    if (!f('mr_mdate')) setv('mr_mdate', nowD()); if (!f('mr_mtime')) setv('mr_mtime', nowT());
+    if (kind === 'start') { setv('mr_status', ST.PROG); }
+    else if (kind === 'wait') {
+      var why = prompt('Kaun sa spare / kya wajah se kaam ruka hai?', r.waitReason || ''); if (why === null) return; why = why.trim();
+      if (!why) return alert('Wajah likhna zaroori hai.');
+      window.__mrExtra = { waitReason: why }; setv('mr_status', ST.WAIT);
+    } else if (kind === 'done') {
+      if (!f('mr_action').trim()) { alert('Action Taken bharo.'); var a = G('mr_action'); if (a) a.focus(); return; }
+      if (!f('mr_hdate')) setv('mr_hdate', nowD()); if (!f('mr_htime')) setv('mr_htime', nowT());
+      setMRDuration(); setv('mr_status', ST.DONE);
+    }
+    var b = G('mrSaveBtn'); if (b) b.click();
+  };
+  window.mrPick = function (i) {
+    setMRRole('maintenance'); var s = G('mr_select_existing'); if (s) s.value = String(i);
+    loadMaintenanceRequest(String(i)); var sec = G('mr'); if (sec) sec.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  /* ---------- Production steps: Verify & Close / Reopen / Cancel ---------- */
+  window.mrVerify = function (i) {
+    if (!mmsGuardSave('mr')) return; var r = data.mr[i]; if (!r || stOf(r) !== ST.DONE) return;
+    if (!confirm('Sr. ' + r.sr + ' — ' + (r.machine || '') + '\n\nKya kaam sahi hua hai aur machine theek chal rahi hai?\nOK = Verify & Close')) return;
+    var by = prompt('Verified By (naam / E-Code):', r.reqBy || who()); if (by === null) return; by = by.trim();
+    if (!by) return alert('Verify karne wale ka naam likhna zaroori hai.');
+    r.status = ST.CLOSED; r.verifiedBy = by; r.verifiedAt = new Date().toISOString(); if (!r.hprodSign) r.hprodSign = by;
+    log(r, ST.CLOSED, 'Verified by ' + by);
+    try { syncHistoryFromMaintenance(r); } catch (e) { } try { syncBreakdownFromMaintenance(r); } catch (e) { }
+    persist('mr'); refreshAll(); offer(r, 'closed', 'Request Closed');
+  };
+  window.mrReopen = function (i) {
+    if (!mmsGuardSave('mr')) return; var r = data.mr[i]; if (!r || (stOf(r) !== ST.DONE && !(stOf(r) === ST.CLOSED && isAdmin()))) return;
+    var why = prompt('Reopen ka karan likho (kaam kyun theek nahi hua):', ''); if (why === null) return; why = why.trim();
+    if (!why) return alert('Reopen ka karan likhna zaroori hai.');
+    r.status = ST.PROG; r.reopenCount = (r.reopenCount || 0) + 1; r.reopenReason = why; r.hdate = ''; r.htime = ''; r.duration = ''; r.workDoneAt = ''; r.verifiedAt = ''; r.verifiedBy = '';
+    data.bd = data.bd.filter(function (x) { return !(x.auto && String(x.sourceMrSr || '') === String(r.sr)); }); persist('bd');
+    log(r, 'Reopened', why); persist('mr'); refreshAll(); offer(r, 'reopened', 'Request Reopened');
+  };
+  window.mrCancel = function (i) {
+    if (!mmsGuardSave('mr')) return; var r = data.mr[i]; if (!r || (stOf(r) !== ST.OPEN && !isAdmin())) return;
+    var why = prompt('Request cancel karne ka karan likho:', ''); if (why === null) return; why = why.trim();
+    if (!why) return alert('Cancel karne ka karan likhna zaroori hai.');
+    r.status = ST.CANC; r.cancelReason = why; log(r, ST.CANC, why); persist('mr'); refreshAll(); offer(r, 'cancelled', 'Request Cancelled');
+  };
+  window.mrTimeline = function (i) {
+    var r = data.mr[i]; if (!r) return; var T = times(r);
+    var L = (r.log || []).map(function (e) { return new Date(e.t).toLocaleString('en-IN') + ' — ' + e.st + (e.by ? ' (' + e.by + ')' : '') + (e.note ? ': ' + e.note : ''); });
+    alert('Sr. ' + r.sr + ' — ' + (r.machine || '') + '\nPriority: ' + priOf(r) + '\nResponse: ' + hm(T.resp) + ' | Fix: ' + hm(T.fix) + ' | Total downtime: ' + hm(T.total) + '\n\n' + (L.join('\n') || 'Koi timeline nahi (purani entry).'));
+  };
+
+  /* ---------- banner + analytics + register ---------- */
+  function banner() {
+    var el = G('mrFlowBanner'); if (!el) return;
+    var od = data.mr.filter(isOverdue), vd = data.mr.filter(function (r) { return stOf(r) === ST.DONE; }), bd = data.mr.filter(function (r) { return isPending(r) && priOf(r) === 'Breakdown'; });
+    var box = function (c, bg, title, arr) {
+      return arr.length ? '<div style="margin:6px 0;padding:8px 12px;border:1.5px solid ' + c + ';background:' + bg + ';border-radius:8px;font-size:12px;color:#222"><b style="color:' + c + '">' + title + ' (' + arr.length + ')</b><br>' +
+        arr.slice(0, 4).map(function (r) { return '#' + esc(r.sr) + ' ' + esc(r.machine || r.machineNo || '') + ' — ' + esc(stOf(r)); }).join(' &nbsp;•&nbsp; ') + (arr.length > 4 ? ' …' : '') + '</div>' : '';
+    };
+    el.innerHTML = box('#dc2626', '#fef2f2', '🔴 Breakdown priority — pending', bd) + box('#b45309', '#fffbeb', '⚠ 24 ghante se zyada pending', od) + box('#0f766e', '#f0fdfa', '✅ Work Done — Production verification baaki', vd);
+  }
+  function analytics(all) {
+    var el = G('mrAnalytics'); if (!el) return;
+    var avg = function (a) { a = a.filter(function (x) { return x !== null; }); return a.length ? Math.round(a.reduce(function (s, x) { return s + x; }, 0) / a.length) : null; };
+    var Ts = all.map(times), cnt = { Breakdown: 0, Urgent: 0, Normal: 0 }; all.forEach(function (r) { cnt[priOf(r)]++; });
+    var byM = {}; all.filter(function (r) { return stOf(r) !== ST.CANC; }).forEach(function (r) { var k = r.machineNo || r.machine || '?'; (byM[k] = byM[k] || { n: 0, name: r.machine || k }).n++; });
+    var rep = Object.keys(byM).filter(function (k) { return byM[k].n >= 2; }).sort(function (a, b) { return byM[b].n - byM[a].n; }).slice(0, 5).map(function (k) { return esc(byM[k].name) + ' (' + esc(k) + ') × ' + byM[k].n; });
+    var it = function (l, v, s) { return '<div class="ms-item"><span class="ms-label">' + l + '</span><span class="ms-value">' + v + '</span><span class="ms-sub">' + s + '</span></div>'; };
+    el.innerHTML = it('Avg Response Time', hm(avg(Ts.map(function (t) { return t.resp; }))), 'HH:MM — request se kaam shuru') + it('Avg Fix Time', hm(avg(Ts.map(function (t) { return t.fix; }))), 'HH:MM — kaam shuru se handover') +
+      it('Avg Total Downtime', hm(avg(Ts.map(function (t) { return t.total; }))), 'HH:MM — request se handover') + it('Priority', '🔴' + cnt.Breakdown + ' 🟠' + cnt.Urgent + ' 🟢' + cnt.Normal, 'Breakdown / Urgent / Normal') +
+      '<div class="ms-item" style="flex-basis:100%"><span class="ms-label">Repeat problems (is mahine ek se zyada baar)</span><span class="ms-sub" style="font-size:12px">' + (rep.length ? rep.join(' &nbsp;•&nbsp; ') : 'Koi repeat machine nahi') + '</span></div>';
+  }
+  var act = function (r, i, prod) {
+    var b = '', st = stOf(r);
+    if (prod) {
+      b += '<button class="secondary" onclick="editMR(' + i + ')">Edit</button>';
+      if (st === ST.DONE) b += '<button class="primary" style="background:#16a34a;border-color:#16a34a" onclick="mrVerify(' + i + ')">✔ Verify &amp; Close</button><button class="warning" onclick="mrReopen(' + i + ')">↩ Reopen</button>';
+      if (st === ST.OPEN) b += '<button class="secondary" onclick="mrCancel(' + i + ')">✖ Cancel</button>';
+    } else {
+      if (isPending(r)) b += '<button class="primary" onclick="mrPick(' + i + ')">' + (st === ST.OPEN ? '▶ Take' : 'Open') + '</button>';
+      b += '<button class="secondary" onclick="editMR(' + i + ')">Edit</button>';
+    }
+    return '<div class="editbar">' + b + '<button class="secondary" onclick="mrTimeline(' + i + ')">🕘</button><button class="secondary" onclick="printSavedMR(' + i + ')">Print</button><button class="danger" onclick="delRow(\'mr\',' + i + ')">Delete</button></div>';
+  };
+  window.renderMR = function () {
+    refreshMRMonth();
+    var q = (f('mr_search') || '').toLowerCase(), stf = f('mr_filter_status') || '', month = mrSelectedMonth();
+    var all = getMRMonthRecords(month);
+    var a = all.filter(function (r) { return (!stf || stOf(r) === stf) && (!q || JSON.stringify(r).toLowerCase().indexOf(q) >= 0); });
+    var head = G('mrHead'), body = G('mrBody'); if (!head || !body) return;
+    var rowSt = function (r) { return (isPending(r) && priOf(r) === 'Breakdown') ? ' style="background:#fff1f1"' : (isOverdue(r) ? ' style="background:#fffbeb"' : ''); };
+    if (mrRole === 'production') {
+      head.innerHTML = '<tr><th>Sr. No.</th><th>Priority</th><th>Machine</th><th>Machine No.</th><th>Section</th><th>Date</th><th>Time</th><th>Request By</th><th>E-Code</th><th>Problem</th><th>Status</th><th>Action</th></tr>';
+      body.innerHTML = a.map(function (r) {
+        var i = data.mr.indexOf(r);
+        return '<tr' + rowSt(r) + '><td>' + esc(r.sr) + '</td><td>' + priBadge(r) + '</td><td>' + esc(r.machine) + '</td><td>' + esc(r.machineNo) + '</td><td>' + esc(r.section) + '</td><td>' + fmtDate(r.pdate) + '</td><td>' + esc(r.ptime) + '</td><td>' + esc(r.reqBy) + '</td><td>' + esc(r.reqCode) + '</td><td title="' + esc(r.problem) + '">' + esc((r.problem || '').slice(0, 70)) + '</td><td>' + badge(r) + (r.waitReason && stOf(r) === ST.WAIT ? '<br><small>' + esc(r.waitReason) + '</small>' : '') + (r.cancelReason && stOf(r) === ST.CANC ? '<br><small>' + esc(r.cancelReason) + '</small>' : '') + '</td><td>' + act(r, i, true) + '</td></tr>';
+      }).join('');
+    } else {
+      head.innerHTML = '<tr><th>Sr. No.</th><th>Priority</th><th>Status</th><th>Machine</th><th>Machine No.</th><th>Section</th><th>Problem</th><th>Received By</th><th>Maint. Date/Time</th><th>Response</th><th>Observation</th><th>Action Taken</th><th>Spare</th><th>Handover</th><th>Fix Time</th><th>History Card</th><th>Action</th></tr>';
+      body.innerHTML = a.map(function (r) {
+        var i = data.mr.indexOf(r), T = times(r), sp = formatSpareParts(legacySpareParts(r));
+        return '<tr' + rowSt(r) + '><td>' + esc(r.sr) + '</td><td>' + priBadge(r) + '</td><td>' + badge(r) + '</td><td>' + esc(r.machine) + '</td><td>' + esc(r.machineNo) + '</td><td>' + esc(r.section) + '</td><td title="' + esc(r.problem) + '">' + esc((r.problem || '').slice(0, 55)) + '</td><td>' + esc(r.recvBy) + '</td><td>' + fmtDate(r.mdate) + ' ' + esc(r.mtime) + '</td><td>' + hm(T.resp) + '</td><td title="' + esc(r.observation) + '">' + esc((r.observation || '').slice(0, 55)) + '</td><td title="' + esc(r.action) + '">' + esc((r.action || '').slice(0, 55)) + '</td><td title="' + esc(sp) + '">' + esc(sp.slice(0, 35)) + '</td><td>' + fmtDate(r.hdate) + ' ' + esc(r.htime) + '</td><td>' + esc(r.duration) + '</td><td>' + esc(r.history) + (r.historyBy ? ' — ' + esc(r.historyBy) : '') + '</td><td>' + act(r, i, false) + '</td></tr>';
+      }).join('');
+    }
+    var c = function (s) { return all.filter(function (x) { return stOf(x) === s; }).length; };
+    var T2 = function (id, v) { var e = G(id); if (e) e.textContent = v; };
+    T2('mrMonthLabel', month); T2('mrTotal', all.length); T2('mrOpen', c(ST.OPEN)); T2('mrProgress', c(ST.PROG)); T2('mrWaiting', c(ST.WAIT)); T2('mrWorkDone', c(ST.DONE)); T2('mrClosed', c(ST.CLOSED)); T2('mrCancelled', c(ST.CANC));
+    T2('mrOverdue', all.filter(isOverdue).length);
+    banner(); analytics(all);
+  };
+  window.mrDashTag = function (r) { return esc((priOf(r) === 'Breakdown' ? '🔴 ' : (priOf(r) === 'Urgent' ? '🟠 ' : '')) + stOf(r)) + (isOverdue(r) ? ' ⚠' : ''); };
+  window.mrTimes = times; window.mrPriOf = priOf;
+  window.mrRespText = function (r) { var t = times(r).resp; return t === null ? '' : hm(t); };
+  window.mrTotalText = function (r) { var t = times(r).total; return t === null ? '' : hm(t); };
+
+  /* ---------- existing functions: priority field + hints ---------- */
+  var _clear = window.clearMR; window.clearMR = function () { _clear.apply(this, arguments); setv('mr_priority', 'Normal'); if (mrRole === 'production' && !f('mr_ptime')) setv('mr_ptime', nowT()); };
+  var _edit = window.editMR; window.editMR = function (i) { _edit.apply(this, arguments); if (edit.mr === i && data.mr[i]) setv('mr_priority', priOf(data.mr[i])); };
+  var _load = window.loadMaintenanceRequest; window.loadMaintenanceRequest = function (i) { _load.apply(this, arguments); var r = data.mr[Number(i)]; if (r) setv('mr_priority', priOf(r)); };
+  var _role = window.setMRRole;
+  window.setMRRole = function (role) {
+    _role.apply(this, arguments);
+    var pr = G('mr_priority'); if (pr) pr.disabled = (role === 'maintenance');
+    var h = G('mrRoleHint'); if (h) h.textContent = role === 'production' ? 'Production mode: nayi request daalo (Priority chuno). Maintenance ka "Work Done" aane par yahin se ✔ Verify & Close karo.' : 'Maintenance mode: request chuno → ▶ Start Work → (⏳ Waiting for Spare) → ✅ Work Done. Closed Production verify ke baad hota hai.';
+    try { renderMR(); } catch (e) { }
+  };
+  try { setMRRole(mrRole); populateMaintenanceRequests(); } catch (e) { console.warn('mrflow init', e); }
+  setInterval(function () { try { var s = G('mr'); if (s && s.classList.contains('active')) renderMR(); } catch (e) { } }, 60000);
+})();
+</script>
+
 </body>
 </html>
