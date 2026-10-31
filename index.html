@@ -7529,7 +7529,7 @@ function hqPanelHtml(key) {
     '<button class="secondary" onclick="hqClear(\'' + key + '\')">Clear</button>' +
     (c.printBtns || '') + '</div></div></div>' +
     '<div class="card"><div class="summary" id="hq_' + key + '__sum"></div>' +
-    '<div class="toolbar"><input id="hq_' + key + '__search" placeholder="Search..." oninput="hqRender(\'' + key + '\')">' + (c.toolbarHtml || '') + '</div>' +
+    '<div class="toolbar"><label style="font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:5px">Month: <select id="hq_' + key + '__month" onchange="hqRender(\'' + key + '\')" style="padding:4px;border-radius:5px;font-size:12px"></select></label><input id="hq_' + key + '__search" placeholder="Search..." oninput="hqRender(\'' + key + '\')">' + (c.toolbarHtml || '') + '</div>' +
     '<div class="tablewrap"><table class="tbl"><thead><tr>' + c.cols.map(function (x) { return '<th>' + esc(x.h) + '</th>'; }).join('') + '<th>Action</th></tr></thead>' +
     '<tbody id="hq_' + key + '__body"></tbody></table></div></div>';
 }
@@ -7588,7 +7588,7 @@ function hqSave(key) {
   else { r.id = hqUid(); r.createdAt = now; r.updatedAt = now; list.push(r); }
   persist(key);
   const was = idx >= 0;
-  hqClear(key); hqRender(key); hqDue();
+  hqClear(key); try { hqMonthFollow(key, r); } catch (e) { } hqRender(key); hqDue();
   alert(was ? 'Record updated successfully.' : 'Record saved successfully.');
 }
 function hqEdit(key, id) {
@@ -7608,14 +7608,43 @@ function hqDel(key, id) {
   if (hqV('hq_' + key + '__id') === String(id)) hqClear(key);
   hqRender(key); hqDue(); alert('Record deleted successfully.');
 }
+/* ---------- Month-wise view (baaki modules jaisa): Month dropdown + us mahine ka data ---------- */
+const HQ_DATEKEY = { satReport: 'satDate', satTemp: 'calDate', oxyMV: 'date', oxyImp: 'date', oxyRep: 'replDate', amc: 'startDate', amcLog: 'visitDate' };
+const HQ_MONTH_ALL_DEFAULT = { amc: 1 };   /* contract register: default "All Months" */
+const HQ_MONFULL = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+function hqYmLabel(ym) { const m = /^(\d{4})-(\d{2})$/.exec(ym || ''); return m ? HQ_MONFULL[+m[2] - 1] + ' ' + m[1] : ''; }
+function hqRecYm(key, r) { const k = HQ_DATEKEY[key]; const v = k ? String((r && r[k]) || '') : ''; return /^\d{4}-\d{2}/.test(v) ? v.slice(0, 7) : ''; }
+function hqMonthSync(key) {
+  const sel = hqEl('hq_' + key + '__month'); if (!sel) return '';
+  const first = !sel.options.length, prev = sel.value, cur = hqToday().slice(0, 7), set = {};
+  set[cur] = 1;
+  hqList(key).forEach(function (r) { const ym = hqRecYm(key, r); if (ym) set[ym] = 1; });
+  const yms = Object.keys(set).sort().reverse();
+  sel.innerHTML = '<option value="">All Months</option>' + yms.map(function (ym) { return '<option value="' + ym + '">' + hqYmLabel(ym) + '</option>'; }).join('');
+  if (first) sel.value = HQ_MONTH_ALL_DEFAULT[key] ? '' : cur;
+  else sel.value = (prev === '' || set[prev]) ? prev : cur;
+  return sel.value;
+}
+/* naya / edit record kisi aur mahine ka ho to wahi mahina khol do, taaki saved record turant dikhe */
+function hqMonthFollow(key, r) {
+  const sel = hqEl('hq_' + key + '__month'); if (!sel || sel.value === '') return;
+  const ym = hqRecYm(key, r); if (!ym || ym === sel.value) return;
+  hqMonthSync(key);
+  if ([].some.call(sel.options, function (o) { return o.value === ym; })) sel.value = ym;
+}
+function hqMonthList(key) {
+  const ym = hqV('hq_' + key + '__month');
+  return hqList(key).filter(function (r) { return r && typeof r === 'object' && (!ym || hqRecYm(key, r) === ym); });
+}
 function hqRows(key) {
-  const c = HQ_CFG[key], q = hqV('hq_' + key + '__search').toLowerCase();
-  let a = hqList(key).filter(function (r) { return r && typeof r === 'object' && (!q || Object.keys(r).filter(function (k) { return k !== 'diagram'; }).map(function (k) { return r[k]; }).join(' ').toLowerCase().indexOf(q) >= 0); });
+  const c = HQ_CFG[key], q = hqV('hq_' + key + '__search').toLowerCase(), ymSel = hqV('hq_' + key + '__month');
+  let a = hqList(key).filter(function (r) { return r && typeof r === 'object' && (!ymSel || hqRecYm(key, r) === ymSel) && (!q || Object.keys(r).filter(function (k) { return k !== 'diagram'; }).map(function (k) { return r[k]; }).join(' ').toLowerCase().indexOf(q) >= 0); });
   if (c.sort) a = a.sort(c.sort);
   return a;
 }
 function hqRender(key) {
   const c = HQ_CFG[key], body = hqEl('hq_' + key + '__body'); if (!c || !body) return;
+  hqMonthSync(key);
   const a = hqRows(key);
   body.innerHTML = a.map(function (r) {
     return '<tr>' + c.cols.map(function (x) { const v = x.v(r); return '<td>' + (x.html ? v : esc(v)) + '</td>'; }).join('') +
@@ -7624,7 +7653,12 @@ function hqRender(key) {
       '<button class="danger" onclick="hqDel(\'' + key + '\',\'' + r.id + '\')">Delete</button></td></tr>';
   }).join('') || '<tr><td colspan="' + (c.cols.length + 1) + '">No records found.</td></tr>';
   const sum = hqEl('hq_' + key + '__sum');
-  if (sum) sum.innerHTML = (c.summary ? c.summary(hqList(key)) : []).map(function (x) { return '<div class="stat">' + esc(x[0]) + ': <b>' + esc(x[1]) + '</b></div>'; }).join('');
+  if (sum) {
+    const ym = hqV('hq_' + key + '__month'), lst = (ym && !HQ_MONTH_ALL_DEFAULT[key]) ? hqMonthList(key) : hqList(key);
+    sum.innerHTML = '<div class="stat">📅 <b>' + esc(ym ? hqYmLabel(ym) : 'All Months') + '</b></div>' +
+      (ym && HQ_MONTH_ALL_DEFAULT[key] ? '<div class="stat">Showing: <b>' + a.length + '</b></div>' : '') +
+      (c.summary ? c.summary(lst) : []).map(function (x) { return '<div class="stat">' + esc(x[0]) + ': <b>' + esc(x[1]) + '</b></div>'; }).join('');
+  }
 }
 function hqStBadge(ok) { return ok ? '<b style="color:#15803d">OK</b>' : '<b style="color:#b91c1c">NOT OK</b>'; }
 
