@@ -5507,7 +5507,7 @@ document.addEventListener('visibilitychange',function(){if(!document.hidden)gsSc
 window.addEventListener('online',function(){gsSchedule(500)});
 window.addEventListener('load',function(){gsSchedule(1500)});
 
-window.MMS={setPin,gsDiag,gsRebuildReports,gsSync,gsConfigure,gsTogglePrimary,gsResetState,login,logout,backup,restore,exportExcel,validate,refreshAudit,exportAudit,addFY,applyFY,queueSync,clearSyncQueue,refreshKPIs,openTools,closeTools,changePassword,manageUsers,populatePermUserSelect,loadUserPerms,selectAllPerms,saveUserRoleLabel,saveUserPerms,deleteUserAccount};
+window.MMS={reauth:mmsReauthToken,audit:audit,setPin,gsDiag,gsRebuildReports,gsSync,gsConfigure,gsTogglePrimary,gsResetState,login,logout,backup,restore,exportExcel,validate,refreshAudit,exportAudit,addFY,applyFY,queueSync,clearSyncQueue,refreshKPIs,openTools,closeTools,changePassword,manageUsers,populatePermUserSelect,loadUserPerms,selectAllPerms,saveUserRoleLabel,saveUserPerms,deleteUserAccount};
 window.addEventListener('load',()=>{setBadge();let s=session();if(s){document.getElementById('mmsLogin').classList.add('hidden');}else document.getElementById('mmsLogin').classList.remove('hidden');initFY();refreshKPIs();gsRenderPrimaryUI();});
 })();
 document.addEventListener('DOMContentLoaded',function(){utilityNormalizeData();seedUtilityExcel2024Items();setv('mu_log_date',utilityToday());setv('mu_item_sno',nextUtilitySno());renderMaintUtility();if(typeof initAirCompressor==='function')initAirCompressor();});
@@ -8889,6 +8889,7 @@ function xlCapture(code){
   window.open=function(){return fake};window.print=function(){};window.alert=function(m){alerted=String(m||'')};window.confirm=function(){return true};
   try{(new Function(code)).call(window)}catch(e){console.error('xl capture',e)}
   finally{window.open=oo;window.print=op;window.alert=oa;window.confirm=oc}
+  try{if(html&&window.FieldManager&&FieldManager.xform)html=FieldManager.xform(html)}catch(e){}
   if(!html){
     var m=/^\s*([A-Za-z0-9_]+)/.exec(code),cid=m&&XL_CONT[m[1]],el=cid&&document.getElementById(cid);
     if(el)html=el.innerHTML;
@@ -11844,5 +11845,486 @@ setInterval(sync,2500);
 })();
 </script>
 
+<script>
+/* ===== FIELD MANAGER (Admin only): module me nayi field add / purani field hide-remove =====
+   - Config data.printFmt ke andar ek record (key:'_fieldcfg') me rehti hai -> Google Sheet sync se sab devices par jati hai.
+   - Nayi field ki value record ke andar rec.cf = {fieldId: value} me save hoti hai.
+   - Purani (built-in) field "remove" = screen se hide; purana data safe rehta hai. Dobara Show kar sakte ho. */
+(function () {
+  'use strict';
+  if (window.__htpFM) return; window.__htpFM = 1;
+  var CFG_ID = 'fieldcfg-v1', CFG_KEY = '_fieldcfg';
+  var STD_SAVE = /^\s*(save[A-Za-z]*|hqSave|pwSave)\s*\(/, STD_EDIT = /^\s*(?:edit|hqEdit|pwEdit)[A-Za-z]*\(/, STD_CLEAR = /^\s*(clear|hqClear|pwClear|reset)[A-Za-z]*\(/i;
+  function T(tag) { return function () { return (typeof utilityItems === 'function') ? (tag === 'item' ? utilityItems() : utilityLogs()) : []; }; }
+  var LIST = [
+    ['pf', 'Power Factor (PF)', 'pf'], ['pc', 'Power Cut (PC)', 'pc'], ['dg', 'DG Reading', 'dg'],
+    ['mr', 'Maintenance Request Slip', 'mr'], ['mh', 'Machine History', 'mh'], ['bd', 'Breakdown', 'bd'],
+    ['spares', 'Spare Parts', 'spares'], ['critical', 'Critical Spares', 'criticalSpares'],
+    ['tc', 'Thermocouple Plan', 'thermocouple'], ['cal', 'Calibration', 'calibration'],
+    ['airCompressor', 'Air Compressor', 'airCompressor'], ['sparePurchase', 'Spare Part Purchase Register', 'sparePurchase'],
+    ['powerCost', 'Power Cost (Unit 7)', 'powerCost'], ['hpsebBill', 'HPSEBL Bill (Unit 7)', 'hpsebBill'],
+    ['satReport', 'SAT Report (FR-HT-42)', 'satReport'], ['satTemp', 'SAT Temp Verification (FR-HT-39)', 'satTemp'],
+    ['oxyMV', 'Oxy Probe MV Check (FR-HT-40)', 'oxyMV'], ['oxyImp', 'O2 Probe Impedance (FR-HT-41)', 'oxyImp'],
+    ['oxyRep', 'Oxy Probe Replacement (FMT-HT-71)', 'oxyRep'], ['amc', 'AMC & Service Contracts', 'amc'],
+    ['amcLog', 'AMC Service Visit Log', 'amcLog'], ['meeting', 'Meeting Discussion Log', 'meetingLog'],
+    ['utilityItem', 'Utility - Items List', 'maintUtility', { perm: 'utility', arr: T('item'), persistKey: 'utility', saveRe: /^\s*saveUtilityItem\s*\(/, editRe: /^\s*editUtilityItem\s*\(/, clearRe: /^\s*clearUtilityItemForm\s*\(/, tbody: 'muItemBody', prefix: 'mu_item_' }],
+    ['utilityLog', 'Utility - Maintenance / Usage Log', 'maintUtility', { perm: 'utility', arr: T('log'), persistKey: 'utility', saveRe: /^\s*saveUtilityLog\s*\(/, editRe: /^\s*editUtilityLog\s*\(/, clearRe: /^\s*clearUtilityLogForm\s*\(/, tbody: 'muLogBody', prefix: 'mu_log_' }],
+    ['pm', 'PM Check Sheet (saved records)', 'pm', { persistFn: function () { if (typeof persistPMWithEvidence === 'function') persistPMWithEvidence(); else persist('pm'); }, saveRe: /^\s*savePM\s*\(/, editRe: /^\s*loadPMRecord\s*\(/, clearRe: /^\s*clearPM\s*\(/, tbody: 'pmHistoryBody', prefix: 'pm_', noPrint: true }],
+    ['mm', 'Machine Master', 'mm', { cell: true, perm: 'mm' }],
+    ['pmMaster', 'PM Master Schedule', 'pmMaster', { cell: true, perm: 'pmMaster' }],
+    ['pmMonthly', 'Monthly PM Work Register', 'pmMonthly', { cell: true, perm: 'pmMonthly' }]
+  ];
+  var MOD = {}, SEC2KEYS = {};
+  LIST.forEach(function (m) {
+    var o = m[3] || {};
+    MOD[m[0]] = { key: m[0], label: m[1], sec: m[2], cell: !!o.cell, perm: o.perm || m[0], noPrint: !!o.noPrint, tbody: o.tbody || '', prefix: o.prefix || '',
+      saveRe: o.saveRe || STD_SAVE, editRe: o.editRe || STD_EDIT, clearRe: o.clearRe || STD_CLEAR,
+      arr: o.arr || (function (k) { return function () { return data[k] || []; }; })(m[0]),
+      persistFn: o.persistFn || (function (pk) { return function () { persist(pk); }; })(o.persistKey || m[0]) };
+    (SEC2KEYS[m[2]] = SEC2KEYS[m[2]] || []).push(m[0]);
+  });
+
+  var $ = function (id) { return document.getElementById(id); };
+  var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+  var norm = function (s) { return String(s == null ? '' : s).replace(/\s+/g, ' ').trim().toLowerCase(); };
+  var activeEdit = {}, busy = false, pend = {}, lastSig = '', ctx = null;
+
+  function isAdmin() { try { var s = mmsSession(); return !!(s && s.role === 'Admin'); } catch (e) { return false; } }
+  function secOf(k) { return MOD[k] ? $(MOD[k].sec) : null; }
+  function keysOfSec(id) { return SEC2KEYS[id] || []; }
+
+  /* ---------- config store ---------- */
+  function getRec(create) {
+    if (!Array.isArray(data.printFmt)) { if (!create) return null; data.printFmt = []; }
+    var a = data.printFmt;
+    for (var i = 0; i < a.length; i++) if (a[i] && a[i].key === CFG_KEY) return a[i];
+    if (!create) return null;
+    var r = { id: CFG_ID, key: CFG_KEY, mods: {}, ts: Date.now() }; a.push(r); return r;
+  }
+  function mcfg(k, create) {
+    var r = getRec(create), blank = { custom: [], hidden: [], hcols: [] };
+    if (!r) return blank;
+    r.mods = r.mods || {};
+    if (!r.mods[k]) { if (!create) return blank; r.mods[k] = { custom: [], hidden: [], hcols: [] }; }
+    var m = r.mods[k]; m.custom = m.custom || []; m.hidden = m.hidden || []; m.hcols = m.hcols || []; return m;
+  }
+  function sig() { var r = getRec(false); return r ? JSON.stringify(r.mods || {}) : ''; }
+  function saveCfg(note) {
+    var r = getRec(true); r.ts = Date.now();
+    try { persist('printFmt'); } catch (e) { console.warn(e); }
+    try { if (typeof gsSchedule === 'function') gsSchedule(600); } catch (e) { }
+    try { if (window.MMS && window.MMS.audit) window.MMS.audit('SAVE', 'system', 'Field Manager: ' + note); } catch (e) { }
+    lastSig = sig(); applyAll();
+  }
+  function afterDataChange(M) {
+    try { M.persistFn(); } catch (e) { console.warn(e); }
+    try { if (typeof gsSchedule === 'function') gsSchedule(600); } catch (e) { }
+  }
+
+  /* ---------- record lookup ---------- */
+  function parseRef(M, oc) {
+    var m = new RegExp(M.editRe.source + '([^)]*)\\)').exec(oc || ''); if (!m) return null;
+    var a = m[m.length - 1].split(','), raw = a[a.length - 1].trim();
+    return { quoted: /^['"]/.test(raw), v: raw.replace(/^['"]|['"]$/g, '') };
+  }
+  function lookup(M, ref) {
+    var a = M.arr() || []; if (!ref) return null;
+    if (ref.quoted) { for (var i = 0; i < a.length; i++) if (a[i] && a[i].id !== undefined && String(a[i].id) === ref.v) return a[i]; return null; }
+    return /^\d+$/.test(ref.v) ? (a[+ref.v] || null) : null;
+  }
+  /* cell-mode modules: row -> {get(): cf, set(cf)} */
+  function cellRow(k, tr) {
+    var tx = function (i) { return tr.cells[i] ? tr.cells[i].textContent.replace(/\s+/g, ' ').trim() : ''; };
+    if (k === 'mm') {
+      var no = tx(2), m = (typeof MACHINE_MASTER !== 'undefined' ? MACHINE_MASTER : []).filter(function (x) { return String(x.machineNumber) === no; })[0];
+      if (!m) return null;
+      return { get: function () { return m.cf || {}; }, set: function (cf) { if (Object.keys(cf).length) m.cf = cf; else delete m.cf; saveEditableMachineMaster(); try { if (typeof gsSchedule === 'function') gsSchedule(800); } catch (e) { } } };
+    }
+    if (k === 'pmMaster') {
+      var n2 = tx(1); if (!n2 || typeof pmMasterRaw !== 'function') return null;
+      return { get: function () { return pmMasterRaw({ machineNumber: n2 }).cf || {}; }, set: function (cf) { pmMasterSave({ machineNumber: n2 }, { cf: cf }); } };
+    }
+    if (k === 'pmMonthly') {
+      var n3 = tx(1), month = (typeof f === 'function' ? f('pmpMonth') : ''); if (!n3 || !month || typeof pmPlanGet !== 'function') return null;
+      var mm = { machineNumber: n3 };
+      return { get: function () { return pmPlanGet(month, mm).cf || {}; }, set: function (cf) { var r = pmPlanGet(month, mm); r.cf = cf; pmPlanSave(month, mm, r); } };
+    }
+    return null;
+  }
+  function recOfRow(k, tr) {
+    var M = MOD[k];
+    if (M.cell) { var c = cellRow(k, tr); return c ? { cf: c.get() } : null; }
+    var els = tr.querySelectorAll('[onclick]');
+    for (var i = 0; i < els.length; i++) {
+      var oc = els[i].getAttribute('onclick') || '';
+      if (M.editRe.test(oc)) { var rec = lookup(M, parseRef(M, oc)); if (rec) return rec; }
+    }
+    return null;
+  }
+
+  /* ---------- form injection / hide ---------- */
+  function saveBtn(k) {
+    var M = MOD[k], sec = secOf(k); if (!sec) return null;
+    var bs = sec.querySelectorAll('button[onclick]');
+    for (var i = 0; i < bs.length; i++) if (M.saveRe.test(bs[i].getAttribute('onclick')) && !bs[i].closest('.cf-block')) return bs[i];
+    return null;
+  }
+  function fid(k, id) { return 'cf__' + k + '__' + id; }
+  function fieldHtml(k, d) {
+    var inp, id = fid(k, d.id);
+    if (d.type === 'select') inp = '<select id="' + id + '"><option value=""></option>' + (d.options || []).map(function (o) { return '<option>' + esc(o) + '</option>'; }).join('') + '</select>';
+    else if (d.type === 'textarea') inp = '<textarea id="' + id + '"></textarea>';
+    else inp = '<input id="' + id + '" type="' + (d.type === 'number' ? 'number" step="any' : (d.type === 'date' ? 'date' : 'text')) + '">';
+    return '<div class="field utility-field cf-field"><label>' + esc(d.label) + (d.req ? ' *' : '') + '</label>' + inp + '</div>';
+  }
+  function injectForm(k) {
+    var sec = secOf(k); if (!sec) return;
+    var M = MOD[k], c = mcfg(k, false), old = sec.querySelector('.cf-block[data-k="' + k + '"]');
+    if (M.cell) return;
+    // hide built-in (sirf is module ke prefix wale)
+    [].slice.call(sec.querySelectorAll('.cf-hide[data-fmk="' + k + '"]')).forEach(function (e) { e.classList.remove('cf-hide'); e.removeAttribute('data-fmk'); });
+    c.hidden.forEach(function (id) { var el = $(id); if (el && sec.contains(el)) { var f = el.closest('.field') || el.parentElement; if (f) { f.classList.add('cf-hide'); f.setAttribute('data-fmk', k); } } });
+    if (!c.custom.length) { if (old) old.remove(); return; }
+    var s = JSON.stringify(c.custom);
+    if (old && old.getAttribute('data-sig') === s) return;
+    var btn = saveBtn(k); if (!btn) return;
+    var keep = {}; c.custom.forEach(function (d) { var e = $(fid(k, d.id)); if (e) keep[d.id] = e.value; });
+    if (old) old.remove();
+    var anchor = btn.parentElement; if (!anchor || anchor === sec) anchor = btn;
+    var blk = document.createElement('div'); blk.className = 'cf-block'; blk.setAttribute('data-sig', s); blk.setAttribute('data-k', k);
+    blk.innerHTML = '<div class="cf-title">ADDITIONAL FIELDS</div><div class="form">' + c.custom.map(function (d) { return fieldHtml(k, d); }).join('') + '</div>';
+    anchor.parentNode.insertBefore(blk, anchor);
+    c.custom.forEach(function (d) { var e = $(fid(k, d.id)); if (e && keep[d.id] !== undefined) e.value = keep[d.id]; });
+  }
+
+  /* ---------- tables ---------- */
+  function tablesOf(k) {
+    var M = MOD[k], sec = secOf(k); if (!sec) return [];
+    var list = [].slice.call(sec.querySelectorAll('table')).filter(function (t) { return !t.closest('.cf-block') && t.tHead && t.tBodies.length && t.tHead.rows.length === 1; });
+    if (M.tbody) list = list.filter(function (t) { return t.tBodies[0].id === M.tbody; });
+    else if (keysOfSec(M.sec).length === 1 && M.sec === 'pm') list = list.filter(function (t) { return t.tBodies[0].id === 'pmHistoryBody'; });
+    return list;
+  }
+  function applyTables(k) {
+    var sec = secOf(k); if (!sec) return;
+    var c = mcfg(k, false), M = MOD[k];
+    tablesOf(k).forEach(function (t) {
+      [].slice.call(t.querySelectorAll('.cf-th[data-k="' + k + '"],.cf-td[data-k="' + k + '"]')).forEach(function (e) { e.remove(); });
+      [].slice.call(t.querySelectorAll('.cf-colhide')).forEach(function (e) { e.classList.remove('cf-colhide'); });
+      var hr = t.tHead.rows[0], ths = [].slice.call(hr.cells).filter(function (x) { return !x.classList.contains('cf-th'); }), rows = [].slice.call(t.tBodies[0].rows);
+      if (!ths.length) return;
+      var plain = function (tr) { return [].slice.call(tr.cells).filter(function (x) { return !x.classList.contains('cf-td'); }); };
+      if (c.hcols.length) ths.forEach(function (th, i) {
+        if (c.hcols.indexOf(norm(th.textContent)) >= 0) {
+          th.classList.add('cf-colhide');
+          rows.forEach(function (tr) { var p = plain(tr); if (p.length === ths.length) p[i].classList.add('cf-colhide'); });
+        }
+      });
+      if (c.custom.length) {
+        var map = rows.map(function (tr) { return plain(tr).length === ths.length ? recOfRow(k, tr) : null; });
+        if (!map.some(Boolean)) return;
+        var last = ths[ths.length - 1], before = /^(actions?|)$/.test(norm(last.textContent)) ? last : null;
+        c.custom.forEach(function (d) { var th = document.createElement('th'); th.className = 'cf-th'; th.setAttribute('data-k', k); th.textContent = d.label; hr.insertBefore(th, before); });
+        rows.forEach(function (tr, i) {
+          var p = plain(tr); if (p.length !== ths.length) return;
+          var ref = before ? p[p.length - 1] : null, rec = map[i];
+          c.custom.forEach(function (d) {
+            var td = document.createElement('td'); td.className = 'cf-td'; td.setAttribute('data-k', k); td.setAttribute('data-f', d.id);
+            td.textContent = (rec && rec.cf && rec.cf[d.id]) || '';
+            if (M.cell && rec) { td.classList.add('cf-edit'); td.title = 'Click karke value badlo'; }
+            tr.insertBefore(td, ref);
+          });
+        });
+      }
+    });
+  }
+  function schedTables(k) {
+    if (pend[k]) return;
+    pend[k] = setTimeout(function () { pend[k] = 0; busy = true; try { applyTables(k); } catch (e) { console.warn(e); } setTimeout(function () { busy = false; }, 0); }, 40);
+  }
+
+  /* ---------- admin "Fields" button on each module ---------- */
+  function adminBars() {
+    var adm = isAdmin(), done = {};
+    LIST.forEach(function (m) {
+      if (done[m[2]]) return; done[m[2]] = 1;
+      var sec = $(m[2]); if (!sec) return;
+      var bar = sec.querySelector(':scope > .fm-bar');
+      if (!adm) { if (bar) bar.remove(); return; }
+      if (bar) return;
+      bar = document.createElement('div'); bar.className = 'fm-bar';
+      bar.innerHTML = '<button type="button" class="fm-open" data-k="' + m[0] + '">⚙ Manage Fields (Admin)</button>';
+      sec.insertBefore(bar, sec.firstChild);
+    });
+  }
+  function applyAll() {
+    busy = true;
+    try { adminBars(); LIST.forEach(function (m) { try { injectForm(m[0]); applyTables(m[0]); } catch (e) { console.warn('FM', m[0], e); } }); } finally { setTimeout(function () { busy = false; }, 0); }
+  }
+
+  /* ---------- cell edit (Machine Master / PM Master / PM Monthly) ---------- */
+  function editCell(td) {
+    var k = td.getAttribute('data-k'), fidv = td.getAttribute('data-f'), M = MOD[k], tr = td.closest('tr');
+    var d = mcfg(k, false).custom.filter(function (x) { return x.id === fidv; })[0], row = cellRow(k, tr); if (!d || !row) return;
+    if (typeof mmsGuardSave === 'function' && !mmsGuardSave(M.perm)) return;
+    var cf = JSON.parse(JSON.stringify(row.get() || {})), cur = cf[d.id] || '', v;
+    if (d.type === 'select') {
+      var o = d.options || []; v = prompt(d.label + ' - number chuno (khali = hata do):\n' + o.map(function (x, i) { return (i + 1) + ') ' + x; }).join('\n'), cur ? String(o.indexOf(cur) + 1) : '');
+      if (v === null) return; v = v.trim(); if (v !== '') { var n = parseInt(v, 10); if (!(n >= 1 && n <= o.length)) return alert('Galat number.'); v = o[n - 1]; }
+    } else {
+      v = prompt(d.label + (d.type === 'date' ? ' (YYYY-MM-DD)' : (d.type === 'number' ? ' (number)' : '')) + ':', cur); if (v === null) return; v = v.trim();
+      if (v !== '' && d.type === 'number' && !isFinite(Number(v))) return alert('Number likho.');
+      if (v !== '' && d.type === 'date' && !/^\d{4}-\d{2}-\d{2}$/.test(v)) return alert('Date YYYY-MM-DD format me likho.');
+    }
+    if (d.req && v === '') return alert('Ye field zaroori hai.');
+    if (v === '') delete cf[d.id]; else cf[d.id] = v;
+    row.set(cf); td.textContent = v;
+  }
+
+  /* ---------- save / edit / clear hooks ---------- */
+  function clearCF(k) { mcfg(k, false).custom.forEach(function (d) { var e = $(fid(k, d.id)); if (e) e.value = ''; }); }
+  function snapCtx(secId) {
+    var items = [];
+    keysOfSec(secId).forEach(function (k) {
+      var M = MOD[k]; if (M.noPrint) return;
+      var c = mcfg(k, false), recs = [];
+      if (c.custom.length) {
+        var best = [];
+        tablesOf(k).forEach(function (t) { var r = [], ok = true; [].slice.call(t.tBodies[0].rows).forEach(function (tr) { var x = recOfRow(k, tr); r.push(x); }); if (r.length && r.every(Boolean) && r.length > best.length) best = r; });
+        recs = best;
+      }
+      if (c.custom.length || c.hcols.length) items.push({ k: k, custom: c.custom.slice(), hcols: c.hcols.slice(), recs: recs });
+    });
+    return items;
+  }
+  document.addEventListener('click', function (ev) {
+    var t = ev.target; if (!t || !t.closest) return;
+    var op = t.closest('.fm-open'); if (op) { ev.preventDefault(); openMgr(op.getAttribute('data-k')); return; }
+    var ce = t.closest('td.cf-edit'); if (ce) { editCell(ce); return; }
+    var b = t.closest('button,a'); if (!b || b.closest('#fmModal')) return;
+    var sec = b.closest('section'), ids = sec && keysOfSec(sec.id);
+    if (!ids || !ids.length) { ctx = null; return; }
+    var oc = b.getAttribute('onclick') || '';
+    if (/print|excel|xlsx|xl[A-Z_]|export|download/i.test(oc + ' ' + b.textContent)) ctx = { t: Date.now(), items: snapCtx(sec.id) }; else ctx = null;
+    for (var q = 0; q < ids.length; q++) {
+      var k = ids[q], M = MOD[k]; if (M.cell) continue;
+      var c = mcfg(k, false); if (!c.custom.length) continue;
+      if (M.saveRe.test(oc) && !b.closest('.cf-block')) { hookSave(ev, k, c); return; }
+      if (M.editRe.test(oc)) { hookEdit(k, parseRef(M, oc)); return; }
+      if (M.clearRe.test(oc)) { setTimeout(function () { clearCF(k); delete activeEdit[k]; }, 20); return; }
+    }
+  }, true);
+  function hookSave(ev, k, c) {
+    var M = MOD[k], vals = {}, missing = null;
+    c.custom.forEach(function (d) { var e = $(fid(k, d.id)), v = e ? String(e.value).trim() : ''; vals[d.id] = v; if (d.req && !v && !missing) missing = d; });
+    if (missing) { alert('"' + missing.label + '" bharna zaroori hai.'); ev.stopPropagation(); ev.preventDefault(); return; }
+    var before = new Map(); (M.arr() || []).forEach(function (r) { before.set(r, JSON.stringify(r)); });
+    var act = activeEdit[k];
+    setTimeout(function () {
+      var a = M.arr() || [], news = [], muts = [];
+      a.forEach(function (r) { if (!before.has(r)) news.push(r); else if (before.get(r) !== JSON.stringify(r)) muts.push(r); });
+      var target = news.length === 1 ? news[0] : (act && a.indexOf(act) >= 0 ? act : (muts.length === 1 ? muts[0] : null));
+      if (!target) return;
+      var cf = {}, any = false;
+      Object.keys(vals).forEach(function (id) { if (vals[id] !== '') { cf[id] = vals[id]; any = true; } });
+      if (any) target.cf = cf; else delete target.cf;
+      afterDataChange(M); clearCF(k); delete activeEdit[k]; applyTables(k);
+    }, 0);
+  }
+  function hookEdit(k, ref) {
+    var M = MOD[k];
+    setTimeout(function () {
+      var rec = lookup(M, ref); if (!rec) return;
+      activeEdit[k] = rec;
+      mcfg(k, false).custom.forEach(function (d) { var e = $(fid(k, d.id)); if (e) e.value = (rec.cf && rec.cf[d.id]) || ''; });
+    }, 80);
+  }
+
+  new MutationObserver(function (list) {
+    if (busy) return;
+    var seen = {};
+    for (var i = 0; i < list.length; i++) {
+      var tg = list[i].target; if (!tg || !tg.closest) continue;
+      var tb = tg.closest('table'); if (!tb) continue;
+      var sec = tb.closest('section'); var ks = sec ? keysOfSec(sec.id) : [];
+      ks.forEach(function (k) { if (!seen[k]) { seen[k] = 1; schedTables(k); } });
+    }
+  }).observe(document.body, { childList: true, subtree: true });
+
+  /* ---------- Print / Excel: custom columns jodna, hidden columns hatana ---------- */
+  function xform(html) {
+    try {
+      if (!ctx || Date.now() - ctx.t > 30000 || !ctx.items.length || typeof html !== 'string' || !/<table/i.test(html)) return html;
+      var doc = new DOMParser().parseFromString(html, 'text/html'), changed = false, used = [];
+      ctx.items.forEach(function (it) {
+        [].slice.call(doc.querySelectorAll('table')).forEach(function (t) {
+          if (!t.tHead || !t.tBodies.length) return;
+          var hr = t.tHead.rows[t.tHead.rows.length - 1]; if (!hr) return;
+          var ths = [].slice.call(hr.cells), rows = [].slice.call(t.tBodies[0].rows);
+          if (t.tHead.rows.length === 1 && it.hcols.length) {
+            for (var i = ths.length - 1; i >= 0; i--) if (it.hcols.indexOf(norm(ths[i].textContent)) >= 0) {
+              rows.forEach(function (tr) { if (tr.cells.length === ths.length) tr.deleteCell(i); });
+              hr.deleteCell(i); changed = true;
+            }
+            ths = [].slice.call(hr.cells);
+          }
+          if (it.custom.length && it.recs.length && rows.length === it.recs.length && used.indexOf(t) < 0 && t.tHead.rows.length === 1 && rows.every(function (tr) { return tr.cells.length === ths.length; })) {
+            used.push(t);
+            it.custom.forEach(function (d) { var th = doc.createElement('th'); th.textContent = d.label; hr.appendChild(th); });
+            rows.forEach(function (tr, i) { it.custom.forEach(function (d) { var td = doc.createElement('td'); td.textContent = (it.recs[i].cf && it.recs[i].cf[d.id]) || ''; tr.appendChild(td); }); });
+            changed = true;
+          }
+        });
+      });
+      return changed ? '<!DOCTYPE html>' + doc.documentElement.outerHTML : html;
+    } catch (e) { console.warn('FM xform', e); return html; }
+  }
+  var oOpen = window.open;
+  window.open = function () {
+    var w = oOpen.apply(this, arguments);
+    try {
+      if (w && w.document && ctx) {
+        var d = w.document, ow = d.write;
+        d.write = function (h) { if (typeof h === 'string' && /<\/html>/i.test(h)) h = xform(h); return ow.call(d, h); };
+      }
+    } catch (e) { }
+    return w;
+  };
+
+  /* ---------- Manager window ---------- */
+  var cur = null;
+  function guard() {
+    if (!isAdmin()) { alert('Ye option sirf Admin ke liye hai.'); return Promise.resolve(false); }
+    var f = window.MMS && window.MMS.reauth;
+    if (!f) { alert('Security check load nahi hua. Page refresh karke dobara try karo.'); return Promise.resolve(false); }
+    return f().then(function (rt) { return !!rt; });
+  }
+  function builtinFields(k) {
+    var M = MOD[k], sec = secOf(k), out = [], seen = {}; if (!sec || M.cell) return out;
+    [].slice.call(sec.querySelectorAll('input,select,textarea')).forEach(function (inp) {
+      if (!inp.id || seen[inp.id] || inp.closest('.cf-block') || inp.closest('table') || inp.closest('.fm-bar')) return;
+      if (M.prefix && inp.id.indexOf(M.prefix) !== 0) return;
+      if (!M.prefix && keysOfSec(M.sec).length > 1) return;
+      if (/^(hidden|button|submit|file|checkbox|radio)$/.test(inp.type)) return;
+      if (/^(.*search|.*filter|.*month|.*year|.*_f[a-z]+)$/i.test(inp.id) && !inp.closest('.field')) return;
+      var f = inp.closest('.field'), lb = (f && f.querySelector('label')) || (inp.id && sec.querySelector('label[for="' + inp.id + '"]'));
+      var t = lb ? lb.textContent.trim() : (inp.getAttribute('placeholder') || '');
+      if (!t) return;
+      seen[inp.id] = 1; out.push({ id: inp.id, label: t });
+    });
+    return out;
+  }
+  function colList(k) {
+    var out = [], seen = {};
+    tablesOf(k).forEach(function (t) { [].slice.call(t.tHead.rows[0].cells).forEach(function (th) {
+      if (th.classList.contains('cf-th')) return; var n = norm(th.textContent);
+      if (!n || /^(actions?)$/.test(n) || seen[n]) return; seen[n] = 1; out.push({ n: n, label: th.textContent.trim() });
+    }); });
+    return out;
+  }
+  function ensureModal() {
+    var m = $('fmModal'); if (m) return m;
+    m = document.createElement('div'); m.id = 'fmModal';
+    m.innerHTML = '<div class="fm-card"><button class="fm-x" type="button" data-fm="close">✕</button><h3>🧱 Field Manager <small>(Admin only)</small></h3><div id="fmBody"></div></div>';
+    document.body.appendChild(m);
+    m.addEventListener('click', function (ev) {
+      var t = ev.target.closest('[data-fm]'); if (ev.target === m) return closeMgr(); if (!t) return;
+      act(t.getAttribute('data-fm'), t.getAttribute('data-a'), t.getAttribute('data-b'));
+    });
+    m.addEventListener('change', function (ev) { if (ev.target.id === 'fmMod') { cur = ev.target.value; renderMgr(); } if (ev.target.id === 'fmType') renderMgr(true); });
+    return m;
+  }
+  function openMgr(k) {
+    if (!isAdmin()) return alert('Ye option sirf Admin ke liye hai.');
+    cur = (k && MOD[k] && secOf(k)) ? k : (LIST.filter(function (m) { return $(m[2]); })[0] || [])[0];
+    ensureModal().classList.add('open'); renderMgr();
+  }
+  function closeMgr() { var m = $('fmModal'); if (m) m.classList.remove('open'); }
+  function renderMgr(keepForm) {
+    var body = $('fmBody'); if (!body) return;
+    var keep = {}; if (keepForm) ['fmLabel', 'fmOpts', 'fmReq', 'fmType'].forEach(function (i) { var e = $(i); if (e) keep[i] = e.type === 'checkbox' ? e.checked : e.value; });
+    var c = mcfg(cur, false), M = MOD[cur];
+    var h = '<div class="fm-row"><label>Module</label><select id="fmMod">' + LIST.filter(function (m) { return $(m[2]); }).map(function (m) { return '<option value="' + m[0] + '"' + (m[0] === cur ? ' selected' : '') + '>' + esc(m[1]) + '</option>'; }).join('') + '</select></div>';
+    h += '<div class="fm-note">Har badlav ke liye Admin PIN / password poocha jayega. Field hatane par purana data delete nahi hota.</div>';
+    if (!M.cell) {
+      h += '<h4>Form fields</h4><div class="fm-list">';
+      builtinFields(cur).forEach(function (f) {
+        var hid = c.hidden.indexOf(f.id) >= 0;
+        h += '<div class="fm-item' + (hid ? ' off' : '') + '"><span>' + esc(f.label) + '</span><em>built-in</em><button type="button" data-fm="hide" data-a="' + esc(f.id) + '">' + (hid ? 'Show' : 'Remove') + '</button></div>';
+      });
+      c.custom.forEach(function (d) {
+        h += '<div class="fm-item"><span>' + esc(d.label) + (d.req ? ' *' : '') + '</span><em>new · ' + esc(d.type) + '</em><button type="button" class="del" data-fm="delcf" data-a="' + esc(d.id) + '">Delete</button></div>';
+      });
+      h += '</div>';
+    } else {
+      h += '<div class="fm-note">Is module me nayi field table ke column ki tarah aati hai: us column ke cell par click karke value bharo / badlo.</div>';
+      if (c.custom.length) { h += '<h4>New fields</h4><div class="fm-list">'; c.custom.forEach(function (d) { h += '<div class="fm-item"><span>' + esc(d.label) + (d.req ? ' *' : '') + '</span><em>new · ' + esc(d.type) + '</em><button type="button" class="del" data-fm="delcf" data-a="' + esc(d.id) + '">Delete</button></div>'; }); h += '</div>'; }
+    }
+    h += '<h4>Register table columns</h4><div class="fm-list">';
+    var cols = colList(cur);
+    if (!cols.length) h += '<div class="fm-note">Is module ka table abhi screen par nahi hai. Module kholkar dobara aao.</div>';
+    cols.forEach(function (x) {
+      var hid = c.hcols.indexOf(x.n) >= 0;
+      h += '<div class="fm-item' + (hid ? ' off' : '') + '"><span>' + esc(x.label) + '</span><em>column</em><button type="button" data-fm="hcol" data-a="' + esc(x.n) + '">' + (hid ? 'Show' : 'Remove') + '</button></div>';
+    });
+    h += '</div>';
+    h += '<h4>➕ Add new field</h4><div class="fm-add"><input id="fmLabel" placeholder="Field name (e.g. Operator Name)" maxlength="40"><select id="fmType"><option value="text">Text</option><option value="number">Number</option><option value="date">Date</option><option value="select">Dropdown</option><option value="textarea">Long text</option></select>' +
+      '<input id="fmOpts" placeholder="Dropdown options, comma se alag (A, B, C)" style="display:none"><label class="fm-chk"><input type="checkbox" id="fmReq"> Required</label><button type="button" data-fm="add" class="pri">Add Field</button></div>';
+    h += '<div class="fm-note">Nayi field aur hidden column print / Excel me bhi aate hain (jahan print table ki rows screen ke register se match karti hain).</div>';
+    body.innerHTML = h;
+    var ty = $('fmType'); if (ty) { Object.keys(keep).forEach(function (i) { var e = $(i); if (e) { if (e.type === 'checkbox') e.checked = keep[i]; else e.value = keep[i]; } }); $('fmOpts').style.display = ty.value === 'select' ? '' : 'none'; }
+  }
+  function act(a, x) {
+    if (a === 'close') return closeMgr();
+    if (a === 'hide' && (mcfg(cur, false).hidden.indexOf(x) < 0) && !confirm('Ye field screen se hat jayegi.\nAgar ye save ke liye zaroori field hai to save rukk sakta hai. Continue?')) return;
+    guard().then(function (ok) {
+      if (!ok) return;
+      var c = mcfg(cur, true), i;
+      if (a === 'hide') { i = c.hidden.indexOf(x); if (i >= 0) c.hidden.splice(i, 1); else c.hidden.push(x); saveCfg(cur + ' field ' + x + (i >= 0 ? ' shown' : ' hidden')); }
+      else if (a === 'hcol') { i = c.hcols.indexOf(x); if (i >= 0) c.hcols.splice(i, 1); else c.hcols.push(x); saveCfg(cur + ' column ' + x + (i >= 0 ? ' shown' : ' hidden')); }
+      else if (a === 'delcf') {
+        var d = c.custom.filter(function (q) { return q.id === x; })[0]; if (!d) return;
+        if (!confirm('"' + d.label + '" field delete karni hai?\nPurani entries me bhari value screen se hat jayegi.')) return;
+        c.custom = c.custom.filter(function (q) { return q.id !== x; }); saveCfg(cur + ' field deleted: ' + d.label);
+      } else if (a === 'add') {
+        var label = ($('fmLabel').value || '').trim(), type = $('fmType').value, opts = ($('fmOpts').value || '').split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+        if (!label) return alert('Field ka naam likho.');
+        if (c.custom.some(function (q) { return norm(q.label) === norm(label); }) || builtinFields(cur).some(function (q) { return norm(q.label) === norm(label); }) || colList(cur).some(function (q) { return q.n === norm(label); })) return alert('Is naam ki field / column pehle se hai.');
+        if (type === 'select' && opts.length < 2) return alert('Dropdown ke liye kam se kam 2 options likho.');
+        c.custom.push({ id: 'f' + Date.now().toString(36) + Math.floor(Math.random() * 99), label: label, type: type, options: type === 'select' ? opts : [], req: !!$('fmReq').checked });
+        saveCfg(cur + ' field added: ' + label);
+      }
+      renderMgr();
+    });
+  }
+
+  /* ---------- style + Tools panel box ---------- */
+  var st = document.createElement('style');
+  st.textContent = '.cf-hide,.cf-colhide{display:none!important}.cf-edit{cursor:pointer;background:#f4fbfa}.cf-block{grid-column:1/-1;margin:10px 0 4px;padding:8px 10px;border:1px dashed #0f766e;border-radius:8px;background:#f4fbfa}.cf-title{font-size:11px;font-weight:800;color:#0f766e;letter-spacing:.5px;margin-bottom:6px}' +
+    '.fm-bar{text-align:right;margin:0 0 6px}.fm-open{background:#fff;color:#17324d;border:1px solid #17324d;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer}' +
+    '#fmModal{display:none;position:fixed;inset:0;background:rgba(10,25,41,.55);z-index:100000;align-items:flex-start;justify-content:center;overflow:auto;padding:16px}#fmModal.open{display:flex}' +
+    '.fm-card{position:relative;background:#fff;color:#17232d;width:min(640px,100%);border-radius:12px;padding:16px 16px 20px;box-shadow:0 10px 40px rgba(0,0,0,.35)}.fm-card h3{margin:0 0 8px;color:#17324d}.fm-card h3 small{font-size:11px;color:#65727d;font-weight:600}.fm-card h4{margin:14px 0 6px;color:#17324d;font-size:13px}' +
+    '.fm-x{position:absolute;top:8px;right:10px;border:0;background:none;font-size:18px;cursor:pointer}.fm-row{display:flex;gap:8px;align-items:center}.fm-row select{flex:1;padding:7px;border:1px solid #d8e2e8;border-radius:6px}.fm-note{font-size:11px;color:#65727d;margin:6px 0}' +
+    '.fm-list{max-height:220px;overflow:auto;border:1px solid #d8e2e8;border-radius:8px}.fm-item{display:flex;gap:8px;align-items:center;padding:6px 8px;border-bottom:1px solid #eef2f4;font-size:12px}.fm-item:last-child{border-bottom:0}.fm-item span{flex:1}.fm-item em{font-size:10px;color:#65727d}.fm-item.off span{text-decoration:line-through;opacity:.5}' +
+    '.fm-item button,.fm-add button{border:1px solid #17324d;background:#fff;color:#17324d;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer}.fm-item button.del{color:#c0392b;border-color:#c0392b}.fm-add{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.fm-add input,.fm-add select{padding:7px;border:1px solid #d8e2e8;border-radius:6px;font-size:12px}.fm-add input[id=fmLabel]{flex:1;min-width:180px}.fm-add input[id=fmOpts]{flex:1 0 100%}.fm-chk{font-size:12px;display:flex;gap:4px;align-items:center}.fm-add button.pri{background:#17324d;color:#fff}';
+  document.head.appendChild(st);
+
+  function toolsBox() {
+    if ($('fmToolsBox')) return;
+    var hs = [].slice.call(document.querySelectorAll('#mmsUpgradePanel .mms-box h3')), h = hs.filter(function (x) { return /Module Access Control/.test(x.textContent); })[0];
+    if (!h) return;
+    var bx = document.createElement('div'); bx.className = 'mms-box'; bx.id = 'fmToolsBox';
+    bx.innerHTML = '<h3>🧱 Field Manager</h3><div class="sub">Kisi bhi module me nayi field add karo ya purani field / table column hatao. Sirf Admin, PIN/password ke saath.</div><button type="button" id="fmToolsBtn">Open Field Manager</button>';
+    h.parentNode.insertAdjacentElement('afterend', bx);
+    $('fmToolsBtn').onclick = function () { if (typeof MMS !== 'undefined' && MMS.closeTools) { try { MMS.closeTools(); } catch (e) { } } openMgr(); };
+  }
+
+  function boot() { toolsBox(); applyAll(); lastSig = sig(); }
+  setTimeout(boot, 800); setTimeout(boot, 3000);
+  setInterval(function () { var s = sig(); toolsBox(); if (s !== lastSig) { lastSig = s; applyAll(); } else adminBars(); }, 4000);
+  document.addEventListener('click', function (e) { if (e.target.closest && e.target.closest('.tab,.module-tile,.nav-group button')) setTimeout(applyAll, 150); }, false);
+  window.FieldManager = { open: openMgr, apply: applyAll, xform: xform };
+})();
+</script>
 </body>
 </html>
