@@ -1251,18 +1251,26 @@ main.wrap{margin-left:252px;padding:94px 22px 25px;max-width:none}.sidebar-overl
     <input type="hidden" id="tc_status" value="Planned">
     <div class="field"><label>Calibration Certificate No.</label><input id="tc_certno" placeholder="Is thermocouple ka certificate no. (optional)"></div>
     <div class="field"><label>Certificate Date</label><input id="tc_certdate" type="date"></div>
+    <div class="field"><label>Calibration Lab / Traceability</label><input id="tc_lab" placeholder="jaise NABL lab ka naam"></div>
+    <div class="field"><label>Usage Type (CQI-9)</label><select id="tc_use"><option value="">— chuno —</option><option>Control / Recording</option><option>Control</option><option>Monitoring (Safety)</option><option>Recording</option><option>Other</option></select></div>
+    <div class="field"><label>Metal Type</label><select id="tc_metal"><option value="">Auto (Type se)</option><option value="Base">Base metal (K, J, N, E)</option><option value="Noble">Noble metal (B, R, S)</option><option value="RTD">RTD</option></select></div>
+    <div class="field"><label>Max Operating Temp °C</label><input id="tc_optemp" type="number" placeholder="jaise 920"></div>
+    <div class="field"><label>Furnace Class</label><input id="tc_fcls" list="tc_fclsList" placeholder="Class 1-6"><datalist id="tc_fclsList"><option value="Class 1"><option value="Class 2"><option value="Class 3"><option value="Class 4"><option value="Class 5"><option value="Class 6"></datalist></div>
+    <div class="field"><label>Instrumentation Type</label><input id="tc_itype" list="tc_itypeList" placeholder="A / B / C / D"><datalist id="tc_itypeList"><option value="A"><option value="B"><option value="C"><option value="D"></datalist></div>
+    <div class="field"><label>Expendable / Non-expendable</label><select id="tc_exp"><option value="">— chuno —</option><option>Expendable</option><option>Non-expendable</option></select></div>
     <div class="field wide" style="font-size:12px;color:#65727d">ℹ️ Status ab khud nikalta hai (Planned / Due Soon / Overdue) — Replacement Date se. Thermocouple badalne par table me <b>✅ Replaced</b> dabao.</div>
     <div class="actions wide">
       <button class="primary" onclick="saveThermocouple()">Save Thermocouple Plan</button>
       <button class="secondary" onclick="clearTCForm()">Clear</button>
       <button class="secondary" onclick="printThermocouplePlan()">🖨️ Print TC Plan</button>
       <button class="secondary" onclick="tcReport()">📊 Replacement Report</button>
+      <button class="primary" onclick="tcAuditReport()">🛡️ CQI-9 Audit Report</button>
     </div>
   </div>
 </div>
 <div class="card">
   <div id="tcSummary" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px"></div>
-  <div class="tablewrap"><table class="tbl"><thead><tr><th>SL. NO.</th><th>FURNACE NO.</th><th>LOCATION</th><th>TYPE</th><th>SR. NO/ID</th><th>REPLACEMENT FREQUENCY</th><th>INSTALLATION DATE</th><th>REPLACEMENT DATE</th><th>STATUS</th><th>CALIBRATION CERT.</th><th>Action</th></tr></thead><tbody id="tcBody"></tbody></table></div>
+  <div class="tablewrap"><table class="tbl"><thead><tr><th>SL. NO.</th><th>FURNACE NO.</th><th>LOCATION</th><th>TYPE</th><th>SR. NO/ID</th><th>REPLACEMENT FREQUENCY</th><th>INSTALLATION DATE</th><th>REPLACEMENT DATE</th><th>STATUS</th><th>CALIBRATION CERT.</th><th>CQI-9 CHECKS</th><th>Action</th></tr></thead><tbody id="tcBody"></tbody></table></div>
 </div>
 </section>
 
@@ -1725,15 +1733,54 @@ function tcEffStatus(r){
   return days<0?'Overdue':(days<=30?'Due Soon':'Planned');
 }
 function tcDaysLeft(r){let d=tcDueDate(r);if(!d)return null;let t=new Date();t.setHours(0,0,0,0);return Math.floor((d-t)/86400000);}
-function tcDaysTxt(r,st){if(st==='Completed')return '';let n=tcDaysLeft(r);if(n===null)return '';return '<br><small style="font-weight:600">'+(n<0?(-n)+' din late':(n===0?'aaj due':n+' din baaki'))+'</small>';}
-function tcStatusStyle(st){return st==='Overdue'?'background:#fee2e2;color:#b91c1c;font-weight:bold':st==='Due Soon'?'background:#fef3c7;color:#b45309;font-weight:bold':st==='Completed'?'color:#15803d;font-weight:bold':'';}
+function tcDaysTxt(r,st){let n=tcDaysLeft(r);if(n===null)return '';return '<br><small style="font-weight:600">'+(n<0?(-n)+' din late':(n===0?'aaj due':n+' din baaki'))+'</small>';}
+function tcStatusStyle(st){return st==='Overdue'?'background:#fee2e2;color:#b91c1c;font-weight:bold;border-left:4px solid #b91c1c':st==='Due Soon'?'background:#fef3c7;color:#b45309;font-weight:bold;border-left:4px solid #f59e0b':'background:#dbeafe;color:#1d4ed8;font-weight:bold;border-left:4px solid #2563eb';}
+
+/* ===== CQI-9 4th Ed. audit helpers (Thermocouple Plan) ===== */
+function tcFurnKey(i){let a=data.tc,r=a[i],fu=(r&&r.furnace)||'';for(let k=i;!String(fu).trim()&&k>0;k--)fu=a[k-1].furnace||'';let m=/^(SQF|TEMP)(\d)/.exec(String(fu).toUpperCase().replace(/[^A-Z0-9]/g,''));return m?m[1]+'-0'+m[2]:(String(fu).toUpperCase().replace(/[^A-Z0-9]/g,''));}
+function tcMetal(r){if(r.metal)return r.metal;let t=String(r.type||'').toUpperCase();return /RTD/.test(t)?'RTD':(/^\s*[BRS]\s*$/.test(t)?'Noble':'Base');}
+function tcUse(r){if(r.use)return r.use;let l=String(r.loc||'');return /control/i.test(l)?'Control / Recording':(/s[ae]f|monitor/i.test(l)?'Monitoring (Safety)':'');}
+function tcAgeM(r){let d=parseFlexDate(r.inst);if(!d)return null;let t=new Date();return (t.getFullYear()-d.getFullYear())*12+t.getMonth()-d.getMonth()-(t.getDate()<d.getDate()?1:0);}
+// items: [{t:text,c:'bad'|'warn'|'ok'}]  - CQI-9 4th Ed. checks (Table P3.1.5 Note 6: base metal max 1 yr expendable / 2 yr non-expendable from first use)
+function tcFurnAttr(i,k){let r=data.tc[i];if(r&&r[k])return r[k];let key=tcFurnKey(i);if(!key)return '';for(let j=0;j<data.tc.length;j++)if(data.tc[j][k]&&tcFurnKey(j)===key)return data.tc[j][k];return '';}
+function tcAttrTxt(i,r){let a=[],c=tcFurnAttr(i,'fcls'),t=tcFurnAttr(i,'itype');if(c)a.push(c);if(t)a.push('Instr. '+t);return a.join(' • ');}
+function tcChecks(i){
+  let r=data.tc[i],o=[];if(!r)return o;
+  if(!tcUse(r))o.push({t:'Usage type?',c:'warn'});
+  if(tcMetal(r)==='Base'){
+    if(!r.exp)o.push({t:'Expendable / Non-exp?',c:'warn'});
+    else{let ot=(r.optemp===undefined||r.optemp==='')?null:Number(r.optemp),lim=(r.exp==='Expendable'||(ot!==null&&ot>=760))?12:24,age=tcAgeM(r),fm=tcFreqMonths(r.freq);if(ot===null&&r.exp!=='Expendable')o.push({t:'Operating temp? (760°C+ = yearly)',c:'warn'});
+      if(fm>lim)o.push({t:'Freq '+fm+'m > limit '+lim+'m',c:'bad'});
+      if(age!==null&&age>=lim)o.push({t:'Hard limit crossed ('+age+'m)',c:'bad'});}
+  }else{let age=tcAgeM(r),fm=tcFreqMonths(r.freq);if(fm>24)o.push({t:'Freq '+fm+'m > 24m limit',c:'bad'});if(age!==null&&age>=24)o.push({t:'2-year limit crossed ('+age+'m)',c:'bad'});}
+  if(!r.certNo)o.push({t:'Cert no. missing',c:'warn'});
+  if(tcFurnKey(i)&&!tcFurnAttr(i,'fcls'))o.push({t:'Furnace class?',c:'warn'});
+  return o;
+}
+function tcChecksHtml(i){let r=data.tc[i],u=tcUse(r),cl={bad:'#b91c1c',warn:'#b45309',ok:'#15803d'},bg={bad:'#fee2e2',warn:'#fef3c7',ok:'#dcfce7'};
+  return '<small style="color:#475569">'+esc(u||'—')+' • '+esc(tcMetal(r))+(r.exp?' • '+esc(r.exp):'')+(tcAttrTxt(i,r)?' • '+esc(tcAttrTxt(i,r)):'')+'</small><br>'+tcChecks(i).map(x=>'<span style="display:inline-block;margin:2px 2px 0 0;padding:1px 6px;border-radius:10px;font-size:10px;font-weight:700;color:'+cl[x.c]+';background:'+bg[x.c]+'">'+esc(x.t)+'</span>').join('');}
+function tcAuditReport(){
+  let a=data.tc||[],td=new Date().toISOString().slice(0,10),cnt={Overdue:0,'Due Soon':0,Planned:0},issues=0;
+  let reg=a.map((r,i)=>{let st=tcEffStatus(r),ch=tcChecks(i);cnt[st]=(cnt[st]||0)+1;ch.forEach(x=>{if(x.c!=='ok')issues++;});let age=tcAgeM(r);
+    return '<tr><td>'+esc(r.sno)+'</td><td>'+esc(r.furnace||'')+'</td><td style="text-align:left">'+esc(r.loc||'')+'<br><i>'+esc(tcUse(r)||'—')+'</i>'+(tcAttrTxt(i,r)?'<br>'+esc(tcAttrTxt(i,r)):'')+'</td><td>'+esc(r.type||'')+'<br>'+esc(tcMetal(r))+(r.exp?' / '+esc(r.exp):'')+'</td><td>'+esc(r.srid||'')+'</td><td>'+esc(r.freq||'')+'</td><td>'+esc(fmtDate(r.inst))+(age!==null?'<br>('+age+' m)':'')+'</td><td>'+esc(r.due||'')+'</td><td><b>'+esc(st)+'</b></td><td>'+(r.certNo?esc(r.certNo)+(r.certDate?'<br>'+esc(fmtDate(r.certDate)):'')+(r.calLab?'<br>'+esc(r.calLab):''):'—')+'</td><td style="text-align:left">'+ch.map(x=>(x.c==='ok'?'&#10003; ':'&#9888; ')+esc(x.t)).join('<br>')+'</td></tr>';}).join('');
+  let hist=[];a.forEach(r=>(r.history||[]).forEach(x=>hist.push(Object.assign({furnace:r.furnace,loc:r.loc},x))));hist.sort((x,y)=>String(y.date||'').localeCompare(String(x.date||'')));
+  let hrows=hist.map(x=>'<tr><td>'+esc(fmtDate(x.date))+'</td><td>'+esc(x.furnace||'')+'</td><td style="text-align:left">'+esc(x.loc||'')+'</td><td>'+esc(x.reason||'—')+'</td><td>'+esc(x.oldSrid||'—')+(x.newSrid&&x.newSrid!==x.oldSrid?' &rarr; '+esc(x.newSrid):'')+'</td><td>'+esc(x.newCertNo||'—')+'</td><td>'+esc(x.tech||'—')+'</td><td>'+esc(x.appr||'—')+'</td><td style="text-align:left">'+esc(x.note||'')+'</td></tr>').join('')||'<tr><td colspan="9">No replacement recorded.</td></tr>';
+  let w=window.open('','_blank','width=1200,height=800');if(!w)return alert('Pop-up allow karo, tabhi report khulegi.');
+  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Pyrometry Audit Report</title><style>@page{size:A4 landscape;margin:8mm}body{font-family:Arial,sans-serif;font-size:9px;color:#000}h1{text-align:center;font-size:16px;margin:2px 0}.s{text-align:center;font-size:11px;font-weight:bold;margin:2px 0 8px}h2{font-size:11px;margin:10px 0 4px;background:#eee;padding:3px 6px;border:1px solid #000}table{width:100%;border-collapse:collapse;margin-bottom:4px}th,td{border:1px solid #000;padding:3px;text-align:center;vertical-align:middle}th{background:#e5e7eb}.sum span{display:inline-block;border:1px solid #000;padding:3px 10px;margin-right:6px;font-weight:bold}.sig{display:flex;gap:10px;margin-top:22px}.sig div{flex:1;border-top:1px solid #000;padding-top:3px;text-align:center;font-weight:bold}.ft{margin-top:8px;border-top:1px solid #000;padding-top:3px;text-align:center;font-weight:bold}tr{page-break-inside:avoid}</style></head><body>'+
+  '<div class="s" style="font-size:14px"><img src="'+APP_LOGO+'" style="height:12mm;vertical-align:middle;margin-right:4mm">Milestone Gears Ltd. UNIT-7</div><h1>PYROMETRY &ndash; THERMOCOUPLE CONTROL &amp; REPLACEMENT RECORD</h1><div class="s">Reference: CQI-9 Heat Treat System Assessment, 4th Edition (Pyrometry) &bull; Report date: '+esc(fmtDate(td))+'</div>'+
+  '<div class="sum"><span>Total: '+a.length+'</span><span>Overdue: '+(cnt.Overdue||0)+'</span><span>Due in 30 days: '+(cnt['Due Soon']||0)+'</span><span>Planned: '+(cnt.Planned||0)+'</span><span>Open audit points: '+issues+'</span></div>'+
+  '<h2>1. Thermocouple / Sensor Register &amp; CQI-9 checks</h2><table><thead><tr><th>Sr.</th><th>Furnace</th><th>Location / Usage</th><th>Type / Class</th><th>Serial / ID</th><th>Frequency</th><th>Installed (age)</th><th>Replacement due</th><th>Status</th><th>Calibration cert.</th><th>Checks</th></tr></thead><tbody>'+reg+'</tbody></table>'+
+  '<h2>2. Replacement History (reason, who replaced, who approved)</h2><table><thead><tr><th>Date</th><th>Furnace</th><th>Location</th><th>Reason</th><th>Old &rarr; New ID</th><th>New cert.</th><th>Replaced by</th><th>Approved by</th><th>Note</th></tr></thead><tbody>'+hrows+'</tbody></table>'+
+  '<div class="sig"><div>Prepared by</div><div>Reviewed by (Maintenance)</div><div>Approved by (Quality)</div></div><div class="ft">FMT-HT-70 &bull; Thermocouple Replacement Plan &amp; Audit Control</div><script>window.onload=function(){window.print()}<\/script></body></html>');
+  w.document.close();
+}
 function applyThermocoupleReplacement(tcId,replaceDateStr,newSrid,note,extra){
   extra=extra||{};
   if(!tcId)return false;
   let r=data.tc.find(x=>sameId(x.id,tcId));if(!r)return false;   // pehle === tha: select ki string id aur number id match nahi hoti thi, replacement lagti hi nahi thi
   let d=replaceDateStr||new Date().toISOString().slice(0,10);
   if(!Array.isArray(r.history))r.history=[];
-  r.history.push({date:d,oldInst:r.inst||'',oldSrid:r.srid||'',oldDue:r.due||'',newSrid:newSrid||r.srid||'',note:note||'',reason:extra.reason||'',oldCertNo:r.certNo||'',oldCertDate:r.certDate||'',newCertNo:extra.certNo||'',newCertDate:extra.certDate||'',at:new Date().toISOString()});
+  r.history.push({date:d,oldInst:r.inst||'',oldSrid:r.srid||'',oldDue:r.due||'',newSrid:newSrid||r.srid||'',note:note||'',reason:extra.reason||'',oldCertNo:r.certNo||'',oldCertDate:r.certDate||'',newCertNo:extra.certNo||'',newCertDate:extra.certDate||'',tech:extra.tech||'',appr:extra.appr||'',at:new Date().toISOString()});
   r.certNo=extra.certNo||'';r.certDate=extra.certDate||'';   // naye thermocouple ka certificate (purana History me chala gaya)
   if(newSrid)r.srid=newSrid;
   r.inst=d;r.due=tcNextDueLabel(d,r.freq);r.status='Planned';r.updatedAt=new Date().toISOString();
@@ -2387,11 +2434,11 @@ function printCriticalSpares(){
 }
 
 /* ================= THERMOCOUPLE REPLACEMENT PLAN & AUDIT CONTROL MODULE (FMT-HT-70) ================= */
-function clearTCForm(){edit.tc=null;setv('tc_id','');setv('tc_sno',data.tc.length+1);setv('tc_furnace','');setv('tc_loc','');setv('tc_type','K');setv('tc_srid','');setv('tc_freq','YEARLY');setv('tc_inst','');setv('tc_due','');{let e=document.getElementById('tc_due');if(e)e.dataset.auto='';}setv('tc_status','Planned');setv('tc_certno','');setv('tc_certdate','');const btn=document.querySelector('#thermocouple .primary');if(btn)btn.textContent='Save Thermocouple Plan';}
+function clearTCForm(){edit.tc=null;setv('tc_id','');setv('tc_sno',data.tc.length+1);setv('tc_furnace','');setv('tc_loc','');setv('tc_type','K');setv('tc_srid','');setv('tc_freq','YEARLY');setv('tc_inst','');setv('tc_due','');{let e=document.getElementById('tc_due');if(e)e.dataset.auto='';}setv('tc_status','Planned');setv('tc_certno','');setv('tc_certdate','');setv('tc_use','');setv('tc_metal','');setv('tc_exp','');setv('tc_lab','');setv('tc_fcls','');setv('tc_itype','');setv('tc_optemp','');const btn=document.querySelector('#thermocouple .primary');if(btn)btn.textContent='Save Thermocouple Plan';}
 function saveThermocouple(){
  if(!mmsGuardSave('tc'))return;
   let old=edit.tc!==null?data.tc[edit.tc]:null;
-  let r=Object.assign({},old||{},{id:old?.id||Date.now(),sno:num(f('tc_sno'))||data.tc.length+1,furnace:f('tc_furnace'),loc:f('tc_loc'),type:f('tc_type'),srid:f('tc_srid'),freq:f('tc_freq'),inst:f('tc_inst'),due:(f('tc_due')||'').trim(),status:'Planned',certNo:(f('tc_certno')||'').trim(),certDate:f('tc_certdate'),updatedAt:new Date().toISOString()});
+  let r=Object.assign({},old||{},{id:old?.id||Date.now(),sno:num(f('tc_sno'))||data.tc.length+1,furnace:f('tc_furnace'),loc:f('tc_loc'),type:f('tc_type'),srid:f('tc_srid'),freq:f('tc_freq'),inst:f('tc_inst'),due:(f('tc_due')||'').trim(),status:'Planned',certNo:(f('tc_certno')||'').trim(),certDate:f('tc_certdate'),use:f('tc_use'),metal:f('tc_metal'),exp:f('tc_exp'),calLab:(f('tc_lab')||'').trim(),fcls:(f('tc_fcls')||'').trim(),itype:(f('tc_itype')||'').trim(),optemp:(f('tc_optemp')===''?'':num(f('tc_optemp'))),updatedAt:new Date().toISOString()});
   if(!r.furnace.trim())return alert('Please enter Furnace No.');
   {let sk=String(r.srid||'').trim().toUpperCase(),dup=sk&&data.tc.find(x=>!sameId(x.id,r.id)&&String(x.srid||'').trim().toUpperCase()===sk);if(dup&&!confirm('Serial No. / ID "'+r.srid+'" pehle se Furnace "'+(dup.furnace||'')+'" me hai.\nPhir bhi save karna hai?'))return;}
   if(!r.due&&r.inst)r.due=tcNextDueLabel(r.inst,r.freq);   // Replacement Date khali ho to Installation + Frequency se khud bharo
@@ -2410,12 +2457,12 @@ function tcAutoDue(){
 function renderThermocoupleTable(){
   let body=document.getElementById('tcBody');if(!body)return;
   let a=data.tc;
-  let cnt={Overdue:0,'Due Soon':0,Planned:0,Completed:0};
+  let cnt={Overdue:0,'Due Soon':0,Planned:0};
   a.forEach(r=>{let st=tcEffStatus(r);cnt[st]=(cnt[st]||0)+1;});
   let sm=document.getElementById('tcSummary');
   if(sm){const chip=(t,n,c)=>`<span style="padding:6px 12px;border-radius:20px;font-weight:bold;border:2px solid ${c};color:${c}">${t}: ${n}</span>`;
-    sm.innerHTML=a.length?chip('⚠ Overdue',cnt.Overdue,'#b91c1c')+chip('⏰ Due in 30 days',cnt['Due Soon'],'#b45309')+chip('📅 Planned',cnt.Planned,'#2563eb')+chip('✅ Completed',cnt.Completed,'#15803d'):'';}
-  body.innerHTML=a.map(r=>{let idx=data.tc.indexOf(r),st=tcEffStatus(r),hn=(r.history||[]).length;return `<tr><td>${esc(r.sno)}</td><td>${esc(r.furnace)}</td><td>${esc(r.loc)}</td><td>${esc(r.type)}</td><td>${esc(r.srid)}</td><td>${esc(r.freq)}</td><td>${esc(fmtDate(r.inst))}</td><td>${esc(r.due)}</td><td style="${tcStatusStyle(st)}">${esc(st)}${tcDaysTxt(r,st)}</td><td>${r.certNo?esc(r.certNo)+(r.certDate?'<br><small>'+esc(fmtDate(r.certDate))+'</small>':''):'<span style="color:#94a3b8">—</span>'}</td><td class="editbar"><button class="secondary" onclick="tcMarkReplaced(${idx})">✅ Replaced</button>${hn?`<button class="secondary" onclick="tcShowHistory(${idx})">📜 History (${hn})</button>`:''}<button class="secondary" onclick="editThermocouple(${idx})">Edit</button><button class="danger" onclick="deleteThermocouple(${idx})">Delete</button></td></tr>`}).join('')||'<tr><td colspan="11">No thermocouple records found.</td></tr>';
+    sm.innerHTML=a.length?chip('⚠ Overdue',cnt.Overdue,'#b91c1c')+chip('⏰ Due in 30 days',cnt['Due Soon'],'#b45309')+chip('📅 Planned',cnt.Planned,'#2563eb'):'';}
+  body.innerHTML=a.map(r=>{let idx=data.tc.indexOf(r),st=tcEffStatus(r),hn=(r.history||[]).length;return `<tr><td>${esc(r.sno)}</td><td>${esc(r.furnace)}</td><td>${esc(r.loc)}</td><td>${esc(r.type)}</td><td>${esc(r.srid)}</td><td>${esc(r.freq)}</td><td>${esc(fmtDate(r.inst))}</td><td>${esc(r.due)}</td><td style="${tcStatusStyle(st)}">${esc(st)}${tcDaysTxt(r,st)}</td><td>${r.certNo?esc(r.certNo)+(r.certDate?'<br><small>'+esc(fmtDate(r.certDate))+'</small>':''):'<span style="color:#94a3b8">—</span>'}</td><td>${tcChecksHtml(idx)}</td><td class="editbar"><button class="secondary" onclick="tcMarkReplaced(${idx})">✅ Replaced</button>${hn?`<button class="secondary" onclick="tcShowHistory(${idx})">📜 History (${hn})</button>`:''}<button class="secondary" onclick="editThermocouple(${idx})">Edit</button><button class="danger" onclick="deleteThermocouple(${idx})">Delete</button></td></tr>`}).join('')||'<tr><td colspan="12">No thermocouple records found.</td></tr>';
   populateBDTCSelect();populatePMTCSelect();
 }
 // Thermocouple badla gaya (breakdown / PM ke bina bhi): date + (naya serial no.) daalo -> Installation Date naya, Replacement Date khud agla, purana record History me
@@ -2433,9 +2480,9 @@ function tcShowHistory(i){
   let h=(r.history||[]).slice().reverse();
   alert('Replacement History - '+(r.furnace||'')+' ('+(r.srid||'')+')\n\n'+(h.length?h.map((x,k)=>(k+1)+'. '+fmtDate(x.date)+' - badla gaya'+(x.oldSrid?' (purana ID: '+x.oldSrid+(x.oldInst?', laga tha: '+fmtDate(x.oldInst):'')+')':'')+(x.newSrid&&x.newSrid!==x.oldSrid?' -> naya ID: '+x.newSrid:'')+(x.note?' | '+x.note:'')).join('\n'):'Abhi koi replacement record nahi.'));
 }
-function editThermocouple(i){if(!mmsGuardEdit('tc'))return;let r=data.tc[i];if(!r)return;edit.tc=i;setv('tc_id',r.id);setv('tc_sno',r.sno);setv('tc_furnace',r.furnace);setv('tc_loc',r.loc);setv('tc_type',r.type);setv('tc_srid',r.srid);setv('tc_freq',r.freq);setv('tc_inst',r.inst);setv('tc_due',r.due);{let e=document.getElementById('tc_due');if(e)e.dataset.auto=(r.inst&&String(r.due||'').trim().toUpperCase()===tcNextDueLabel(r.inst,r.freq).toUpperCase())?'1':'';}setv('tc_status','Planned');setv('tc_certno',r.certNo||'');setv('tc_certdate',r.certDate||'');const btn=document.querySelector('#thermocouple .primary');if(btn)btn.textContent='Update Thermocouple Plan';document.getElementById('thermocouple').scrollIntoView({behavior:'smooth'});}
+function editThermocouple(i){if(!mmsGuardEdit('tc'))return;let r=data.tc[i];if(!r)return;edit.tc=i;setv('tc_id',r.id);setv('tc_sno',r.sno);setv('tc_furnace',r.furnace);setv('tc_loc',r.loc);setv('tc_type',r.type);setv('tc_srid',r.srid);setv('tc_freq',r.freq);setv('tc_inst',r.inst);setv('tc_due',r.due);{let e=document.getElementById('tc_due');if(e)e.dataset.auto=(r.inst&&String(r.due||'').trim().toUpperCase()===tcNextDueLabel(r.inst,r.freq).toUpperCase())?'1':'';}setv('tc_status','Planned');setv('tc_certno',r.certNo||'');setv('tc_certdate',r.certDate||'');setv('tc_use',r.use||'');setv('tc_metal',r.metal||'');setv('tc_exp',r.exp||'');setv('tc_lab',r.calLab||'');setv('tc_fcls',r.fcls||'');setv('tc_itype',r.itype||'');setv('tc_optemp',r.optemp===undefined?'':r.optemp);const btn=document.querySelector('#thermocouple .primary');if(btn)btn.textContent='Update Thermocouple Plan';document.getElementById('thermocouple').scrollIntoView({behavior:'smooth'});}
 function deleteThermocouple(i){
- if(!mmsGuardDelete('tc'))return;let r=data.tc[i];if(!r)return;if(!confirm('Delete this thermocouple record?'))return;data.tc.splice(i,1);data.tc.forEach((x,k)=>x.sno=k+1);persist('tc');if(edit.tc===i)edit.tc=null;renderThermocoupleTable();alert('Thermocouple record deleted successfully.');}
+ if(!mmsGuardDelete('tc'))return;let r=data.tc[i];if(!r)return;if((r.history||[]).length)return alert('Is thermocouple ki replacement history hai, isliye record delete nahi ho sakta (audit trail). Sirf Edit karo.');if(!confirm('Delete this thermocouple record?'))return;try{let L=JSON.parse(localStorage.getItem('htp_tc_delete_log')||'[]');L.push({at:new Date().toISOString(),furnace:r.furnace,srid:r.srid,loc:r.loc});localStorage.setItem('htp_tc_delete_log',JSON.stringify(L));}catch(e){}data.tc.splice(i,1);data.tc.forEach((x,k)=>x.sno=k+1);persist('tc');if(edit.tc===i)edit.tc=null;renderThermocoupleTable();alert('Thermocouple record deleted successfully.');}
 function printThermocouplePlan(){
   let a=data.tc;
   let body=a.map((r,i)=>`<tr><td>${i+1}</td><td>${esc(r.furnace)}</td><td>${esc(r.loc)}</td><td>${esc(r.type)}</td><td>${esc(r.srid)}</td><td>${esc(r.freq)}</td><td>${esc(fmtDate(r.inst))}</td><td>${esc(r.due)}</td><td>${esc(tcEffStatus(r))}</td></tr>`).join('');
@@ -7975,23 +8022,23 @@ const HQ_IMG_SKETCH='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAz0AAAF7CAIAA
 const HQ_SAT_COMMON = {
   make: 'Aichlin Unitherm', cls: 'Class 2', tol: 5, resolution: '1˚C', loadCond: 'With Load', furnSize: '1500*900*850',
   location: 'Heat Treatment', interval: 'Monthly', method: 'Probe Method A', envTemp: '30°C', humidity: '50 %RH',
-  m1: 'K-Type Thermocuple', m1Make: 'Tempsens', m1Id: '26052949', m1Cert: 'TL/025/831.1.1', m1Valid: '2026-07-20', m1Trace: 'TEMPSENS', calProc: 'WI-LAB-17(TEMPSENS)',
+  m1: 'K-Type Thermocouple', m1Make: 'Tempsens', m1Id: '26052949', m1Cert: 'TL/025/831.1.1', m1Valid: '2026-07-20', m1Trace: 'TEMPSENS', calProc: 'WI-LAB-17(TEMPSENS)',
   m2: 'Digital Thermometer', m2Make: 'Tempsens/Tempmet 08-02', m2Id: 'T0466', m2Cert: 'SCTS/100126/2/41', m2Valid: '2027-01-11', m2Trace: 'SHIVRAJ CALIBRATION', refStd: 'ASTM E230, IS 2848-1996',
-  eqHeating: '01 Zone Electric Heaters', eqCirc: 'Air circulation by bulit in fan', eqArea: '1500×900×780', eqVol: '1.05 M³',
-  zone: '1 Zone Furnece', fieldInst: 'Digital Thermometer', fieldSensor: '26052949', offsetB: 0,
+  eqHeating: '01 Zone Electric Heaters', eqCirc: 'Air circulation by built in fan', eqArea: '1500×900×780', eqVol: '1.05 M³',
+  zone: '1 Zone Furnace', fieldInst: 'Digital Thermometer', fieldSensor: '26052949', offsetB: 0,
   distNote: '', calibBy: 'Dalip Kumar', approvedBy: 'Anand Bhatt',
   c_E: 0.9, c_F: 0.84, r_E: 0.9, r_F: 0.84,
-  conclusion: '1. System Accuracy Test is carried out as par CQI-9 Standerd\n2. Offset values are not programmed as par the MGL, protocol, hence all the reading are absolute values.\n3. Correction Factors of Master instrumentare are taken by interpolating the deviations.\n4. SAT temperature survay point are suggested by as par the MGL.\n5. Hence the recorded and reported reading are absolute values. As found data as left data remains same,no modification / offset are used'
+  conclusion: '1. System Accuracy Test is carried out as per CQI-9 Standard\n2. Offset values are not programmed as per the MGL, protocol, hence all the reading are absolute values.\n3. Correction Factors of Master instrument are are taken by interpolating the deviations.\n4. SAT temperature survey point are suggested by as per the MGL.\n5. Hence the recorded and reported reading are absolute values. As found data as left data remains same,no modification / offset are used'
 };
 const HQ_SAT_PROFILE = {
-  'SQF-01': { duc: 'Sealed Quench Furnence', idno: 'SQF-01', range: '750˚C-950˚C', setTemp: 920, depth: 1000, eqType: 'Sealed Quench Fuenace', eqCtrlTC: '"K" Type Duplex', furnSensor: '26010096', controller: 'Stange SE-702 / 68443' },
-  'SQF-02': { duc: 'Sealed Quench Furnence', idno: 'SQF-02', range: '750˚C-950˚C', setTemp: 920, depth: 1000, eqType: 'Sealed Quench Fuenace', eqCtrlTC: '"K" Type Duplex', furnSensor: '26010099', controller: 'Stange SE-702 / 66849' },
-  'SQF-03': { duc: 'Sealed Quench Furnence', idno: 'SQF-03', range: '750˚C-950˚C', setTemp: 920, depth: 1000, eqType: 'Sealed Quench Fuenace', eqCtrlTC: '"K" Type Duplex', furnSensor: '', controller: '' },
-  'SQF-04': { duc: 'Sealed Quench Furnence', idno: 'SQF-04', range: '750˚C-950˚C', setTemp: 920, depth: 1000, eqType: 'Sealed Quench Fuenace', eqCtrlTC: '"K" Type Duplex', furnSensor: '', controller: '' },
+  'SQF-01': { duc: 'Sealed Quench Furnace', idno: 'SQF-01', range: '750˚C-950˚C', setTemp: 920, depth: 1000, eqType: 'Sealed Quench Furnace', eqCtrlTC: '"K" Type Duplex', furnSensor: '26010096', controller: 'Stange SE-702 / 68443' },
+  'SQF-02': { duc: 'Sealed Quench Furnace', idno: 'SQF-02', range: '750˚C-950˚C', setTemp: 920, depth: 1000, eqType: 'Sealed Quench Furnace', eqCtrlTC: '"K" Type Duplex', furnSensor: '26010099', controller: 'Stange SE-702 / 66849' },
+  'SQF-03': { duc: 'Sealed Quench Furnace', idno: 'SQF-03', range: '750˚C-950˚C', setTemp: 920, depth: 1000, eqType: 'Sealed Quench Furnace', eqCtrlTC: '"K" Type Duplex', furnSensor: '', controller: '' },
+  'SQF-04': { duc: 'Sealed Quench Furnace', idno: 'SQF-04', range: '750˚C-950˚C', setTemp: 920, depth: 1000, eqType: 'Sealed Quench Furnace', eqCtrlTC: '"K" Type Duplex', furnSensor: '', controller: '' },
   'TEMP-01': { duc: 'Tempering 01', idno: 'Tempering 01', range: '140˚C-250˚C', setTemp: 180, depth: 700, eqType: 'Tempering 01', eqCtrlTC: '"J" Type Duplex', furnSensor: '24139048', controller: 'FC1734000661' },
   'TEMP-02': { duc: 'Tempering 02', idno: 'Tempering 02', range: '140˚C-250˚C', setTemp: 180, depth: 700, eqType: 'Tempering 02', eqCtrlTC: '"J" Type Duplex', furnSensor: '250044885', controller: 'PL2011000191' }
 };
-const HQ_SAT_PER_TEST = ['satDate', 'dueDate', 'time', 'c_A', 'c_D', 'c_G', 'c_diff', 'c_acc', 'r_A', 'r_D', 'r_G', 'r_diff', 'r_acc', 'status', 'usageNo', 'furnace'];
+const HQ_SAT_PER_TEST = ['satDate', 'dueDate', 'time', 'c_A', 'c_D', 'c_G', 'c_diff', 'c_acc', 'r_A', 'r_D', 'r_G', 'r_diff', 'r_acc', 'status', 'usageNo', 'furnace', 'reason', 'corrAction'];
 
 function hqSatCalc(v) {
   const o = {}, B = hqN(v.offsetB) || 0, tol = hqN(v.tol) === null ? 5 : hqN(v.tol);
@@ -8021,6 +8068,7 @@ function hqSatPrefill() {
     base.usageNo = 1;
     base.c_set = base.setTemp; base.r_set = base.setTemp;
   }
+  base.usageNo = hqList('satReport').filter(function (x) { return x.m1Id === base.m1Id; }).reduce(function (m, x) { return Math.max(m, hqN(x.usageNo) || 0); }, 0) + 1;   // ek test thermocouple ki gintee sab furnaces mila kar
   base.c_set = base.setTemp; base.r_set = base.setTemp;
   hqFill('satReport', Object.assign({}, base, keepNow));
   if (keepNow.satDate) hqSet('hq_satReport_dueDate', hqAddMonths(keepNow.satDate, 1));
@@ -8063,13 +8111,13 @@ function hqSatPrefill() {
       F('eqType', 'a) Type of furnace'), F('eqHeating', 'b) Heating effect'), F('eqCtrlTC', 'c) Control Thermocouple'),
       F('eqCirc', 'd) Circulation'), F('eqArea', 'e) Working Area (L×W×H)'), F('eqVol', 'g) Volume'),
       F('satDate', 'SAT Done On', 'date', { req: true, sec: 'Annexure-II — SAT Details' }),
-      F('dueDate', 'SAT Due On', 'date'), F('time', 'Time of the test', 'time'), F('zone', 'Zone'),
-      F('furnSensor', 'Furnace sensor ID / Sr.No.'), F('controller', 'Furnace Controller/Recorder ID/Sl.No.'),
+      F('dueDate', 'SAT Due On', 'date'), F('time', 'Time of the test', 'time', { req: true }), F('reason', 'SAT ki wajah', 'select', { o: ['Scheduled', 'After thermocouple replacement', 'After maintenance', 'Re-test after failed SAT'], d: 'Scheduled' }), F('zone', 'Zone'),
+      F('furnSensor', 'Furnace sensor ID / Sr.No.', 'text', { req: true }), F('controller', 'Furnace Controller/Recorder ID/Sl.No.'),
       F('fieldInst', 'Field Test Instrument'), F('fieldSensor', 'Field Test Sensor ID/SL.No.'),
       F('offsetB', 'Control instrument TUS offset (B)', 'number', { d: 0 })
     ], sysFields('c', 'Controlling'), sysFields('r', 'Recording'), [
       F('status', 'Overall Result', 'text', { calc: true, sec: 'Conclusion' }),
-      F('conclusion', 'Conclusion Remarks (1–5)', 'textarea', { w: true }),
+      F('conclusion', 'Conclusion Remarks (1–5)', 'textarea', { w: true }), F('corrAction', 'Corrective Action (SAT NOT OK ho to zaroori)', 'textarea', { w: true }),
       F('calibBy', 'Calibrate By (Elect. Engineer)'), F('approvedBy', 'Approved by (HT Head)')
     ]),
     calc: hqSatCalc,
@@ -8079,9 +8127,20 @@ function hqSatPrefill() {
       if (k === 'setTemp') { hqSet('hq_satReport_c_set', hqV('hq_satReport_setTemp')); hqSet('hq_satReport_r_set', hqV('hq_satReport_setTemp')); }
     },
     check: function (r) {
-      const msgs = [];
-      if (r.status === 'NOT OK') msgs.push('SAT result NOT OK (difference tolerance se bahar hai).');
-      if (hqN(r.usageNo) > 180) msgs.push('SAT thermocouple usage ' + r.usageNo + ' hai — maximum permitted 180 hai, thermocouple replace karna hoga.');
+      const msgs = [], sd = r.satDate || '';
+      if (r.status === 'NOT OK') {
+        msgs.push('SAT NOT OK: CQI-9 P3.3.4.1.4 - corrective action karo, thermocouple replace karke naya SAT karo.');
+        if (!String(r.corrAction || '').trim()) msgs.push('Corrective Action field bharo (kya action liya).');
+      }
+      const u = hqN(r.usageNo);
+      if (u > 180) msgs.push('SAT thermocouple usage ' + r.usageNo + ' hai — limit 180 (Table P3.1.5), thermocouple replace karna hoga.');
+      else if (u >= 162) msgs.push('SAT thermocouple usage ' + r.usageNo + '/180 — limit ke paas hai.');
+      if (sd && r.m2Valid && String(r.m2Valid) < sd) msgs.push('Test instrument ki calibration SAT date par expire thi (valid: ' + hqFmtD(r.m2Valid) + ') — SAT valid nahi maana jayega.');
+      if (sd && r.m1Valid && String(r.m1Valid) < sd) msgs.push('Master thermocouple certificate ki validity date nikal chuki hai (' + hqFmtD(r.m1Valid) + '). Base metal TC recalibrate nahi hota — uses / 2 saal ka replacement rule check karo.');
+      const first = hqList('satReport').filter(function (x) { return x.m1Id === r.m1Id && x.satDate; }).map(function (x) { return x.satDate; }).sort()[0];
+      if (sd && first && hqAddMonths(first, 24) < sd) msgs.push('Master thermocouple pehle use (' + hqFmtD(first) + ') se 2 saal se purana hai — base metal TC 2 saal ke baad use nahi ho sakta (Table P3.1.5, Note 6).');
+      if (Math.abs(hqN(r.offsetB) || 0) > 3) msgs.push('TUS offset 3°C se zyada hai (CQI-9 P3.2.3 limit 3°C).');
+      if (hqN(r.setTemp) !== null && hqN(r.setTemp) < 500 && hqN(r.c_E) === 0.9 && hqN(r.c_F) === 0.84) msgs.push('Correction factors (E, F) 920°C wale default hain — is temperature ke liye certificate se lo.');
       return msgs.length ? { warn: msgs.join('\n') } : {};
     },
     sort: function (a, b) { return String(b.satDate || '').localeCompare(String(a.satDate || '')); },
@@ -8266,7 +8325,7 @@ function hqFindRec(key, id) { return hqList(key).find(function (x) { return Stri
 function hqSigned(n) { return (n === '' || n === null || n === undefined) ? '' : (Number(n) > 0 ? '+' : '') + Number(n).toFixed(2); }
 
 /* --- SAT Report (3 pages) : original Excel layout --- */
-const HQ_SAT_DOC = 'FR-Ht-42/Rev-00 /Date:-03-08-2025';
+const HQ_SAT_DOC = 'FR-HT-42 / Rev-01 / Date-03-07-2025';
 const HQ_SAT_CSS = '@page{size:A4 portrait;margin:8mm 10mm}*{box-sizing:border-box}body{font-family:Calibri,Carlito,Arial,sans-serif;font-size:11.5px;color:#000;margin:0}' +
   '.pg{position:relative;height:280mm;page-break-after:always;overflow:hidden}.pg:last-child{page-break-after:auto}' +
   '.top{display:flex;justify-content:center;align-items:center;font-size:21px;font-weight:bold;height:11mm;position:relative}.top span{position:absolute;right:0;font-size:11px;font-weight:normal}' +
@@ -8288,29 +8347,29 @@ function hqSatPages(r) {
   const ok = r.status === 'OK';
   // ---- Page 1
   const p1 = '<div class="pg">' + top(1) + logo(false) + duc +
-    '<table class="hd"><tr><td>Furnence Information</td></tr></table><table>' +
+    '<table class="hd"><tr><td>Furnace Information</td></tr></table><table>' +
     t4('Make', r.make, 'Load Condition ', r.loadCond) + t4('ID No. / Sr.No.', r.idno, 'Furance Size In mm<br>( Length × Wigth × Hight )', r.furnSize) +
     t4('Operating Range', r.range, 'SAT Set Temperature', set) + t4('Resolution', r.resolution, 'Location', r.location) +
-    t4('Furnence Class', r.cls, 'SAT Interval', r.interval) + t4('Tolerance', '± ' + tol + ' ˚C as par CQI9', 'Method Of SAT Survay', r.method) + '</table>' +
+    t4('Furnace Class', r.cls, 'SAT Interval', r.interval) + t4('Tolerance', '± ' + tol + ' ˚C as per CQI9', 'Method Of SAT Survay', r.method) + '</table>' +
     '<table class="hd"><tr><td>Enviornmental Conditions</td></tr></table><table>' + t4('Temperature', r.envTemp, 'Humidity', r.humidity) + '</table>' +
-    '<table class="sub"><tr><td>Details Of Traceability :- Master Equipments / Standerd used for Calibration.</td></tr></table><table>' +
-    t4('Master Instrument Used (1)', r.m1, 'Master Instrument Used (2)', r.m2) + t4('Thermocuple Make', r.m1Make, 'Digital Thermometer Make & Model', r.m2Make) +
-    t4('Thermocuple Id.No.', r.m1Id, 'Digital Thermometer ID.No.', r.m2Id) + t4('Certificate No.', r.m1Cert, 'Certificate No.', r.m2Cert) +
+    '<table class="sub"><tr><td>Details Of Traceability :- Master Equipments / Standard used for Calibration.</td></tr></table><table>' +
+    t4('Master Instrument Used (1)', r.m1, 'Master Instrument Used (2)', r.m2) + t4('Thermocouple Make', r.m1Make, 'Digital Thermometer Make & Model', r.m2Make) +
+    t4('Thermocouple Id.No.', r.m1Id, 'Digital Thermometer ID.No.', r.m2Id) + t4('Certificate No.', r.m1Cert, 'Certificate No.', r.m2Cert) +
     t4('Validity', hqFmtD(r.m1Valid), 'Validity ', hqFmtD(r.m2Valid)) + t4('Traceability', r.m1Trace, 'Traceability', r.m2Trace) +
-    t4('Cal.Procedure No', r.calProc, 'Refrence Standerd', r.refStd) + '</table>' +
+    t4('Cal.Procedure No', r.calProc, 'Refrence Standard', r.refStd) + '</table>' +
     '<table class="sub"><tr><td>RESULT OF VALIDATION</td></tr></table><table><tr><td style="width:40%">1. Annexure -I</td><td>Placements of sensors ( page no : 2 )</td></tr><tr><td>1. Annexure -II</td><td>SAT Result ( page no : 3 )</td></tr></table>' +
-    '<table><tr><td class="l">Remarks : </td></tr>' + lineRow('1. The System Accuracy Tast is carried out as par CQI-9 Standerd') + lineRow('2. It is a single point calibration') +
+    '<table><tr><td class="l">Remarks : </td></tr>' + lineRow('1. The System Accuracy Tast is carried out as per CQI-9 Standard') + lineRow('2. It is a single point calibration') +
     lineRow('3.Reported Temp.Indicator data are corresponding to the standerd reading with required correction factor.') +
     lineRow('4.Depth of Insertion (If K or E Type Re-used) ' + E(r.depth) + ' MM') + lineRow('5. SAT thermocuple usage number is &nbsp;' + E(String(r.usageNo).padStart(2, '0')) + ' &nbsp;Time.') + '</table>' + sig + foot + '</div>';
   // ---- Page 2
   const eq = [['a) Type of furnace', r.eqType], ['b) Heating effect', r.eqHeating], ['c) Control Thermocouple', r.eqCtrlTC], ['d) Circulation', r.eqCirc],
     ['e) Working Area ( Length × Wigth × Hight )', r.eqArea], ['g) Volume', r.eqVol]];
   const p2 = '<div class="pg">' + top(2) + logo(false) + duc +
-    '<table class="hd"><tr><td style="font-weight:normal;font-size:13px">Pictorial Representation of sensor Thermocuple location ' + E(r.duc || '') + '</td></tr></table>' +
+    '<table class="hd"><tr><td style="font-weight:normal;font-size:13px">Pictorial Representation of sensor Thermocouple location ' + E(r.duc || '') + '</td></tr></table>' +
     '<div class="imgs"><div><img src="' + (r.diagram || HQ_IMG_SKETCH) + '"></div><div><img src="' + HQ_IMG_METHOD + '"></div></div>' +
-    '<table><tr><td rowspan="2" style="width:14%" class="l">Note:-</td><td rowspan="2" style="width:14%"><span class="dot"></span><br><br><span class="dot f"></span></td><td style="height:11mm">Indicates SAT Thermocuple</td></tr><tr><td style="height:11mm">Indicates Furnace Thermocuple</td></tr></table>' +
-    '<table class="sub"><tr><td class="l" style="height:11mm">Distance Between Furnace Thermocuple and test Thermocuple</td></tr></table>' +
-    '<table><tr><td class="l" style="height:11mm">1. ' + E(r.distNote || ('Control Sensor(' + (r.furnSensor || '') + '/' + (r.fieldSensor || '') + ' )And Test Thermocuple (5mm).')) + '</td></tr></table>' +
+    '<table><tr><td rowspan="2" style="width:14%" class="l">Note:-</td><td rowspan="2" style="width:14%"><span class="dot"></span><br><br><span class="dot f"></span></td><td style="height:11mm">Indicates SAT Thermocouple</td></tr><tr><td style="height:11mm">Indicates Furnace Thermocouple</td></tr></table>' +
+    '<table class="sub"><tr><td class="l" style="height:11mm">Distance Between Furnace Thermocouple and test Thermocouple</td></tr></table>' +
+    '<table><tr><td class="l" style="height:11mm">1. ' + E(r.distNote || ('Control Sensor(' + (r.furnSensor || '') + '/' + (r.fieldSensor || '') + ' )And Test Thermocouple (5mm).')) + '</td></tr></table>' +
     '<table class="hd"><tr><td style="font-size:12px">Equipment Details :</td></tr></table><table>' +
     eq.map(function (x) { return '<tr><td class="l" style="width:50%;height:9mm">' + E(x[0]) + '</td><td class="l">' + E(x[1]) + '</td></tr>'; }).join('') + '</table>' + sig + foot + '</div>';
   // ---- Page 3
@@ -8319,7 +8378,7 @@ function hqSatPages(r) {
   const row2 = function (lab, a, b, bold) { return '<tr><td class="l">' + (bold ? bo(lab) : lab) + '</td><td>' + E(a) + '</td><td>' + E(b) + '</td></tr>'; };
   const yn = function (p) { return r[p + '_acc'] === 'Pass' ? 'Ok' : (r[p + '_acc'] === 'Fail' ? 'Not Ok' : ''); };
   const tm = /^\d{1,2}:\d{2}$/.test(r.time || '') ? String(+r.time.split(':')[0]) + ':' + r.time.split(':')[1] + ':00' : (r.time || '');
-  const concl = String(r.conclusion || '').replace(/\r/g, '').split('\n').filter(function (x) { return x.trim(); }).map(function (x) { return '<tr><td class="l" style="padding:6px">' + E(x) + '</td></tr>'; }).join('');
+  const concl = String((r.conclusion || '') + (r.corrAction ? '\nCorrective action: ' + r.corrAction : '') + (r.reason && r.reason !== 'Scheduled' ? '\nReason for SAT: ' + r.reason : '')).replace(/\r/g, '').split('\n').filter(function (x) { return x.trim(); }).map(function (x) { return '<tr><td class="l" style="padding:6px">' + E(x) + '</td></tr>'; }).join('');
   const p3 = '<div class="pg">' + top(3) + logo(true) +
     '<table>' + rowI('SAT Done On ', hqFmtD(r.satDate)) + rowI('Equipment Name ', r.duc) + rowI('Maximum Allowable SAT Difference in °C', '± ' + Number(tol).toFixed(1)) + rowI('Temperature set point in', r.setTemp === '' ? '' : r.setTemp + ' °C') +
     rowI('Furnace Temperature Resolution ', r.resolution) + rowI('SAT Due On (dd/mm/yyyy)', hqFmtD(r.dueDate)) + rowI('Time of the test (hr:min:sec)', tm) + rowI('Zone', r.zone) +
@@ -8330,7 +8389,7 @@ function hqSatPages(r) {
     row2('Corrected Test Temperature (G)=(D)+(E)+(F) in °C', hqF2(r.c_G), hqF2(r.r_G), true) + row2('SAT Difference =(A)-(G) in °C', hqF2(r.c_diff), hqF2(r.r_diff), true) +
     row2('SAT Acceptance ', r.c_acc, r.r_acc, true) + row2('SAT Acceptance status (OK/NOT OK)', yn('c'), yn('r'), true) + '</table>' +
     '<table><tr><td style="font-size:12px;padding:6px">Conclusion Remarks:</td></tr>' + concl +
-    '<tr><td class="l" style="padding:6px">6. ' + (ok ? 'All the reading are within the specified accuracy limit ' + E(r.cls) + ' as par CQI-9 &amp; Calibration Status : Accepted' : '<b>Readings are NOT within the specified accuracy limit — Calibration Status : NOT ACCEPTED</b>') + '</td></tr></table>' + sig + foot + '</div>';
+    '<tr><td class="l" style="padding:6px">6. ' + (ok ? 'All the reading are within the specified accuracy limit ' + E(r.cls) + ' as per CQI-9 &amp; Calibration Status : Accepted' : '<b>Readings are NOT within the specified accuracy limit — Calibration Status : NOT ACCEPTED</b>') + '</td></tr></table>' + sig + foot + '</div>';
   return p1 + p2 + p3;
 }
 function hqPrintSatReportSel() {
@@ -9681,7 +9740,7 @@ html body #aamSearch:focus{box-shadow:inset 0 0 0 2px var(--aam-pri);background:
 #aamGrid .aam-tile:active{background:#eceef6}
 #aamGrid .aam-tile i{font-style:normal;width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:var(--aam-sc);color:var(--aam-onsc);font-size:17px;font-weight:700}
 #aamGrid .aam-tile.on i{background:var(--aam-pri);color:#fff}
-#aamGrid .aam-tile span{display:-webkit-box;-webkit-line-clamp:2;line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+#aamGrid .aam-tile span{display:-webkit-box;line-clamp:2;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .aam-empty{padding:28px 8px;text-align:center;color:var(--aam-var);font-size:14px}
 
 html body #aamMenu{position:fixed;top:calc(env(safe-area-inset-top,0px) + 8px);right:8px;z-index:9600;min-width:236px;max-width:calc(100vw - 16px);padding:8px 0;background:#fff;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.28);transform-origin:top right;transform:scale(.9);opacity:0;pointer-events:none;transition:transform .15s,opacity .15s;display:block;visibility:hidden}
@@ -13981,7 +14040,7 @@ html:not(.aam-tl) .mrw-panel.locked .mrg input:disabled,html:not(.aam-tl) .mrw-p
     var a=[];try{(data.tc||[]).forEach(function(r){var st=tcEffStatus(r);if(st==='Overdue'||st==='Due Soon'){a.push({r:r,st:st,n:tcDaysLeft(r)});}});}catch(e){return;}
     a.sort(function(x,y){return (x.n===null?9e9:x.n)-(y.n===null?9e9:y.n);});
     box.innerHTML=a.length?a.slice(0,8).map(function(x){var od=x.st==='Overdue',n=x.n;
-      return '<div class="dash-row"'+(od?' style="border-left:3px solid #b91c1c"':'')+' onclick="goDash(\'thermocouple\')" style="cursor:pointer"><span><b>'+esc(x.r.furnace||'')+'</b><br>'+esc(x.r.srid||'')+' \u2022 '+esc(x.r.loc||'')+'</span><span>'+esc(x.r.due||'')+'<br>'+(n===null?'':(od?'<b style="color:#b91c1c">Overdue '+(-n)+' din</b>':(n===0?'<b>Aaj due</b>':n+' din baaki')))+'</span></div>';}).join('')+(a.length>8?'<div class="dash-empty">+'+(a.length-8)+' aur - Thermocouple Plan me dekho</div>':''):'<div class="dash-empty">\u2713 Koi thermocouple overdue ya next 30 din me due nahi</div>';
+      return '<div class="dash-row" onclick="goDash(\'thermocouple\')" style="cursor:pointer;border-left:3px solid '+(od?'#b91c1c':'#f59e0b')+(od?'':';background:#fffbeb')+'"><span><b>'+esc(x.r.furnace||'')+'</b><br>'+esc(x.r.srid||'')+' \u2022 '+esc(x.r.loc||'')+'</span><span>'+esc(x.r.due||'')+'<br>'+(n===null?'':(od?'<b style="color:#b91c1c">Overdue '+(-n)+' din</b>':(n===0?'<b>Aaj due</b>':'<b style="color:#b45309">'+n+' din baaki</b>')))+'</span></div>';}).join('')+(a.length>8?'<div class="dash-empty">+'+(a.length-8)+' aur - Thermocouple Plan me dekho</div>':''):'<div class="dash-empty">\u2713 Koi thermocouple overdue ya next 30 din me due nahi</div>';
   }
   window.dashRefreshTC=paint;
   var rd=window.renderDashboard;if(typeof rd==='function')window.renderDashboard=function(){var r=rd.apply(this,arguments);try{paint();}catch(e){}return r;};
@@ -14017,6 +14076,8 @@ html:not(.aam-tl) .mrw-panel.locked .mrg input:disabled,html:not(.aam-tl) .mrw-p
      '<label>Naye TC ka Serial No. / ID<input id="tcm_srid" value="'+esc(r.srid||'')+'" placeholder="Nahi badla to wahi rehne do"></label>'+
      '<label>Naya Calibration Certificate No.<input id="tcm_cert" placeholder="optional"></label>'+
      '<label>Certificate Date<input id="tcm_certdate" type="date"></label>'+
+     '<label>Kisne badla (Technician)<input id="tcm_tech" placeholder="naam"></label>'+
+     '<label>Approved by<input id="tcm_appr" placeholder="naam"></label>'+
      '<label class="tcm-w">Note (optional)<input id="tcm_note" placeholder="jaise: Zone-2 TC burn ho gaya tha"></label>'+
      '</div><div class="tcm-act"><button class="primary" onclick="tcSaveReplaced('+i+')">💾 Save Replacement</button><button class="secondary" onclick="tcCloseModal()">Cancel</button></div>');
   };
@@ -14024,14 +14085,14 @@ html:not(.aam-tl) .mrw-panel.locked .mrg input:disabled,html:not(.aam-tl) .mrw-p
     var r=data.tc[i];if(!r)return;
     var d=G('tcm_date').value;if(!d)return alert('Replacement ki date chuno.');
     if(d>today()&&!confirm('Ye date aage ki hai. Phir bhi save karni hai?'))return;
-    applyThermocoupleReplacement(r.id,d,(G('tcm_srid').value||'').trim(),(G('tcm_note').value||'').trim(),{reason:G('tcm_reason').value,certNo:(G('tcm_cert').value||'').trim(),certDate:G('tcm_certdate').value});
+    applyThermocoupleReplacement(r.id,d,(G('tcm_srid').value||'').trim(),(G('tcm_note').value||'').trim(),{reason:G('tcm_reason').value,certNo:(G('tcm_cert').value||'').trim(),certDate:G('tcm_certdate').value,tech:(G('tcm_tech').value||'').trim(),appr:(G('tcm_appr').value||'').trim()});
     close();alert('Replacement save ho gaya.\nAgli Replacement Date: '+r.due);
   };
 
   /* ---------- History (ek furnace/TC ki) ---------- */
   function histRows(list,withFurnace){
     return list.map(function(x){
-      return '<tr><td>'+esc(fmtDate(x.date))+'</td>'+(withFurnace?'<td>'+esc(x.furnace||'')+'<br><small>'+esc(x.loc||'')+'</small></td>':'')+'<td>'+esc(x.reason||'—')+'</td><td>'+esc(x.oldSrid||'—')+(x.newSrid&&x.newSrid!==x.oldSrid?' → <b>'+esc(x.newSrid)+'</b>':'')+'</td><td>'+(x.newCertNo?esc(x.newCertNo)+(x.newCertDate?'<br><small>'+esc(fmtDate(x.newCertDate))+'</small>':''):'—')+'</td><td>'+esc(x.note||'')+'</td></tr>';
+      return '<tr><td>'+esc(fmtDate(x.date))+'</td>'+(withFurnace?'<td>'+esc(x.furnace||'')+'<br><small>'+esc(x.loc||'')+'</small></td>':'')+'<td>'+esc(x.reason||'—')+'</td><td>'+esc(x.oldSrid||'—')+(x.newSrid&&x.newSrid!==x.oldSrid?' → <b>'+esc(x.newSrid)+'</b>':'')+'</td><td>'+(x.newCertNo?esc(x.newCertNo)+(x.newCertDate?'<br><small>'+esc(fmtDate(x.newCertDate))+'</small>':''):'—')+'</td><td>'+esc(x.note||'')+(x.tech?'<br><small>By: '+esc(x.tech)+(x.appr?' • Appr: '+esc(x.appr):'')+'</small>':'')+'</td></tr>';
     }).join('');
   }
   window.tcShowHistory=function(i){
