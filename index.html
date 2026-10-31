@@ -4209,6 +4209,11 @@ function mmRemoveMachine(){
 <button onclick="MMS.selectAllPerms(true,false)">Save Only (No Delete)</button>
 <button onclick="MMS.deleteUserAccount()" style="background:#fdecea;color:#c0392b;border-color:#e6b3ad">🗑 Delete User</button>
 </div>
+<div class="mrw-admin-row"><b style="font-size:12px">🔧 Maintenance Request slip — is user ka kaam:</b>
+<select id="mmsPermMrTeam" title="Is user ko MR slip me kaun sa kaam milega"><option value="">MR Team: Auto (login role se)</option><option value="production">👷 Production (Step 1 + Verify)</option><option value="maintenance">🛠️ Maintenance (Step 2-3-4)</option><option value="both">👷🛠️ Dono (Supervisor)</option></select>
+<input id="mmsPermFullName" placeholder="Poora naam (slip par auto aayega)" style="min-width:190px">
+<input id="mmsPermEcode" placeholder="E-Code" style="min-width:90px">
+<button onclick="mrSaveUserProfile()">💾 Save MR Profile</button></div>
 <div id="mmsPermGrid" style="max-height:260px;overflow:auto;border:1px solid #ddd;border-radius:8px"></div>
 <button style="margin-top:8px" onclick="MMS.saveUserPerms()">💾 Save Module Access</button>
 </div>
@@ -13473,6 +13478,485 @@ html:not(.aam-tl) .ls-tag{background:#5c1f22;color:#ffb4ab}html:not(.aam-tl) .ls
 
   try { build(); sync(); paintLow(true); } catch (e) { console.warn('ls/mr ui init', e); }
   setInterval(function () { try { var s = G('mr'); if (s && s.classList.contains('active')) { build(); sync(); } } catch (e) { } }, 1500);
+})();
+</script>
+
+<style id="mr-wiz-css">
+/* ===== MR slip: 5-step wizard (v84) — har step me sirf uska kaam, kaun bharega + kab ===== */
+#mr.mrwiz .rolebar,#mr.mrwiz .rolehint,#mr.mrwiz #mrStepper,#mr.mrwiz .mrsec,#mr.mrwiz #mrSaveBtn{display:none!important}
+#mr.mrwiz .field.prodOnly:not(.mrw-hidden),#mr.mrwiz .field.maintOnly:not(.mrw-hidden){display:block!important}
+#mr.mrwiz .mrw-hidden{display:none!important}
+#mr.mrwiz .mrw-pick>label{display:block;font-size:13px!important;font-weight:800!important;color:#0f766e!important}
+.mrw-who{padding:12px;border:1px solid #cfdbe3;border-radius:12px;background:#f3f8fb;margin-bottom:10px;font-size:13px;line-height:1.5;color:#26323b}
+.mrw-me{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.mrw-me b{font-size:15px}
+.mrw-chip{font-size:11px;font-weight:800;padding:2px 9px;border-radius:999px;background:#e5ebee;color:#445}
+.mrw-chip.tm.production{background:#dbeafe;color:#1d4ed8}.mrw-chip.tm.maintenance{background:#ccfbf1;color:#0f766e}.mrw-chip.tm.both{background:#ede9fe;color:#6d28d9}
+.mrw-tx{margin-top:6px}
+.mrw-mode{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}
+.mrw-mode span{font-size:12px;font-weight:700}
+.mrw-mode button{padding:9px 14px;border-radius:10px;border:2px solid #cbd7de;background:#fff;font-weight:700;color:#334;cursor:pointer}
+.mrw-mode button.on{border-color:#0f766e;background:#0f766e;color:#fff}
+.mrw-src{margin-top:7px;font-size:11.5px;color:#65727d}
+.mrw-link{background:none!important;border:0!important;padding:0!important;color:#1d4ed8;text-decoration:underline;font-weight:700;cursor:pointer;font-size:inherit;box-shadow:none!important}
+.mrw-nav{display:flex;align-items:flex-start;margin:0 0 10px;padding:10px 4px;background:#fff;border:1px solid #d6e0e6;border-radius:12px;scroll-margin-top:120px}
+.mrw-tab{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:0;padding:4px 2px;cursor:pointer;font-family:inherit;border-radius:10px;color:#334}
+.mrw-tab i{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font:700 14px Arial;font-style:normal;background:#e5ebee;color:#667}
+.mrw-tab span{font-size:11px;font-weight:700;color:#778;text-align:center;line-height:1.15}
+.mrw-tab small{font-size:12px;line-height:1}
+.mrw-nav u{flex:0 0 8px;height:3px;background:#dfe6ea;margin-top:19px;text-decoration:none;border-radius:2px}
+.mrw-tab.done i{background:#15803d;color:#fff}.mrw-tab.done span{color:#15803d}
+.mrw-tab.now i{background:var(--sc,#0f766e);color:#fff;box-shadow:0 0 0 4px rgba(15,118,110,.2)}.mrw-tab.now span{color:var(--sc,#0f766e)}
+.mrw-tab.sel{background:rgba(37,99,235,.09);outline:2px solid rgba(37,99,235,.35)}
+.mrw-tab.cancel i{background:#9ca3af;color:#fff}
+.mrw-panel{display:none;background:#fff;border:1px solid #d6e0e6;border-left:5px solid var(--sc,#0f766e);border-radius:12px;overflow:hidden}
+.mrw-panel.show{display:block}
+.mrw-head{display:flex;gap:10px;align-items:flex-start;padding:11px 12px;border-bottom:1px solid #e3eaee;background:#f3f8f7;background:color-mix(in srgb,var(--sc) 9%,#fff)}
+.mrw-n{width:30px;height:30px;border-radius:50%;background:var(--sc);color:#fff;display:grid;place-items:center;font:700 14px Arial;flex:0 0 auto}
+.mrw-head>div{flex:1;min-width:0}
+.mrw-head b{display:block;font-size:15px;color:#17232d}
+.mrw-head small{display:block;font-size:11.5px;color:#53616b;margin-top:2px;line-height:1.4}
+.mrw-tags{display:flex;flex-direction:column;gap:4px;align-items:flex-end}
+.mrw-tags em{font-style:normal;font-size:9.5px;font-weight:800;letter-spacing:.4px;color:#fff;background:var(--sc);border-radius:999px;padding:3px 8px;white-space:nowrap}
+.mrw-tags em.lock{background:#6b7280}
+.mrw-tags em:empty{display:none}
+.mrw-tip{padding:9px 12px;font-size:12.5px;color:#4a3b00;background:#fffbeb;border-bottom:1px dashed #e6d9a5;line-height:1.45}
+.mrw-lock{margin:12px 12px 0;padding:10px 12px;font-size:12.5px;color:#7a2e0e;background:#fff4ed;border:1px solid #f2c4a8;border-radius:10px;line-height:1.5}
+.mrw-lock button{margin-top:6px;display:block}
+.mrw-body{padding:12px;display:grid;gap:12px}
+.mrw-grp{border:1px solid #e3eaee;border-radius:10px;padding:10px}
+.mrw-gh{font-size:12px;font-weight:800;color:var(--sc);margin-bottom:8px;letter-spacing:.2px}
+.mrg{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.mrg>.field{min-width:0}
+.mrg>.mrw,.mrg>.mrpri,.mrg>.mrtimes{grid-column:1/-1}
+.mrhint{display:block;font-size:11px;color:#6b7a86;margin-top:3px;line-height:1.35;font-weight:400}
+.mrreq{color:#dc2626;font-weight:800}
+.mrw-panel.locked .mrg input:disabled,.mrw-panel.locked .mrg select:disabled,.mrw-panel.locked .mrg textarea:disabled{background:#f1f4f6;color:#56636d;opacity:.9}
+.mrw-actions{display:flex;flex-wrap:wrap;gap:8px;padding:0 12px 12px;align-items:center}
+.mrw-actions button{padding:12px 14px;font-weight:700;border-radius:10px;flex:1 1 190px}
+.mrw-actions:empty{display:none}
+.mrw-acts{display:flex;flex-wrap:wrap;gap:8px;padding-top:10px}.mrw-acts button{padding:12px 14px;font-weight:700;border-radius:10px;flex:1 1 190px}
+.mrw-done{font-size:13px;font-weight:700;color:#15803d;padding:6px 2px}
+.mrw-foot{display:flex;justify-content:space-between;gap:8px;padding:10px 12px;border-top:1px solid #e3eaee;background:#f7fafb}
+.mrw-foot button{padding:9px 14px;border-radius:10px;font-weight:700}
+.mrw-foot button:only-child{margin-left:auto}
+.mrw-sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+.mrw-sum div{padding:8px 10px;border:1px solid #e3eaee;border-radius:10px;background:#f8fbfc}
+.mrw-sum small{display:block;font-size:10.5px;font-weight:700;color:#65727d}
+.mrw-sum b{font-size:13px;color:#17232d;white-space:pre-wrap;word-break:break-word}
+.mrw-sum .wide2{grid-column:1/-1}
+.mrw-empty,.mrw-msg{padding:12px;border-radius:10px;font-size:13px;line-height:1.5}
+.mrw-empty{background:#fffbeb;border:1px dashed #d9b44a;color:#7a5b00;text-align:center}
+.mrw-msg{background:#eef6ff;border:1px solid #bfd6f6;color:#17324d}
+.mrw-msg.ok{background:#ecfdf3;border-color:#a7e3bf;color:#14532d}
+.mrw-msg.warn{background:#fff7e6;border-color:#f2d08a;color:#7a4a00}
+@media(max-width:520px){
+  .mrg{grid-template-columns:1fr 1fr}
+  .mrw-tab span{font-size:10px}.mrw-tab i{width:26px;height:26px;font-size:12px}.mrw-nav u{margin-top:17px;flex-basis:3px}
+  .mrw-actions button{flex:1 1 100%}
+  .mrw-tags{display:none}
+}
+/* dark navy theme (baaki modules jaisa) */
+html:not(.aam-tl) .mrw-who,html:not(.aam-tl) .mrw-nav,html:not(.aam-tl) .mrw-panel{background:linear-gradient(160deg,#18385c,#0e2238)!important;border:1px solid rgba(255,255,255,.16)!important;color:#e6f0fa!important;box-shadow:0 6px 18px rgba(5,15,30,.35)}
+html:not(.aam-tl) .mrw-panel{border-left:5px solid var(--sc)!important}
+html:not(.aam-tl) .mrw-me b,html:not(.aam-tl) .mrw-head b,html:not(.aam-tl) .mrw-sum b{color:#fff}
+html:not(.aam-tl) .mrw-head{background:rgba(255,255,255,.06)!important;border-bottom:1px solid rgba(255,255,255,.14)}
+html:not(.aam-tl) .mrw-head small,html:not(.aam-tl) .mrw-src,html:not(.aam-tl) .mrhint,html:not(.aam-tl) .mrw-sum small{color:#9fc0e0}
+html:not(.aam-tl) .mrw-chip{background:#1d4467;color:#cfe6fb}
+html:not(.aam-tl) .mrw-chip.tm.production{background:#1e3a8a;color:#bfdbfe}html:not(.aam-tl) .mrw-chip.tm.maintenance{background:#115e59;color:#99f6e4}html:not(.aam-tl) .mrw-chip.tm.both{background:#4c1d95;color:#ddd6fe}
+html:not(.aam-tl) .mrw-mode button{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.22);color:#e6f0fa}
+html:not(.aam-tl) .mrw-mode button.on{background:#0f766e;border-color:#2dd4bf;color:#fff}
+html:not(.aam-tl) .mrw-link{color:#7dd3fc}
+html:not(.aam-tl) .mrw-tab{color:#cfe6fb}html:not(.aam-tl) .mrw-tab i{background:#1d4467;color:#cfe6fb}html:not(.aam-tl) .mrw-tab span{color:#9fc0e0}
+html:not(.aam-tl) .mrw-nav u{background:#2a4a6b}
+html:not(.aam-tl) .mrw-tab.done i{background:#34d399;color:#06281c}html:not(.aam-tl) .mrw-tab.done span{color:#6ee7b7}
+html:not(.aam-tl) .mrw-tab.now i{background:#7dd3fc;color:#06223a;box-shadow:0 0 0 4px rgba(125,211,252,.28)}html:not(.aam-tl) .mrw-tab.now span{color:#7dd3fc}
+html:not(.aam-tl) .mrw-tab.sel{background:rgba(125,211,252,.12);outline:2px solid rgba(125,211,252,.55)}
+html:not(.aam-tl) .mrw-n,html:not(.aam-tl) .mrw-tags em{color:#06223a}
+html:not(.aam-tl) .mrw-tags em.lock{background:#9ca3af}
+html:not(.aam-tl) .mrw-tip{background:rgba(251,191,36,.12);border-bottom:1px dashed rgba(251,191,36,.5);color:#ffe3a3}
+html:not(.aam-tl) .mrw-lock{background:rgba(248,113,113,.12);border-color:rgba(248,113,113,.45);color:#ffc9c2}
+html:not(.aam-tl) .mrw-grp{border-color:rgba(255,255,255,.16)}
+html:not(.aam-tl) .mrw-gh{color:var(--sc)}
+html:not(.aam-tl) .mrw-foot{background:rgba(255,255,255,.04);border-top:1px solid rgba(255,255,255,.14)}
+html:not(.aam-tl) .mrw-sum div{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.16)}
+html:not(.aam-tl) .mrw-empty{background:rgba(251,191,36,.12);border-color:#fbbf24;color:#ffd180}
+html:not(.aam-tl) .mrw-msg{background:rgba(125,211,252,.1);border-color:rgba(125,211,252,.4);color:#d6ecff}
+html:not(.aam-tl) .mrw-msg.ok{background:rgba(52,211,153,.12);border-color:rgba(52,211,153,.45);color:#b9f0d5}
+html:not(.aam-tl) .mrw-msg.warn{background:rgba(251,191,36,.12);border-color:rgba(251,191,36,.45);color:#ffe3a3}
+html:not(.aam-tl) .mrw-done{color:#6ee7b7}
+html:not(.aam-tl) #mr.mrwiz .mrw-pick>label{color:#5eead4!important}
+html:not(.aam-tl) .mrw-panel.locked .mrg input:disabled,html:not(.aam-tl) .mrw-panel.locked .mrg select:disabled,html:not(.aam-tl) .mrw-panel.locked .mrg textarea:disabled{background:rgba(255,255,255,.05);color:#b8cbdd}
+.mrw-admin-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 10px;padding:8px;border:1px dashed #9db4c8;border-radius:8px}
+</style>
+<script type="text/mms-defer" id="mr-wizard">
+(function () {
+  'use strict';
+  if (window.__mrWiz) return; window.__mrWiz = 1;
+  var G = function (id) { return document.getElementById(id); };
+  var E = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  var USERS_K = 'htp_mms_users_v1';
+  var TEAM_LBL = { production: '👷 Production', maintenance: '🛠️ Maintenance', both: '👷🛠️ Production + Maintenance' };
+
+  /* ============ STEPS: kaun bharta hai, kab, aur kaun si fields ============ */
+  var STEPS = [
+    { n: 1, short: 'Request', title: 'Request Likho', own: 'production', ic: '👷', who: '👷 Production bharega', when: 'Kab: machine kharab hote hi / kaam ki zaroorat par', color: '#2563eb',
+      tip: 'Machine chuno, problem likho, phir <b>Save</b> dabao. Priority <b>Breakdown</b> tab chuno jab machine ruki hui ho.',
+      groups: [{ h: 'A. Priority & Time', ids: ['mrPriChips', 'mr_sr', 'mr_pdate', 'mr_ptime'] }, { h: 'B. Kaun si Machine', ids: ['mr_machine_no', 'mr_machine', 'mr_section', 'mr_grade', 'mr_make'] }, { h: 'C. Request kisne di', ids: ['mr_req_by', 'mr_req_code', 'mr_prod_sign'] }, { h: 'D. Problem kya hai', ids: ['mr_problem'] }] },
+    { n: 2, short: 'Accept', title: 'Accept — Kaam Shuru', own: 'maintenance', ic: '🛠️', who: '🛠️ Maintenance bharega', when: 'Kab: request milte hi, kaam shuru karne se pehle', color: '#0f766e',
+      tip: 'Apna naam bharo, phir <b>▶ Kaam Shuru Karo</b> dabao — start date / time khud bhar jayega.',
+      groups: [{ h: 'A. Request kisne li', ids: ['mr_recv_by', 'mr_recv_code'] }, { h: 'B. Kaam kab shuru hua', ids: ['mr_mdate', 'mr_mtime'] }, { h: 'C. Signature', ids: ['mr_maint_sign'] }, { h: 'Admin only — status override', ids: ['mr_status'], admin: true }] },
+    { n: 3, short: 'Repair', title: 'Repair Report', own: 'maintenance', ic: '🛠️', who: '🛠️ Maintenance bharega', when: 'Kab: kaam ke dauran aur kaam khatam hone par', color: '#7c3aed',
+      tip: 'Jo dekha, jo kiya aur jo spare lagaya woh likho. Beech me <b>💾 Progress Save</b> kar sakte ho — status wahi rahega.',
+      groups: [{ h: 'A. Kya dekha (Observation)', ids: ['mr_observation'] }, { h: 'B. Kya kiya (Action Taken)', ids: ['mr_action'] }, { h: 'C. Spare Part & Cost', ids: ['mr_spare', 'mr_maint_cost'] }] },
+    { n: 4, short: 'Handover', title: 'Handover — Machine Wapas', own: 'maintenance', ic: '🛠️', who: '🛠️ Maintenance bharega (Production Supervisor ka naam likhega)', when: 'Kab: machine Production ko wapas dete waqt', color: '#15803d',
+      tip: 'Machine wapas dene par <b>✅ Work Done</b> dabao. Handover time khud aayega; Machine History Card aur Breakdown report apne aap update honge.',
+      groups: [{ h: 'A. Handover Date / Time', ids: ['mr_hdate', 'mr_htime', 'mrTimes'] }, { h: 'B. Signature', ids: ['mr_hprod_sign', 'mr_hmaint_sign'] }, { h: 'C. Total Time & History Card', ids: ['mr_duration', 'mr_history', 'mr_history_by'] }] },
+    { n: 5, short: 'Verify', title: 'Verify & Close', own: 'production', ic: '👷', who: '👷 Production karega', when: 'Kab: maintenance ke "Work Done" karne ke baad', color: '#b45309',
+      tip: 'Machine chala kar check karo — theek ho to <b>✔ Verify & Close</b>, theek na ho to <b>↩ Reopen</b>.',
+      groups: [] }
+  ];
+  var HINT = {
+    mr_sr: 'Auto number', mr_pdate: 'Aaj ki date (auto) — badal sakte ho', mr_ptime: 'Abhi ka time (auto) — badal sakte ho',
+    mr_machine_no: 'Dropdown se machine chuno — baaki details khud bhar jayengi',
+    mr_req_by: 'Jo request de raha hai uska naam', mr_req_code: 'Request dene wale ka E-Code', mr_prod_sign: 'Production Shift Supervisor ka naam / sign',
+    mr_problem: 'Saaf likho: kya kharab hai, kab se, koi awaaz / alarm?',
+    mr_recv_by: 'Jo maintenance wala kaam karega uska naam', mr_recv_code: 'Maintenance wale ka E-Code',
+    mr_mdate: 'Auto — "Kaam Shuru Karo" dabate hi bhar jayegi', mr_mtime: 'Auto — "Kaam Shuru Karo" dabate hi bhar jayega',
+    mr_maint_sign: 'Maintenance Shift Supervisor / Engineer ka naam',
+    mr_observation: 'Machine me kya kharabi mili (kaam ke dauran likho)',
+    mr_action: 'Kya repair / badlav kiya — "Work Done" ke liye zaroori',
+    mr_spare: 'Jo spare use hua woh chuno — stock apne aap kam hoga', mr_maint_cost: 'Optional',
+    mr_hdate: 'Auto — "Work Done" dabate hi bhar jayegi', mr_htime: 'Auto — "Work Done" dabate hi bhar jayega',
+    mr_hprod_sign: 'Machine lene wale Production Supervisor ka naam', mr_hmaint_sign: 'Machine dene wale Maintenance Engineer ka naam',
+    mr_duration: 'Auto — kaam shuru se handover tak', mr_history: 'Work Done par History Card entry apne aap ho jati hai', mr_history_by: 'Kisne History Card update kiya',
+    mr_status: 'Normal flow me ye buttons se badalta hai — sirf Admin manually badal sakta hai'
+  };
+  var REQ = ['mr_pdate', 'mr_machine_no', 'mr_req_by', 'mr_problem', 'mr_recv_by', 'mr_action'];
+  var built = false, view = 1, lastCtx = null, filledKey = '';
+
+  /* ============ identity: app kaise jaanta hai kaun kaun hai ============ */
+  function sess() { try { return mmsSession(); } catch (e) { return null; } }
+  function urec() { try { return mmsCurrentUserRecord(); } catch (e) { return null; } }
+  function localProf(u) { try { return JSON.parse(localStorage.getItem('htp7_mr_profile_' + u) || 'null') || {}; } catch (e) { return {}; } }
+  function isAdmin() { var s = sess(); return !!(s && s.role === 'Admin'); }
+  function teamOf() {
+    var s = sess(); if (!s) return 'both';
+    var rec = urec(), t = rec && rec.mrTeam;
+    if (t === 'production' || t === 'maintenance' || t === 'both') return t;
+    var r = String(s.role || '');
+    if (r === 'Admin') return 'both';
+    if (r === 'Operator') return 'production';
+    if (r === 'Technician') return 'maintenance';
+    if (/maint|techn|fitter|electri|mechan/i.test(r)) return 'maintenance';
+    if (/produc|operat/i.test(r)) return 'production';
+    return 'both';
+  }
+  function teamSource() {
+    var s = sess(), rec = urec(); if (!s) return '';
+    if (rec && rec.mrTeam) return 'Admin ne aapki MR Team set ki hai.';
+    if (s.role === 'Admin') return 'Admin hone ki wajah se aap dono kaam kar sakte ho.';
+    return 'Login role "' + E(s.role) + '" se team apne aap pehchani gayi. Admin chahe to Manage Users → Module Access me badal sakta hai.';
+  }
+  function profile() {
+    var s = sess(); if (!s) return { name: '', code: '' };
+    var rec = urec() || {}, lp = localProf(s.u);
+    return { name: rec.fullName || lp.name || '', code: rec.ecode || lp.code || '' };
+  }
+
+  /* ============ record helpers ============ */
+  function rec() { try { return (edit.mr !== null && edit.mr !== undefined && data.mr[edit.mr]) ? data.mr[edit.mr] : null; } catch (e) { return null; } }
+  function mins(d1, t1, d2, t2) { try { var a = dateTimeMinutes(d1, t1), b = dateTimeMinutes(d2, t2); if (a === null || b === null || b < a) return null; return Math.round(b - a); } catch (e) { return null; } }
+  function hm(m) { if (m === null || m === undefined) return '--:--'; var p = function (n) { return (n < 10 ? '0' : '') + n; }; return p(Math.floor(m / 60)) + ':' + p(m % 60); }
+  function fd(d) { try { return d ? fmtDate(d) : ''; } catch (e) { return d || ''; } }
+  function setHTML(el, h) { if (el && el.__h !== h) { el.innerHTML = h; el.__h = h; } }
+  function fieldOf(id) { var e = G(id); return e ? (e.classList.contains('field') ? e : e.closest('.field')) : null; }
+  function btn(cls, act, txt, v) { return '<button type="button" class="' + cls + '" data-act="' + act + '"' + (v ? ' data-v="' + v + '"' : '') + '>' + txt + '</button>'; }
+
+  function progOf(r) {
+    if (!r) return 1;
+    var st = r.status || 'Open';
+    if (st === 'Cancelled') return -1;
+    if (st === 'Closed') return 6;
+    if (st === 'Work Done') return 5;
+    if (st === 'In Progress' || st === 'Waiting for Spare') return (r.action && String(r.action).trim()) ? 4 : 3;
+    return 2;
+  }
+  function recView(r) {
+    if (!r) return mrRole === 'maintenance' ? 2 : 1;
+    var p = progOf(r);
+    if (p === -1 || p === 6) return 5;
+    if (mrRole === 'production' && p === 2) return 1;
+    return p;
+  }
+
+  /* kis step ke fields abhi editable hain? null = editable, warna reason */
+  function lockInfo(n) {
+    var S = STEPS[n - 1]; if (n === 5) return { view: true };
+    var r = rec(), st = r ? (r.status || 'Open') : '', admin = isAdmin(), t = teamOf();
+    if (S.own === 'production') {
+      if (mrRole !== 'production') return { msg: t === 'both' ? 'Ye step Production ka hai. Bharne ke liye Production mode chuno.' : 'Ye step Production team ka hai — aap sirf dekh sakte ho.', need: t === 'both' ? 'production' : null };
+      if (r && st !== 'Open' && !admin) return { msg: 'Maintenance ne request accept kar li hai (status: ' + st + '). Ab Production isme badlav nahi kar sakta.' };
+      return null;
+    }
+    if (mrRole !== 'maintenance') return { msg: t === 'both' ? 'Ye step Maintenance ka hai. Bharne ke liye Maintenance mode chuno.' : 'Ye step Maintenance team ka hai — aap sirf dekh sakte ho.', need: t === 'both' ? 'maintenance' : null };
+    if (!r) return { msg: 'Pehle upar dropdown se ek request chuno (ya neeche register me ▶ Take dabao).' };
+    if (!admin) {
+      if (st === 'Closed' || st === 'Cancelled') return { msg: 'Request "' + st + '" ho chuki hai — ab badlav nahi ho sakta.' };
+      if (st === 'Work Done') return { msg: 'Work Done ho chuka hai. Ab Production verify karega (kuch galat ho to wo ↩ Reopen karega).' };
+    }
+    if (n >= 3 && st === 'Open') return { msg: 'Pehle Step 2 me "▶ Kaam Shuru Karo" dabao, phir ye step khulega.', go: 2 };
+    return null;
+  }
+
+  /* ============ build: fields ko step panels me rakhna (IDs same rehti hain) ============ */
+  function build() {
+    if (built) return;
+    var sec = G('mr'), old1 = G('mrSec1'); if (!sec || !old1) return;
+    var form = sec.querySelector('.card > .form'); if (!form) return;
+    built = true; sec.classList.add('mrwiz');
+
+    var root = document.createElement('div'); root.id = 'mrWiz'; root.style.gridColumn = '1 / -1';
+    root.innerHTML = '<div id="mrWizWho" class="mrw-who"></div><div id="mrWizNav" class="mrw-nav"></div>';
+    STEPS.forEach(function (S) {
+      var p = document.createElement('div'); p.className = 'mrw-panel'; p.id = 'mrWizP' + S.n; p.style.setProperty('--sc', S.color);
+      p.innerHTML = '<div class="mrw-head"><span class="mrw-n">' + S.n + '</span><div><b>' + E(S.title) + '</b><small>' + E(S.who) + ' • ' + E(S.when) + '</small></div><div class="mrw-tags"><em class="t-now"></em><em class="t-own"></em></div></div>' +
+        '<div class="mrw-tip">💡 ' + S.tip + '</div><div class="mrw-note"></div><div class="mrw-body"></div><div class="mrw-actions"></div>' +
+        '<div class="mrw-foot">' + (S.n > 1 ? '<button type="button" class="secondary" data-go="-1">⬅ Pichla Step</button>' : '') + (S.n < 5 ? '<button type="button" class="secondary" data-go="1">Agla Step ➜</button>' : '') + '</div>';
+      var body = p.querySelector('.mrw-body');
+      if (S.n === 5) { body.innerHTML = '<div id="mrW5"></div>'; }
+      S.groups.forEach(function (g) {
+        var gd = document.createElement('div'); gd.className = 'mrw-grp'; if (g.admin) gd.setAttribute('data-admin', '1');
+        gd.innerHTML = '<div class="mrw-gh">' + E(g.h) + '</div><div class="mrg"></div>';
+        var grid = gd.querySelector('.mrg');
+        g.ids.forEach(function (id) {
+          var el = id.indexOf('mr_') === 0 ? fieldOf(id) : G(id); if (!el) return;
+          if (el.classList.contains('wide')) el.classList.add('mrw');
+          grid.appendChild(el);
+          if (id.indexOf('mr_') === 0) {
+            var lb = el.querySelector('label');
+            if (lb && REQ.indexOf(id) >= 0 && !lb.querySelector('.mrreq')) lb.insertAdjacentHTML('beforeend', ' <b class="mrreq">*</b>');
+            if (HINT[id] && !el.querySelector('.mrhint')) { var h = document.createElement('small'); h.className = 'mrhint'; h.textContent = HINT[id]; el.appendChild(h); }
+          }
+        });
+        body.appendChild(gd);
+      });
+      root.appendChild(p);
+    });
+    form.insertBefore(root, form.firstChild);
+
+    var lab = document.querySelector('#mr .maintOnly > label'); if (lab) { lab.textContent = '① Kaun si request par kaam karna hai? (Open / In Progress / Waiting)'; if (lab.parentNode) lab.parentNode.classList.add('mrw-pick'); }
+
+    root.addEventListener('click', function (ev) {
+      var b = ev.target.closest('[data-act],[data-go],[data-step]'); if (!b || b.disabled) return;
+      if (b.hasAttribute('data-step')) return goStep(+b.getAttribute('data-step'), true);
+      if (b.hasAttribute('data-go')) return goStep(view + (+b.getAttribute('data-go')), true);
+      var a = b.getAttribute('data-act'); if (ACT[a]) ACT[a](b);
+    });
+    sec.addEventListener('input', debounced); sec.addEventListener('change', debounced);
+  }
+  var tm = null; function debounced() { clearTimeout(tm); tm = setTimeout(sync, 150); }
+
+  function goStep(n, scroll) {
+    view = Math.max(1, Math.min(5, n)); sync();
+    if (scroll) { var nv = G('mrWizNav'); if (nv && nv.scrollIntoView) nv.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  }
+  function reopen(idx) {
+    try { var s = G('mr_select_existing'); if (s) s.value = String(idx); loadMaintenanceRequest(String(idx)); } catch (e) { }
+    setTimeout(sync, 30);
+  }
+  function focusId(id) { var e = G(id); if (e && !e.disabled) { try { e.focus(); } catch (x) { } } }
+
+  /* ============ buttons ============ */
+  var ACT = {
+    mode: function (b) { setMRRole(b.getAttribute('data-v')); },
+    profile: function () {
+      var s = sess(); if (!s) return; var p = profile();
+      var nm = prompt('Apna poora naam likho (slip par apne aap aayega):', p.name); if (nm === null) return;
+      var cd = prompt('Apna E-Code likho:', p.code); if (cd === null) return;
+      try { localStorage.setItem('htp7_mr_profile_' + s.u, JSON.stringify({ name: nm.trim(), code: cd.trim() })); } catch (e) { }
+      filledKey = ''; sync();
+    },
+    save1: function () { if (mrRole !== 'production') return alert('Pehle Production mode chuno.'); var b = G('mrSaveBtn'); if (b) b.click(); },
+    clear: function () { clearMR(); var s = G('mr_select_existing'); if (s) s.value = ''; setTimeout(sync, 30); },
+    start: function () { window.mrFlow('start'); },
+    wait: function () { window.mrFlow('wait'); },
+    done: function () { window.mrFlow('done'); },
+    keep: function () {
+      var idx = edit.mr; if (idx === null || !data.mr[idx]) return alert('Pehle request chuno.');
+      if (!f('mr_recv_by').trim()) { goStep(2); focusId('mr_recv_by'); return alert('Pehle Step 2 me "Request Received By" bharo.'); }
+      window.__mrExtra = null; var b = G('mrSaveBtn'); if (b) b.click();
+      if (edit.mr === null && data.mr[idx]) reopen(idx);
+    },
+    verify: function () { var i = edit.mr; if (i === null || !data.mr[i]) return; window.mrVerify(i); reopen(i); },
+    reopen: function () { var i = edit.mr; if (i === null || !data.mr[i]) return; window.mrReopen(i); reopen(i); }
+  };
+
+  /* mrFlow ko step-aware banao: galat step par ho to sahi step par le jao, aur kaam ke baad wahi request khuli rakho */
+  var _flow = window.mrFlow;
+  if (typeof _flow === 'function') window.mrFlow = function (kind) {
+    var idx = edit.mr;
+    if (mrRole === 'maintenance' && idx !== null && data.mr[idx]) {
+      if (!f('mr_recv_by').trim()) { goStep(2); focusId('mr_recv_by'); return alert('Request Received By (Employee Name) bharo.'); }
+      if (kind === 'done' && !f('mr_action').trim()) { goStep(3); focusId('mr_action'); return alert('Work Done ke liye "Action Taken" bharna zaroori hai (Step 3).'); }
+    }
+    var out = _flow.apply(this, arguments);
+    if (idx !== null && edit.mr === null && data.mr[idx]) reopen(idx);
+    return out;
+  };
+
+  /* team lock: Production wale ko sirf Production mode, Maintenance wale ko sirf Maintenance mode */
+  var _setRole = window.setMRRole;
+  window.setMRRole = function (role) {
+    var t = teamOf(); if (t === 'production') role = 'production'; else if (t === 'maintenance') role = 'maintenance';
+    var o = _setRole.call(this, role); setTimeout(sync, 30); return o;
+  };
+  function enforceTeam() {
+    var t = teamOf();
+    try { if (t === 'production' && mrRole !== 'production') window.setMRRole('production'); else if (t === 'maintenance' && mrRole !== 'maintenance') window.setMRRole('maintenance'); } catch (e) { }
+  }
+
+  /* naam / E-Code apne aap bharna (ek record par ek baar) */
+  function autofill(r) {
+    var key = mrRole + '|' + (edit.mr === null ? 'new' : edit.mr) + '|' + f('mr_sr');
+    if (key === filledKey) return; filledKey = key;
+    var p = profile(); if (!p.name && !p.code) return;
+    if (mrRole === 'production' && edit.mr === null) {
+      if (!f('mr_req_by') && p.name) setv('mr_req_by', p.name);
+      if (!f('mr_req_code') && p.code) setv('mr_req_code', p.code);
+    } else if (mrRole === 'maintenance' && r && ['Open', 'In Progress', 'Waiting for Spare'].indexOf(r.status || 'Open') >= 0) {
+      if (!f('mr_recv_by') && p.name) setv('mr_recv_by', p.name);
+      if (!f('mr_recv_code') && p.code) setv('mr_recv_code', p.code);
+    }
+  }
+
+  /* ============ render pieces ============ */
+  function whoHTML() {
+    var s = sess();
+    if (!s) return '<div class="mrw-me">🔐 Pehle login karo — login se app pehchanta hai ki aap Production ke ho ya Maintenance ke.</div>';
+    var p = profile(), t = teamOf();
+    var h = '<div class="mrw-me"><b>👤 ' + E(p.name || s.u) + '</b><span class="mrw-chip">' + E(s.role) + '</span><span class="mrw-chip tm ' + t + '">' + TEAM_LBL[t] + '</span></div>';
+    var tx = t === 'production' ? 'Aap <b>Production</b> team se ho → <b>Step 1</b> (Request) aap bharoge aur <b>Step 5</b> (Verify &amp; Close) aap karoge. Step 2-3-4 Maintenance bharega.'
+      : t === 'maintenance' ? 'Aap <b>Maintenance</b> team se ho → <b>Step 2, 3, 4</b> (Accept, Repair, Handover) aap bharoge. Step 1 aur Step 5 Production ke hain.'
+        : 'Aap dono kaam kar sakte ho. Neeche chuno ki abhi kaun sa kaam kar rahe ho:';
+    h += '<div class="mrw-tx">' + tx + '</div>';
+    if (t === 'both') h += '<div class="mrw-mode"><span>Abhi main:</span>' + btn(mrRole === 'production' ? 'on' : '', 'mode', '👷 Production hoon', 'production') + btn(mrRole === 'maintenance' ? 'on' : '', 'mode', '🛠️ Maintenance hoon', 'maintenance') + '</div>';
+    h += '<div class="mrw-src">' + teamSource() + ' • ' + btn('mrw-link', 'profile', p.name ? '✏️ Naam / E-Code badlo' : '✏️ Apna naam / E-Code set karo (slip par auto bharega)') + '</div>';
+    return h;
+  }
+  function stepState(n, prog) {
+    if (prog === -1) return 'todo cancel';
+    if (n < prog) return 'done';
+    return n === prog ? 'now' : 'todo';
+  }
+  function navHTML(prog) {
+    return STEPS.map(function (S) {
+      var cl = stepState(S.n, prog);
+      return '<button type="button" class="mrw-tab ' + cl + (view === S.n ? ' sel' : '') + '" data-step="' + S.n + '" style="--sc:' + S.color + '"><i>' + (cl === 'done' ? '✔' : S.n) + '</i><span>' + E(S.short) + '</span><small>' + S.ic + '</small></button>';
+    }).join('<u></u>');
+  }
+  function actionsFor(n, r, st, lock) {
+    if (lock) return '';
+    var b = [];
+    if (n === 1) { b.push(btn('primary', 'save1', '💾 ' + (r ? 'Request Update Karo' : 'Request Save Karo'))); b.push(btn('secondary', 'clear', '🆕 Clear / Nayi Request')); }
+    if (n === 2) {
+      if (st === 'Open') { b.push(btn('primary', 'start', '▶ Kaam Shuru Karo (Accept)')); b.push(btn('secondary', 'wait', '⏳ Spare ka intezaar')); }
+      else if (st === 'Waiting for Spare') b.push(btn('primary', 'start', '▶ Kaam Dobara Shuru Karo'));
+      else { b.push('<span class="mrw-done">✔ Kaam shuru ho chuka hai — ab Step 3 (Repair Report) bharo.</span>'); b.push(btn('secondary', 'keep', '💾 Update Save')); }
+    }
+    if (n === 3) {
+      b.push(btn('primary', 'keep', '💾 Progress Save (status wahi rahega)'));
+      if (st === 'In Progress') b.push(btn('secondary', 'wait', '⏳ Spare ka intezaar'));
+      if (st === 'Waiting for Spare') b.push(btn('secondary', 'start', '▶ Kaam Dobara Shuru'));
+    }
+    if (n === 4) b.push(btn('primary', 'done', '✅ Work Done — Machine Handover'));
+    return b.join('');
+  }
+  function step5HTML(r, st) {
+    if (!r) return '<div class="mrw-empty">Abhi koi request khuli nahi hai.<br>Production: register me request ka <b>Edit</b> dabao. Maintenance: upar dropdown se request chuno ya register me <b>▶ Take</b> dabao.</div>';
+    var sp = ''; try { sp = formatSpareParts(legacySpareParts(r)); } catch (e) { }
+    var item = function (l, v, w) { return '<div' + (w ? ' class="wide2"' : '') + '><small>' + l + '</small><b>' + E(v || '—') + '</b></div>'; };
+    var h = '<div class="mrw-sum">' + item('Machine', (r.machine || '') + (r.machineNo ? ' (' + r.machineNo + ')' : '')) + item('Request kisne di', (r.reqBy || '') + (r.reqCode ? ' (' + r.reqCode + ')' : '')) +
+      item('Problem', r.problem, 1) + item('Kaam kisne kiya', (r.recvBy || '') + (r.recvCode ? ' (' + r.recvCode + ')' : '')) + item('Kaam shuru', (fd(r.mdate) + ' ' + (r.mtime || '')).trim()) +
+      item('Action Taken', r.action, 1) + item('Spare Used', sp, 1) + item('Handover', (fd(r.hdate) + ' ' + (r.htime || '')).trim()) + '</div>' +
+      '<div class="mrtimes" style="margin-top:8px"><div><small>Response</small><b>' + hm(mins(r.pdate, r.ptime, r.mdate, r.mtime)) + '</b></div><div><small>Fix time</small><b>' + hm(mins(r.mdate, r.mtime, r.hdate, r.htime)) + '</b></div><div><small>Total downtime</small><b>' + hm(mins(r.pdate, r.ptime, r.hdate, r.htime)) + '</b></div></div>';
+    var t = teamOf();
+    if (st === 'Work Done') {
+      if (mrRole === 'production') h += '<div class="mrw-msg warn" style="margin-top:10px">Machine chala kar check karo. Sab theek ho to <b>Verify &amp; Close</b>; kaam theek nahi hua to <b>Reopen</b> (karan likhna padega).</div><div class="mrw-acts">' + btn('primary', 'verify', '✔ Verify &amp; Close') + btn('warning', 'reopen', '↩ Reopen (kaam theek nahi hua)') + '</div>';
+      else if (t === 'both') h += '<div class="mrw-msg warn" style="margin-top:10px">Verify Production karta hai. ' + btn('mrw-link', 'mode', 'Production mode me jao', 'production') + '</div>';
+      else h += '<div class="mrw-msg warn" style="margin-top:10px">⏳ Work Done ho gaya. Ab <b>Production verify</b> karega — uske baad request Closed hogi.</div>';
+    } else if (st === 'Closed') h += '<div class="mrw-msg ok" style="margin-top:10px">🔒 Request <b>Closed</b>' + (r.verifiedBy ? ' — Verified by <b>' + E(r.verifiedBy) + '</b>' : '') + (r.verifiedAt ? ' (' + E(new Date(r.verifiedAt).toLocaleString('en-IN')) + ')' : '') + '.</div>';
+    else if (st === 'Cancelled') h += '<div class="mrw-msg" style="margin-top:10px">❌ Request <b>Cancelled</b>' + (r.cancelReason ? ' — ' + E(r.cancelReason) : '') + '.</div>';
+    else h += '<div class="mrw-msg" style="margin-top:10px">Abhi kaam chal raha hai (status: <b>' + E(st) + '</b>). Maintenance jab <b>Work Done</b> karega tab yahan Verify ka option aayega.</div>';
+    return h;
+  }
+
+  /* ============ sync: har baar current status ke hisab se sab dikhana ============ */
+  function sync() {
+    if (!built) return; var sec = G('mr'); if (!sec) return;
+    enforceTeam();
+    var r = rec(), st = r ? (r.status || 'Open') : '';
+    var ctx = mrRole + '|' + (edit.mr === null ? 'n' : edit.mr) + '|' + st + '|' + ((r && r.action) ? 1 : 0);
+    if (ctx !== lastCtx) { lastCtx = ctx; view = recView(r); }
+    autofill(r);
+    var prog = progOf(r), admin = isAdmin();
+    setHTML(G('mrWizWho'), whoHTML());
+    setHTML(G('mrWizNav'), navHTML(prog));
+    STEPS.forEach(function (S) {
+      var p = G('mrWizP' + S.n); if (!p) return;
+      p.classList.toggle('show', view === S.n);
+      var lock = lockInfo(S.n), isLock = !!lock && !lock.view;
+      p.classList.toggle('locked', isLock);
+      var tn = p.querySelector('.t-now'), to = p.querySelector('.t-own');
+      if (tn) tn.textContent = (S.n === prog || (prog === 6 && S.n === 5)) ? 'ABHI YAHAN' : '';
+      if (to) { to.textContent = lock && lock.view ? '' : (isLock ? '🔒 SIRF DEKHO' : '✏️ AAP BHARO'); to.className = 't-own' + (isLock ? ' lock' : ''); }
+      if (view !== S.n) return;
+      var note = p.querySelector('.mrw-note');
+      var nh = '';
+      if (isLock) nh = '<div class="mrw-lock">🔒 ' + E(lock.msg) + (lock.need ? btn('mrw-link', 'mode', (lock.need === 'production' ? '👷 Production' : '🛠️ Maintenance') + ' mode me jao', lock.need) : '') + (lock.go ? '<button type="button" class="mrw-link" data-step="' + lock.go + '">➜ Step ' + lock.go + ' par jao</button>' : '') + '</div>';
+      setHTML(note, nh);
+      if (S.n === 5) { setHTML(G('mrW5'), step5HTML(r, st)); }
+      else {
+        [].forEach.call(p.querySelectorAll('.mrw-body input,.mrw-body select,.mrw-body textarea,.mrw-body button'), function (el) { if (el.disabled !== isLock) el.disabled = isLock; });
+        [].forEach.call(p.querySelectorAll('.mrw-grp[data-admin]'), function (g) { g.style.display = admin ? '' : 'none'; });
+      }
+      var ac = p.querySelector('.mrw-actions'); if (ac) setHTML(ac, actionsFor(S.n, r, st, isLock));
+    });
+  }
+  window.mrWizSync = sync;
+
+  /* ============ Admin panel: har user ki MR Team + naam + E-Code ============ */
+  function usersList() { try { return JSON.parse(localStorage.getItem(USERS_K) || '[]') || []; } catch (e) { return []; } }
+  function profLoad() {
+    var sel = G('mmsPermUser'); if (!sel) return;
+    var u = usersList().filter(function (x) { return x.u === sel.value; })[0] || {};
+    var t = G('mmsPermMrTeam'), n = G('mmsPermFullName'), c = G('mmsPermEcode');
+    if (t) t.value = u.mrTeam || ''; if (n) n.value = u.fullName || ''; if (c) c.value = u.ecode || '';
+  }
+  window.mrSaveUserProfile = function () {
+    if (!isAdmin()) return alert('Ye option sirf Admin ke liye hai.');
+    var sel = G('mmsPermUser'); if (!sel || !sel.value) return alert('Pehle upar se user chuno.');
+    var us = usersList(), u = us.filter(function (x) { return x.u === sel.value; })[0]; if (!u) return alert('User not found.');
+    var t = (G('mmsPermMrTeam') || {}).value || '', n = ((G('mmsPermFullName') || {}).value || '').trim(), c = ((G('mmsPermEcode') || {}).value || '').trim();
+    if (t) u.mrTeam = t; else delete u.mrTeam;
+    if (n) u.fullName = n; else delete u.fullName;
+    if (c) u.ecode = c; else delete u.ecode;
+    try { localStorage.setItem(USERS_K, JSON.stringify(us)); } catch (e) { return alert('Save nahi ho paya.'); }
+    try { MMS.audit('USER_ROLE', 'system', u.u + ' MR profile -> team=' + (t || 'auto') + ', name=' + n + ', ecode=' + c); } catch (e) { }
+    filledKey = ''; sync();
+    alert('MR profile save ho gaya: ' + u.u + '\nTeam: ' + (t ? TEAM_LBL[t] : 'Auto (login role se)') + (n ? '\nNaam: ' + n : '') + (c ? '\nE-Code: ' + c : '') + '\n\nGoogle Sheet sync ke baad ye baaki devices par bhi lag jayega.');
+  };
+  (function hookAdmin() {
+    var sel = G('mmsPermUser'); if (!sel) return;
+    sel.addEventListener('change', function () { setTimeout(profLoad, 0); });
+    try { new MutationObserver(function () { setTimeout(profLoad, 0); }).observe(sel, { childList: true }); } catch (e) { }
+    profLoad();
+  })();
+
+  function tryBuild() { try { build(); sync(); } catch (e) { console.warn('mr wizard', e); } }
+  tryBuild();
+  setInterval(function () { try { var s = G('mr'); if (s && s.classList.contains('active')) { if (!built) build(); sync(); } } catch (e) { } }, 800);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) { try { sync(); } catch (e) { } } });
 })();
 </script>
 
