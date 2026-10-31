@@ -4865,7 +4865,7 @@ function gsReport(mod,mk){
   rep.headers=['Sr.No.','Part Description','Specification','Qty','Urgency','Source','Machine / Ref','Req. Date','Stage','PR No.','PR Date','PO No.','PO Date','Vendor','Sent On','Expected Delivery','Received Date','Qty Received','Challan / Invoice','Cost (Rs)','Remark'];
   const stg=function(r){return r.status==='Ordered'?(r.vendor?'Sent to Vendor':'PO Created'):(r.status||'Planned')};
   rep.rows=a.map(function(r,i){return [i+1,r.desc,r.spec,r.qty,r.urgency,r.source||'',r.refInfo||'',fmtDate(r.reqDate),stg(r),r.prNo||'',fmtDate(r.prDate),r.po||'',fmtDate(r.poDate||r.ordDate),r.vendor||'',fmtDate(r.sentDate),fmtDate(r.expDate),(stg(r)==='Received'?fmtDate(r.recDate):''),(stg(r)==='Received'?r.recQty:''),r.challan||'',(r.cost>0?Number(r.cost).toFixed(2):''),r.remark]});
-  rep.summary=[['Total',a.length],['Requirement (PR pending)',a.filter(function(x){return stg(x)==='Planned'}).length],['PR Raised',a.filter(function(x){return stg(x)==='PR Raised'}).length],['PO Created',a.filter(function(x){return stg(x)==='PO Created'}).length],['Sent to Vendor (material awaited)',a.filter(function(x){return stg(x)==='Sent to Vendor'}).length],['Received',a.filter(function(x){return stg(x)==='Received'}).length]];
+  rep.summary=[['Total',a.length],['Requirement (PR pending)',a.filter(function(x){return stg(x)==='Planned'}).length],['PR Raised',a.filter(function(x){return stg(x)==='PR Raised'}).length],['PO Created',a.filter(function(x){return stg(x)==='PO Created'}).length],['Sent to Vendor (material awaited)',a.filter(function(x){return stg(x)==='Sent to Vendor'}).length],['Unit 4 se Lana Hai (pending)',a.filter(function(x){return stg(x)==='Unit 4 Pending'}).length],['Received',a.filter(function(x){return stg(x)==='Received'}).length]];
  }else if(mod==='powerCost'||mod==='hpsebBill'){
   pwFillReport(rep,mod);
  }else if(typeof hqIsMod==='function'&&hqIsMod(mod)){
@@ -6551,7 +6551,7 @@ setTimeout(() => {
         <div class="card">
             <div class="head">Milestone Gears Ltd. UNIT-7</div>
             <div class="head2">SPARE PART PURCHASE PLANNING & RECEIPT REGISTER</div>
-            <div class="utility-help"><b>Process:</b> Requirement (Low Stock / Breakdown) ➜ PR Raised (PR No.) ➜ PO Created by Store (PO No.) ➜ PO Sent to Vendor ➜ Material Received (stock auto-update).<br><b>Unit 4 Store:</b> jo part Unit 4 ke Maintenance Store se milta hai uska PR/PO nahi banta - zaroorat par le aao aur <b>🏭 Unit 4 se aaya (direct entry)</b> dabao, seedha Received me chala jayega aur stock Inventory me add ho jayega. (Requirement list me pehle se entry ho to uski row par <b>🏭 Unit 4 se lao</b> dabao.) Spare Inventory me part par "Unit 4 Store se milta hai = Haan" laga do to wo low stock par Requirement list me aayega hi nahi.</div>
+            <div class="utility-help"><b>Process:</b> Requirement (Low Stock / Breakdown) ➜ PR Raised (PR No.) ➜ PO Created by Store (PO No.) ➜ PO Sent to Vendor ➜ Material Received (stock auto-update).<br><b>Unit 4 Store:</b> jo part Unit 4 ke Maintenance Store se milta hai uska PR/PO nahi banta - zaroorat par le aao aur <b>🏭 Unit 4 se aaya (direct entry)</b> dabao, seedha Received me chala jayega aur stock Inventory me add ho jayega. (Requirement / PR / PO list me pehle se entry ho aur part abhi laye nahi to uski row par <b>🏭 Unit 4 se lana hai</b> dabao - wo \"Unit 4 se Lana Hai\" list me rahega, le aane par <b>✅ Unit 4 se aa gaya</b> dabao.) Spare Inventory me part par "Unit 4 Store se milta hai = Haan" laga do to wo low stock par Requirement list me aayega hi nahi.</div>
             <div class="form">
                 <input type="hidden" id="pur_id">
                 <div class="field"><label>Sr. No.</label><input id="pur_sno" type="number"></div>
@@ -6562,7 +6562,7 @@ setTimeout(() => {
                 <div class="field"><label>Requirement Source</label><select id="pur_source"><option>Low Stock</option><option>Breakdown</option><option>Manual</option><option>Unit 4 Store</option></select></div>
                 <div class="field"><label>Machine / Breakdown Ref.</label><input id="pur_ref" placeholder="e.g. SQF - 01 / breakdown date"></div>
                 <div class="field"><label>Requirement Date</label><input id="pur_req_date" type="date"></div>
-                <div class="field"><label>Stage / Status</label><select id="pur_status" onchange="purchaseStatusChanged()"><option value="Planned">1. Requirement (PR not raised)</option><option value="PR Raised">2. PR Raised</option><option value="PO Created">3. PO Created (by Store)</option><option value="Sent to Vendor">4. PO Sent to Vendor</option><option value="Received">5. Material Received</option><option value="Cancelled">Cancelled</option></select></div>
+                <div class="field"><label>Stage / Status</label><select id="pur_status" onchange="purchaseStatusChanged()"><option value="Planned">1. Requirement (PR not raised)</option><option value="PR Raised">2. PR Raised</option><option value="PO Created">3. PO Created (by Store)</option><option value="Sent to Vendor">4. PO Sent to Vendor</option><option value="Unit 4 Pending">4B. Unit 4 se lana hai (abhi laye nahi)</option><option value="Received">5. Material Received</option><option value="Cancelled">Cancelled</option></select></div>
                 <div class="field"><label>PR Number</label><input id="pur_pr_no" placeholder="PR number"></div>
                 <div class="field"><label>PR Date</label><input id="pur_pr_date" type="date"></div>
                 <div class="field"><label>PO Number</label><input id="pur_po" placeholder="PO-2026-XXXX"></div>
@@ -6749,12 +6749,13 @@ function savePurchaseRecord() {
 }
 
 // ---- Process ki alag-alag lists: Requirement -> PR -> PO -> Sent to Vendor -> Received (+ Cancelled) ----
-const PUR_OPEN = ['Planned', 'PR Raised', 'PO Created', 'Sent to Vendor', 'Ordered'];   // 'Ordered' = purana status (auto convert hota hai)
+const PUR_OPEN = ['Planned', 'PR Raised', 'PO Created', 'Sent to Vendor', 'Unit 4 Pending', 'Ordered'];   // 'Ordered' = purana status (auto convert hota hai)
 const PUR_TABS = [
     { st: 'Planned',        label: 'Requirement',    icon: '📝', color: '#2563eb', help: 'REQUIREMENT: Low stock / Breakdown ki wajah se part chahiye, abhi PR nahi bana. PR banne par "PR Raised" dabao aur PR Number daalo.' },
     { st: 'PR Raised',      label: 'PR Raised',      icon: '📄', color: '#7c3aed', help: 'PR RAISED: PR Number mil gaya, ab Store PO banayega. PO ban jaye to "PO Created" dabao aur PO Number daalo.' },
     { st: 'PO Created',     label: 'PO Created',     icon: '🧾', color: '#0e7490', help: 'PO CREATED: Store ne PO bana diya (PO Number mila), vendor ko bhejna baaki hai. Vendor ko bhej diya to "Sent to Vendor" dabao.' },
     { st: 'Sent to Vendor', label: 'Sent to Vendor', icon: '🚚', color: '#b45309', help: 'SENT TO VENDOR: PO vendor ko bhej diya gaya, maal aana baaki hai. Maal aane par "Mark Received" dabao.' },
+    { st: 'Unit 4 Pending', label: 'Unit 4 se Lana Hai', icon: '🏭', color: '#be185d', help: 'UNIT 4 SE LANA HAI: ye part Unit 4 Maintenance Store me milta hai (PO nahi banta), abhi le kar nahi aaye. Le aao to "Unit 4 se aa gaya" dabao (Qty, date, slip no. poochega) - phir Received me chala jayega aur stock Inventory me add hoga. Part Unit 4 me nahi mila to "Requirement me wapas" dabao.' },
     { st: 'Received',       label: 'Received',       icon: '✅', color: '#15803d', help: 'RECEIVED: maal company me aa gaya. Stock Spare Inventory me add hota hai.' },
     { st: 'Cancelled',      label: 'Cancelled',      icon: '✖',  color: '#6b7280', help: 'CANCELLED: band / cancel kiye gaye records (jinka stock Inventory me theek ho gaya wo bhi "Auto-closed" ke saath yahin aate hain). "Re-plan" se wapas Requirement me aa sakte hain.' }
 ];
@@ -6808,6 +6809,7 @@ const PUR_COLS = (function () {
                 let t = esc(fmtDate(r.expDate));
                 return late ? (plain === true ? t + ' (Late)' : `<span style="color:#c0392b;font-weight:bold">⚠ ${t} (Late)</span>`) : t;
             }], remark],
+        'Unit 4 Pending': [desc, spec, qty('Qty Lani Hai'), urg, ['Machine / Ref', (r) => esc(r.refInfo || '—')], ['Unit 4 se lana tay hua', (r) => esc(fmtDate(r.u4Date)) || '—'], waiting((r) => r.u4Date), remark],
         Received:         [desc, spec, ['Qty Ordered', (r) => esc(r.qty)], pr, po, ['Vendor / Received From', (r) => r.fromUnit4 ? '<b>🏭 Unit 4 Store</b>' : esc(r.vendor || '—')], ['Received Date', (r) => esc(fmtDate(r.recDate)) || '—'], ['Qty Received', (r) => `<b>${esc(r.recQty)}</b>`], ['Cost (₹)', (r) => r.cost > 0 ? '₹' + Number(r.cost).toFixed(2) : '—'], ['Challan / Invoice / Transfer Slip', (r) => esc(r.challan || '—')], remark],
         Cancelled:        [desc, spec, ['Qty', (r) => esc(r.qty)], src, pr, po, remark]
     };
@@ -6819,6 +6821,7 @@ function purSort(st, a) {
     else if (st === 'PR Raised') a.sort((x, y) => d(x.prDate).localeCompare(d(y.prDate)));
     else if (st === 'PO Created') a.sort((x, y) => d(x.poDate || x.ordDate).localeCompare(d(y.poDate || y.ordDate)));
     else if (st === 'Sent to Vendor') a.sort((x, y) => d(x.expDate || '9999').localeCompare(d(y.expDate || '9999')));
+    else if (st === 'Unit 4 Pending') a.sort((x, y) => ((pr[x.urgency] ?? 2) - (pr[y.urgency] ?? 2)) || d(x.u4Date).localeCompare(d(y.u4Date)));
     else if (st === 'Received') a.sort((x, y) => d(y.recDate).localeCompare(d(x.recDate)));
     else a.sort((x, y) => d(y.reqDate).localeCompare(d(x.reqDate)));
     return a;
@@ -6844,8 +6847,8 @@ function renderPurchaseTable() {
         return `<button type="button" onclick="purSetTab('${t.st}')" style="padding:9px 12px;border-radius:10px;font-weight:bold;cursor:pointer;border:2px solid ${t.color};` +
             `background:${on ? t.color : '#fff'};color:${on ? '#fff' : t.color}">${t.icon} ${t.label} <span style="background:${on ? 'rgba(255,255,255,.25)' : '#eee'};color:${on ? '#fff' : '#333'};border-radius:20px;padding:1px 8px;margin-left:4px">${counts[t.st]}</span></button>`;
     };
-    if (tabsEl) tabsEl.innerHTML = PUR_TABS.slice(0, 5).map(tabBtn).join('<span style="align-self:center;color:#94a3b8;font-weight:bold">➜</span>') +
-        `<span style="margin-left:auto">${tabBtn(PUR_TABS[5])}</span>`;
+    if (tabsEl) tabsEl.innerHTML = PUR_TABS.filter(t => t.st !== 'Cancelled').map(tabBtn).join('<span style="align-self:center;color:#94a3b8;font-weight:bold">➜</span>') +
+        `<span style="margin-left:auto">${tabBtn(PUR_TABS.find(t => t.st === 'Cancelled'))}</span>`;
     let tabDef = PUR_TABS.find(t => t.st === purTab);
     setText('purTabHelp', tabDef.help);
 
@@ -6854,11 +6857,12 @@ function renderPurchaseTable() {
     let cols = PUR_COLS[purTab];
     head.innerHTML = '<tr><th>Sr.No.</th>' + cols.map(c => `<th>${c[0]}</th>`).join('') + '<th>Action</th></tr>';
 
-    const nextBtn = { 'Planned': ['purchaseMarkPR', '📄 PR Raised'], 'PR Raised': ['purchaseMarkPO', '🧾 PO Created'], 'PO Created': ['purchaseMarkSent', '🚚 Sent to Vendor'], 'Sent to Vendor': ['purchaseMarkReceived', '✅ Mark Received'], 'Cancelled': ['purchaseReplan', '↩ Re-plan'] }[purTab];
+    const nextBtn = { 'Planned': ['purchaseMarkPR', '📄 PR Raised'], 'PR Raised': ['purchaseMarkPO', '🧾 PO Created'], 'PO Created': ['purchaseMarkSent', '🚚 Sent to Vendor'], 'Sent to Vendor': ['purchaseMarkReceived', '✅ Mark Received'], 'Unit 4 Pending': ['purchaseFromUnit4', '✅ Unit 4 se aa gaya'], 'Cancelled': ['purchaseReplan', '↩ Re-plan'] }[purTab];
     body.innerHTML = a.map((r, i) => {
         let realIdx = all.indexOf(r);
         let quick = nextBtn ? `<button class="secondary" onclick="${nextBtn[0]}(${realIdx})">${nextBtn[1]}</button>` : '';
-        if (['Planned', 'PR Raised', 'PO Created'].includes(purTab)) quick += `<button class="secondary" title="Part Unit 4 Maintenance Store me available hai - wahan se lao" onclick="purchaseFromUnit4(${realIdx})">🏭 Unit 4 se lao</button>`;
+        if (['Planned', 'PR Raised', 'PO Created'].includes(purTab)) quick += `<button class="secondary" title="Part Unit 4 Maintenance Store se lana hai (abhi laye nahi)" onclick="purchaseMarkUnit4Pending(${realIdx})">🏭 Unit 4 se lana hai</button>`;
+        if (purTab === 'Unit 4 Pending') quick += `<button class="secondary" title="Unit 4 me nahi mila - wapas Requirement me" onclick="purchaseReplan(${realIdx})">↩ Requirement me wapas</button>`;
         return `<tr><td>${i + 1}</td>` + cols.map(c => `<td${c[0] === 'Remark' ? ' style="text-align:left;max-width:180px;white-space:normal"' : ''}>${c[1](r)}</td>`).join('') +
             `<td class="editbar">${quick}<button class="secondary" onclick="editPurchaseRecord(${realIdx})">Edit</button><button class="danger" onclick="deletePurchaseRecord(${realIdx})">Delete</button></td></tr>`;
     }).join('') || `<tr><td colspan="${cols.length + 2}">${q ? 'Is search me koi record nahi mila.' : 'Is list me abhi koi record nahi hai.'}</td></tr>`;
@@ -6929,6 +6933,18 @@ function purchaseMarkReceived(i) {
     if (added) alert('Received list me chala gaya.\n\nSpare stock Inventory me update ho gaya.');
 }
 // Unit 4 Maintenance Store se part lana: PR/PO/Vendor ke bina seedha Received (internal transfer) + stock Inventory me add
+// Part Unit 4 Store se lana hai par abhi laye nahi -> "Unit 4 se Lana Hai" list (Qty/date/slip tab poochhe jayenge jab le aaoge)
+function purchaseMarkUnit4Pending(i) {
+    if (!purCanEdit()) return;
+    let r = data.sparePurchase[i]; if (!r) return;
+    let q = prompt('Unit 4 Store se kitni Qty lani hai?\n(' + r.desc + (r.spec ? ' - ' + r.spec : '') + ')', String(r.qty)); if (q === null) return;
+    let rq = num(q); if (rq <= 0) return alert('Quantity 0 se zyada honi chahiye.');
+    let n = prompt('Note (optional) - jaise kis se baat hui / kab tak laoge:', ''); if (n === null) return;
+    r.status = 'Unit 4 Pending'; r.qty = rq; r.u4Date = purToday();
+    if (n.trim()) r.remark = ((r.remark || '') + ' | Unit 4: ' + n.trim()).replace(/^ \| /, '');
+    r.updatedAt = new Date().toISOString();
+    purFinish('Unit 4 Pending');
+}
 function purchaseFromUnit4(i) {
     if (!purCanEdit()) return;
     let r = data.sparePurchase[i]; if (!r) return;
