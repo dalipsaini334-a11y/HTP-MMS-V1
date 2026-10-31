@@ -678,6 +678,9 @@ main.wrap{margin-left:252px;padding:94px 22px 25px;max-width:none}.sidebar-overl
     </div>
   </div>
 
+
+  <div class="dash-grid modern-grid"><div class="dash-card" style="grid-column:1 / -1"><div class="card-title-row"><div><h3>Thermocouple Overdue &amp; Due Soon</h3><small>Overdue pehle, phir next 30 days me replacement due</small></div><button class="mini-nav" onclick="goDash('thermocouple')">Open TC Plan →</button></div><div class="dash-list" id="dashTCDueList"></div></div></div>
+
   <div class="dashboard-footer"><b>CONTROLLED MAINTENANCE WORKSPACE</b><span>Use the left navigation to access module-wise records, reports and master data.</span></div>
 </div>
 <!-- NAYA BOX: ADMIN ACTIVITY LOG (Sirf Admin ko dikhega) -->
@@ -1245,17 +1248,21 @@ main.wrap{margin-left:252px;padding:94px 22px 25px;max-width:none}.sidebar-overl
     <div class="field"><label>Frequency</label><input id="tc_freq" value="YEARLY" list="tc_freqList" oninput="tcAutoDue()"><datalist id="tc_freqList"><option value="QUARTERLY"><option value="HALF YEARLY"><option value="YEARLY"><option value="2 YEARS"><option value="3 YEARS"></datalist></div>
     <div class="field"><label>Installation Date</label><input id="tc_inst" type="date" onchange="tcAutoDue()"></div>
     <div class="field"><label>Replacement Date</label><input id="tc_due" placeholder="Auto (Installation + Frequency) - ya JAN-2026 likho"></div>
-    <div class="field"><label>Status</label><select id="tc_status"><option>Planned</option><option>Completed</option><option>Overdue</option></select></div>
+    <input type="hidden" id="tc_status" value="Planned">
+    <div class="field"><label>Calibration Certificate No.</label><input id="tc_certno" placeholder="Is thermocouple ka certificate no. (optional)"></div>
+    <div class="field"><label>Certificate Date</label><input id="tc_certdate" type="date"></div>
+    <div class="field wide" style="font-size:12px;color:#65727d">ℹ️ Status ab khud nikalta hai (Planned / Due Soon / Overdue) — Replacement Date se. Thermocouple badalne par table me <b>✅ Replaced</b> dabao.</div>
     <div class="actions wide">
       <button class="primary" onclick="saveThermocouple()">Save Thermocouple Plan</button>
       <button class="secondary" onclick="clearTCForm()">Clear</button>
       <button class="secondary" onclick="printThermocouplePlan()">🖨️ Print TC Plan</button>
+      <button class="secondary" onclick="tcReport()">📊 Replacement Report</button>
     </div>
   </div>
 </div>
 <div class="card">
   <div id="tcSummary" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px"></div>
-  <div class="tablewrap"><table class="tbl"><thead><tr><th>SL. NO.</th><th>FURNACE NO.</th><th>LOCATION</th><th>TYPE</th><th>SR. NO/ID</th><th>REPLACEMENT FREQUENCY</th><th>INSTALLATION DATE</th><th>REPLACEMENT DATE</th><th>STATUS</th><th>Action</th></tr></thead><tbody id="tcBody"></tbody></table></div>
+  <div class="tablewrap"><table class="tbl"><thead><tr><th>SL. NO.</th><th>FURNACE NO.</th><th>LOCATION</th><th>TYPE</th><th>SR. NO/ID</th><th>REPLACEMENT FREQUENCY</th><th>INSTALLATION DATE</th><th>REPLACEMENT DATE</th><th>STATUS</th><th>CALIBRATION CERT.</th><th>Action</th></tr></thead><tbody id="tcBody"></tbody></table></div>
 </div>
 </section>
 
@@ -1684,6 +1691,7 @@ function parseFlexDate(s){
 }
 function tcFreqMonths(freq){
   let f=String(freq||'').toUpperCase();
+  {let mm=f.match(/(\d+(?:\.\d+)?)\s*(?:MONTH|MTH|MON)/);if(mm&&Number(mm[1])>0)return Math.max(1,Math.round(Number(mm[1])));}   // 18 MONTHS / 9 MONTH jaisa koi bhi number
   if(/QUARTER|3\s*MONTH|THREE\s*MONTH/.test(f))return 3;
   if(/HALF|6\s*MONTH|SIX\s*MONTH|SEMI/.test(f))return 6;
   if(/^\s*MONTH|1\s*MONTH/.test(f))return 1;
@@ -1711,19 +1719,22 @@ function tcDueDate(r){
 // Status khud nikalta hai: Completed (manual) ho to wahi, warna due date se Overdue / Due Soon (30 din) / Planned
 function tcEffStatus(r){
   if(!r)return '';
-  if(String(r.status||'')==='Completed')return 'Completed';
   let d=tcDueDate(r);if(!d)return r.status||'Planned';
   let t=new Date();t.setHours(0,0,0,0);
   let days=Math.floor((d-t)/86400000);
   return days<0?'Overdue':(days<=30?'Due Soon':'Planned');
 }
+function tcDaysLeft(r){let d=tcDueDate(r);if(!d)return null;let t=new Date();t.setHours(0,0,0,0);return Math.floor((d-t)/86400000);}
+function tcDaysTxt(r,st){if(st==='Completed')return '';let n=tcDaysLeft(r);if(n===null)return '';return '<br><small style="font-weight:600">'+(n<0?(-n)+' din late':(n===0?'aaj due':n+' din baaki'))+'</small>';}
 function tcStatusStyle(st){return st==='Overdue'?'background:#fee2e2;color:#b91c1c;font-weight:bold':st==='Due Soon'?'background:#fef3c7;color:#b45309;font-weight:bold':st==='Completed'?'color:#15803d;font-weight:bold':'';}
-function applyThermocoupleReplacement(tcId,replaceDateStr,newSrid,note){
+function applyThermocoupleReplacement(tcId,replaceDateStr,newSrid,note,extra){
+  extra=extra||{};
   if(!tcId)return false;
   let r=data.tc.find(x=>sameId(x.id,tcId));if(!r)return false;   // pehle === tha: select ki string id aur number id match nahi hoti thi, replacement lagti hi nahi thi
   let d=replaceDateStr||new Date().toISOString().slice(0,10);
   if(!Array.isArray(r.history))r.history=[];
-  r.history.push({date:d,oldInst:r.inst||'',oldSrid:r.srid||'',oldDue:r.due||'',newSrid:newSrid||r.srid||'',note:note||'',at:new Date().toISOString()});
+  r.history.push({date:d,oldInst:r.inst||'',oldSrid:r.srid||'',oldDue:r.due||'',newSrid:newSrid||r.srid||'',note:note||'',reason:extra.reason||'',oldCertNo:r.certNo||'',oldCertDate:r.certDate||'',newCertNo:extra.certNo||'',newCertDate:extra.certDate||'',at:new Date().toISOString()});
+  r.certNo=extra.certNo||'';r.certDate=extra.certDate||'';   // naye thermocouple ka certificate (purana History me chala gaya)
   if(newSrid)r.srid=newSrid;
   r.inst=d;r.due=tcNextDueLabel(d,r.freq);r.status='Planned';r.updatedAt=new Date().toISOString();
   persist('tc');renderThermocoupleTable();
@@ -2043,7 +2054,7 @@ function saveBreakdown(){
  }
  if(edit.bd!==null)data.bd[edit.bd]=r;else data.bd.push(r);persist('bd');
  if(delta){if(kind==='spares')applyNormalSpareDelta(id,delta);else if(kind==='critical'){if(delta>0)deductCriticalAvail(id,delta);else restoreCriticalAvail(id,-delta);}persist('spares');persist('critical');renderSparePartsTable();renderCriticalTable();}
- let tcLink=f('bd_tc_select');if(tcLink)applyThermocoupleReplacement(tcLink,r.date);
+ let tcLink=f('bd_tc_select');if(tcLink)applyThermocoupleReplacement(tcLink,r.date,'','Breakdown register se',{reason:'Breakdown'});
  let historyUpdated=false;const historySpare=String(r.spare||'').trim();if(historySpare&&!/^none$/i.test(historySpare))historyUpdated=syncHistoryFromBreakdown(r);
  let wasEdit=edit.bd!==null;edit.bd=null;clearBreakdown();renderBreakdown();renderMTTR();renderDashboard();renderHistory();alert((wasEdit?'Breakdown updated successfully.':'Breakdown saved successfully. Monthly report and MTTR are updated automatically.')+((spareLink&& !String(spareLink).startsWith('unlisted:'))?' Spare inventory deducted automatically.':(spareLink?' Unlisted spare recorded; inventory stock was not deducted.':''))+(tcLink?' Thermocouple replacement date updated automatically.':'')+(historyUpdated?' Machine History Card updated automatically because Spare Part Used was entered.':''))}
 
@@ -2376,12 +2387,13 @@ function printCriticalSpares(){
 }
 
 /* ================= THERMOCOUPLE REPLACEMENT PLAN & AUDIT CONTROL MODULE (FMT-HT-70) ================= */
-function clearTCForm(){edit.tc=null;setv('tc_id','');setv('tc_sno',data.tc.length+1);setv('tc_furnace','');setv('tc_loc','');setv('tc_type','K');setv('tc_srid','');setv('tc_freq','YEARLY');setv('tc_inst','');setv('tc_due','');{let e=document.getElementById('tc_due');if(e)e.dataset.auto='';}setv('tc_status','Planned');const btn=document.querySelector('#thermocouple .primary');if(btn)btn.textContent='Save Thermocouple Plan';}
+function clearTCForm(){edit.tc=null;setv('tc_id','');setv('tc_sno',data.tc.length+1);setv('tc_furnace','');setv('tc_loc','');setv('tc_type','K');setv('tc_srid','');setv('tc_freq','YEARLY');setv('tc_inst','');setv('tc_due','');{let e=document.getElementById('tc_due');if(e)e.dataset.auto='';}setv('tc_status','Planned');setv('tc_certno','');setv('tc_certdate','');const btn=document.querySelector('#thermocouple .primary');if(btn)btn.textContent='Save Thermocouple Plan';}
 function saveThermocouple(){
  if(!mmsGuardSave('tc'))return;
   let old=edit.tc!==null?data.tc[edit.tc]:null;
-  let r=Object.assign({},old||{},{id:old?.id||Date.now(),sno:num(f('tc_sno'))||data.tc.length+1,furnace:f('tc_furnace'),loc:f('tc_loc'),type:f('tc_type'),srid:f('tc_srid'),freq:f('tc_freq'),inst:f('tc_inst'),due:(f('tc_due')||'').trim(),status:f('tc_status'),updatedAt:new Date().toISOString()});
+  let r=Object.assign({},old||{},{id:old?.id||Date.now(),sno:num(f('tc_sno'))||data.tc.length+1,furnace:f('tc_furnace'),loc:f('tc_loc'),type:f('tc_type'),srid:f('tc_srid'),freq:f('tc_freq'),inst:f('tc_inst'),due:(f('tc_due')||'').trim(),status:'Planned',certNo:(f('tc_certno')||'').trim(),certDate:f('tc_certdate'),updatedAt:new Date().toISOString()});
   if(!r.furnace.trim())return alert('Please enter Furnace No.');
+  {let sk=String(r.srid||'').trim().toUpperCase(),dup=sk&&data.tc.find(x=>!sameId(x.id,r.id)&&String(x.srid||'').trim().toUpperCase()===sk);if(dup&&!confirm('Serial No. / ID "'+r.srid+'" pehle se Furnace "'+(dup.furnace||'')+'" me hai.\nPhir bhi save karna hai?'))return;}
   if(!r.due&&r.inst)r.due=tcNextDueLabel(r.inst,r.freq);   // Replacement Date khali ho to Installation + Frequency se khud bharo
   let wasEdit=edit.tc!==null;
   if(wasEdit)data.tc[edit.tc]=r;else data.tc.push(r);
@@ -2403,7 +2415,7 @@ function renderThermocoupleTable(){
   let sm=document.getElementById('tcSummary');
   if(sm){const chip=(t,n,c)=>`<span style="padding:6px 12px;border-radius:20px;font-weight:bold;border:2px solid ${c};color:${c}">${t}: ${n}</span>`;
     sm.innerHTML=a.length?chip('⚠ Overdue',cnt.Overdue,'#b91c1c')+chip('⏰ Due in 30 days',cnt['Due Soon'],'#b45309')+chip('📅 Planned',cnt.Planned,'#2563eb')+chip('✅ Completed',cnt.Completed,'#15803d'):'';}
-  body.innerHTML=a.map(r=>{let idx=data.tc.indexOf(r),st=tcEffStatus(r),hn=(r.history||[]).length;return `<tr><td>${esc(r.sno)}</td><td>${esc(r.furnace)}</td><td>${esc(r.loc)}</td><td>${esc(r.type)}</td><td>${esc(r.srid)}</td><td>${esc(r.freq)}</td><td>${esc(fmtDate(r.inst))}</td><td>${esc(r.due)}</td><td style="${tcStatusStyle(st)}">${esc(st)}</td><td class="editbar"><button class="secondary" onclick="tcMarkReplaced(${idx})">✅ Replaced</button>${hn?`<button class="secondary" onclick="tcShowHistory(${idx})">📜 History (${hn})</button>`:''}<button class="secondary" onclick="editThermocouple(${idx})">Edit</button><button class="danger" onclick="deleteThermocouple(${idx})">Delete</button></td></tr>`}).join('')||'<tr><td colspan="10">No thermocouple records found.</td></tr>';
+  body.innerHTML=a.map(r=>{let idx=data.tc.indexOf(r),st=tcEffStatus(r),hn=(r.history||[]).length;return `<tr><td>${esc(r.sno)}</td><td>${esc(r.furnace)}</td><td>${esc(r.loc)}</td><td>${esc(r.type)}</td><td>${esc(r.srid)}</td><td>${esc(r.freq)}</td><td>${esc(fmtDate(r.inst))}</td><td>${esc(r.due)}</td><td style="${tcStatusStyle(st)}">${esc(st)}${tcDaysTxt(r,st)}</td><td>${r.certNo?esc(r.certNo)+(r.certDate?'<br><small>'+esc(fmtDate(r.certDate))+'</small>':''):'<span style="color:#94a3b8">—</span>'}</td><td class="editbar"><button class="secondary" onclick="tcMarkReplaced(${idx})">✅ Replaced</button>${hn?`<button class="secondary" onclick="tcShowHistory(${idx})">📜 History (${hn})</button>`:''}<button class="secondary" onclick="editThermocouple(${idx})">Edit</button><button class="danger" onclick="deleteThermocouple(${idx})">Delete</button></td></tr>`}).join('')||'<tr><td colspan="11">No thermocouple records found.</td></tr>';
   populateBDTCSelect();populatePMTCSelect();
 }
 // Thermocouple badla gaya (breakdown / PM ke bina bhi): date + (naya serial no.) daalo -> Installation Date naya, Replacement Date khud agla, purana record History me
@@ -2421,7 +2433,7 @@ function tcShowHistory(i){
   let h=(r.history||[]).slice().reverse();
   alert('Replacement History - '+(r.furnace||'')+' ('+(r.srid||'')+')\n\n'+(h.length?h.map((x,k)=>(k+1)+'. '+fmtDate(x.date)+' - badla gaya'+(x.oldSrid?' (purana ID: '+x.oldSrid+(x.oldInst?', laga tha: '+fmtDate(x.oldInst):'')+')':'')+(x.newSrid&&x.newSrid!==x.oldSrid?' -> naya ID: '+x.newSrid:'')+(x.note?' | '+x.note:'')).join('\n'):'Abhi koi replacement record nahi.'));
 }
-function editThermocouple(i){if(!mmsGuardEdit('tc'))return;let r=data.tc[i];if(!r)return;edit.tc=i;setv('tc_id',r.id);setv('tc_sno',r.sno);setv('tc_furnace',r.furnace);setv('tc_loc',r.loc);setv('tc_type',r.type);setv('tc_srid',r.srid);setv('tc_freq',r.freq);setv('tc_inst',r.inst);setv('tc_due',r.due);{let e=document.getElementById('tc_due');if(e)e.dataset.auto='';}setv('tc_status',r.status);const btn=document.querySelector('#thermocouple .primary');if(btn)btn.textContent='Update Thermocouple Plan';document.getElementById('thermocouple').scrollIntoView({behavior:'smooth'});}
+function editThermocouple(i){if(!mmsGuardEdit('tc'))return;let r=data.tc[i];if(!r)return;edit.tc=i;setv('tc_id',r.id);setv('tc_sno',r.sno);setv('tc_furnace',r.furnace);setv('tc_loc',r.loc);setv('tc_type',r.type);setv('tc_srid',r.srid);setv('tc_freq',r.freq);setv('tc_inst',r.inst);setv('tc_due',r.due);{let e=document.getElementById('tc_due');if(e)e.dataset.auto=(r.inst&&String(r.due||'').trim().toUpperCase()===tcNextDueLabel(r.inst,r.freq).toUpperCase())?'1':'';}setv('tc_status','Planned');setv('tc_certno',r.certNo||'');setv('tc_certdate',r.certDate||'');const btn=document.querySelector('#thermocouple .primary');if(btn)btn.textContent='Update Thermocouple Plan';document.getElementById('thermocouple').scrollIntoView({behavior:'smooth'});}
 function deleteThermocouple(i){
  if(!mmsGuardDelete('tc'))return;let r=data.tc[i];if(!r)return;if(!confirm('Delete this thermocouple record?'))return;data.tc.splice(i,1);data.tc.forEach((x,k)=>x.sno=k+1);persist('tc');if(edit.tc===i)edit.tc=null;renderThermocoupleTable();alert('Thermocouple record deleted successfully.');}
 function printThermocouplePlan(){
@@ -3249,7 +3261,7 @@ function savePM(){
  // produce zero delta, so inventory cannot be deducted a second time.
  let spareDeducted=pmDeductSpares(previousPM?.entries||[]);
  let pmTcLink=f('pm_tc_select');
- if(pmTcLink)applyThermocoupleReplacement(pmTcLink,r.date);
+ if(pmTcLink)applyThermocoupleReplacement(pmTcLink,r.date,'','PM Check Sheet se',{reason:'Planned replacement (PM)'});
  let linkCtx=PM_PLAN_LINK_CONTEXT;
  try{if(!linkCtx){linkCtx=JSON.parse(localStorage.getItem('htp7_pm_plan_link_context')||'null');}}catch(e){}
  const linked=pmPlanLinkFromCheckSheet(r,linkCtx);
@@ -13960,6 +13972,130 @@ html:not(.aam-tl) .mrw-panel.locked .mrg input:disabled,html:not(.aam-tl) .mrw-p
 })();
 </script>
 
+<script type="text/mms-defer" id="tc-dash">
+(function(){
+  'use strict';
+  if(window.__tcDash)return;window.__tcDash=1;
+  function paint(){
+    var box=document.getElementById('dashTCDueList');if(!box)return;
+    var a=[];try{(data.tc||[]).forEach(function(r){var st=tcEffStatus(r);if(st==='Overdue'||st==='Due Soon'){a.push({r:r,st:st,n:tcDaysLeft(r)});}});}catch(e){return;}
+    a.sort(function(x,y){return (x.n===null?9e9:x.n)-(y.n===null?9e9:y.n);});
+    box.innerHTML=a.length?a.slice(0,8).map(function(x){var od=x.st==='Overdue',n=x.n;
+      return '<div class="dash-row"'+(od?' style="border-left:3px solid #b91c1c"':'')+' onclick="goDash(\'thermocouple\')" style="cursor:pointer"><span><b>'+esc(x.r.furnace||'')+'</b><br>'+esc(x.r.srid||'')+' \u2022 '+esc(x.r.loc||'')+'</span><span>'+esc(x.r.due||'')+'<br>'+(n===null?'':(od?'<b style="color:#b91c1c">Overdue '+(-n)+' din</b>':(n===0?'<b>Aaj due</b>':n+' din baaki')))+'</span></div>';}).join('')+(a.length>8?'<div class="dash-empty">+'+(a.length-8)+' aur - Thermocouple Plan me dekho</div>':''):'<div class="dash-empty">\u2713 Koi thermocouple overdue ya next 30 din me due nahi</div>';
+  }
+  window.dashRefreshTC=paint;
+  var rd=window.renderDashboard;if(typeof rd==='function')window.renderDashboard=function(){var r=rd.apply(this,arguments);try{paint();}catch(e){}return r;};
+  var rt=window.renderThermocoupleTable;if(typeof rt==='function')window.renderThermocoupleTable=function(){var r=rt.apply(this,arguments);try{paint();}catch(e){}return r;};
+  try{paint();}catch(e){}
+})();
+</script>
+<script type="text/mms-defer" id="tc-extra">
+(function(){
+  'use strict';
+  if(window.__tcExtra)return;window.__tcExtra=1;
+  var G=function(id){return document.getElementById(id)};
+  var REASONS=['Planned replacement','Breakdown','Failed SAT','Damaged / Burnt','Drift / Wrong reading','Other'];
+  function modal(html){
+    var m=G('tcModal');if(m)m.remove();
+    m=document.createElement('div');m.id='tcModal';
+    m.style.cssText='position:fixed;inset:0;z-index:100000;background:rgba(3,10,20,.7);display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:16px';
+    m.innerHTML='<div class="tcm-card">'+html+'</div>';
+    m.addEventListener('click',function(e){if(e.target===m)m.remove();});
+    document.body.appendChild(m);return m;
+  }
+  function close(){var m=G('tcModal');if(m)m.remove();}
+  window.tcCloseModal=close;
+  var today=function(){return new Date().toISOString().slice(0,10)};
+
+  /* ---------- Replaced: ek form (date, naya ID, wajah, certificate) ---------- */
+  window.tcMarkReplaced=function(i){
+    if(!mmsGuardEdit('tc'))return;var r=data.tc[i];if(!r)return;
+    modal('<h3>✅ Thermocouple Replaced</h3><div class="tcm-sub">'+esc(r.furnace||'')+' • '+esc(r.loc||'')+' • purana ID: <b>'+esc(r.srid||'—')+'</b></div>'+
+     '<div class="tcm-grid">'+
+     '<label>Kab badla gaya *<input id="tcm_date" type="date" value="'+today()+'"></label>'+
+     '<label>Wajah / Reason *<select id="tcm_reason">'+REASONS.map(function(x){return '<option>'+x+'</option>'}).join('')+'</select></label>'+
+     '<label>Naye TC ka Serial No. / ID<input id="tcm_srid" value="'+esc(r.srid||'')+'" placeholder="Nahi badla to wahi rehne do"></label>'+
+     '<label>Naya Calibration Certificate No.<input id="tcm_cert" placeholder="optional"></label>'+
+     '<label>Certificate Date<input id="tcm_certdate" type="date"></label>'+
+     '<label class="tcm-w">Note (optional)<input id="tcm_note" placeholder="jaise: Zone-2 TC burn ho gaya tha"></label>'+
+     '</div><div class="tcm-act"><button class="primary" onclick="tcSaveReplaced('+i+')">💾 Save Replacement</button><button class="secondary" onclick="tcCloseModal()">Cancel</button></div>');
+  };
+  window.tcSaveReplaced=function(i){
+    var r=data.tc[i];if(!r)return;
+    var d=G('tcm_date').value;if(!d)return alert('Replacement ki date chuno.');
+    if(d>today()&&!confirm('Ye date aage ki hai. Phir bhi save karni hai?'))return;
+    applyThermocoupleReplacement(r.id,d,(G('tcm_srid').value||'').trim(),(G('tcm_note').value||'').trim(),{reason:G('tcm_reason').value,certNo:(G('tcm_cert').value||'').trim(),certDate:G('tcm_certdate').value});
+    close();alert('Replacement save ho gaya.\nAgli Replacement Date: '+r.due);
+  };
+
+  /* ---------- History (ek furnace/TC ki) ---------- */
+  function histRows(list,withFurnace){
+    return list.map(function(x){
+      return '<tr><td>'+esc(fmtDate(x.date))+'</td>'+(withFurnace?'<td>'+esc(x.furnace||'')+'<br><small>'+esc(x.loc||'')+'</small></td>':'')+'<td>'+esc(x.reason||'—')+'</td><td>'+esc(x.oldSrid||'—')+(x.newSrid&&x.newSrid!==x.oldSrid?' → <b>'+esc(x.newSrid)+'</b>':'')+'</td><td>'+(x.newCertNo?esc(x.newCertNo)+(x.newCertDate?'<br><small>'+esc(fmtDate(x.newCertDate))+'</small>':''):'—')+'</td><td>'+esc(x.note||'')+'</td></tr>';
+    }).join('');
+  }
+  window.tcShowHistory=function(i){
+    var r=data.tc[i];if(!r)return;
+    var h=(r.history||[]).slice().reverse();
+    modal('<h3>📜 Replacement History</h3><div class="tcm-sub">'+esc(r.furnace||'')+' • '+esc(r.loc||'')+' • abhi ka ID: <b>'+esc(r.srid||'')+'</b></div>'+
+      '<div class="tcm-tw"><table class="tcm-t"><thead><tr><th>Date</th><th>Wajah</th><th>ID</th><th>Naya Certificate</th><th>Note</th></tr></thead><tbody>'+(h.length?histRows(h,false):'<tr><td colspan="5">Abhi koi replacement record nahi.</td></tr>')+'</tbody></table></div>'+
+      '<div class="tcm-act"><button class="secondary" onclick="tcCloseModal()">Close</button></div>');
+  };
+
+  /* ---------- Replacement Report (saare furnaces, wajah ke hisab se) ---------- */
+  function allHist(){
+    var a=[];(data.tc||[]).forEach(function(r){(r.history||[]).forEach(function(x){a.push(Object.assign({furnace:r.furnace,loc:r.loc},x));});});
+    a.sort(function(x,y){return String(y.date||'').localeCompare(String(x.date||''));});return a;
+  }
+  window.tcReport=function(){
+    var a=allHist(),yrs={};a.forEach(function(x){yrs[String(x.date||'').slice(0,4)]=1;});
+    var ys=Object.keys(yrs).filter(Boolean).sort().reverse();
+    modal('<h3>📊 Thermocouple Replacement Report</h3><div class="tcm-sub">Kab, kahan aur kyun thermocouple badla gaya</div>'+
+      '<div class="tcm-grid"><label>Saal<select id="tcr_year" onchange="tcReportDraw()"><option value="">Sab</option>'+ys.map(function(y){return '<option>'+y+'</option>'}).join('')+'</select></label>'+
+      '<label>Wajah<select id="tcr_reason" onchange="tcReportDraw()"><option value="">Sab</option>'+REASONS.map(function(x){return '<option>'+x+'</option>'}).join('')+'<option value="__none">Record nahi hai (purani entry)</option></select></label></div>'+
+      '<div id="tcr_chips" style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0"></div><div class="tcm-tw"><table class="tcm-t"><thead><tr><th>Date</th><th>Furnace</th><th>Wajah</th><th>ID</th><th>Naya Certificate</th><th>Note</th></tr></thead><tbody id="tcr_body"></tbody></table></div>'+
+      '<div class="tcm-act"><button class="primary" onclick="tcReportPrint()">🖨️ Print</button><button class="secondary" onclick="tcReportCSV()">⬇ CSV</button><button class="secondary" onclick="tcCloseModal()">Close</button></div>');
+    tcReportDraw();
+  };
+  function filtered(){
+    var y=(G('tcr_year')||{}).value||'',rs=(G('tcr_reason')||{}).value||'';
+    return allHist().filter(function(x){return (!y||String(x.date||'').slice(0,4)===y)&&(!rs||(rs==='__none'?!x.reason:x.reason===rs));});
+  }
+  window.tcReportDraw=function(){
+    var a=filtered(),cnt={};a.forEach(function(x){var k=x.reason||'Record nahi';cnt[k]=(cnt[k]||0)+1;});
+    var ch=G('tcr_chips');if(ch)ch.innerHTML='<span class="tcm-chip"><b>Total: '+a.length+'</b></span>'+Object.keys(cnt).map(function(k){return '<span class="tcm-chip">'+esc(k)+': <b>'+cnt[k]+'</b></span>';}).join('');
+    var b=G('tcr_body');if(b)b.innerHTML=a.length?histRows(a,true):'<tr><td colspan="6">Koi replacement record nahi mila.</td></tr>';
+  };
+  window.tcReportPrint=function(){
+    var a=filtered();var w=window.open('','_blank','width=1200,height=800');if(!w)return alert('Please allow pop-ups to print.');
+    w.document.write('<!doctype html><html><head><title>Thermocouple Replacement Report</title><style>@page{size:A4 landscape;margin:8mm}body{font-family:Arial;font-size:10px}.title{text-align:center;font-size:16px;font-weight:bold}.title img{width:16mm;height:12mm;object-fit:contain;vertical-align:middle;margin-right:5mm}.sub{text-align:center;font-size:13px;font-weight:bold;margin:4px 0 10px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #000;padding:4px;text-align:center}th{background:#eee}</style></head><body><div class="title"><img src="'+APP_LOGO+'">Milestone Gears Ltd. UNIT-7</div><div class="sub">THERMOCOUPLE REPLACEMENT REPORT</div><table><thead><tr><th>Sl.</th><th>Date</th><th>Furnace</th><th>Location</th><th>Wajah</th><th>Purana ID</th><th>Naya ID</th><th>Naya Certificate</th><th>Note</th></tr></thead><tbody>'+
+      a.map(function(x,k){return '<tr><td>'+(k+1)+'</td><td>'+esc(fmtDate(x.date))+'</td><td>'+esc(x.furnace||'')+'</td><td>'+esc(x.loc||'')+'</td><td>'+esc(x.reason||'')+'</td><td>'+esc(x.oldSrid||'')+'</td><td>'+esc(x.newSrid||'')+'</td><td>'+esc((x.newCertNo||'')+(x.newCertDate?' ('+fmtDate(x.newCertDate)+')':''))+'</td><td>'+esc(x.note||'')+'</td></tr>';}).join('')+'</tbody></table></body></html>');
+    w.document.close();setTimeout(function(){try{w.print();}catch(e){}},400);
+  };
+  window.tcReportCSV=function(){
+    var a=filtered(),rows=[['Date','Furnace','Location','Reason','Old ID','New ID','New Certificate No.','Certificate Date','Note']].concat(a.map(function(x){return [x.date,x.furnace,x.loc,x.reason||'',x.oldSrid||'',x.newSrid||'',x.newCertNo||'',x.newCertDate||'',x.note||''];}));
+    var csv=rows.map(function(r){return r.map(function(v){return '"'+String(v==null?'':v).replace(/"/g,'""')+'"';}).join(',');}).join('\n');
+    var u=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'})),el=document.createElement('a');el.href=u;el.download='Thermocouple_Replacement_Report.csv';el.click();URL.revokeObjectURL(u);
+  };
+})();
+</script>
+<style id="tc-extra-css">
+.tcm-card{background:#fff;color:#17232d;border-radius:14px;padding:16px;width:min(760px,100%);box-shadow:0 20px 50px rgba(0,0,0,.4)}
+.tcm-card h3{margin:0 0 4px;font-size:17px}.tcm-sub{font-size:12px;color:#65727d;margin-bottom:10px}
+.tcm-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.tcm-grid label{display:block;font-size:12px;font-weight:700;color:#53616b}.tcm-grid input,.tcm-grid select{display:block;width:100%;margin-top:4px;padding:9px;border:1px solid #cfd9de;border-radius:7px;font:inherit}
+.tcm-w{grid-column:1/-1}
+.tcm-act{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}.tcm-act button{padding:11px 16px;font-weight:700;border-radius:10px}
+.tcm-tw{overflow:auto;max-height:55vh;border:1px solid #d6e0e6;border-radius:8px}
+.tcm-t{width:100%;border-collapse:collapse;font-size:12px}.tcm-t th,.tcm-t td{padding:6px 8px;border-bottom:1px solid #e3eaee;text-align:left;vertical-align:top}.tcm-t th{background:#f1f5f8;position:sticky;top:0}
+.tcm-chip{padding:4px 10px;border-radius:999px;background:#e8f0fe;color:#1d4ed8;font-size:12px}
+html:not(.aam-tl) .tcm-card{background:linear-gradient(160deg,#18385c,#0e2238);color:#e6f0fa;border:1px solid rgba(255,255,255,.18)}
+html:not(.aam-tl) .tcm-sub,html:not(.aam-tl) .tcm-grid label{color:#9fc0e0}
+html:not(.aam-tl) .tcm-grid input,html:not(.aam-tl) .tcm-grid select{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.25);color:#fff}
+html:not(.aam-tl) .tcm-grid select option{color:#000}
+html:not(.aam-tl) .tcm-tw{border-color:rgba(255,255,255,.2)}html:not(.aam-tl) .tcm-t th{background:#123050;color:#7dd3fc}html:not(.aam-tl) .tcm-t td{border-bottom-color:rgba(255,255,255,.12)}
+html:not(.aam-tl) .tcm-chip{background:rgba(125,211,252,.15);color:#7dd3fc}
+</style>
 <script type="text/mms-defer" id="spare-critical-link">
 (function () {
   'use strict';
@@ -14019,5 +14155,17 @@ html:not(.aam-tl) .mrw-panel.locked .mrg input:disabled,html:not(.aam-tl) .mrw-p
 })();
 </script>
 
+<style id="qa-navy-theme">
+/* Quick Access tiles = KPI cards jaisa navy theme (Light-table mode me purana look) */
+@media screen{
+html:not(.aam-tl) body main.wrap .module-tile{background:linear-gradient(160deg,#18385c,#0e2238)!important;border:1px solid rgba(255,255,255,.16)!important;border-bottom:4px solid var(--tc,#38bdf8)!important;color:#e6f0fa!important;box-shadow:0 4px 12px rgba(5,15,30,.25)!important}
+html:not(.aam-tl) body main.wrap .module-tile>span{background:rgba(255,255,255,.12)!important;color:#fff!important}
+html:not(.aam-tl) body main.wrap .module-tile>b{color:#7dd3fc!important}
+html:not(.aam-tl) body main.wrap .module-tile>small{color:#9fc0e0!important}
+html:not(.aam-tl) body main.wrap .module-tile:hover{border-color:rgba(125,211,252,.5)!important}
+html:not(.aam-tl) body main.wrap .dash-section-title span{color:#7dd3fc!important}
+html:not(.aam-tl) body main.wrap .dash-section-title small{color:#9fc0e0!important}
+}
+</style>
 </body>
 </html>
