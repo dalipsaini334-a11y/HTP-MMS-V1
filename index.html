@@ -1177,6 +1177,7 @@ main.wrap{margin-left:252px;padding:94px 22px 25px;max-width:none}.sidebar-overl
     <div class="field"><label>Maximum Quantity</label><input id="sp_max" type="number" min="0" step="any"></div>
     <div class="field"><label>Available Quantity</label><input id="sp_qty" type="number" min="0" step="any"></div>
     <div class="field"><label>Location</label><input id="sp_loc"></div>
+    <div class="field"><label>Unit 4 Store se milta hai?</label><select id="sp_u4"><option value="">Nahi</option><option value="1">Haan (PO nahi banta, zaroorat par Unit 4 se laate hain)</option></select></div>
     <div class="actions wide">
       <button class="primary" onclick="saveSparePart()">Save Spare Part</button>
       <button class="secondary" onclick="clearSpareForm()">Clear</button>
@@ -2208,7 +2209,7 @@ function printMTTRReport(){
  mttrDrawCharts({mttr:'printMttr',pct:'printPct',mtbf:'printMtbf'},a);
  document.body.classList.add('print-mttr');window.print();setTimeout(()=>document.body.classList.remove('print-mttr'),500)}
 /* ================= SPARE PARTS INVENTORY & MASTER LIST MODULE ================= */
-function clearSpareForm(){edit.spares=null;setv('sp_id','');setv('sp_sno',data.spares.length+1);['sp_code','sp_desc','sp_spec','sp_make','sp_min','sp_max','sp_qty','sp_loc'].forEach(id=>setv(id,''));const btn=document.querySelector('#spares .primary');if(btn)btn.textContent='Save Spare Part';}
+function clearSpareForm(){edit.spares=null;setv('sp_id','');setv('sp_sno',data.spares.length+1);['sp_code','sp_desc','sp_spec','sp_make','sp_min','sp_max','sp_qty','sp_loc','sp_u4'].forEach(id=>setv(id,''));const btn=document.querySelector('#spares .primary');if(btn)btn.textContent='Save Spare Part';}
 function saveSparePart(){
  if(!mmsGuardSave('spares'))return;
   let old=edit.spares!==null?data.spares[edit.spares]:null;
@@ -2225,7 +2226,7 @@ function saveSparePart(){
       data.critical.forEach(c=>{if(spareLinkKey(c.desc,c.spec)===oK){c.desc=nD;c.spec=nS;c.updatedAt=new Date().toISOString()}});
     }
   }
-  let r={id:old?.id||Date.now(),sno:num(f('sp_sno'))||data.spares.length+1,code:f('sp_code'),desc:f('sp_desc'),spec:f('sp_spec'),make:f('sp_make'),min,max,qty:String(available),availableQty:available,loc:f('sp_loc'),updatedAt:new Date().toISOString()};
+  let r={id:old?.id||Date.now(),sno:num(f('sp_sno'))||data.spares.length+1,code:f('sp_code'),desc:f('sp_desc'),spec:f('sp_spec'),make:f('sp_make'),min,max,qty:String(available),availableQty:available,loc:f('sp_loc'),u4:f('sp_u4')==='1',updatedAt:new Date().toISOString()};
   if(old){r.qty=String(available);r.availableQty=available;if(old.lowPlanned!==undefined)r.lowPlanned=old.lowPlanned;}
   let wasEdit=edit.spares!==null;
   if(wasEdit)data.spares[edit.spares]=r;else data.spares.push(r);
@@ -2273,7 +2274,7 @@ function renderSparePartsTable(){
   refreshPMSpareSelects();
   refreshMRSpareSelects();
 }
-function editSparePart(i){if(!mmsGuardEdit('spares'))return;let r=data.spares[i];if(!r)return;edit.spares=i;setv('sp_id',r.id);setv('sp_sno',r.sno);setv('sp_code',r.code);setv('sp_desc',r.desc);setv('sp_spec',r.spec);setv('sp_make',r.make);setv('sp_min',r.min??0);setv('sp_max',r.max??0);setv('sp_qty',inventoryAvailableQty(r));setv('sp_loc',r.loc);const btn=document.querySelector('#spares .primary');if(btn)btn.textContent='Update Spare Part';document.getElementById('spares').scrollIntoView({behavior:'smooth'});}
+function editSparePart(i){if(!mmsGuardEdit('spares'))return;let r=data.spares[i];if(!r)return;edit.spares=i;setv('sp_id',r.id);setv('sp_sno',r.sno);setv('sp_code',r.code);setv('sp_desc',r.desc);setv('sp_spec',r.spec);setv('sp_make',r.make);setv('sp_min',r.min??0);setv('sp_max',r.max??0);setv('sp_qty',inventoryAvailableQty(r));setv('sp_loc',r.loc);setv('sp_u4',r.u4?'1':'');const btn=document.querySelector('#spares .primary');if(btn)btn.textContent='Update Spare Part';document.getElementById('spares').scrollIntoView({behavior:'smooth'});}
 function deleteSparePart(i){
  if(!mmsGuardDelete('spares'))return;let r=data.spares[i];if(!r)return;syncSpareCriticalMaster(false);if(criticalMatchForSpare(r))return alert('This spare is linked with the Critical Spare Register. Delete/unlink the Critical Spare record first if you really want to remove this master item.');if(!confirm('Delete this spare part?'))return;data.spares.splice(i,1);data.spares.forEach((x,k)=>x.sno=k+1);persist('spares');if(edit.spares===i)edit.spares=null;renderSparePartsTable();renderCriticalTable();alert('Spare part deleted successfully.');}
 function printSpareParts(){
@@ -6550,7 +6551,7 @@ setTimeout(() => {
         <div class="card">
             <div class="head">Milestone Gears Ltd. UNIT-7</div>
             <div class="head2">SPARE PART PURCHASE PLANNING & RECEIPT REGISTER</div>
-            <div class="utility-help"><b>Process:</b> Requirement (Low Stock / Breakdown) ➜ PR Raised (PR No.) ➜ PO Created by Store (PO No.) ➜ PO Sent to Vendor ➜ Material Received (stock auto-update).</div>
+            <div class="utility-help"><b>Process:</b> Requirement (Low Stock / Breakdown) ➜ PR Raised (PR No.) ➜ PO Created by Store (PO No.) ➜ PO Sent to Vendor ➜ Material Received (stock auto-update).<br><b>Unit 4 Store:</b> jo part Unit 4 ke Maintenance Store se milta hai uska PR/PO nahi banta - zaroorat par le aao aur <b>🏭 Unit 4 se aaya (direct entry)</b> dabao, seedha Received me chala jayega aur stock Inventory me add ho jayega. (Requirement list me pehle se entry ho to uski row par <b>🏭 Unit 4 se lao</b> dabao.) Spare Inventory me part par "Unit 4 Store se milta hai = Haan" laga do to wo low stock par Requirement list me aayega hi nahi.</div>
             <div class="form">
                 <input type="hidden" id="pur_id">
                 <div class="field"><label>Sr. No.</label><input id="pur_sno" type="number"></div>
@@ -6558,7 +6559,7 @@ setTimeout(() => {
                 <div class="field"><label>Specification / Part No.</label><input id="pur_spec" placeholder="e.g. 6205-2Z/C3"></div>
                 <div class="field"><label>Quantity Needed <b>*</b></label><input id="pur_qty" type="number" min="0" step="any" value="1"></div>
                 <div class="field"><label>Urgency Level</label><select id="pur_urgency"><option>Normal</option><option>Urgent</option><option>Critical Breakdown</option></select></div>
-                <div class="field"><label>Requirement Source</label><select id="pur_source"><option>Low Stock</option><option>Breakdown</option><option>Manual</option></select></div>
+                <div class="field"><label>Requirement Source</label><select id="pur_source"><option>Low Stock</option><option>Breakdown</option><option>Manual</option><option>Unit 4 Store</option></select></div>
                 <div class="field"><label>Machine / Breakdown Ref.</label><input id="pur_ref" placeholder="e.g. SQF - 01 / breakdown date"></div>
                 <div class="field"><label>Requirement Date</label><input id="pur_req_date" type="date"></div>
                 <div class="field"><label>Stage / Status</label><select id="pur_status" onchange="purchaseStatusChanged()"><option value="Planned">1. Requirement (PR not raised)</option><option value="PR Raised">2. PR Raised</option><option value="PO Created">3. PO Created (by Store)</option><option value="Sent to Vendor">4. PO Sent to Vendor</option><option value="Received">5. Material Received</option><option value="Cancelled">Cancelled</option></select></div>
@@ -6577,6 +6578,7 @@ setTimeout(() => {
                 <div class="actions wide">
                     <button class="primary" onclick="savePurchaseRecord()">Save Purchase Record</button>
                     <button class="secondary" onclick="clearPurchaseForm()">Clear</button>
+                    <button class="secondary" onclick="purchaseUnit4Direct()">🏭 Unit 4 se aaya (direct entry)</button>
                     <button class="secondary" onclick="printPurchaseRegister()">🖨️ Print This List</button>
                     <button class="secondary" onclick="printPurchaseRegister('ALL')">🖨️ Print All</button>
                 </div>
@@ -6806,7 +6808,7 @@ const PUR_COLS = (function () {
                 let t = esc(fmtDate(r.expDate));
                 return late ? (plain === true ? t + ' (Late)' : `<span style="color:#c0392b;font-weight:bold">⚠ ${t} (Late)</span>`) : t;
             }], remark],
-        Received:         [desc, spec, ['Qty Ordered', (r) => esc(r.qty)], pr, po, vendor, ['Received Date', (r) => esc(fmtDate(r.recDate)) || '—'], ['Qty Received', (r) => `<b>${esc(r.recQty)}</b>`], ['Cost (₹)', (r) => r.cost > 0 ? '₹' + Number(r.cost).toFixed(2) : '—'], ['Challan / Invoice', (r) => esc(r.challan || '—')], remark],
+        Received:         [desc, spec, ['Qty Ordered', (r) => esc(r.qty)], pr, po, ['Vendor / Received From', (r) => r.fromUnit4 ? '<b>🏭 Unit 4 Store</b>' : esc(r.vendor || '—')], ['Received Date', (r) => esc(fmtDate(r.recDate)) || '—'], ['Qty Received', (r) => `<b>${esc(r.recQty)}</b>`], ['Cost (₹)', (r) => r.cost > 0 ? '₹' + Number(r.cost).toFixed(2) : '—'], ['Challan / Invoice / Transfer Slip', (r) => esc(r.challan || '—')], remark],
         Cancelled:        [desc, spec, ['Qty', (r) => esc(r.qty)], src, pr, po, remark]
     };
 })();
@@ -6856,6 +6858,7 @@ function renderPurchaseTable() {
     body.innerHTML = a.map((r, i) => {
         let realIdx = all.indexOf(r);
         let quick = nextBtn ? `<button class="secondary" onclick="${nextBtn[0]}(${realIdx})">${nextBtn[1]}</button>` : '';
+        if (['Planned', 'PR Raised', 'PO Created'].includes(purTab)) quick += `<button class="secondary" title="Part Unit 4 Maintenance Store me available hai - wahan se lao" onclick="purchaseFromUnit4(${realIdx})">🏭 Unit 4 se lao</button>`;
         return `<tr><td>${i + 1}</td>` + cols.map(c => `<td${c[0] === 'Remark' ? ' style="text-align:left;max-width:180px;white-space:normal"' : ''}>${c[1](r)}</td>`).join('') +
             `<td class="editbar">${quick}<button class="secondary" onclick="editPurchaseRecord(${realIdx})">Edit</button><button class="danger" onclick="deletePurchaseRecord(${realIdx})">Delete</button></td></tr>`;
     }).join('') || `<tr><td colspan="${cols.length + 2}">${q ? 'Is search me koi record nahi mila.' : 'Is list me abhi koi record nahi hai.'}</td></tr>`;
@@ -6924,6 +6927,59 @@ function purchaseMarkReceived(i) {
     purFinish('Received');
     if (typeof renderSparePartsTable === 'function') renderSparePartsTable();
     if (added) alert('Received list me chala gaya.\n\nSpare stock Inventory me update ho gaya.');
+}
+// Unit 4 Maintenance Store se part lana: PR/PO/Vendor ke bina seedha Received (internal transfer) + stock Inventory me add
+function purchaseFromUnit4(i) {
+    if (!purCanEdit()) return;
+    let r = data.sparePurchase[i]; if (!r) return;
+    let q = prompt('Unit 4 Store se kitni Qty layi gayi / layi jayegi?\n(' + r.desc + (r.spec ? ' - ' + r.spec : '') + ', zaroorat: ' + r.qty + ')', String(r.qty)); if (q === null) return;
+    let rq = num(q); if (rq <= 0) return alert('Quantity 0 se zyada honi chahiye.');
+    let d = purAskDate('Unit 4 se material mila (date)', purToday()); if (d === null) return;
+    let slip = prompt('Unit 4 Transfer Slip / Gate Pass / Issue Slip No. (optional):', r.challan || ''); if (slip === null) return;
+    let by = prompt('Unit 4 me kisne issue kiya / kaun laya (optional):', ''); if (by === null) return;
+    r.status = 'Received'; r.fromUnit4 = true; r.source = r.source || 'Unit 4 Store';
+    r.vendor = 'Unit 4 Maintenance Store'; r.recDate = d; r.recQty = rq; r.challan = slip.trim(); r.cost = 0;
+    r.remark = ((r.remark || '') + ' | Unit 4 Store se transfer' + (by.trim() ? ' (' + by.trim() + ')' : '')).replace(/^ \| /, '');
+    r.updatedAt = new Date().toISOString();
+    let added = purchaseAddToInventory(r);
+    purFinish('Received');
+    if (typeof renderSparePartsTable === 'function') renderSparePartsTable();
+    if (added) alert('Unit 4 Store se aaya maal Received list me chala gaya.\n\nSpare stock Inventory me update ho gaya.');
+}
+// Direct entry: part Unit 4 Store se le aaye (koi Requirement / PR / PO nahi) -> seedha Received + stock Inventory me add
+function purchaseUnit4Direct() {
+    if (!purCanEdit()) return;
+    if (!Array.isArray(data.sparePurchase)) data.sparePurchase = [];
+    let name = prompt('Unit 4 se jo part laye uska naam likho (Inventory me se dhoondhunga):', ''); if (name === null) return;
+    name = name.trim(); if (!name) return alert('Part ka naam zaroori hai.');
+    const toks = normalizePartText(name).split(' ').filter(Boolean);
+    let hits = (data.spares || []).filter(s => { const t = normalizePartText((s.desc || '') + ' ' + (s.spec || '') + ' ' + (s.make || '')); return toks.every(k => t.includes(k)); });
+    let desc = name, spec = '';
+    if (hits.length === 1) { desc = hits[0].desc; spec = hits[0].spec || ''; }
+    else if (hits.length > 1) {
+        const list = hits.slice(0, 15);
+        let n = prompt('Kaun sa part? Number likho:\n\n' + list.map((s, k) => (k + 1) + '. ' + s.desc + (s.spec ? ' - ' + s.spec : '') + (s.make ? ' (' + s.make + ')' : '')).join('\n') + (hits.length > 15 ? '\n...aur bhi hain, naam thoda aur poora likh ke dobara try karo' : ''), '1'); if (n === null) return;
+        const pick = list[num(n) - 1]; if (!pick) return alert('Galat number.');
+        desc = pick.desc; spec = pick.spec || '';
+    } else if (!confirm('"' + name + '" Spare Inventory me nahi mila.\n\nOK = Naya part maan ke isi naam se entry karo (Inventory me bhi naya add hoga)\nCancel = ruk jao')) return;
+    let q = prompt('Unit 4 se kitni Qty layi gayi?', '1'); if (q === null) return;
+    let rq = num(q); if (rq <= 0) return alert('Quantity 0 se zyada honi chahiye.');
+    let d = purAskDate('Kab layi gayi (date)', purToday()); if (d === null) return;
+    let slip = prompt('Unit 4 Transfer Slip / Gate Pass No. (optional):', ''); if (slip === null) return;
+    let by = prompt('Kisne issue kiya / kaun laya (optional):', ''); if (by === null) return;
+    let ref = prompt('Kis machine / kaam ke liye (optional):', ''); if (ref === null) return;
+    const now = new Date().toISOString();
+    let r = {
+        id: 'pur-u4-' + Date.now(), sno: nextPurchaseSno(), desc, spec, qty: rq, urgency: 'Normal', source: 'Unit 4 Store', refInfo: ref.trim(),
+        reqDate: d, status: 'Received', prNo: '', prDate: '', po: '', poDate: '', ordDate: '', sentDate: '', expDate: '',
+        vendor: 'Unit 4 Maintenance Store', fromUnit4: true, recDate: d, recQty: rq, cost: 0, challan: slip.trim(),
+        remark: 'Unit 4 Store se transfer' + (by.trim() ? ' (' + by.trim() + ')' : ''), updatedAt: now
+    };
+    data.sparePurchase.push(r);
+    let added = purchaseAddToInventory(r);
+    purFinish('Received');
+    if (typeof renderSparePartsTable === 'function') renderSparePartsTable();
+    alert('Unit 4 Store entry Received list me save ho gayi.' + (added ? '\n\nSpare stock Inventory me update ho gaya.' : ''));
 }
 function purchaseReplan(i) {
     if (!purCanEdit()) return;
@@ -7031,6 +7087,7 @@ function purLowEntries() {
     (data.spares || []).forEach(s => {
         const e = get(s.desc, s.spec, s.make); if (!e) return;
         e.recs.push(s);
+        if (s.u4) e.u4 = true;
         if (spareStatus(s) === 'LOW') { e.low = true; e.avail = inventoryAvailableQty(s); e.min = num(s.min); e.max = num(s.max); }
         else if (!e.low) { e.avail = inventoryAvailableQty(s); e.min = num(s.min); e.max = num(s.max); }   // stock theek hone par bhi avail/min yaad rakho (auto-close ke message ke liye)
     });
@@ -7095,7 +7152,7 @@ function purchaseAutoPlanLowStock() {
         if (purReconcileResolved()) { try { renderPurchaseTable(); } catch (e0) {} }
         const entries = purLowEntries();
         const baselineDone = entries.some(e => e.recs.some(r => r.lowPlanned !== undefined));
-        const needPlan = entries.filter(e => e.low && !e.recs.some(r => r.lowPlanned));
+        const needPlan = entries.filter(e => e.low && !e.u4 && !e.recs.some(r => r.lowPlanned));   // e.u4 = Unit 4 Store se milne wala part: PO nahi banta
         let addOK = true, spChanged = false, crChanged = false, added = [];
 
         if (!baselineDone) {
@@ -7116,6 +7173,7 @@ function purchaseAutoPlanLowStock() {
                 return;
             }
             if (flagged) return;
+            if (e.u4) return;                                  // Unit 4 Store wale part Requirement list me auto-add nahi hote
             const open = data.sparePurchase.some(p => PUR_OPEN.includes(p.status) && purMatches(p, e.desc, e.spec));
             if (!open && addOK) {
                 const base = 'pur-auto-' + purHash(e.key) + '-';
