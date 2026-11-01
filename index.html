@@ -67,7 +67,7 @@
  function sched(){if(flushT)return;flushT=setTimeout(function(){flushT=0;flush()},250)}
  function warnQuota(err){
   try{console.warn('MMS storage write failed',err)}catch(e){}
-  if(!warned&&err&&/Quota/i.test(String(err.name||err))){warned=true;alert('Phone ki storage poori bhar gayi hai, data save nahi ho pa raha. Phone me jagah khali karo.')}
+  if(!warned&&err&&/Quota/i.test(String(err.name||err))){warned=true;alert('Phone storage is full and data cannot be saved. Please free up space on the phone.')}
  }
  function doFlush(){return new Promise(function(res){
   if(!db||!dirty.size)return res(true);
@@ -1590,9 +1590,9 @@ async function pmCpAddImages(inp){
    const src=await pmResizeImage(file,160);
    const key=f('pm_template');
    const used=JSON.stringify(PM_CHECKLISTS[key]||{}).length+pmCpImgs.filter(function(x){return x.indexOf('data:')===0}).reduce(function(a,x){return a+x.length},0);
-   if(used+src.length>330000){alert('Is checklist me images ka size zyada ho gaya (server limit). Kuch purani images hata do ya chhoti image lagao.');break}
+   if(used+src.length>330000){alert('The images in this checklist are too large (server limit). Remove some old images or use smaller ones.');break}
    pmCpImgs.push(src);
-  }catch(e){alert('Image load nahi ho payi: '+(file&&file.name||''))}
+  }catch(e){alert('Could not load image: '+(file&&file.name||''))}
  }
  pmCpRenderImgs();
 }
@@ -1774,7 +1774,7 @@ function tcAuditReport(){
     return '<tr><td>'+esc(r.sno)+'</td><td>'+esc(r.furnace||'')+'</td><td style="text-align:left">'+esc(r.loc||'')+'<br><i>'+esc(tcUse(r)||'—')+'</i>'+(tcAttrTxt(i,r)?'<br>'+esc(tcAttrTxt(i,r)):'')+'</td><td>'+esc(r.type||'')+'<br>'+esc(tcMetal(r))+(r.exp?' / '+esc(r.exp):'')+'</td><td>'+esc(r.srid||'')+'</td><td>'+esc(r.freq||'')+'</td><td>'+esc(fmtDate(r.inst))+(age!==null?'<br>('+age+' m)':'')+'</td><td>'+esc(r.due||'')+'</td><td><b>'+esc(st)+'</b></td><td>'+(r.certNo?esc(r.certNo)+(r.certDate?'<br>'+esc(fmtDate(r.certDate)):'')+(r.calLab?'<br>'+esc(r.calLab):''):'—')+'</td><td style="text-align:left">'+ch.map(x=>(x.c==='ok'?'&#10003; ':'&#9888; ')+esc(x.t)).join('<br>')+'</td></tr>';}).join('');
   let hist=[];a.forEach(r=>(r.history||[]).forEach(x=>hist.push(Object.assign({furnace:r.furnace,loc:r.loc},x))));hist.sort((x,y)=>String(y.date||'').localeCompare(String(x.date||'')));
   let hrows=hist.map(x=>'<tr><td>'+esc(fmtDate(x.date))+'</td><td>'+esc(x.furnace||'')+'</td><td style="text-align:left">'+esc(x.loc||'')+'</td><td>'+esc(x.reason||'—')+'</td><td>'+esc(x.oldSrid||'—')+(x.newSrid&&x.newSrid!==x.oldSrid?' &rarr; '+esc(x.newSrid):'')+'</td><td>'+esc(x.newCertNo||'—')+'</td><td>'+esc(x.tech||'—')+'</td><td>'+esc(x.appr||'—')+'</td><td style="text-align:left">'+esc(x.note||'')+'</td></tr>').join('')||'<tr><td colspan="9">No replacement recorded.</td></tr>';
-  let w=window.open('','_blank','width=1200,height=800');if(!w)return alert('Pop-up allow karo, tabhi report khulegi.');
+  let w=window.open('','_blank','width=1200,height=800');if(!w)return alert('Please allow pop-ups to open the report.');
   w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Pyrometry Audit Report</title><style>@page{size:A4 landscape;margin:8mm}body{font-family:Arial,sans-serif;font-size:9px;color:#000}h1{text-align:center;font-size:16px;margin:2px 0}.s{text-align:center;font-size:11px;font-weight:bold;margin:2px 0 8px}h2{font-size:11px;margin:10px 0 4px;background:#eee;padding:3px 6px;border:1px solid #000}table{width:100%;border-collapse:collapse;margin-bottom:4px}th,td{border:1px solid #000;padding:3px;text-align:center;vertical-align:middle}th{background:#e5e7eb}.sum span{display:inline-block;border:1px solid #000;padding:3px 10px;margin-right:6px;font-weight:bold}.sig{display:flex;gap:10px;margin-top:22px}.sig div{flex:1;border-top:1px solid #000;padding-top:3px;text-align:center;font-weight:bold}.ft{margin-top:8px;border-top:1px solid #000;padding-top:3px;text-align:center;font-weight:bold}tr{page-break-inside:avoid}</style></head><body>'+
   '<div class="s" style="font-size:14px"><img src="'+APP_LOGO+'" style="height:12mm;vertical-align:middle;margin-right:4mm">Milestone Gears Ltd. UNIT-7</div><h1>PYROMETRY &ndash; THERMOCOUPLE CONTROL &amp; REPLACEMENT RECORD</h1><div class="s">Reference: CQI-9 Heat Treat System Assessment, 4th Edition (Pyrometry) &bull; Report date: '+esc(fmtDate(td))+'</div>'+
   '<div class="sum"><span>Total: '+a.length+'</span><span>Overdue: '+(cnt.Overdue||0)+'</span><span>Due in 30 days: '+(cnt['Due Soon']||0)+'</span><span>Planned: '+(cnt.Planned||0)+'</span><span>Open audit points: '+issues+'</span></div>'+
@@ -2091,7 +2091,7 @@ function saveBreakdown(){
  let r={id:old?.id||Date.now(),sourceMrSr:old?.sourceMrSr||'',date:f('bd_date'),machine:(mm?mm.machineNumber+' — '+mm.machineName:mn),machineNumber:mn,reason:f('bd_reason'),type:f('bd_type'),section:f('bd_section'),from:f('bd_from'),to:f('bd_to'),hours:bdHours(f('bd_from'),f('bd_to')),action:f('bd_action'),spare:f('bd_spare'),qty:f('bd_qty'),spareLink:f('bd_spare_select'),attended:f('bd_attended'),rca:f('bd_rca'),prevAction:f('bd_prev'),status:f('bd_status'),auto:old?.auto||false,updatedAt:new Date().toISOString()};
  if(!r.date||!r.machine||!r.reason||!r.from||!r.to)return alert('Please enter Date, Machine, Breakdown Reason, From and To time.');
  r.hours=Number(r.hours.toFixed(2));
- if(r.hours>2&&!String(r.rca||'').trim())return alert('Breakdown 2 ghante se zyada ka hai - Root Cause (5-Why) likhna zaroori hai.');
+ if(r.hours>2&&!String(r.rca||'').trim())return alert('Breakdown is longer than 2 hours - Root Cause (5-Why) is required.');
  let spareLink=f('bd_spare_select'),usedQty=Math.max(1,num(f('bd_qty'))||1),oldLink=old?.spareLink||'',oldQty=Math.max(0,num(old?.qty)||0);
  if(String(spareLink).startsWith('unlisted:')){
    const bdUn=parseUnlistedSpareLink(spareLink);
@@ -2216,13 +2216,13 @@ function mttrStatsFor(startYear){const rec=mttrRecords[`${startYear}-${String(st
 function saveMTTRYearRecord(){
  const fy=mttrSelFYLabel(),a=mttrStats(),rec={};
  a.forEach(x=>{if(x.hasData)rec[x.label]={hrs:+Number(x.hrs).toFixed(2),count:x.count,machines:x.machines}});
- if(!Object.keys(rec).length)return alert('FY '+fy+' me abhi save karne ke liye koi data nahi hai.');
+ if(!Object.keys(rec).length)return alert('FY '+fy+' has no data to save yet.');
  mttrRecords[fy]=rec;mttrRecords[fy].__savedAt=new Date().toISOString();mttrStore();renderMTTR();
- alert('FY '+fy+' ka MTTR/MTBF yearly record save ho gaya. Ab breakdown entries badal jayein tab bhi ye record is saal ke liye bacha rahega.');
+ alert('FY '+fy+' MTTR/MTBF yearly record saved. It will be kept for this year even if breakdown entries change later.');
 }
 function deleteMTTRYearRecord(){
- const fy=mttrSelFYLabel();if(!mttrRecords[fy])return alert('FY '+fy+' ka koi saved record nahi hai.');
- if(!confirm('FY '+fy+' ka saved yearly record delete karna hai? (Breakdown entries delete nahi hongi)'))return;
+ const fy=mttrSelFYLabel();if(!mttrRecords[fy])return alert('FY '+fy+' has no saved record.');
+ if(!confirm('FY '+fy+' saved yearly record will be deleted. (Breakdown entries are not deleted.) Continue?'))return;
  delete mttrRecords[fy];mttrStore();renderMTTR();
 }
 function mttrRecordInfo(){
@@ -2340,7 +2340,7 @@ function saveSparePart(){
     const oK=spareLinkKey(old.desc,old.spec),nD=canonicalPartText(f('sp_desc')),nS=canonicalPartText(f('sp_spec')),nK=spareLinkKey(nD,nS);
     if(oK!==nK){
       const clash=data.spares.find(x=>x!==old&&spareLinkKey(x.desc,x.spec)===nK);
-      if(clash&&!confirm('Is naam aur specification ka part Spare List me pehle se maujood hai:\n\n'+clash.desc+(clash.spec?' - '+clash.spec:'')+'\n\nPhir bhi save karein? (Duplicate ban sakta hai)'))return;
+      if(clash&&!confirm('A part with this name and specification already exists in the Spare List:\n\n'+clash.desc+(clash.spec?' - '+clash.spec:'')+'\n\nSave anyway? (This may create a duplicate)'))return;
       data.critical.forEach(c=>{if(spareLinkKey(c.desc,c.spec)===oK){c.desc=nD;c.spec=nS;c.updatedAt=new Date().toISOString()}});
     }
   }
@@ -2397,7 +2397,7 @@ function deleteSparePart(i){
  if(!mmsGuardDelete('spares'))return;let r=data.spares[i];if(!r)return;syncSpareCriticalMaster(false);if(criticalMatchForSpare(r))return alert('This spare is linked with the Critical Spare Register. Delete/unlink the Critical Spare record first if you really want to remove this master item.');if(!confirm('Delete this spare part?'))return;data.spares.splice(i,1);data.spares.forEach((x,k)=>x.sno=k+1);persist('spares');if(edit.spares===i)edit.spares=null;renderSparePartsTable();renderCriticalTable();alert('Spare part deleted successfully.');}
 function printSpareParts(){
   let a=spFiltered();
-  if(!a.length)return alert('Is filter me koi spare part nahi mila - print ke liye kuch nahi hai.');
+  if(!a.length)return alert('No spare parts found for this filter - nothing to print.');
   let flt=spFilterSummary();
   let body=a.map((r,i)=>`<tr><td>${i+1}</td><td>${esc(r.code)}</td><td>${esc(r.desc)}</td><td>${esc(r.spec)}</td><td>${esc(r.make)}</td><td>${esc(r.min)}</td><td>${esc(r.max)}</td><td>${esc(inventoryAvailableQty(r))}</td><td>${esc(spareStatus(r))}</td><td>${esc(r.loc)}</td></tr>`).join('');
   let w=window.open('','_blank','width=1200,height=800');if(!w)return alert('Please allow pop-ups to print.');
@@ -2454,7 +2454,7 @@ function saveThermocouple(){
   let old=edit.tc!==null?data.tc[edit.tc]:null;
   let r=Object.assign({},old||{},{id:old?.id||Date.now(),sno:num(f('tc_sno'))||data.tc.length+1,furnace:f('tc_furnace'),loc:f('tc_loc'),type:f('tc_type'),srid:f('tc_srid'),freq:f('tc_freq'),inst:f('tc_inst'),due:(f('tc_due')||'').trim(),status:'Planned',certNo:(f('tc_certno')||'').trim(),certDate:f('tc_certdate'),use:f('tc_use'),metal:f('tc_metal'),exp:f('tc_exp'),calLab:(f('tc_lab')||'').trim(),fcls:(f('tc_fcls')||'').trim(),itype:(f('tc_itype')||'').trim(),optemp:(f('tc_optemp')===''?'':num(f('tc_optemp'))),updatedAt:new Date().toISOString()});
   if(!r.furnace.trim())return alert('Please enter Furnace No.');
-  {let sk=String(r.srid||'').trim().toUpperCase(),dup=sk&&data.tc.find(x=>!sameId(x.id,r.id)&&String(x.srid||'').trim().toUpperCase()===sk);if(dup&&!confirm('Serial No. / ID "'+r.srid+'" pehle se Furnace "'+(dup.furnace||'')+'" me hai.\nPhir bhi save karna hai?'))return;}
+  {let sk=String(r.srid||'').trim().toUpperCase(),dup=sk&&data.tc.find(x=>!sameId(x.id,r.id)&&String(x.srid||'').trim().toUpperCase()===sk);if(dup&&!confirm('Serial No. / ID "'+r.srid+'" already exists in Furnace "'+(dup.furnace||'')+'".\nSave anyway?'))return;}
   if(!r.due&&r.inst)r.due=tcNextDueLabel(r.inst,r.freq);   // Replacement Date khali ho to Installation + Frequency se khud bharo
   let wasEdit=edit.tc!==null;
   if(wasEdit)data.tc[edit.tc]=r;else data.tc.push(r);
@@ -2482,17 +2482,17 @@ function renderThermocoupleTable(){
 // Thermocouple badla gaya (breakdown / PM ke bina bhi): date + (naya serial no.) daalo -> Installation Date naya, Replacement Date khud agla, purana record History me
 function tcMarkReplaced(i){
   if(!mmsGuardEdit('tc'))return;let r=data.tc[i];if(!r)return;
-  let d=prompt('Thermocouple kab badla gaya? (YYYY-MM-DD)',new Date().toISOString().slice(0,10));if(d===null)return;
+  let d=prompt('When was the thermocouple replaced? (YYYY-MM-DD)',new Date().toISOString().slice(0,10));if(d===null)return;
   d=d.trim();if(!/^\d{4}-\d{2}-\d{2}$/.test(d))return alert('Date format YYYY-MM-DD me likho (jaise 2026-10-31).');
-  let sr=prompt('Naye thermocouple ka Serial No. / ID (nahi badla to khali chhodo):',r.srid||'');if(sr===null)return;
-  let n=prompt('Note / wajah (optional) - jaise Planned replacement / Breakdown:','');if(n===null)return;
+  let sr=prompt('New thermocouple Serial No. / ID (leave blank if unchanged):',r.srid||'');if(sr===null)return;
+  let n=prompt('Note / reason (optional) - e.g. Planned replacement / Breakdown:','');if(n===null)return;
   applyThermocoupleReplacement(r.id,d,sr.trim(),n.trim());
-  alert('Replacement save ho gaya.\nAgli Replacement Date: '+r.due);
+  alert('Replacement saved.\nNext replacement date: '+r.due);
 }
 function tcShowHistory(i){
   let r=data.tc[i];if(!r)return;
   let h=(r.history||[]).slice().reverse();
-  alert('Replacement History - '+(r.furnace||'')+' ('+(r.srid||'')+')\n\n'+(h.length?h.map((x,k)=>(k+1)+'. '+fmtDate(x.date)+' - badla gaya'+(x.oldSrid?' (purana ID: '+x.oldSrid+(x.oldInst?', laga tha: '+fmtDate(x.oldInst):'')+')':'')+(x.newSrid&&x.newSrid!==x.oldSrid?' -> naya ID: '+x.newSrid:'')+(x.note?' | '+x.note:'')).join('\n'):'Abhi koi replacement record nahi.'));
+  alert('Replacement History - '+(r.furnace||'')+' ('+(r.srid||'')+')\n\n'+(h.length?h.map((x,k)=>(k+1)+'. '+fmtDate(x.date)+' - replaced'+(x.oldSrid?' (old ID: '+x.oldSrid+(x.oldInst?', installed: '+fmtDate(x.oldInst):'')+')':'')+(x.newSrid&&x.newSrid!==x.oldSrid?' -> new ID: '+x.newSrid:'')+(x.note?' | '+x.note:'')).join('\n'):'No replacement record yet.'));
 }
 function editThermocouple(i){if(!mmsGuardEdit('tc'))return;let r=data.tc[i];if(!r)return;edit.tc=i;setv('tc_id',r.id);setv('tc_sno',r.sno);setv('tc_furnace',r.furnace);setv('tc_loc',r.loc);setv('tc_type',r.type);setv('tc_srid',r.srid);setv('tc_freq',r.freq);setv('tc_inst',r.inst);setv('tc_due',r.due);{let e=document.getElementById('tc_due');if(e)e.dataset.auto=(r.inst&&String(r.due||'').trim().toUpperCase()===tcNextDueLabel(r.inst,r.freq).toUpperCase())?'1':'';}setv('tc_status','Planned');setv('tc_certno',r.certNo||'');setv('tc_certdate',r.certDate||'');setv('tc_use',r.use||'');setv('tc_metal',r.metal||'');setv('tc_exp',r.exp||'');setv('tc_lab',r.calLab||'');setv('tc_fcls',r.fcls||'');setv('tc_itype',r.itype||'');setv('tc_optemp',r.optemp===undefined?'':r.optemp);const btn=document.querySelector('#thermocouple .primary');if(btn)btn.textContent='Update Thermocouple Plan';document.getElementById('thermocouple').scrollIntoView({behavior:'smooth'});}
 function deleteThermocouple(i){
@@ -2525,9 +2525,9 @@ function saveCalibration(){
   let old=edit.cal!==null?data.cal[edit.cal]:null;
   let r=Object.assign({},old||{},{id:old?.id||Date.now(),sno:num(f('cal_sno'))||data.cal.length+1,name:f('cal_name'),make:f('cal_make'),idno:f('cal_idno'),range:f('cal_range'),lc:f('cal_lc'),location:f('cal_location'),certNo:f('cal_certno'),lab:f('cal_lab'),nabl:f('cal_nabl'),date:f('cal_date'),freq:(f('cal_freq')||'').trim()||'YEARLY',duedate:f('cal_duedate'),updatedAt:new Date().toISOString()});
   if(!r.name.trim())return alert('Please enter Instruments Name.');
-  if(r.date&&!String(r.certNo||'').trim()&&!confirm('Calibration Certificate No. khali hai (audit me certificate traceability maangi jati hai). Phir bhi save karein?'))return;
+  if(r.date&&!String(r.certNo||'').trim()&&!confirm('Calibration Certificate No. is blank (certificate traceability is checked in audits). Save anyway?'))return;
   if(!r.duedate&&r.date){let d=parseFlexDate(r.date);if(d)r.duedate=calIso(tcAddMonths(d,tcFreqMonths(r.freq)));}   // Due Date khali ho to Cali. Date + Frequency
-  if(r.date&&r.duedate&&r.duedate<r.date&&!confirm('Due Date, Calibration Date se pehle hai. Phir bhi save karein?'))return;
+  if(r.date&&r.duedate&&r.duedate<r.date&&!confirm('Due Date is before the Calibration Date. Save anyway?'))return;
   let wasEdit=edit.cal!==null;
   if(wasEdit)data.cal[edit.cal]=r;else data.cal.push(r);
   persist('cal');edit.cal=null;clearCalForm();renderCalibrationTable();
@@ -2551,7 +2551,7 @@ function calMarkDone(i){
   if(!mmsGuardEdit('cal'))return;let r=data.cal[i];if(!r)return;
   let d=prompt('Calibration kab hua? (YYYY-MM-DD)',new Date().toISOString().slice(0,10));if(d===null)return;
   d=d.trim();if(!/^\d{4}-\d{2}-\d{2}$/.test(d))return alert('Date format YYYY-MM-DD me likho (jaise 2026-10-31).');
-  let cert=prompt('Calibration Certificate No. (zaroori):','');if(cert===null)return;if(!cert.trim())return alert('Certificate No. likhna zaroori hai (audit traceability).');
+  let cert=prompt('Calibration Certificate No. (required):','');if(cert===null)return;if(!cert.trim())return alert('Certificate No. is required (audit traceability).');
   let lab=prompt('Calibration Lab ka naam (NABL ho to likho: jaise Tempsens - NABL):',r.lab||'');if(lab===null)return;
   let fr=prompt('Agla calibration kitne time baad? (YEARLY / HALF YEARLY / QUARTERLY / 2 YEARS)',r.freq||'YEARLY');if(fr===null)return;
   fr=fr.trim()||r.freq||'YEARLY';
@@ -2559,11 +2559,11 @@ function calMarkDone(i){
   r.history.push({date:d,oldDate:r.date||'',oldDue:r.duedate||'',cert:cert.trim(),lab:lab.trim(),at:new Date().toISOString()});r.certNo=cert.trim();r.lab=lab.trim();
   r.date=d;r.freq=fr;r.duedate=calIso(tcAddMonths(parseFlexDate(d),tcFreqMonths(fr)));r.updatedAt=new Date().toISOString();
   persist('cal');renderCalibrationTable();if(typeof renderDashboard==='function')try{renderDashboard()}catch(e){}
-  alert('Calibration save ho gaya.\nAgli Due Date: '+fmtDate(r.duedate));
+  alert('Calibration saved.\nNext due date: '+fmtDate(r.duedate));
 }
 function calShowHistory(i){
   let r=data.cal[i];if(!r)return;let h=(r.history||[]).slice().reverse();
-  alert('Calibration History - '+(r.name||'')+' ('+(r.idno||'')+')\n\n'+(h.length?h.map((x,k)=>(k+1)+'. '+fmtDate(x.date)+' calibrate hua'+(x.cert?' | Cert: '+x.cert:'')+(x.oldDate?' (pichhla: '+fmtDate(x.oldDate)+')':'')).join('\n'):'Abhi koi history nahi.'));
+  alert('Calibration History - '+(r.name||'')+' ('+(r.idno||'')+')\n\n'+(h.length?h.map((x,k)=>(k+1)+'. '+fmtDate(x.date)+' calibrated'+(x.cert?' | Cert: '+x.cert:'')+(x.oldDate?' (previous: '+fmtDate(x.oldDate)+')':'')).join('\n'):'No history yet.'));
 }
 function editCalibration(i){if(!mmsGuardEdit('cal'))return;let r=data.cal[i];if(!r)return;edit.cal=i;setv('cal_id',r.id);setv('cal_sno',r.sno);setv('cal_name',r.name);setv('cal_make',r.make);setv('cal_idno',r.idno);setv('cal_range',r.range);setv('cal_lc',r.lc);setv('cal_location',r.location);setv('cal_certno',r.certNo||'');setv('cal_lab',r.lab||'');setv('cal_nabl',r.nabl||'');setv('cal_date',r.date);setv('cal_freq',r.freq||'YEARLY');setv('cal_duedate',r.duedate);{let e=document.getElementById('cal_duedate');if(e)e.dataset.auto='';}const btn=document.querySelector('#calibration .primary');if(btn)btn.textContent='Update Instrument';document.getElementById('calibration').scrollIntoView({behavior:'smooth'});}
 function deleteCalibration(i){
@@ -2991,7 +2991,7 @@ function savePC() {
 
     // Power restored (ya poori entry ek saath) ho to DG consumption zaroori
     if (hasTo && (f('pc_c1').trim() === '' || f('pc_c2').trim() === '')) {
-        return alert('Power Restored save karne ke liye DG 01 aur DG 02 Consumed (diesel) bharna zaroori hai (DG nahi chala to 0 daalo).');
+        return alert('To save Power Restored, enter DG 01 and DG 02 Consumed (diesel). Enter 0 if the DG did not run.');
     }
 
     const r = {
@@ -3025,9 +3025,9 @@ function savePC() {
     renderDashboard();
 
     if (isStartOnly) {
-        if (confirm('Power Cut saved (From ' + r.from + ').\n\nKya Power Cut report (image) WhatsApp pe bhejni hai?')) pcShareReport(r,pcMsgStart(r));
+        if (confirm('Power Cut saved (From ' + r.from + ').\n\nSend the Power Cut report (image) on WhatsApp?')) pcShareReport(r,pcMsgStart(r));
     } else if (isRestoreNow) {
-        if (confirm('Power Restored saved. Duration: ' + pcFmtDur(r.from, r.to) + ' hrs.\n\nKya Power Restored report (image) WhatsApp pe bhejni hai?')) pcShareReport(r,pcMsgRestored(r));
+        if (confirm('Power Restored saved. Duration: ' + pcFmtDur(r.from, r.to) + ' hrs.\n\nSend the Power Restored report (image) on WhatsApp?')) pcShareReport(r,pcMsgRestored(r));
     } else {
         alert('Power Cut entry updated successfully.');
     }
@@ -3323,6 +3323,10 @@ function savePM(){
  if(!r.date||!template)return alert('Please select Checklist and Done Date.');
  if(!String(r.machineNo||'').trim())return alert('Machine No. is required.');
  if(String(r.checkedBy||'').trim()&&String(r.checkedBy).trim().toLowerCase()===String(r.verifiedBy||'').trim().toLowerCase())return alert('Checked By and Verified By must be different persons.');
+ const _me=(session()||{}).u||'';r.checkedByUser=(previousPM&&previousPM.checkedByUser)||(String(r.checkedBy||'').trim()?_me:'');
+ r.verifiedByUser=String(r.verifiedBy||'').trim()?((previousPM&&previousPM.verifiedBy===r.verifiedBy&&previousPM.verifiedByUser)||_me):'';
+ if(r.verifiedByUser&&r.checkedByUser&&r.verifiedByUser===r.checkedByUser)return alert('Checked By and Verified By must be done from different login accounts. Ask the verifier to log in and verify.');
+ if(String(r.verifiedBy||'').trim()&&!(previousPM&&previousPM.verifiedBy===r.verifiedBy)&&typeof window.mmsApprAllowed==='function'&&!window.mmsApprAllowed('pm'))return alert('Admin has not given your role permission to verify PM check sheets. Leave Verified By blank.');
  {const notOk=(r.entries||[]).filter(e=>e.workDone==='Not OK').length,unans=(r.entries||[]).filter(e=>!e.workDone).length,miss=[];
   if(notOk&&!r.action)return alert('Some checkpoints are "Not OK" - enter the action and target date.');
   if(!String(r.checkedBy||'').trim())miss.push('Checked By');if(!String(r.verifiedBy||'').trim())miss.push('Verified By');if(unans)miss.push(unans+' checkpoint(s) not answered (OK / Not OK / N/A)');
@@ -3451,14 +3455,14 @@ function mrOfferRegisterUnlisted(sel,u){
   const canSp=mmsCanSaveQuiet('spares'),canCr=mmsCanSaveQuiet('critical');
   if(!canSp&&!canCr)return false;
   const label=unlistedSpareLabel(u);
-  const addSp=canSp&&confirm('Part: '+label+'\n\nIs part ko SPARE PARTS LIST (Inventory) me bhi add karna hai?\n\nOK = Haan, add karo\nCancel = Nahi');
-  const addCr=canCr&&confirm('Part: '+label+'\n\nIs part ko CRITICAL SPARE LIST me bhi add karna hai?\n(Critical me add hone par ye Spare Parts List me bhi apne aap judega.)\n\nOK = Haan, add karo\nCancel = Nahi');
+  const addSp=canSp&&confirm('Part: '+label+'\n\nAlso add this part to the SPARE PARTS LIST (Inventory)?\n\nOK = Yes, add\nCancel = No');
+  const addCr=canCr&&confirm('Part: '+label+'\n\nAlso add this part to the CRITICAL SPARE LIST?\n(Parts added to Critical are also added to the Spare Parts List automatically.)\n\nOK = Yes, add\nCancel = No');
   if(!addSp&&!addCr)return false;
   const row=sel.closest('.spare-row'),qEl=row&&row.querySelector('.spare-qty');
   const used=Math.max(1,num(qEl&&qEl.value)||1);
-  let av=prompt('Available Quantity (is slip me use hone se PEHLE ka stock):\n\nUse hui qty ('+used+') slip save karne par isi stock se ghat jayegi.',String(used));
+  let av=prompt('Available Quantity (stock BEFORE use in this slip):\n\nUsed qty ('+used+') will be deducted from this stock when the slip is saved.',String(used));
   if(av===null)return false;av=Math.max(0,num(av));
-  if(av<used){alert('Available Quantity use hui qty ('+used+') se kam nahi ho sakti. List me add nahi kiya gaya.');return false}
+  if(av<used){alert('Available Quantity cannot be less than the used qty ('+used+'). The part was not added to the list.');return false}
   let mn=prompt('Minimum Quantity:','0');if(mn===null)return false;mn=Math.max(0,num(mn));
   let mx=prompt('Maximum Quantity:',String(Math.max(av,1)));if(mx===null)return false;mx=Math.max(num(mx),mn,av,1);
   let loc=prompt('Location (optional):','');if(loc===null)return false;
@@ -3477,7 +3481,7 @@ function mrOfferRegisterUnlisted(sel,u){
   const nl='spares:'+s.id;
   refreshMRSpareSelects();
   sel.innerHTML=mrSpareOptionList(nl);sel.value=nl;
-  alert('"'+label+'" '+(addCr?'Spare Parts List aur Critical Spare List':'Spare Parts List')+' me add ho gaya.\n\nSlip save karne par use hui qty ('+used+') stock se ghat jayegi.');
+  alert('"'+label+'" '+(addCr?'Spare Parts List aur Critical Spare List':'Spare Parts List')+' - added successfully.\n\nWhen the slip is saved, the used qty ('+used+') will be deducted from stock.');
   return true;
 }
 function ensureSpareRow(){const box=document.getElementById('mrSpareParts');if(box&&!box.querySelector('.spare-row'))addSparePartRow('', '', false)}
@@ -4225,7 +4229,7 @@ function pmPlanNextDate(date,machine){
   }
   return '';
 }
-function pmPlanOpenCheckSheet(month,machineNo){try{PM_PLAN_LINK_CONTEXT={month:month||'',machineNo:machineNo||''};localStorage.setItem('htp7_pm_plan_link_context',JSON.stringify(PM_PLAN_LINK_CONTEXT));showTab('pm');setTimeout(()=>{const machineEl=document.getElementById('pm_machine_no'),dateEl=document.getElementById('pm_date');if(machineEl){machineEl.value=machineNo||'';machineEl.dispatchEvent(new Event('change',{bubbles:true}));}if(dateEl){const d=pmDueDate(month,pmMasterGet({machineNumber:machineNo}).dueDay);dateEl.value=d||new Date().toISOString().slice(0,10);}edit.pm=null;if(typeof loadPMTemplate==='function')loadPMTemplate();},50);}catch(e){console.error(e);alert('PM Check Sheet open nahi ho pa rahi.');}}
+function pmPlanOpenCheckSheet(month,machineNo){try{PM_PLAN_LINK_CONTEXT={month:month||'',machineNo:machineNo||''};localStorage.setItem('htp7_pm_plan_link_context',JSON.stringify(PM_PLAN_LINK_CONTEXT));showTab('pm');setTimeout(()=>{const machineEl=document.getElementById('pm_machine_no'),dateEl=document.getElementById('pm_date');if(machineEl){machineEl.value=machineNo||'';machineEl.dispatchEvent(new Event('change',{bubbles:true}));}if(dateEl){const d=pmDueDate(month,pmMasterGet({machineNumber:machineNo}).dueDay);dateEl.value=d||new Date().toISOString().slice(0,10);}edit.pm=null;if(typeof loadPMTemplate==='function')loadPMTemplate();},50);}catch(e){console.error(e);alert('Could not open the PM Check Sheet.');}}
 function pmPlanOpenSavedCheckSheet(checkId){const idx=data.pm.findIndex(r=>r.id===checkId);if(idx<0)return alert('Saved PM Check Sheet record not found.');printPM(idx);}
 function pmPlanLinkFromCheckSheet(r,linkContext){if(!r||!String(r.machineNo||'').trim()||!r.date)return false;const ctx=linkContext||{};const machineNo=String(r.machineNo).trim();const month=r.planMonth||((ctx.machineNo&&String(ctx.machineNo).trim()===machineNo&&ctx.month)?ctx.month:new Date(r.date+'T00:00:00').toLocaleString('en-US',{month:'long',year:'numeric'}));if(!PMPLAN_MONTHS.includes(month))return false;const machine=pmPlanMachines().find(m=>m.machineNumber===machineNo)||{machineNumber:machineNo};const meaningful=(r.entries||[]).filter(e=>String(e.observation||'').trim()||String(e.workDone||'').trim()||String(e.remark||'').trim());const workDone=meaningful.map((e,i)=>{const a=[];if(e.observation)a.push('Obs: '+e.observation);if(e.workDone)a.push('Work: '+e.workDone);if(e.remark)a.push('Remark: '+e.remark);return a.length?'#'+(i+1)+' '+a.join(' | '):''}).filter(Boolean).join(' ; ');const val=pmPlanGet(month,machine);val.partial=!!r.partial;if(r.partial){val.actual='';val.nextDate='';val.late=0;}else{val.actual=r.date;val.nextDate=pmPlanNextDate(r.date,machine);val.late=(val.planned&&r.date>val.planned)?Math.round((new Date(r.date)-new Date(val.planned))/864e5):0;}val.tech=String(r.checkedBy||'').trim()||val.tech;val.work=workDone||(r.partial?'PM Check Sheet Partial':'PM Check Sheet Completed');val.remark=(String(r.verifiedBy||'').trim()?('Verified By: '+r.verifiedBy):val.remark)+(r.action?(' | Action: '+r.action+(r.actionTarget?' (target '+fmtDate(r.actionTarget)+')':'')+' ['+(r.actionStatus||'Open')+']'):'');val.pmCheckId=r.id||('PM-'+r.date+'-'+machineNo);val.scheduled=true;pmPlanSave(month,machine,val);renderPMPlan();renderPMYearlyPlan();return true;}
 function exportPMPlanCSV(){const month=f('pmpMonth')||PMPLAN_MONTHS[0],rows=pmPlanMachines().filter(m=>pmScheduledMonths(m).includes(month));const out=[['Sr.','Machine No.','Machine Name','Line','Grade','Frequency','Planned Date','Actual Date','Next PM','Status','Technician','Remarks'],...rows.map((m,i)=>{const r=pmPlanGet(month,m);return [i+1,m.machineNumber,m.machineName,m.line,m.grade,pmMasterGet(m).frequency,r.planned,r.actual,r.nextDate,pmPlanStatus(r),r.tech,r.remark]})];const csv=out.map(a=>a.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\n');const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='PM_Work_Register_'+month.replace(/\s+/g,'_')+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
@@ -4303,16 +4307,16 @@ function mmRemoveMachine(){
 <button onclick="MMS.deleteUserAccount()" style="background:#fdecea;color:#c0392b;border-color:#e6b3ad">🗑 Delete User</button>
 </div>
 <div class="mrw-admin-row"><b style="font-size:12px">🔧 Maintenance Request slip — is user ka kaam:</b>
-<select id="mmsPermMrTeam" title="Is user ko MR slip me kaun sa kaam milega"><option value="">MR Team: Auto (login role se)</option><option value="production">👷 Production (Step 1 + Verify)</option><option value="maintenance">🛠️ Maintenance (Step 2-3-4)</option><option value="both">👷🛠️ Dono (Supervisor)</option></select>
+<select id="mmsPermMrTeam" title="Is user ko MR slip me kaun sa kaam milega"><option value="">MR Team: Auto (from login role)</option><option value="production">👷 Production (Step 1 + Verify)</option><option value="maintenance">🛠️ Maintenance (Step 2-3-4)</option><option value="both">👷🛠️ Dono (Supervisor)</option></select>
 <input id="mmsPermFullName" placeholder="Poora naam (slip par auto aayega)" style="min-width:190px">
 <input id="mmsPermEcode" placeholder="E-Code" style="min-width:90px">
 <button onclick="mrSaveUserProfile()">💾 Save MR Profile</button></div>
 <div id="mmsPermGrid" style="max-height:260px;overflow:auto;border:1px solid #ddd;border-radius:8px"></div>
 <button style="margin-top:8px" onclick="MMS.saveUserPerms()">💾 Save Module Access</button>
 </div>
-<div class="mms-box" style="grid-column:1/-1"><h3>✅ Approval Access (Role × Module)</h3><div class="sub">Kaun sa role kis module ka data approve / verify kar sakta hai. Jise tick milega sirf usi ko "Pending Approvals" popup aur Approve / Verify button dikhega (server par bhi yahi check hota hai). Admin hamesha allowed hai. Koi bhi record apne preparer / technician se approve nahi hota - ye rule alag se hamesha lagta hai.</div>
+<div class="mms-box" style="grid-column:1/-1"><h3>✅ Approval Access (Role × Module)</h3><div class="sub">Which role can approve / verify which module. Only roles with a tick see the "Pending Approvals" popup and the Approve / Verify button (the server also checks this for SAT, TUS, TC and MR; the PM Check Sheet is checked in the app only). Admin hamesha allowed hai. Koi bhi record apne preparer / technician se approve nahi hota - ye rule alag se hamesha lagta hai.</div>
 <div id="mmsApprMatrix" style="overflow:auto;margin:8px 0"></div>
-<button onclick="mmsApprSave()">💾 Save Approval Access</button> <button onclick="mmsApprReset()" style="background:#fdecea;color:#c0392b;border-color:#e6b3ad">↺ Reset (sab edit-access wale)</button>
+<button onclick="mmsApprSave()">💾 Save Approval Access</button> <button onclick="mmsApprReset()" style="background:#fdecea;color:#c0392b;border-color:#e6b3ad">↺ Reset (everyone with edit access)</button>
 </div>
 <div class="mms-box"><h3>💾 Backup / Restore</h3><button onclick="MMS.backup()">Download Complete Backup</button><button onclick="MMS.restore()">Restore Backup</button><div class="sub">Includes module data, machine master, PM checklists and settings.</div></div>
 <div class="mms-box"><h3>📊 Excel Export</h3><button onclick="MMS.exportExcel()">Export Complete Excel Workbook</button><div class="sub">Excel-compatible multi-sheet workbook with all module records.</div></div>
@@ -4590,7 +4594,7 @@ function mmsRestoreDeleted(i){const s=session();if(!s||s.role!=='Admin')return a
   if(arr.some(r=>r&&String(r.id)===String(x.record.id)))return alert('Record already exists.');
   x.record.restoredBy=s.u;arr.push(x.record);L.splice(i,1);acSave(MMS_DEL_KEY,L);persist(x.module);try{renderAll()}catch(e){}mmsACRender('deleted');}
 /* ===== Approval Access: role x module (Admin set karta hai; data.apprCfg[0] = {id:'cfg',rules:{role:[mods]}}) ===== */
-const APPR_MODS=[['satReport','SAT Report'],['tus','TUS Survey'],['tc','Thermocouple Replacement'],['mr','MR Verify & Close']];
+const APPR_MODS=[['satReport','SAT Report'],['tus','TUS Survey'],['tc','Thermocouple Replacement'],['mr','MR Verify & Close'],['pm','PM Check Sheet Verify']];
 function apprRn(v){return String(v||'').toLowerCase().replace(/[^a-z0-9]/g,'')}
 function apprCfgRec(){const a=data.apprCfg;return Array.isArray(a)&&a.length&&a[0]&&a[0].rules?a[0]:null}
 /* true = ye login user is module ko approve kar sakta hai. Config nahi bani to purana rule (edit access wale sab). */
@@ -4600,7 +4604,7 @@ function mmsApprRoles(){const set=new Set(['Technician','Operator','Supervisor']
   const c=apprCfgRec();if(c)Object.keys(c.rules).forEach(k=>{if(k!=='Admin')set.add(k)});return Array.from(set)}
 function mmsApprRender(){const el=document.getElementById('mmsApprMatrix');if(!el)return;const c=apprCfgRec(),roles=mmsApprRoles();
   const th='style="border:1px solid #ccc;padding:4px 8px;background:#f1f5f9;text-align:center"',td='style="border:1px solid #ddd;padding:4px 8px;text-align:center"';
-  el.innerHTML='<div style="font-size:12px;margin-bottom:6px;color:'+(c?'#166534':'#92400e')+'"><b>'+(c?'Restriction ON':'Abhi koi restriction nahi')+'</b> - '+(c?('last saved by '+esc2(c.updatedBy||'-')+' '+esc2(c.updatedAt?new Date(c.updatedAt).toLocaleString('en-GB'):'')):'jab tak save nahi karte, module me Edit access wale sab approve kar sakte hain.')+'</div>'+
+  el.innerHTML='<div style="font-size:12px;margin-bottom:6px;color:'+(c?'#166534':'#92400e')+'"><b>'+(c?'Restriction ON':'No restriction yet')+'</b> - '+(c?('last saved by '+esc2(c.updatedBy||'-')+' '+esc2(c.updatedAt?new Date(c.updatedAt).toLocaleString('en-GB'):'')):'until you save, everyone with Edit access to the module can approve.')+'</div>'+
   '<table style="border-collapse:collapse;font-size:12px"><thead><tr><th '+th+'>Role</th>'+APPR_MODS.map(m=>'<th '+th+'>'+m[1]+'</th>').join('')+'</tr></thead><tbody>'+
   roles.map(r=>{let l=null;if(c)Object.keys(c.rules).forEach(k=>{if(apprRn(k)===apprRn(r))l=c.rules[k]});
     return '<tr><td style="border:1px solid #ddd;padding:4px 8px;text-align:left"><b>'+esc2(r)+'</b></td>'+APPR_MODS.map(m=>'<td '+td+'><input type="checkbox" data-role="'+esc2(r)+'" data-mod="'+m[0]+'"'+((c?(Array.isArray(l)&&l.indexOf(m[0])>=0):true)?' checked':'')+'></td>').join('')+'</tr>'}).join('')+
@@ -4609,7 +4613,7 @@ function mmsApprSave(){const s=session();if(!s||s.role!=='Admin')return alert('O
   document.querySelectorAll('#mmsApprMatrix input[type=checkbox]').forEach(cb=>{const r=cb.getAttribute('data-role');if(!rules[r])rules[r]=[];if(cb.checked)rules[r].push(cb.getAttribute('data-mod'))});
   const rec={id:'cfg',rules:rules,updatedBy:s.u,updatedAt:new Date().toISOString()};data.apprCfg.splice(0,data.apprCfg.length,rec);persist('apprCfg');
   try{audit('USER_PERMS','system','Approval access: '+Object.keys(rules).map(r=>r+'='+(rules[r].join('/')||'none')).join('; '))}catch(e){}
-  mmsApprRender();alert('Approval access save ho gaya. Ab sirf tick wale roles ko approve / verify option dikhega.');}
+  mmsApprRender();alert('Approval access saved. Only the ticked roles will now see the approve / verify option.');}
 function mmsApprReset(){const s=session();if(!s||s.role!=='Admin')return alert('Only Admin.');if(!confirm('Restriction hata dein? Phir module me Edit access wale sab approve kar sakenge.'))return;
   data.apprCfg.splice(0,data.apprCfg.length);persist('apprCfg');try{audit('USER_PERMS','system','Approval access reset (no restriction)')}catch(e){}mmsApprRender();}
 /* Auditor view (read-only) */
@@ -4617,6 +4621,15 @@ window.__auditorView=false;
 (function(){const st=document.createElement('style');st.textContent='body.auditor-view .danger,body.auditor-view .editbar,body.auditor-view .pm-editor-actions,body.auditor-view .no-print-pmplan{display:none!important}body.auditor-view{padding-top:22px}';document.head.appendChild(st);})();
 function mmsToggleAuditor(){window.__auditorView=!window.__auditorView;document.body.classList.toggle('auditor-view',window.__auditorView);let b=document.getElementById('mmsAuditorBar');
   if(window.__auditorView){if(!b){b=document.createElement('div');b.id='mmsAuditorBar';b.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:#b45309;color:#fff;text-align:center;font:700 12px Arial;padding:4px;cursor:pointer';b.textContent='AUDITOR VIEW - read-only. Click here to exit.';b.onclick=mmsToggleAuditor;document.body.appendChild(b);}var m=document.getElementById('mmsAC');if(m)m.style.display='none';}else if(b)b.remove();}
+/* Auditor View: block write-type clicks immediately */
+document.addEventListener('click',function(e){if(!window.__auditorView)return;const b=e.target.closest&&e.target.closest('button,[onclick],input[type=file]');if(!b||b.closest('#mmsAC')||b.id==='mmsAuditorBar')return;const oc=(b.getAttribute('onclick')||'').toLowerCase();
+  if(/(save|delete|remove|add|update|replace|clear|reset|apply|import|restore|submit|spread|approve|verify|reopen|cancel)/.test(oc)&&!/(print|export|csv|pdf|share|show|render|filter|search|godash|showtab)/.test(oc)){e.preventDefault();e.stopPropagation();alert('Auditor View is read-only.');}},true);
+/* Spelling fixes in already-saved data (idempotent) */
+function mmsFixTypos(){try{const P=[['Controling','Controlling'],['Seafty','Safety'],['Thermocuple','Thermocouple'],['Furnence','Furnace'],['Fuenace','Furnace'],['Furnece','Furnace'],['Refrence Stander','Reference Standard'],['Standerd','Standard'],['survay','survey'],['as par ','as per '],['bulit','built'],['instrumentare','instrument are']];
+  const fx=v=>{let o=v;P.forEach(p=>{o=o.split(p[0]).join(p[1])});return o};let any=false;
+  ['tc','satReport'].forEach(k=>{const arr=Array.isArray(data[k])?data[k]:(typeof hqList==='function'?hqList(k):[]);let ch=false;arr.forEach(r=>{if(!r||typeof r!=='object')return;Object.keys(r).forEach(f=>{if(typeof r[f]==='string'){const n=fx(r[f]);if(n!==r[f]){r[f]=n;ch=true;}}});});if(ch){any=true;mmsQuiet(function(){persist(k)});}});
+  if(any&&typeof gsSchedule==='function')gsSchedule(3000);}catch(e){}}
+setTimeout(mmsFixTypos,5000);
 /* Action tracker */
 function mmsActAdd(){if(window.__auditorView)return;const g=id=>document.getElementById(id).value.trim();if(!g('ac_act')||!g('ac_owner')||!g('ac_tgt'))return alert('Action, Owner and Target date are required.');
   const L=mmsLS(MMS_ACT_KEY);L.unshift({id:'act-'+Date.now(),at:new Date().toISOString(),by:(session()||{}).u||'',source:g('ac_src'),ref:g('ac_ref'),action:g('ac_act'),owner:g('ac_owner'),target:g('ac_tgt'),status:'Open'});acSave(MMS_ACT_KEY,L);mmsACRender('actions');}
@@ -4696,15 +4709,15 @@ function mmsDeviceId(){try{let d=localStorage.getItem('htp_mms_dev_v1');if(!/^[a
 async function mmsForcePasswordChange(u,oldPw,role){
  const min=role==='Admin'?8:6;
  for(let i=0;i<5;i++){
-  const np=prompt('🔐 Ye aapka pehla login hai (ya Admin ne password reset kiya hai).\n\nApna NAYA password banao (kam se kam '+min+' characters):');
+  const np=prompt('🔐 This is your first login (or Admin has reset your password).\n\nCreate your NEW password (at least '+min+' characters):');
   if(np===null)return false;
   if(np.length<min){alert('Password kam se kam '+min+' characters ka ho.');continue}
-  const cf=prompt('Naya password dobara likho:');
+  const cf=prompt('Re-enter the new password:');
   if(cf===null)return false;
-  if(cf!==np){alert('Dono password alag hain, dobara try karo.');continue}
+  if(cf!==np){alert('The two passwords do not match. Please try again.');continue}
   let r;
-  try{r=await mmsSrvCall('changePw',{old:oldPw,pw:np})}catch(e){alert('Server se connect nahi hua. Internet check karo.');return false}
-  if(!r||!r.ok){alert((r&&r.error)||'Password change nahi hua.');continue}
+  try{r=await mmsSrvCall('changePw',{old:oldPw,pw:np})}catch(e){alert('Could not connect to the server. Check your internet connection.');return false}
+  if(!r||!r.ok){alert((r&&r.error)||'Password was not changed.');continue}
   mmsSrvSet(r.token,r.exp,u);
   return true;
  }
@@ -4714,10 +4727,10 @@ async function mmsForcePasswordChange(u,oldPw,role){
 let mmsRT=null,mmsRTExp=0;
 async function mmsReauthToken(){
  if(mmsRT&&Date.now()<mmsRTExp-5000)return mmsRT;
- const re=prompt('🔐 Ye bada kaam hai. Apna PIN (ya password) daalo:');
+ const re=prompt('🔐 This is a sensitive action. Enter your PIN (or password):');
  if(re===null||re==='')return null;
  let r;
- try{r=await mmsSrvCall('reauth',{re:re})}catch(e){alert('Server se connect nahi hua. Internet check karo.');return null}
+ try{r=await mmsSrvCall('reauth',{re:re})}catch(e){alert('Could not connect to the server. Check your internet connection.');return null}
  if(!r||!r.ok){alert((r&&r.error)||'Galat PIN / password');return null}
  mmsRT=r.rt;mmsRTExp=Number(r.exp)||Date.now()+240000;
  return mmsRT;
@@ -4735,19 +4748,19 @@ async function mmsSrvSensitive(action,body){
 }
 async function setPin(){
  if(!requireRole(['Admin']))return;
- const old=prompt('PIN set karne ke liye apna abhi ka PASSWORD daalo:');if(!old)return;
+ const old=prompt('Enter your current PASSWORD to set the PIN:');if(!old)return;
  const pin=prompt('Naya 6-digit PIN likho (sirf ginti, jaise 482915).\nKhali chhodo to PIN hat jayega aur bade kaam par password lagega:');
  if(pin===null)return;
  if(pin!==''){
   if(!/^\d{6}$/.test(pin))return alert('PIN theek 6 ginti ka ho.');
-  const cf=prompt('PIN dobara likho:');if(cf===null)return;if(cf!==pin)return alert('Dono PIN alag hain.');
+  const cf=prompt('Re-enter the PIN:');if(cf===null)return;if(cf!==pin)return alert('The two PINs do not match.');
  }
  try{
   const r=await mmsSrvCall('pinSet',{old:old,pin:pin});
-  if(!r||!r.ok)return alert((r&&r.error)||'PIN set nahi hua.');
+  if(!r||!r.ok)return alert((r&&r.error)||'PIN was not set.');
   mmsRT=null;
-  alert(pin?'PIN set ho gaya. Ab user banana/badalna/hatana aur backup restore par PIN (ya password) lagega.':'PIN hata diya. Ab bade kaam par password lagega.');
- }catch(e){alert('Server se connect nahi hua. Internet check karo.')}
+  alert(pin?'PIN set. A PIN (or password) is now required to create / change / delete users and to restore backups.':'PIN removed. The password will now be required for sensitive actions.');
+ }catch(e){alert('Could not connect to the server. Check your internet connection.')}
 }
 async function login(){
  const lm=document.getElementById('mmsLoginMsg'),u=document.getElementById('mmsLoginUser').value.trim(),p=document.getElementById('mmsLoginPass').value;
@@ -4841,10 +4854,10 @@ async function restore() {
             try {
                 let p = JSON.parse(rd.result);
                 if (!p || !p.data || typeof p.data !== 'object') throw Error('Invalid backup');
-                const merge = confirm('RESTORE MODE\n\nOK = SAFE MERGE (recommended)\nBackup ke records wapas aayenge / update honge. Aapke abhi ke koi record delete NAHI honge.\n\nCancel = FULL REPLACE ka option (khatarnak).');
+                const merge = confirm('RESTORE MODE\n\nOK = SAFE MERGE (recommended)\nRecords from the backup will be restored / updated. None of your current records will be deleted.\n\nCancel = FULL REPLACE option (dangerous).');
                 if (!merge) {
-                    const t = prompt('FULL REPLACE: jo records backup me nahi hain wo is device se, Google Sheet se aur SAB devices se delete ho jayenge.\n\nContinue karne ke liye REPLACE likho (warna Cancel):');
-                    if (String(t || '').trim().toUpperCase() !== 'REPLACE') { alert('Restore cancel kiya. Kuch nahi badla.'); return; }
+                    const t = prompt('FULL REPLACE: records that are not in the backup will be deleted from this device, the Google Sheet and ALL devices.\n\nType REPLACE to continue (otherwise Cancel):');
+                    if (String(t || '').trim().toUpperCase() !== 'REPLACE') { alert('Restore cancelled. Nothing was changed.'); return; }
                 }
                 try { backup(); } catch (e) { console.warn('pre-restore backup', e); }   // restore se pehle current data ka backup download
 
@@ -4920,7 +4933,7 @@ async function changePassword(){
  const np=prompt('Enter new password (Admin ke liye minimum 8 characters):');if(!np||np.length<8)return alert('Admin password must be at least 8 characters.');
  if(prompt('Confirm new password:')!==np)return alert('Passwords do not match.');
  try{const r=await mmsSrvCall('changePw',{old:op,pw:np});if(!r.ok)return alert(r.error||'Password change failed.');mmsSrvSet(r.token,r.exp,s.u);audit('PASSWORD','system','Password changed');alert('Password changed.')}
- catch(e){alert('Server se connect nahi hua. Internet check karke dobara try karo.')}
+ catch(e){alert('Could not connect to the server. Check your internet connection and try again.')}
 }
 async function manageUsers(){
  if(!requireRole(['Admin']))return;
@@ -4934,7 +4947,7 @@ async function manageUsers(){
    let newPass=prompt('Reset password for '+x.u+'? Enter a new password (minimum 6 characters, Admin ke liye 8), or leave blank to keep the current password:');
    if(newPass&&newPass.length<6)return alert('Password must be at least 6 characters. Nothing changed.');
    const r=await mmsSrvSensitive('userSet',{u:x.u,role:role,pw:newPass||''});
-   if(!r.ok)return alert((r.error||'Server error')+(/password zaroori/.test(r.error||'')?'\n\nIs user ka server account abhi nahi hai - "Reset password" me naya password daalo.':''));
+   if(!r.ok)return alert((r.error||'Server error')+(/password zaroori/.test(r.error||'')?'\n\nThis user has no server account yet - set a new password using "Reset password".':''));
    x.role=role;localStorage.setItem(USERS_KEY,JSON.stringify(us));
    audit('USER_ROLE','system',`${x.u} -> ${role}`);if(newPass)audit('USER_PASSWORD_RESET','system',x.u);
    populatePermUserSelect();
@@ -4950,7 +4963,7 @@ async function manageUsers(){
    audit('USER_ADD','system',nu);populatePermUserSelect();
    alert('User "'+nu+'" added as '+nr+'. Now use "Module Access Control" below to choose exactly which modules this user can Save/Update and Delete in.');
   }
- }catch(e){alert('Server se connect nahi hua. Internet check karke dobara try karo.')}
+ }catch(e){alert('Could not connect to the server. Check your internet connection and try again.')}
 }
 function populatePermUserSelect(){
  let sel=document.getElementById('mmsPermUser');if(!sel)return;
@@ -5000,7 +5013,7 @@ async function deleteUserAccount(){
  let s=session();if(s&&s.u===uname)return alert('You cannot delete the account you are currently logged in as.');
  let us=users();let u=us.find(x=>x.u===uname);if(!u)return alert('User not found.');
  if(!confirm('Delete user "'+uname+'" ('+u.role+')? This cannot be undone.'))return;
- try{const r=await mmsSrvSensitive('userDel',{u:uname});if(!r.ok)return alert(r.error||'Server error')}catch(e){return alert('Server se connect nahi hua. Internet check karke dobara try karo.')}
+ try{const r=await mmsSrvSensitive('userDel',{u:uname});if(!r.ok)return alert(r.error||'Server error')}catch(e){return alert('Could not connect to the server. Check your internet connection and try again.')}
  us=us.filter(x=>x.u!==uname);
  localStorage.setItem(USERS_KEY,JSON.stringify(us));
  audit('USER_DELETE','system',uname);
@@ -5758,8 +5771,8 @@ async function gsRebaseDevice(cfg){
  }catch(e){console.warn('gsRebaseDevice',e)}
 }
 async function gsDiag(){
- if(!session()){alert('Pehle login karo.');return}
- const cfg=gsCfg();if(!cfg.token){alert('Login token nahi mila, dobara login karo.');return}
+ if(!session()){alert('Please log in first.');return}
+ const cfg=gsCfg();if(!cfg.token){alert('Login token not found. Please log in again.');return}
  gsStatus('⏳ Checking server data…');
  try{
   const out=await gsPullPaged(cfg,0),srv={};
@@ -5769,14 +5782,14 @@ async function gsDiag(){
   let stg='';try{if(window.__mmsStore&&window.__mmsStore.active()){stg='\n\nSTORAGE: IndexedDB mode ON (data '+Math.round(window.__mmsStore.size()/1000)+'K chars, 5MB limit nahi)'}else{let used=0;const big=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i),v=localStorage.getItem(k)||'';used+=k.length+v.length;big.push([k,v.length])}
    big.sort(function(a,b){return b[1]-a[1]});let free=0;for(const n of [200000,500000,1000000,2000000,4000000]){try{localStorage.setItem('__mms_probe',new Array(n+1).join('x'));free=n}catch(e2){break}}try{localStorage.removeItem('__mms_probe')}catch(e3){}
    stg='\n\nSTORAGE: use '+Math.round(used/1000)+'K chars | khali jagah ~'+(free>=4000000?'4000K+':Math.round(free/1000)+'K')+'\nSabse bade: '+big.slice(0,6).map(function(x){return x[0].replace('htp7_','').replace('htp_mms_','')+' '+Math.round(x[1]/1000)+'K'}).join(', ')}}catch(e4){}
-  alert('SYNC DATA CHECK\n\n'+lines.join('\n')+stg+'\n\nTotal: Server '+srvTot+' | Is device '+locTot+'\n\n"server par kam" = us module ka data purane device se upload nahi hua. Purane mobile par jaake Sync Now dabao.\n"device par kam" = Is device par Sync Now dabao.');
+  alert('SYNC DATA CHECK\n\n'+lines.join('\n')+stg+'\n\nTotal: Server '+srvTot+' | This device '+locTot+'\n\n"server par kam" = that module data has not been uploaded from an older device. Go to the older device and press Sync Now.\n"device par kam" = press Sync Now on this device.');
   gsStatus('☁ Check done');
  }catch(e){gsStatus('⚠ Check failed: '+(e&&e.message||e),true);alert('Check failed: '+(e&&e.message||e))}
 }
 async function gsSync(auto){
  if(!session())return;
  const cfg=gsCfg();
- if(!cfg.url||!cfg.token){if(!auto)alert('Pehle login karo.');return}
+ if(!cfg.url||!cfg.token){if(!auto)alert('Please log in first.');return}
  if(gsBusy){window.__gsAgain=true;return}
  if(auto&&typeof edit!=='undefined'&&Object.keys(edit).some(function(k){return edit[k]!==null&&edit[k]!==undefined}))return;
  gsBusy=true;gsStatus('⏳ Syncing…');
@@ -5892,11 +5905,11 @@ async function gsSync(auto){
   console.error('Sheet sync failed',e);
   gsStatus('⚠ Sync failed: '+(e&&e.message||e),true);
   {const mf=gsMeta(),fresh=!mf.since&&!Object.keys(mf.base).length;
-   if(fresh&&/STORAGE_FULL/.test(String(e&&e.message||e))){if(!window.__gsFullAlert){window.__gsFullAlert=1;alert('Is phone/browser ki storage kam pad rahi hai (iPhone Safari ~5MB deta hai).\n\n'+String(e.message).replace('STORAGE_FULL: ','')+'\n\nTools > Sync Data Check chalao aur screenshot bhejo.')}}
+   if(fresh&&/STORAGE_FULL/.test(String(e&&e.message||e))){if(!window.__gsFullAlert){window.__gsFullAlert=1;alert('This phone/browser is running low on storage (iPhone Safari allows about 5 MB).\n\n'+String(e.message).replace('STORAGE_FULL: ','')+'\n\nRun Tools > Sync Data Check and send a screenshot.')}}
    else if(fresh){window.__gsFreshTries=(window.__gsFreshTries||0)+1;
     if(window.__gsFreshTries<=4)gsSchedule(6000);
-    if(window.__gsFreshTries===2&&auto)alert('Is naye device par Google Sheet ka data abhi nahi aa paya ('+(e&&e.message||e)+').\n\nInternet check karo. App khud dobara koshish kar raha hai, ya upar Sync Now dabao.');}}
-  if(!auto)alert('Sync failed: '+(e&&e.message||e)+'\n\nInternet check karo aur dobara Sync Now dabao.');
+    if(window.__gsFreshTries===2&&auto)alert('Google Sheet data has not reached this new device yet ('+(e&&e.message||e)+').\n\nCheck your internet connection. The app is retrying automatically, or press Sync Now above.');}}
+  if(!auto)alert('Sync failed: '+(e&&e.message||e)+'\n\nCheck your internet connection and press Sync Now again.');
  }finally{gsBusy=false;if(window.__gsAgain){window.__gsAgain=false;gsSchedule(700)}}
 }
 
@@ -7008,7 +7021,7 @@ function purchaseStatusChanged() {
 // Received hone par stock Spare Inventory me add karna (pehle save ke andar tha, ab quick "Mark Received" bhi yahi use karta hai)
 function purchaseAddToInventory(r) {
     let addedToInventory = false;
-    if (confirm(`Material Received: "${r.desc}" - ${r.recQty} qty.\n\nKya ye qty Spare Parts Inventory me automatic add kar dein?\n\nOK = Haan, stock add karo\nCancel = Nahi (agar aap Inventory / Critical Register me stock khud pehle hi add kar chuke ho - warna double count ho jayega)`)) {
+    if (confirm(`Material Received: "${r.desc}" - ${r.recQty} qty.\n\nAdd this qty to the Spare Parts Inventory automatically?\n\nOK = Yes, add stock\nCancel = No (if you have already added the stock to the Inventory / Critical Register yourself - otherwise it will be double counted)`)) {
         // Inventory/Critical sync jis rule se part ko pehchanta hai (spareLinkKey) wahi yahan use karo, warna "6205-2Z" aur "6205 2Z" alag part ban jate the
         const pKey = spareLinkKey(r.desc, r.spec);
         let existingSpare = (data.spares || []).find(s => spareLinkKey(s.desc, s.spec) === pKey)
@@ -7060,10 +7073,10 @@ function savePurchaseRecord() {
     let prNo = (f('pur_pr_no') || '').trim(), poNo = (f('pur_po') || '').trim(), vendor = (f('pur_vendor') || '').trim();
 
     // Process ke hisaab se jo number us stage par milta hai wo zaroori
-    if (newStatus === 'PR Raised' && !prNo) return alert('PR Raised stage ke liye PR Number zaroori hai.');
-    if (newStatus === 'PO Created' && !poNo) return alert('PO Created stage ke liye PO Number zaroori hai.');
-    if (newStatus === 'Sent to Vendor' && !poNo) return alert('Vendor ko PO bhejne se pehle PO Number zaroori hai.');
-    if (newStatus === 'Sent to Vendor' && !vendor) return alert('PO Sent to Vendor stage ke liye Vendor Name zaroori hai.');
+    if (newStatus === 'PR Raised' && !prNo) return alert('A PR Number is required for the PR Raised stage.');
+    if (newStatus === 'PO Created' && !poNo) return alert('A PO Number is required for the PO Created stage.');
+    if (newStatus === 'Sent to Vendor' && !poNo) return alert('A PO Number is required before sending the PO to the vendor.');
+    if (newStatus === 'Sent to Vendor' && !vendor) return alert('A Vendor Name is required for the PO Sent to Vendor stage.');
 
     let r = Object.assign({}, oldRecord || {}, {
         id: oldRecord?.id || 'pur-' + Date.now(),
@@ -7250,7 +7263,7 @@ function purchaseMarkPR(i) {
     if (!purCanEdit()) return;
     let r = data.sparePurchase[i]; if (!r) return;
     let no = prompt('PR Number (PR banne par jo number mila):', r.prNo || ''); if (no === null) return;
-    no = no.trim(); if (!no) return alert('PR Number zaroori hai.');
+    no = no.trim(); if (!no) return alert('PR Number is required.');
     let d = purAskDate('PR Date', r.prDate || purToday()); if (d === null) return;
     r.status = 'PR Raised'; r.prNo = no; r.prDate = d; r.updatedAt = new Date().toISOString();
     purFinish('PR Raised');
@@ -7260,9 +7273,9 @@ function purchaseMarkPO(i) {
     if (!purCanEdit()) return;
     let r = data.sparePurchase[i]; if (!r) return;
     let no = prompt('PO Number (Store ne PO banaya to jo number mila):', r.po || ''); if (no === null) return;
-    no = no.trim(); if (!no) return alert('PO Number zaroori hai.');
+    no = no.trim(); if (!no) return alert('PO Number is required.');
     let d = purAskDate('PO Date', r.poDate || r.ordDate || purToday()); if (d === null) return;
-    let v = prompt('Vendor / Supplier name (agar pata ho, nahi to khali chhodo):', r.vendor || ''); if (v === null) return;
+    let v = prompt('Vendor / Supplier name (leave blank if unknown):', r.vendor || ''); if (v === null) return;
     r.status = 'PO Created'; r.po = no; r.poDate = d; r.ordDate = d; if (v.trim()) r.vendor = v.trim(); r.updatedAt = new Date().toISOString();
     purFinish('PO Created');
 }
@@ -7271,12 +7284,12 @@ function purchaseMarkSent(i) {
     if (!purCanEdit()) return;
     let r = data.sparePurchase[i]; if (!r) return;
     let po = r.po || '';
-    if (!po) { po = prompt('PO Number:', ''); if (po === null) return; po = po.trim(); if (!po) return alert('PO Number zaroori hai.'); }
-    let v = prompt('Vendor / Supplier name (jise PO bheja):', r.vendor || ''); if (v === null) return;
-    v = v.trim(); if (!v) return alert('Vendor Name zaroori hai.');
+    if (!po) { po = prompt('PO Number:', ''); if (po === null) return; po = po.trim(); if (!po) return alert('PO Number is required.'); }
+    let v = prompt('Vendor / Supplier name (PO sent to):', r.vendor || ''); if (v === null) return;
+    v = v.trim(); if (!v) return alert('Vendor Name is required.');
     let d = purAskDate('PO Vendor ko kab bheja', r.sentDate || purToday()); if (d === null) return;
-    let e = prompt('Expected Delivery Date (YYYY-MM-DD, nahi pata to khali chhodo):', r.expDate || ''); if (e === null) return;
-    e = e.trim(); if (e && !/^\d{4}-\d{2}-\d{2}$/.test(e)) { alert('Expected date format galat tha, isliye khali rakhi gayi.'); e = ''; }
+    let e = prompt('Expected Delivery Date (YYYY-MM-DD, leave blank if unknown):', r.expDate || ''); if (e === null) return;
+    e = e.trim(); if (e && !/^\d{4}-\d{2}-\d{2}$/.test(e)) { alert('Expected date format was invalid, so it was left blank.'); e = ''; }
     r.status = 'Sent to Vendor'; r.po = po; r.vendor = v; r.sentDate = d; r.expDate = e; r.updatedAt = new Date().toISOString();
     purFinish('Sent to Vendor');
 }
@@ -7295,15 +7308,15 @@ function purchaseMarkReceived(i) {
     if (!wasReceived) added = purchaseAddToInventory(r);
     purFinish('Received');
     if (typeof renderSparePartsTable === 'function') renderSparePartsTable();
-    if (added) alert('Received list me chala gaya.\n\nSpare stock Inventory me update ho gaya.');
+    if (added) alert('Moved to the Received list.\n\nSpare stock updated in the Inventory.');
 }
 // Unit 4 Maintenance Store se part lana: PR/PO/Vendor ke bina seedha Received (internal transfer) + stock Inventory me add
 // Part Unit 4 Store se lana hai par abhi laye nahi -> "Unit 4 se Lana Hai" list (Qty/date/slip tab poochhe jayenge jab le aaoge)
 function purchaseMarkUnit4Pending(i) {
     if (!purCanEdit()) return;
     let r = data.sparePurchase[i]; if (!r) return;
-    let q = prompt('Unit 4 Store se kitni Qty lani hai?\n(' + r.desc + (r.spec ? ' - ' + r.spec : '') + ')', String(r.qty)); if (q === null) return;
-    let rq = num(q); if (rq <= 0) return alert('Quantity 0 se zyada honi chahiye.');
+    let q = prompt('How much Qty is to be brought from the Unit 4 Store?\n(' + r.desc + (r.spec ? ' - ' + r.spec : '') + ')', String(r.qty)); if (q === null) return;
+    let rq = num(q); if (rq <= 0) return alert('Quantity must be greater than 0.');
     let n = prompt('Note (optional) - jaise kis se baat hui / kab tak laoge:', ''); if (n === null) return;
     r.status = 'Unit 4 Pending'; r.qty = rq; r.u4Date = purToday();
     if (n.trim()) r.remark = ((r.remark || '') + ' | Unit 4: ' + n.trim()).replace(/^ \| /, '');
@@ -7313,11 +7326,11 @@ function purchaseMarkUnit4Pending(i) {
 function purchaseFromUnit4(i) {
     if (!purCanEdit()) return;
     let r = data.sparePurchase[i]; if (!r) return;
-    let q = prompt('Unit 4 Store se kitni Qty layi gayi / layi jayegi?\n(' + r.desc + (r.spec ? ' - ' + r.spec : '') + ', zaroorat: ' + r.qty + ')', String(r.qty)); if (q === null) return;
-    let rq = num(q); if (rq <= 0) return alert('Quantity 0 se zyada honi chahiye.');
+    let q = prompt('How much Qty was / will be brought from the Unit 4 Store?\n(' + r.desc + (r.spec ? ' - ' + r.spec : '') + ', required: ' + r.qty + ')', String(r.qty)); if (q === null) return;
+    let rq = num(q); if (rq <= 0) return alert('Quantity must be greater than 0.');
     let d = purAskDate('Unit 4 se material mila (date)', purToday()); if (d === null) return;
     let slip = prompt('Unit 4 Transfer Slip / Gate Pass / Issue Slip No. (optional):', r.challan || ''); if (slip === null) return;
-    let by = prompt('Unit 4 me kisne issue kiya / kaun laya (optional):', ''); if (by === null) return;
+    let by = prompt('Who issued / brought it at Unit 4 (optional):', ''); if (by === null) return;
     r.status = 'Received'; r.fromUnit4 = true; r.source = r.source || 'Unit 4 Store';
     r.vendor = 'Unit 4 Maintenance Store'; r.recDate = d; r.recQty = rq; r.challan = slip.trim(); r.cost = 0;
     r.remark = ((r.remark || '') + ' | Unit 4 Store se transfer' + (by.trim() ? ' (' + by.trim() + ')' : '')).replace(/^ \| /, '');
@@ -7325,29 +7338,29 @@ function purchaseFromUnit4(i) {
     let added = purchaseAddToInventory(r);
     purFinish('Received');
     if (typeof renderSparePartsTable === 'function') renderSparePartsTable();
-    if (added) alert('Unit 4 Store se aaya maal Received list me chala gaya.\n\nSpare stock Inventory me update ho gaya.');
+    if (added) alert('Material from the Unit 4 Store moved to the Received list.\n\nSpare stock updated in the Inventory.');
 }
 // Direct entry: part Unit 4 Store se le aaye (koi Requirement / PR / PO nahi) -> seedha Received + stock Inventory me add
 function purchaseUnit4Direct() {
     if (!purCanEdit()) return;
     if (!Array.isArray(data.sparePurchase)) data.sparePurchase = [];
     let name = prompt('Unit 4 se jo part laye uska naam likho (Inventory me se dhoondhunga):', ''); if (name === null) return;
-    name = name.trim(); if (!name) return alert('Part ka naam zaroori hai.');
+    name = name.trim(); if (!name) return alert('Part name is required.');
     const toks = normalizePartText(name).split(' ').filter(Boolean);
     let hits = (data.spares || []).filter(s => { const t = normalizePartText((s.desc || '') + ' ' + (s.spec || '') + ' ' + (s.make || '')); return toks.every(k => t.includes(k)); });
     let desc = name, spec = '';
     if (hits.length === 1) { desc = hits[0].desc; spec = hits[0].spec || ''; }
     else if (hits.length > 1) {
         const list = hits.slice(0, 15);
-        let n = prompt('Kaun sa part? Number likho:\n\n' + list.map((s, k) => (k + 1) + '. ' + s.desc + (s.spec ? ' - ' + s.spec : '') + (s.make ? ' (' + s.make + ')' : '')).join('\n') + (hits.length > 15 ? '\n...aur bhi hain, naam thoda aur poora likh ke dobara try karo' : ''), '1'); if (n === null) return;
+        let n = prompt('Which part? Enter the number:\n\n' + list.map((s, k) => (k + 1) + '. ' + s.desc + (s.spec ? ' - ' + s.spec : '') + (s.make ? ' (' + s.make + ')' : '')).join('\n') + (hits.length > 15 ? '\n...more matches exist, enter a fuller name and try again' : ''), '1'); if (n === null) return;
         const pick = list[num(n) - 1]; if (!pick) return alert('Galat number.');
         desc = pick.desc; spec = pick.spec || '';
-    } else if (!confirm('"' + name + '" Spare Inventory me nahi mila.\n\nOK = Naya part maan ke isi naam se entry karo (Inventory me bhi naya add hoga)\nCancel = ruk jao')) return;
-    let q = prompt('Unit 4 se kitni Qty layi gayi?', '1'); if (q === null) return;
-    let rq = num(q); if (rq <= 0) return alert('Quantity 0 se zyada honi chahiye.');
+    } else if (!confirm('"' + name + '" was not found in the Spare Inventory.\n\nOK = Treat as a new part and enter it with this name (it will also be added to the Inventory)\nCancel = stop')) return;
+    let q = prompt('How much Qty was brought from Unit 4?', '1'); if (q === null) return;
+    let rq = num(q); if (rq <= 0) return alert('Quantity must be greater than 0.');
     let d = purAskDate('Kab layi gayi (date)', purToday()); if (d === null) return;
     let slip = prompt('Unit 4 Transfer Slip / Gate Pass No. (optional):', ''); if (slip === null) return;
-    let by = prompt('Kisne issue kiya / kaun laya (optional):', ''); if (by === null) return;
+    let by = prompt('Who issued / brought it (optional):', ''); if (by === null) return;
     let ref = prompt('Kis machine / kaam ke liye (optional):', ''); if (ref === null) return;
     const now = new Date().toISOString();
     let r = {
@@ -7360,7 +7373,7 @@ function purchaseUnit4Direct() {
     let added = purchaseAddToInventory(r);
     purFinish('Received');
     if (typeof renderSparePartsTable === 'function') renderSparePartsTable();
-    alert('Unit 4 Store entry Received list me save ho gayi.' + (added ? '\n\nSpare stock Inventory me update ho gaya.' : ''));
+    alert('Unit 4 Store entry saved in the Received list.' + (added ? '\n\nSpare stock updated in the Inventory.' : ''));
 }
 function purchaseReplan(i) {
     if (!purCanEdit()) return;
@@ -7512,7 +7525,7 @@ function purReconcileResolved() {
     });
     if (closed.length) {
         persist('sparePurchase');
-        purToast('✅ Stock theek ho gaya, Requirement list se hata diya: ' + closed.slice(0, 3).join(', ') + (closed.length > 3 ? ' +' + (closed.length - 3) + ' aur' : ''));
+        purToast('✅ Stock theek ho gaya, Requirement list se hata diya: ' + closed.slice(0, 3).join(', ') + (closed.length > 3 ? ' +' + (closed.length - 3) + ' more' : ''));
     }
     return closed.length;
 }
@@ -7542,7 +7555,7 @@ function purchaseAutoPlanLowStock() {
             const open0 = needPlan.filter(e => !data.sparePurchase.some(p => PUR_OPEN.includes(p.status) && purMatches(p, e.desc, e.spec)));
             if (open0.length) {
                 const names = open0.slice(0, 8).map(e => '- ' + e.desc + (e.spec ? ' - ' + e.spec : '') + ' (Avail ' + e.avail + ', Min ' + e.min + ')').join('\n');
-                addOK = confirm('Spare Inventory / Critical list me abhi ' + open0.length + ' part low stock me hain:\n\n' + names + (open0.length > 8 ? '\n...aur ' + (open0.length - 8) + ' aur' : '') + '\n\nUnhe Spare Part Purchase > Planned list me add kar dein?\n\nOK = Haan, add karo\nCancel = Nahi (aage se sirf naye low-stock parts apne aap add honge)');
+                addOK = confirm('Low stock in Spare Inventory / Critical list: ' + open0.length + ' part(s):\n\n' + names + (open0.length > 8 ? '\n...and ' + (open0.length - 8) + ' more' : '') + '\n\nAdd them to the Spare Part Purchase > Planned list?\n\nOK = Yes, add\nCancel = No (from now on only newly low-stock parts will be added automatically)');
             }
         }
 
@@ -7867,7 +7880,7 @@ function pwFetchDG(force) {
     if (!mon) { if (force) alert('Select Month first.'); return; }
     if (!auto && !force) return;
     const t = pwDgMonth(mon);
-    if (!t.n && !t.pn) { if (force) alert('Is mahine ka DG Daily Reading / Power Cut data nahi mila (DG Daily me kam se kam 2 readings chahiye, pichle mahine ki last reading ko milakar).'); return; }
+    if (!t.n && !t.pn) { if (force) alert('No DG Daily Reading / Power Cut data found for this month (DG Daily needs at least 2 readings, including the last reading of the previous month).'); return; }
     const v = {};
     if (t.n) Object.assign(v, { sHrs: t.s.hrs, sKwh: t.s.kwh, sKvah: t.s.kvah, cHrs: t.c.hrs, cKwh: t.c.kwh, cKvah: t.c.kvah });
     if (t.pn) Object.assign(v, { sLtr: t.s.ltr, cLtr: t.c.ltr });
@@ -7992,7 +8005,7 @@ function hqAddFurn(sel, key, k) {
   hqRefreshSelects();
   sel.value = nm;
   hqChange(key, k);
-  alert(nm + ' add ho gaya. Ab iska record save karte hi ye sab modules me hamesha dikhega.');
+  alert(nm + ' added. Once its record is saved it will always appear in all modules.');
 }
 
 /* ---------- 3) Generic form / table engine (config-driven) ---------- */
@@ -8083,15 +8096,15 @@ function hqPermEditQuiet(key) {
 }
 /* '' = approve kar sakta hai; warna wajah ('SELF:' se shuru = preparer khud) */
 function hqApproveBlock(key, r) {
-  const cfg = HQ_APPR[key]; if (!cfg || !r) return 'Is module me approval nahi hai.';
-  const me = hqWho(); if (!me) return 'Approve karne ke liye pehle login karo.';
-  if (String(r.approvedBy || '').trim()) return 'Ye record pehle se approved hai (' + r.approvedBy + ').';
-  if (!hqPermEditQuiet(key)) return 'Is module me aapke paas Edit access nahi hai - Admin se access lo.';
-  if (typeof window.mmsApprAllowed === 'function' && !window.mmsApprAllowed(key)) return 'Aapke role ko is module ka approval karne ki permission Admin ne nahi di.';
+  const cfg = HQ_APPR[key]; if (!cfg || !r) return 'Approval is not enabled for this module.';
+  const me = hqWho(); if (!me) return 'Log in first to approve.';
+  if (String(r.approvedBy || '').trim()) return 'This record is already approved (' + r.approvedBy + ').';
+  if (!hqPermEditQuiet(key)) return 'You do not have Edit access to this module - ask Admin for access.';
+  if (typeof window.mmsApprAllowed === 'function' && !window.mmsApprAllowed(key)) return 'Admin has not given your role permission to approve this module.';
   let rec = null; try { rec = mmsCurrentUserRecord(); } catch (e) { }
   const mine = [me, rec && rec.name, rec && rec.fullName].map(hqNorm).filter(Boolean);
   if ((r.preparedUser && hqNorm(r.preparedUser) === hqNorm(me)) || mine.indexOf(hqNorm(r[cfg.by])) >= 0)
-    return 'SELF:Aap isi record ke ' + cfg.label + ' / preparer hain - apna record khud approve nahi kar sakte. Dusre login se approve karwao.';
+    return 'SELF:You are the ' + cfg.label + ' / preparer of this record - you cannot approve your own record. Have it approved from another login.';
   return '';
 }
 function hqApproveNow(key, r) {
@@ -8103,7 +8116,7 @@ function hqApproveNow(key, r) {
 }
 function hqApprove(key, id) {
   if (!HQ_APPR[key]) return;
-  if (window.__auditorView) return alert('Auditor View read-only hai.');
+  if (window.__auditorView) return alert('Auditor View is read-only.');
   const r = hqList(key).find(function (x) { return String(x.id) === String(id); }); if (!r) return;
   const why = hqApproveBlock(key, r); if (why) return alert(why.replace(/^SELF:/, ''));
   if (!confirm('Approve this record?\n\nApproved By: ' + hqWho() + ' (login user)')) return;
@@ -8611,7 +8624,7 @@ function hqPrintSatReportSel() {
   const fu = hqV('hq_satReport_rf') || HQ_FURN[0], dt = hqV('hq_satReport_rdate');
   let l = hqList('satReport').filter(function (r) { return r.furnace === fu && (!dt || r.satDate === dt); });
   l = hqSortDesc(l, 'satDate');
-  if (!l.length) return alert('Is furnace (' + fu + ')' + (dt ? ' aur date ' + hqFmtD(dt) : '') + ' ka koi SAT record nahi mila.');
+  if (!l.length) return alert('No SAT record found for furnace (' + fu + ')' + (dt ? ' and date ' + hqFmtD(dt) : '') + '.');
   hqPrintSatReport(l[0].id);
 }
 function hqPrintSatReport(id) {
@@ -9928,12 +9941,12 @@ function inject(){
   });
 }
 window.xlExportTable=function(tableId,title){
-  var t=document.getElementById(tableId);if(!t)return alert('Table nahi mila.');
+  var t=document.getElementById(tableId);if(!t)return alert('Table not found.');
   var tb=t.tagName==='TABLE'?t:t.closest('table');
   var clone=tb.cloneNode(true);Array.prototype.forEach.call(clone.querySelectorAll('tr'),function(tr){if(tr.style.display==='none')tr.remove()});
   Array.prototype.forEach.call(clone.querySelectorAll('th,td'),function(c){if(/^(action|actions)$/i.test((c.textContent||'').trim()))c.setAttribute('data-act','1')});
   var html='<div class="title">Milestone Gears Ltd. UNIT-7</div><div class="sub">'+title+'</div>'+clone.outerHTML;
-  var model=xlSheetFromHtml(html);if(!model.rows.length)return alert('Export karne ke liye data nahi hai.');
+  var model=xlSheetFromHtml(html);if(!model.rows.length)return alert('There is no data to export.');
   var safe=title.replace(/[^A-Za-z0-9]+/g,'_').replace(/^_+|_+$/g,'');
   var d=new Date(),ds=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
   xlDownload(buildXlsx(model,title),'HTP_'+safe+'_'+ds+'.xlsx');
@@ -11585,7 +11598,7 @@ html body main.wrap .dashboard-footer span{color:#4a5a69!important}
   function makePdf() { rptGenerate(); return pdfPaginate().then(pdfRender).then(buildPdf); }
   function pdfNote(t) { var n = el('rptPdfMsg'); if (n) n.textContent = t || ''; }
   function saveBlob(blob, name) { var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 800); }
-  function pdfFail(e) { pdfNote(''); if (e && e.name === 'AbortError') return; alert('PDF nahi ban payi (' + ((e && e.message) || e) + '). Print / PDF button se PDF save kar lo.'); }
+  function pdfFail(e) { pdfNote(''); if (e && e.name === 'AbortError') return; alert('Could not create the PDF (' + ((e && e.message) || e) + '). Save the PDF using the Print / PDF button.'); }
 
   /* ---------- IMAGE (JPEG): WhatsApp par report image ban kar jati hai (page-wise) ---------- */
   function makeImages() { rptGenerate(); return pdfPaginate().then(function (P) { return pdfRender(P, true); }); }
@@ -11620,7 +11633,7 @@ html body main.wrap .dashboard-footer span{color:#4a5a69!important}
       imgDownloadAll(jp);
       setTimeout(function () {
         openLink('https://wa.me/?text=' + encodeURIComponent(tt));
-        alert('Report ki ' + jp.length + ' image download ho gayi hai. Ab WhatsApp me Attach (\ud83d\udcce) \u2192 Gallery / Photos se wo image(s) chuno aur bhej do.');
+        alert('Report: ' + jp.length + ' image(s) downloaded. Now in WhatsApp use Attach (\ud83d\udcce) \u2192 Gallery / Photos, select the image(s) and send.');
       }, 900 + jp.length * 500);
     }).catch(pdfFail);
   };
@@ -11661,7 +11674,7 @@ html body main.wrap .dashboard-footer span{color:#4a5a69!important}
       setTimeout(function () {
         if (kind === 'mail') openLink('mailto:?subject=' + encodeURIComponent(tt) + '&body=' + encodeURIComponent('Please find the attached report (PDF).\r\n\r\n' + tt));
         else openLink('https://wa.me/?text=' + encodeURIComponent(tt));
-        alert('PDF download ho gayi hai (' + name + '). Ab ' + (kind === 'mail' ? 'Mail' : 'WhatsApp') + ' me us file ko Attach karke bhej do.');
+        alert('PDF downloaded (' + name + '). Now attach the file in ' + (kind === 'mail' ? 'Mail' : 'WhatsApp') + ' and send it.');
       }, 900);
     }).catch(pdfFail);
   };
@@ -12444,7 +12457,7 @@ setInterval(sync,2500);
   function isEmptyRec(r) { return !r.company && !r.size && !r.orient && r.margin === '' && r.scale === '' && !r.hdr && !r.ftr && !(r.rules && r.rules.length); }
 
   window.pfmSave = function () {
-    if (!isAdmin()) return alert('Print Format Manager sirf Admin ke liye hai.');
+    if (!isAdmin()) return alert('Print Format Manager is for Admin only.');
     if (!st) return;
     var r = collectRec(), a = data.printFmt, idx = -1, i;
     for (i = 0; i < a.length; i++) if (a[i] && a[i].key === st.key) { idx = i; break; }
@@ -12460,7 +12473,7 @@ setInterval(sync,2500);
   };
   window.pfmReset = function () {
     if (!isAdmin() || !st) return;
-    if (!confirm('"' + st.meta.n + '" ka print format original (default) par wapas karna hai?')) return;
+    if (!confirm('"' + st.meta.n + '" print format will be reset to the original (default). Continue?')) return;
     var a = data.printFmt, i; for (i = a.length - 1; i >= 0; i--) if (a[i] && a[i].key === st.key) a.splice(i, 1);
     persist('printFmt'); pfmPick(st.key);
   };
@@ -12469,8 +12482,8 @@ setInterval(sync,2500);
     var key = st.key, r = collectRec(); draft[key] = r;
     try {
       if (st.meta.d) (new Function(st.meta.d)).call(window);
-      else alert('Is module ka preview uske apne Print button se dekho (record select karke). Save karne ke baad wahi naya format use karega.');
-    } catch (x) { alert('Preview nahi ban paya: ' + x.message); }
+      else alert('Preview this module using its own Print button (after selecting a record). After saving, it will use the new format.');
+    } catch (x) { alert('Could not create the preview: ' + x.message); }
     finally { delete draft[key]; }
   };
 
@@ -12590,7 +12603,7 @@ setInterval(sync,2500);
     $('mdQ').addEventListener('input', function () { st.q = this.value.toLowerCase(); drawBody(); });
     $('mdAdd').addEventListener('click', addRow);
     $('mdSave').addEventListener('click', save);
-    $('mdReload').addEventListener('click', function () { if (!st.dirty || confirm('Unsaved changes discard karein?')) { load(st.m, st.sub); draw(); } });
+    $('mdReload').addEventListener('click', function () { if (!st.dirty || confirm('Discard unsaved changes?')) { load(st.m, st.sub); draw(); } });
     $('mdTplAdd').addEventListener('click', tplAdd);
     $('mdTplDel').addEventListener('click', tplDel);
     var body = $('mdBody');
@@ -12649,13 +12662,13 @@ setInterval(sync,2500);
     st.rows.splice(i, 1); st.dirty = true; drawBody();
   }
   function save() {
-    if (!isAdmin()) return alert('Ye sirf Admin ke liye hai.');
+    if (!isAdmin()) return alert('This is for Admin only.');
     var m = st.m, rows = clone(st.rows);
     if (m.need) {
       var seen = {};
       for (var i = 0; i < rows.length; i++) {
         var v = String(rows[i][m.need] || '').trim();
-        if (!v) return alert('Row ' + (i + 1) + ': "' + m.need + '" khali hai.');
+        if (!v) return alert('Row ' + (i + 1) + ': "' + m.need + '" is blank.');
         if (seen[v.toLowerCase()]) return alert('Duplicate "' + m.need + '": ' + v);
         seen[v.toLowerCase()] = 1; rows[i][m.need] = v;
       }
@@ -12676,12 +12689,12 @@ setInterval(sync,2500);
   }
   function tplAdd() {
     var n = (prompt('Naye PM Check Sheet template ka naam:') || '').trim().toUpperCase(); if (!n) return;
-    if (PM_CHECKLISTS[n]) return alert('Is naam ka template pehle se hai.');
+    if (PM_CHECKLISTS[n]) return alert('A template with this name already exists.');
     if (!guard()) return;
     PM_CHECKLISTS[n] = { rows: [] }; savePMChecklistStore(); load(st.m, n); draw();
   }
   function tplDel() {
-    if (!st.sub || !confirm('Template "' + st.sub + '" poora delete karein? Machine map me jo machine isse judi hain unka link toot sakta hai.')) return;
+    if (!st.sub || !confirm('Template "' + st.sub + '" will be deleted completely. Continue? Machines linked to it in the Machine map may lose their link.')) return;
     delete PM_CHECKLISTS[st.sub]; savePMChecklistStore(); after();
     var s = st.m.subs()[0]; load(st.m, s); draw();
   }
@@ -12984,7 +12997,7 @@ setInterval(sync,2500);
     if (typeof mmsGuardSave === 'function' && !mmsGuardSave(M.perm)) return;
     var cf = JSON.parse(JSON.stringify(row.get() || {})), cur = cf[d.id] || '', v;
     if (d.type === 'select') {
-      var o = d.options || []; v = prompt(d.label + ' - number chuno (khali = hata do):\n' + o.map(function (x, i) { return (i + 1) + ') ' + x; }).join('\n'), cur ? String(o.indexOf(cur) + 1) : '');
+      var o = d.options || []; v = prompt(d.label + ' - choose a number (blank = remove):\n' + o.map(function (x, i) { return (i + 1) + ') ' + x; }).join('\n'), cur ? String(o.indexOf(cur) + 1) : '');
       if (v === null) return; v = v.trim(); if (v !== '') { var n = parseInt(v, 10); if (!(n >= 1 && n <= o.length)) return alert('Galat number.'); v = o[n - 1]; }
     } else {
       v = prompt(dispLabel(d) + (d.type === 'date' ? ' (YYYY-MM-DD)' : (d.type === 'time' ? ' (HH:MM)' : (d.type === 'number' ? ' (number)' : ''))) + ':', cur || defVal(d)); if (v === null) return; v = v.trim();
@@ -12992,7 +13005,7 @@ setInterval(sync,2500);
       if (v !== '' && d.type === 'date' && !/^\d{4}-\d{2}-\d{2}$/.test(v)) return alert('Date YYYY-MM-DD format me likho.');
       if (v !== '' && d.type === 'time' && !/^([01]\d|2[0-3]):[0-5]\d$/.test(v)) return alert('Time HH:MM format me likho (jaise 14:30).');
     }
-    if (d.req && v === '') return alert('Ye field zaroori hai.');
+    if (d.req && v === '') return alert('This field is required.');
     if (v === '') delete cf[d.id]; else cf[d.id] = v;
     row.set(cf); td.textContent = v;
   }
@@ -13037,7 +13050,7 @@ setInterval(sync,2500);
       if (d.req && !v && !missing) missing = d;
       if (v && d.type === 'number' && !bad) bad = numErr(d, v);
     });
-    if (missing) { alert('"' + missing.label + '" bharna zaroori hai.'); ev.stopPropagation(); ev.preventDefault(); return; }
+    if (missing) { alert('"' + missing.label + '" is required.'); ev.stopPropagation(); ev.preventDefault(); return; }
     if (bad) { alert(bad); ev.stopPropagation(); ev.preventDefault(); return; }
     var before = new Map(); (M.arr() || []).forEach(function (r) { before.set(r, JSON.stringify(r)); });
     var act = activeEdit[k];
@@ -13118,9 +13131,9 @@ setInterval(sync,2500);
   /* ---------- Manager window ---------- */
   var cur = null, editId = null;
   function guard() {
-    if (!isAdmin()) { alert('Ye option sirf Admin ke liye hai.'); return Promise.resolve(false); }
+    if (!isAdmin()) { alert('This option is for Admin only.'); return Promise.resolve(false); }
     var f = window.MMS && window.MMS.reauth;
-    if (!f) { alert('Security check load nahi hua. Page refresh karke dobara try karo.'); return Promise.resolve(false); }
+    if (!f) { alert('Security check did not load. Refresh the page and try again.'); return Promise.resolve(false); }
     return f().then(function (rt) { return !!rt; });
   }
   function builtinFields(k) {
@@ -13160,7 +13173,7 @@ setInterval(sync,2500);
     return m;
   }
   function openMgr(k) {
-    if (!isAdmin()) return alert('Ye option sirf Admin ke liye hai.');
+    if (!isAdmin()) return alert('This option is for Admin only.');
     cur = (k && MOD[k] && secOf(k)) ? k : (LIST.filter(function (m) { return $(m[2]); })[0] || [])[0];
     editId = null; ensureModal().classList.add('open'); renderMgr();
   }
@@ -13230,7 +13243,7 @@ setInterval(sync,2500);
     if (a === 'close') return closeMgr();
     if (a === 'cancel') { editId = null; return renderMgr(); }
     if (a === 'edit') { editId = x; return renderMgr(); }
-    if (a === 'hide' && (mcfg(cur, false).hidden.indexOf(x) < 0) && !confirm('Ye field screen se hat jayegi.\nAgar ye save ke liye zaroori field hai to save rukk sakta hai. Continue?')) return;
+    if (a === 'hide' && (mcfg(cur, false).hidden.indexOf(x) < 0) && !confirm('This field will be hidden from the screen.\nIf this is required for saving, saving may be blocked. Continue?')) return;
     guard().then(function (ok) {
       if (!ok) return;
       var c = mcfg(cur, true), i;
@@ -13239,13 +13252,13 @@ setInterval(sync,2500);
       else if (a === 'rnf' || a === 'rnc') {
         var isF = a === 'rnf', map = isF ? c.labels : c.clabels, it = (isF ? builtinFields(cur) : colList(cur).map(function (q) { return { id: q.n, label: q.label }; })).filter(function (q) { return q.id === x; })[0];
         if (!it) return;
-        var v = prompt('Naya naam likho (khali chhodo = original "' + it.label + '" wapas):', map[x] || it.label); if (v === null) return;
+        var v = prompt('Enter the new name (blank = restore original "' + it.label + '"):', map[x] || it.label); if (v === null) return;
         v = v.trim().replace(/\s+/g, ' ');
         if (v.length > 40) return alert('Naam 40 akshar se chhota rakho.');
         if (v === '' || v === it.label) delete map[x];
         else {
           var nv = norm(v), others = (isF ? builtinFields(cur).map(function (q) { return { id: q.id, label: q.label }; }) : colList(cur).map(function (q) { return { id: q.n, label: q.label }; }));
-          if (c.custom.some(function (q) { return norm(q.label) === nv; }) || others.some(function (q) { return q.id !== x && (norm(q.label) === nv || (map[q.id] && norm(map[q.id]) === nv)); })) return alert('Is naam ki field / column pehle se hai.');
+          if (c.custom.some(function (q) { return norm(q.label) === nv; }) || others.some(function (q) { return q.id !== x && (norm(q.label) === nv || (map[q.id] && norm(map[q.id]) === nv)); })) return alert('A field / column with this name already exists.');
           map[x] = v;
         }
         saveCfg(cur + (isF ? ' field ' : ' column ') + it.label + ' renamed: ' + (map[x] || '(original)'));
@@ -13257,7 +13270,7 @@ setInterval(sync,2500);
       }
       else if (a === 'delcf') {
         var d = c.custom.filter(function (q) { return q.id === x; })[0]; if (!d) return;
-        if (!confirm('"' + d.label + '" field delete karni hai?\nPurani entries me bhari value screen se hat jayegi.')) return;
+        if (!confirm('"' + d.label + '" field will be deleted. Continue?\nValues entered in old entries will be hidden from the screen.')) return;
         c.custom = c.custom.filter(function (q) { return q.id !== x; }); if (editId === x) editId = null; saveCfg(cur + ' field deleted: ' + d.label);
       } else if (a === 'add') {
         var V = function (id) { var e = $(id); return e ? String(e.value || '').trim() : ''; }, Ck = function (id) { var e = $(id); return !!(e && e.checked); };
@@ -13266,15 +13279,15 @@ setInterval(sync,2500);
         if (!label) return alert('Field ka naam likho.');
         if (type === 'yesno') { type = 'select'; opts = ['Yes', 'No']; }
         var nl = norm(label);
-        if (c.custom.some(function (q) { return q.id !== editId && norm(q.label) === nl; }) || builtinFields(cur).some(function (q) { return norm(q.label) === nl || (c.labels[q.id] && norm(c.labels[q.id]) === nl); }) || colList(cur).some(function (q) { return q.n === nl || (c.clabels[q.n] && norm(c.clabels[q.n]) === nl); })) return alert('Is naam ki field / column pehle se hai.');
+        if (c.custom.some(function (q) { return q.id !== editId && norm(q.label) === nl; }) || builtinFields(cur).some(function (q) { return norm(q.label) === nl || (c.labels[q.id] && norm(c.labels[q.id]) === nl); }) || colList(cur).some(function (q) { return q.n === nl || (c.clabels[q.n] && norm(c.clabels[q.n]) === nl); })) return alert('A field / column with this name already exists.');
         if (type === 'select') {
           if (opts.length < 2) return alert('Dropdown ke liye kam se kam 2 options likho.');
-          if (def && opts.indexOf(def) < 0) return alert('Default value options me se ek honi chahiye.');
+          if (def && opts.indexOf(def) < 0) return alert('Default value must be one of the options.');
         } else opts = [];
         if (type === 'number') {
           if ((mn !== '' && !isFinite(Number(mn))) || (mx !== '' && !isFinite(Number(mx)))) return alert('Min / Max number me likho.');
-          if (mn !== '' && mx !== '' && Number(mn) > Number(mx)) return alert('Min value, Max se badi nahi ho sakti.');
-          if (def !== '') { var dn = Number(def); if (!isFinite(dn)) return alert('Default value number honi chahiye.'); if (mn !== '' && dn < Number(mn)) return alert('Default value Min se kam hai.'); if (mx !== '' && dn > Number(mx)) return alert('Default value Max se zyada hai.'); }
+          if (mn !== '' && mx !== '' && Number(mn) > Number(mx)) return alert('Min value cannot be greater than Max.');
+          if (def !== '') { var dn = Number(def); if (!isFinite(dn)) return alert('Default value must be a number.'); if (mn !== '' && dn < Number(mn)) return alert('Default value is below Min.'); if (mx !== '' && dn > Number(mx)) return alert('Default value is above Max.'); }
         } else { mn = ''; mx = ''; unit = ''; }
         if (type === 'date' && def !== '' && def.toLowerCase() !== 'today' && !/^\d{4}-\d{2}-\d{2}$/.test(def)) return alert('Default date YYYY-MM-DD ho ya "today" likho.');
         if (type === 'time' && def !== '' && def.toLowerCase() !== 'now' && !/^([01]\d|2[0-3]):[0-5]\d$/.test(def)) return alert('Default time HH:MM ho ya "now" likho.');
@@ -13388,7 +13401,7 @@ setInterval(sync,2500);
   }
   window.mrMessage = function (r, ev) { return msg(r, ev); };
   function share(r, ev) { window.open('https://wa.me/?text=' + encodeURIComponent(msg(r, ev)), '_blank'); }
-  function offer(r, ev, label) { if (confirm(label + ' report WhatsApp pe bhejni hai?')) share(r, ev); }
+  function offer(r, ev, label) { if (confirm(label + ' report - send on WhatsApp?')) share(r, ev); }
   window.sendCurrentWhatsApp = function () {
     var r = edit.mr !== null ? data.mr[edit.mr] : { sr: f('mr_sr'), machine: f('mr_machine'), machineNo: f('mr_machine_no'), section: f('mr_section'), reqBy: f('mr_req_by'), pdate: f('mr_pdate'), ptime: f('mr_ptime'), problem: f('mr_problem'), status: ST.OPEN, priority: f('mr_priority') };
     share(r, evOf(r));
@@ -13421,14 +13434,14 @@ setInterval(sync,2500);
       var saved;
       if (edit.mr !== null && data.mr[edit.mr]) {
         var old = data.mr[edit.mr];
-        if (stOf(old) !== ST.OPEN && !isAdmin()) return alert('Ye request ab "' + stOf(old) + '" hai. Maintenance ke accept karne ke baad request badli nahi ja sakti.');
+        if (stOf(old) !== ST.OPEN && !isAdmin()) return alert('This request is now "' + stOf(old) + '". It cannot be changed after Maintenance has accepted it.');
         ['pdate', 'ptime', 'machine', 'machineNo', 'section', 'grade', 'make', 'reqBy', 'reqCode', 'prodSign', 'problem', 'priority'].forEach(function (k) { old[k] = r[k]; });
         log(old, 'Edited', 'Request details edited'); saved = Object.assign({}, old);
       } else {
         r.status = ST.OPEN; r.log = []; log(r, ST.OPEN, 'Request raised (' + r.priority + ')'); data.mr.push(r); saved = Object.assign({}, r);
       }
       persist('mr'); edit.mr = null; clearMR(); renderMR(); renderDashboard(); populateMaintenanceRequests();
-      alert('Maintenance Request saved successfully. Sr. No. ' + saved.sr + (saved.priority === 'Breakdown' ? '\n\n🔴 BREAKDOWN priority — maintenance ko turant batao.' : ''));
+      alert('Maintenance Request saved successfully. Sr. No. ' + saved.sr + (saved.priority === 'Breakdown' ? '\n\n🔴 BREAKDOWN priority - inform Maintenance immediately.' : ''));
       if (confirm('Do you want to share the Daily Maintenance Request Report (' + fmtDate(saved.pdate || saved.mdate || saved.hdate) + ') on WhatsApp?')) {
         var sd = saved.pdate || saved.mdate || saved.hdate;
         if (typeof window.rptShareDaily === 'function' && sd) { try { window.rptShareDaily('mr', sd); } catch (e) { sendWhatsAppFor(saved); } } else sendWhatsAppFor(saved);
@@ -13441,7 +13454,7 @@ setInterval(sync,2500);
     if (edit.mr === null) return alert('Please select an Open / In Progress request first.');
     var o = data.mr[edit.mr]; if (!o) return;
     var prev = stOf(o), ns = r.status;
-    if ((prev === ST.CLOSED || prev === ST.CANC) && !isAdmin()) return alert('Ye request "' + prev + '" ho chuki hai. Ab badlav sirf Admin kar sakta hai.');
+    if ((prev === ST.CLOSED || prev === ST.CANC) && !isAdmin()) return alert('This request "' + prev + '" is already complete. Only Admin can make changes now.');
     if (ns === ST.OPEN && prev !== ST.OPEN) ns = prev;
     var note = '';
     if (ns === ST.CLOSED && !o.verifiedAt) {
@@ -13449,23 +13462,23 @@ setInterval(sync,2500);
       else { ns = ST.DONE; note = '\n\nClosed sirf Production ke Verify karne ke baad hota hai, isliye status "Work Done" rakha gaya.'; }
     }
     if ([ST.PROG, ST.WAIT, ST.DONE].indexOf(ns) >= 0) {
-      if (!r.recvBy.trim()) return alert('Request Received By (Employee Name) bharna zaroori hai.');
+      if (!r.recvBy.trim()) return alert('Request Received By (Employee Name) is required.');
       if (!r.mdate) { r.mdate = nowD(); setv('mr_mdate', r.mdate); } if (!r.mtime) { r.mtime = nowT(); setv('mr_mtime', r.mtime); }
     }
     if (ns === ST.DONE) {
-      if (!(r.action || '').trim()) return alert('Work Done ke liye Action Taken bharna zaroori hai.');
+      if (!(r.action || '').trim()) return alert('Action Taken is required for Work Done.');
       if (!r.hdate) { r.hdate = nowD(); setv('mr_hdate', r.hdate); } if (!r.htime) { r.htime = nowT(); setv('mr_htime', r.htime); }
       r.duration = dateTimeDuration(r.mdate, r.mtime, r.hdate, r.htime); setv('mr_duration', r.duration);
-      if (!r.duration) return alert('Handover time, Maintenance start time se pehle nahi ho sakta. Date / time check karo.');
+      if (!r.duration) return alert('Handover time cannot be before Maintenance start time. Check the date / time.');
     }
     var extra = window.__mrExtra || {}; window.__mrExtra = null;
     if (ns === ST.CANC) {
       var why = extra.cancelReason || o.cancelReason || prompt('Request cancel karne ka karan likho:', '');
-      if (why === null || !String(why).trim()) return alert('Cancel karne ka karan likhna zaroori hai.');
+      if (why === null || !String(why).trim()) return alert('A reason for cancelling is required.');
       extra.cancelReason = String(why).trim();
     }
     if (ns === ST.WAIT && !(extra.waitReason || o.waitReason)) {
-      var wr = prompt('Kaun sa spare / kya wajah se kaam ruka hai?', ''); if (wr === null || !wr.trim()) return alert('Wajah likhna zaroori hai.'); extra.waitReason = wr.trim();
+      var wr = prompt('Which spare / what reason is holding up the work?', ''); if (wr === null || !wr.trim()) return alert('A reason is required.'); extra.waitReason = wr.trim();
     }
     if (!mrReconcileSpares(legacySpareParts(o), r.spareParts)) return;
     o.status = ns; o.recvBy = r.recvBy; o.recvCode = r.recvCode; o.mdate = r.mdate; o.mtime = r.mtime; o.maintSign = r.maintSign; o.observation = r.observation; o.action = r.action; o.spare = r.spare; o.spareParts = r.spareParts; o.qty = r.qty; o.hdate = r.hdate; o.htime = r.htime; o.hprodSign = r.hprodSign; o.hmaintSign = r.hmaintSign; o.duration = r.duration; o.history = r.history; o.historyBy = r.historyBy; o.maintCost = r.maintCost;
@@ -13488,18 +13501,18 @@ setInterval(sync,2500);
   /* ---------- Maintenance quick steps (buttons) ---------- */
   function selIdx() { if (edit.mr !== null) return edit.mr; var v = (G('mr_select_existing') || {}).value; return (v !== '' && v !== undefined) ? Number(v) : null; }
   window.mrFlow = function (kind) {
-    if (mrRole !== 'maintenance') return alert('Pehle "Maintenance Person" mode chuno.');
-    var i = selIdx(); if (i === null || !data.mr[i]) return alert('Pehle upar se request select karo.');
+    if (mrRole !== 'maintenance') return alert('Select "Maintenance Person" mode first.');
+    var i = selIdx(); if (i === null || !data.mr[i]) return alert('Select a request above first.');
     var r = data.mr[i];
-    if (!f('mr_recv_by').trim()) { alert('Request Received By (Employee Name) bharo.'); var e = G('mr_recv_by'); if (e) e.focus(); return; }
+    if (!f('mr_recv_by').trim()) { alert('Enter Request Received By (Employee Name).'); var e = G('mr_recv_by'); if (e) e.focus(); return; }
     if (!f('mr_mdate')) setv('mr_mdate', nowD()); if (!f('mr_mtime')) setv('mr_mtime', nowT());
     if (kind === 'start') { setv('mr_status', ST.PROG); }
     else if (kind === 'wait') {
-      var why = prompt('Kaun sa spare / kya wajah se kaam ruka hai?', r.waitReason || ''); if (why === null) return; why = why.trim();
-      if (!why) return alert('Wajah likhna zaroori hai.');
+      var why = prompt('Which spare / what reason is holding up the work?', r.waitReason || ''); if (why === null) return; why = why.trim();
+      if (!why) return alert('A reason is required.');
       window.__mrExtra = { waitReason: why }; setv('mr_status', ST.WAIT);
     } else if (kind === 'done') {
-      if (!f('mr_action').trim()) { alert('Action Taken bharo.'); var a = G('mr_action'); if (a) a.focus(); return; }
+      if (!f('mr_action').trim()) { alert('Enter Action Taken.'); var a = G('mr_action'); if (a) a.focus(); return; }
       if (!f('mr_hdate')) setv('mr_hdate', nowD()); if (!f('mr_htime')) setv('mr_htime', nowT());
       setMRDuration(); setv('mr_status', ST.DONE);
     }
@@ -13513,10 +13526,10 @@ setInterval(sync,2500);
   /* ---------- Production steps: Verify & Close / Reopen / Cancel ---------- */
   window.mrVerify = function (i) {
     if (!mmsGuardSave('mr')) return; var r = data.mr[i]; if (!r || stOf(r) !== ST.DONE) return;
-    if (typeof window.mmsApprAllowed === 'function' && !window.mmsApprAllowed('mr')) return alert('Aapke role ko Verify & Close ki permission Admin ne nahi di.');
-    if (!confirm('Sr. ' + r.sr + ' — ' + (r.machine || '') + '\n\nKya kaam sahi hua hai aur machine theek chal rahi hai?\nOK = Verify & Close')) return;
+    if (typeof window.mmsApprAllowed === 'function' && !window.mmsApprAllowed('mr')) return alert('Admin has not given your role permission to Verify & Close.');
+    if (!confirm('Sr. ' + r.sr + ' — ' + (r.machine || '') + '\n\nHas the work been done correctly and is the machine running properly?\nOK = Verify & Close')) return;
     var by = String(((mmsSession() || {}).u) || '').trim();
-    if (!by) return alert('Verify karne ke liye pehle login karo - Verified By login user ke naam se hi lagta hai.');
+    if (!by) return alert('Log in first to verify - Verified By is always recorded as the logged-in user.');
     r.status = ST.CLOSED; r.verifiedBy = by; r.verifiedAt = new Date().toISOString(); if (!r.hprodSign) r.hprodSign = by;
     log(r, ST.CLOSED, 'Verified by ' + by);
     try { syncHistoryFromMaintenance(r); } catch (e) { } try { syncBreakdownFromMaintenance(r); } catch (e) { }
@@ -13524,8 +13537,8 @@ setInterval(sync,2500);
   };
   window.mrReopen = function (i) {
     if (!mmsGuardSave('mr')) return; var r = data.mr[i]; if (!r || (stOf(r) !== ST.DONE && !(stOf(r) === ST.CLOSED && isAdmin()))) return;
-    var why = prompt('Reopen ka karan likho (kaam kyun theek nahi hua):', ''); if (why === null) return; why = why.trim();
-    if (!why) return alert('Reopen ka karan likhna zaroori hai.');
+    var why = prompt('Enter the reason for reopening (why the work was not satisfactory):', ''); if (why === null) return; why = why.trim();
+    if (!why) return alert('A reason for reopening is required.');
     r.status = ST.PROG; r.reopenCount = (r.reopenCount || 0) + 1; r.reopenReason = why; r.hdate = ''; r.htime = ''; r.duration = ''; r.workDoneAt = ''; r.verifiedAt = ''; r.verifiedBy = '';
     data.bd = data.bd.filter(function (x) { return !(x.auto && String(x.sourceMrSr || '') === String(r.sr)); }); persist('bd');
     log(r, 'Reopened', why); persist('mr'); refreshAll(); offer(r, 'reopened', 'Request Reopened');
@@ -13533,13 +13546,13 @@ setInterval(sync,2500);
   window.mrCancel = function (i) {
     if (!mmsGuardSave('mr')) return; var r = data.mr[i]; if (!r || (stOf(r) !== ST.OPEN && !isAdmin())) return;
     var why = prompt('Request cancel karne ka karan likho:', ''); if (why === null) return; why = why.trim();
-    if (!why) return alert('Cancel karne ka karan likhna zaroori hai.');
+    if (!why) return alert('A reason for cancelling is required.');
     r.status = ST.CANC; r.cancelReason = why; log(r, ST.CANC, why); persist('mr'); refreshAll(); offer(r, 'cancelled', 'Request Cancelled');
   };
   window.mrTimeline = function (i) {
     var r = data.mr[i]; if (!r) return; var T = times(r);
     var L = (r.log || []).map(function (e) { return new Date(e.t).toLocaleString('en-IN') + ' — ' + e.st + (e.by ? ' (' + e.by + ')' : '') + (e.note ? ': ' + e.note : ''); });
-    alert('Sr. ' + r.sr + ' — ' + (r.machine || '') + '\nPriority: ' + priOf(r) + '\nResponse: ' + hm(T.resp) + ' | Fix: ' + hm(T.fix) + ' | Total downtime: ' + hm(T.total) + '\n\n' + (L.join('\n') || 'Koi timeline nahi (purani entry).'));
+    alert('Sr. ' + r.sr + ' — ' + (r.machine || '') + '\nPriority: ' + priOf(r) + '\nResponse: ' + hm(T.resp) + ' | Fix: ' + hm(T.fix) + ' | Total downtime: ' + hm(T.total) + '\n\n' + (L.join('\n') || 'No timeline (old entry).'));
   };
 
   /* ---------- banner + analytics + register ---------- */
@@ -14239,14 +14252,14 @@ html:not(.aam-tl) .mrw-panel.locked .mrg input:disabled,html:not(.aam-tl) .mrw-p
       try { localStorage.setItem('htp7_mr_profile_' + s.u, JSON.stringify({ name: nm.trim(), code: cd.trim() })); } catch (e) { }
       filledKey = ''; sync();
     },
-    save1: function () { if (mrRole !== 'production') return alert('Pehle Production mode chuno.'); var b = G('mrSaveBtn'); if (b) b.click(); },
+    save1: function () { if (mrRole !== 'production') return alert('Select Production mode first.'); var b = G('mrSaveBtn'); if (b) b.click(); },
     clear: function () { clearMR(); var s = G('mr_select_existing'); if (s) s.value = ''; setTimeout(sync, 30); },
     start: function () { window.mrFlow('start'); },
     wait: function () { window.mrFlow('wait'); },
     done: function () { window.mrFlow('done'); },
     keep: function () {
-      var idx = edit.mr; if (idx === null || !data.mr[idx]) return alert('Pehle request chuno.');
-      if (!f('mr_recv_by').trim()) { goStep(2); focusId('mr_recv_by'); return alert('Pehle Step 2 me "Request Received By" bharo.'); }
+      var idx = edit.mr; if (idx === null || !data.mr[idx]) return alert('Select a request first.');
+      if (!f('mr_recv_by').trim()) { goStep(2); focusId('mr_recv_by'); return alert('First enter "Request Received By" in Step 2.'); }
       window.__mrExtra = null; var b = G('mrSaveBtn'); if (b) b.click();
       if (edit.mr === null && data.mr[idx]) reopen(idx);
     },
@@ -14259,8 +14272,8 @@ html:not(.aam-tl) .mrw-panel.locked .mrg input:disabled,html:not(.aam-tl) .mrw-p
   if (typeof _flow === 'function') window.mrFlow = function (kind) {
     var idx = edit.mr;
     if (mrRole === 'maintenance' && idx !== null && data.mr[idx]) {
-      if (!f('mr_recv_by').trim()) { goStep(2); focusId('mr_recv_by'); return alert('Request Received By (Employee Name) bharo.'); }
-      if (kind === 'done' && !f('mr_action').trim()) { goStep(3); focusId('mr_action'); return alert('Work Done ke liye "Action Taken" bharna zaroori hai (Step 3).'); }
+      if (!f('mr_recv_by').trim()) { goStep(2); focusId('mr_recv_by'); return alert('Enter Request Received By (Employee Name).'); }
+      if (kind === 'done' && !f('mr_action').trim()) { goStep(3); focusId('mr_action'); return alert('"Action Taken" is required for Work Done (Step 3).'); }
     }
     var out = _flow.apply(this, arguments);
     if (idx !== null && edit.mr === null && data.mr[idx]) reopen(idx);
@@ -14396,17 +14409,17 @@ html:not(.aam-tl) .mrw-panel.locked .mrg input:disabled,html:not(.aam-tl) .mrw-p
     if (t) t.value = u.mrTeam || ''; if (n) n.value = u.fullName || ''; if (c) c.value = u.ecode || '';
   }
   window.mrSaveUserProfile = function () {
-    if (!isAdmin()) return alert('Ye option sirf Admin ke liye hai.');
-    var sel = G('mmsPermUser'); if (!sel || !sel.value) return alert('Pehle upar se user chuno.');
+    if (!isAdmin()) return alert('This option is for Admin only.');
+    var sel = G('mmsPermUser'); if (!sel || !sel.value) return alert('Select a user above first.');
     var us = usersList(), u = us.filter(function (x) { return x.u === sel.value; })[0]; if (!u) return alert('User not found.');
     var t = (G('mmsPermMrTeam') || {}).value || '', n = ((G('mmsPermFullName') || {}).value || '').trim(), c = ((G('mmsPermEcode') || {}).value || '').trim();
     if (t) u.mrTeam = t; else delete u.mrTeam;
     if (n) u.fullName = n; else delete u.fullName;
     if (c) u.ecode = c; else delete u.ecode;
-    try { localStorage.setItem(USERS_K, JSON.stringify(us)); } catch (e) { return alert('Save nahi ho paya.'); }
+    try { localStorage.setItem(USERS_K, JSON.stringify(us)); } catch (e) { return alert('Could not save.'); }
     try { MMS.audit('USER_ROLE', 'system', u.u + ' MR profile -> team=' + (t || 'auto') + ', name=' + n + ', ecode=' + c); } catch (e) { }
     filledKey = ''; sync();
-    alert('MR profile save ho gaya: ' + u.u + '\nTeam: ' + (t ? TEAM_LBL[t] : 'Auto (login role se)') + (n ? '\nNaam: ' + n : '') + (c ? '\nE-Code: ' + c : '') + '\n\nGoogle Sheet sync ke baad ye baaki devices par bhi lag jayega.');
+    alert('MR profile saved: ' + u.u + '\nTeam: ' + (t ? TEAM_LBL[t] : 'Auto (from login role)') + (n ? '\nName: ' + n : '') + (c ? '\nE-Code: ' + c : '') + '\n\nAfter Google Sheet sync this will apply on the other devices too.');
   };
   (function hookAdmin() {
     var sel = G('mmsPermUser'); if (!sel) return;
@@ -14468,16 +14481,16 @@ html:not(.aam-tl) .mrw-panel.locked .mrg input:disabled,html:not(.aam-tl) .mrw-p
      '<label>Naya Calibration Certificate No.<input id="tcm_cert" placeholder="optional"></label>'+
      '<label>Certificate Date<input id="tcm_certdate" type="date"></label>'+
      '<label>Kisne badla (Technician)<input id="tcm_tech" placeholder="naam"></label>'+
-     '<label>Approved by<input id="tcm_appr" value="" readonly placeholder="Approver ke login se - Pending Approvals popup" style="background:#eef3f4"></label>'+
+     '<label>Approved by<input id="tcm_appr" value="" readonly placeholder="From the approver login - Pending Approvals popup" style="background:#eef3f4"></label>'+
      '<label class="tcm-w">Note (optional)<input id="tcm_note" placeholder="jaise: Zone-2 TC burn ho gaya tha"></label>'+
      '</div><div class="tcm-act"><button class="primary" onclick="tcSaveReplaced('+i+')">💾 Save Replacement</button><button class="secondary" onclick="tcCloseModal()">Cancel</button></div>');
   };
   window.tcSaveReplaced=function(i){
     var r=data.tc[i];if(!r)return;
-    var d=G('tcm_date').value;if(!d)return alert('Replacement ki date chuno.');
-    if(d>today()&&!confirm('Ye date aage ki hai. Phir bhi save karni hai?'))return;
+    var d=G('tcm_date').value;if(!d)return alert('Select the replacement date.');
+    if(d>today()&&!confirm('This date is in the future. Save anyway?'))return;
     applyThermocoupleReplacement(r.id,d,(G('tcm_srid').value||'').trim(),(G('tcm_note').value||'').trim(),{reason:G('tcm_reason').value,certNo:(G('tcm_cert').value||'').trim(),certDate:G('tcm_certdate').value,tech:(G('tcm_tech').value||'').trim(),appr:(G('tcm_appr').value||'').trim()});
-    close();alert('Replacement save ho gaya.\nAgli Replacement Date: '+r.due);
+    close();alert('Replacement saved.\nNext replacement date: '+r.due);
   };
 
   /* ---------- History (ek furnace/TC ki) ---------- */
@@ -14490,7 +14503,7 @@ html:not(.aam-tl) .mrw-panel.locked .mrg input:disabled,html:not(.aam-tl) .mrw-p
     var r=data.tc[i];if(!r)return;
     var h=(r.history||[]).slice().reverse();
     modal('<h3>📜 Replacement History</h3><div class="tcm-sub">'+esc(r.furnace||'')+' • '+esc(r.loc||'')+' • abhi ka ID: <b>'+esc(r.srid||'')+'</b></div>'+
-      '<div class="tcm-tw"><table class="tcm-t"><thead><tr><th>Date</th><th>Wajah</th><th>ID</th><th>Naya Certificate</th><th>Note</th></tr></thead><tbody>'+(h.length?histRows(h,false):'<tr><td colspan="5">Abhi koi replacement record nahi.</td></tr>')+'</tbody></table></div>'+
+      '<div class="tcm-tw"><table class="tcm-t"><thead><tr><th>Date</th><th>Wajah</th><th>ID</th><th>Naya Certificate</th><th>Note</th></tr></thead><tbody>'+(h.length?histRows(h,false):'<tr><td colspan="5">No replacement record yet.</td></tr>')+'</tbody></table></div>'+
       '<div class="tcm-act"><button class="secondary" onclick="tcCloseModal()">Close</button></div>');
   };
 
@@ -14659,7 +14672,7 @@ html:not(.aam-tl) .tcm-chip{background:rgba(125,211,252,.15);color:#7dd3fc}
             sub: (h.reason || '-') + ' • ' + (h.oldSrid || '-') + ' → ' + (h.newSrid || '-') + (h.tech ? ' • Replaced by: ' + h.tech : ''),
             run: function () {
               if (h.appr) return;
-              if (typeof window.mmsApprAllowed === 'function' && !window.mmsApprAllowed('tc')) return alert('Aapke role ko TC approval ki permission nahi hai.');
+              if (typeof window.mmsApprAllowed === 'function' && !window.mmsApprAllowed('tc')) return alert('Your role does not have TC approval permission.');
               if (!confirm('Approve thermocouple replacement?\n\n' + (t.furnace || '') + ' ' + fd(h.date) + '\nApproved By: ' + me())) return;
               h.appr = me(); h.apprUser = me(); h.apprAt = new Date().toISOString(); t.updatedAt = h.apprAt;
               persist('tc');
@@ -14676,8 +14689,32 @@ html:not(.aam-tl) .tcm-chip{background:rgba(125,211,252,.15);color:#7dd3fc}
         out.push({
           ico: '🛠️', mod: 'Maintenance Request', btn: '✔ Verify & Close',
           t: 'Sr. ' + (r.sr || '-') + ' • ' + (r.machine || r.machineNo || '-'),
-          sub: 'Work Done' + (r.maintSign ? ' by ' + r.maintSign : '') + (r.section ? ' • ' + r.section : '') + ' - Production verify baaki',
+          sub: 'Work Done' + (r.maintSign ? ' by ' + r.maintSign : '') + (r.section ? ' • ' + r.section : '') + ' - Production verify pending',
           run: function () { var i = data.mr.indexOf(r); if (i < 0) return; closePop(); if (typeof window.mrVerify === 'function') window.mrVerify(i); }
+        });
+      });
+    } catch (e) { }
+    try {
+      if (mmsCanSaveQuiet('pm') && !(typeof window.mmsApprAllowed === 'function' && !window.mmsApprAllowed('pm'))) (data.pm || []).forEach(function (r) {
+        if (!r || String(r.verifiedBy || '').trim() || !String(r.checkedBy || '').trim()) return;
+        if (r.checkedByUser && r.checkedByUser === String((S() || {}).u || '')) return;      // preparer cannot verify own sheet
+        out.push({
+          ico: '🔧', mod: 'PM Check Sheet', btn: '✔ Verify',
+          t: (r.machineNo || '-') + ' • ' + fd(r.date),
+          sub: 'Checked by ' + (r.checkedBy || '-') + (r.partial ? ' - sheet is Partial until verified' : '') + ' - verification pending',
+          run: function () {
+            if (r.verifiedBy) return;
+            if (typeof window.mmsApprAllowed === 'function' && !window.mmsApprAllowed('pm')) return alert('Your role does not have PM verification permission.');
+            if (r.checkedByUser && r.checkedByUser === String((S() || {}).u || '')) return alert('You prepared this sheet - it must be verified from a different login.');
+            if (!confirm('Verify PM check sheet?\n\n' + (r.machineNo || '') + ' ' + fd(r.date) + '\nVerified By: ' + me())) return;
+            r.verifiedBy = me(); r.verifiedByUser = String((S() || {}).u || ''); r.verifiedAt = new Date().toISOString();
+            var unans = (r.entries || []).filter(function (e) { return !e.workDone; }).length;
+            if (!unans && String(r.checkedBy || '').trim() && String(r.machineNo || '').trim()) r.partial = false;
+            try { persistPMWithEvidence(); } catch (e) { persist('pm'); }
+            try { pmPlanLinkFromCheckSheet(r); } catch (e) { }
+            try { window.audit('APPROVE', 'pm', me() + ' verified PM sheet ' + (r.machineNo || '') + ' ' + (r.date || '')); } catch (e) { }
+            try { renderAll(); } catch (e) { } render();
+          }
         });
       });
     } catch (e) { }
@@ -14710,7 +14747,7 @@ html:not(.aam-tl) .tcm-chip{background:rgba(125,211,252,.15);color:#7dd3fc}
     if (!pop) { fab(); return; }
     var s = S() || {};
     pop.querySelector('.ap-card').innerHTML =
-      '<div class="ap-h"><b>🔔 Pending Approvals (' + c.items.length + ')</b><small>' + E(s.u || '') + ' • ' + E(s.role || '') + ' - sirf wahi jo aap approve kar sakte ho</small></div>' +
+      '<div class="ap-h"><b>🔔 Pending Approvals (' + c.items.length + ')</b><small>' + E(s.u || '') + ' • ' + E(s.role || '') + ' - only the ones you can approve</small></div>' +
       '<div class="ap-b">' + (c.items.length ? c.items.map(function (x, i) {
         return '<div class="ap-i"><div style="font-size:22px">' + x.ico + '</div><div class="ap-t"><div class="ap-m">' + E(x.mod) + '</div><div class="ap-n">' + E(x.t) + '</div><div class="ap-s">' + E(x.sub) + '</div></div>' +
           '<button class="ap-ok" data-i="' + i + '">' + E(x.btn) + '</button></div>';
@@ -14754,7 +14791,7 @@ html:not(.aam-tl) .tcm-chip{background:rgba(125,211,252,.15);color:#7dd3fc}
 <script>
 /* Auditor View: koi bhi save path (mmsGuard use kare ya nahi) persist par rok diya jata hai */
 (function(){var _p=window.persist;if(typeof _p!=='function'||window.__audPersistGuard)return;window.__audPersistGuard=true;var warned=0;
-window.persist=function(k){if(window.__auditorView&&!window.__mmsQuiet&&k!=='audit'){if(Date.now()-warned>3000){warned=Date.now();alert('Auditor View read-only hai - change save nahi hua. Page reload karke dobara dekho.');}return;}return _p.apply(this,arguments);};})();
+window.persist=function(k){if(window.__auditorView&&!window.__mmsQuiet&&k!=='audit'){if(Date.now()-warned>3000){warned=Date.now();alert('Auditor View is read-only - the change was not saved. Reload the page to view again.');}return;}return _p.apply(this,arguments);};})();
 </script>
 <style id="qa-navy-theme">
 /* Quick Access tiles = KPI cards jaisa navy theme (Light-table mode me purana look) */
