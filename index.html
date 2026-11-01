@@ -15098,7 +15098,7 @@ window.apprReview=function(o,onOk){
  ov.innerHTML='<div class="rv-box"><div class="rv-h"><b>🔍 Review before approval — '+E(b.head)+'</b><span>'+E(b.sub)+'</span></div><div class="rv-body">'+body+'</div>'+
   '<div class="rv-f">'+(bad.length?'<div style="color:#9b1c1c;font-weight:800">⛔ '+bad.length+' blocking issue(s) — approval is not possible until the record is corrected.</div>':
   '<label><input type="checkbox" class="c1"> I have read the full report above and all details are correct.</label>'+(warn.length?'<label><input type="checkbox" class="c2"> I have checked the '+warn.length+' warning(s) (⚠) and accept responsibility for this approval.</label>':''))+
-  (b.flags.some(function(f){return f.l!=='ok'})?'<div class="rv-cr"><button type="button" class="rv-no rv-ret" style="'+(bad.length?'display:none':'')+'">📨 Return for correction to '+E(b.to||'preparer')+'</button><div class="rv-cbox" style="'+(bad.length?'':'display:none')+'"><b style="color:#9b1c1c">Message to '+E(b.to||'preparer')+' (edit if needed):</b><textarea class="rv-msg"></textarea><button type="button" class="rv-ok rv-send">📨 Send correction request to '+E(b.to||'preparer')+'</button></div></div>':'')+
+  (true?'<div class="rv-cr"><button type="button" class="rv-no rv-ret" style="'+(bad.length?'display:none':'')+'">📨 Return for correction to '+E(b.to||'preparer')+'</button><div class="rv-cbox" style="'+(bad.length?'':'display:none')+'"><b style="color:#9b1c1c">Message to '+E(b.to||'preparer')+' (edit if needed):</b><textarea class="rv-msg"></textarea><button type="button" class="rv-ok rv-send">📨 Send correction request to '+E(b.to||'preparer')+'</button></div></div>':'')+
   '<div class="rv-row"><span class="rv-hint"></span><button class="rv-no rv-cancel">Cancel</button><button class="rv-ok rv-appr" disabled>✔ Verified — Approve</button></div></div></div>';
  document.body.appendChild(ov);
  var bodyEl=ov.querySelector('.rv-body'),okb=ov.querySelector('.rv-appr'),hint=ov.querySelector('.rv-hint'),c1=ov.querySelector('.c1'),c2=ov.querySelector('.c2'),seen=false;
@@ -15110,6 +15110,7 @@ window.apprReview=function(o,onOk){
  var ta=ov.querySelector('.rv-msg'),ret=ov.querySelector('.rv-ret'),snd=ov.querySelector('.rv-send');
  if(ta){var iss=fl.filter(function(f){return f.l!=='ok'});
   ta.value='Correction required: '+b.head+'\nChecked by: '+(o.who||'-')+'\n\nIs record mein ye problems mili - isko sahi karo aur dobara submit karo:\n'+iss.map(function(f,i){return (i+1)+'. '+(f.l==='bad'?'[MUST FIX] ':'[CHECK] ')+f.t}).join('\n')+'\n\nSahi karke Save karo, phir verify/approve hoga.';
+  if(!iss.length)ta.value='Correction required: '+b.head+'\nChecked by: '+(o.who||'-')+'\n\nIs record mein correction chahiye - neeche problem likho:\n1. \n\nSahi karke Save karo, phir verify/approve hoga.';
   if(ret)ret.onclick=function(){ov.querySelector('.rv-cbox').style.display='block';ret.style.display='none'};
   snd.onclick=function(){var rec=o.rec;if(!rec)return;
    rec.corrReq={open:true,toUser:b.to,by:o.who||'',at:new Date().toISOString(),msg:ta.value,title:b.head,kind:o.kind,key:o.key||''};
