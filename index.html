@@ -14944,6 +14944,30 @@ var _d=window.delRow;
 if(typeof _d==='function')window.delRow=function(k,i){var lab='';try{lab=label((data[k]||[])[i])}catch(e){}
  var _c=window.confirm;if(lab)window.confirm=function(m){window.confirm=_c;return _c.call(window,String(m).replace(/\?\s*$/,'')+': "'+lab+'" ?')};
  try{return _d.apply(this,arguments)}finally{window.confirm=_c}};
+/* storage full: pehle save chupchap fail ho jata tha (exception, koi message nahi). Ab: jagah banao, dobara try karo, nahi to saaf message. */
+function isQuota(e){return e&&(e.name==='QuotaExceededError'||e.code===22||e.code===1014||/quota|storage/i.test(String(e.message||'')))}
+function usage(){var a=[];try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i),v=localStorage.getItem(k)||'';a.push([k,(k.length+v.length)*2])}}catch(e){}a.sort(function(x,y){return y[1]-x[1]});return a}
+function freeSpace(){var n=0;['htp_mms_sync_v1'].forEach(function(k){try{if(localStorage.getItem(k)){localStorage.removeItem(k);n++}}catch(e){}});return n}
+function fullMsg(){var u=usage(),tot=u.reduce(function(s,x){return s+x[1]},0);
+ return 'STORAGE FULL: this phone/browser has no space left (~'+(tot/1048576).toFixed(1)+' MB used of ~5 MB). The record is kept in memory and will upload to Google Sheet on sync, but it is NOT stored on this device yet.\n\nDo NOT close or refresh the app. Tap the Sync pill to upload now. Biggest storage users: '+u.slice(0,3).map(function(x){return x[0]+' ('+(x[1]/1048576).toFixed(1)+' MB)'}).join(', ')+'.'}
+var lastFull=0;
+function guarded(name){var o=window[name];if(typeof o!=='function')return;
+ window[name]=function(){try{return o.apply(this,arguments)}catch(e){
+  if(!isQuota(e))throw e;
+  if(freeSpace()){try{return o.apply(this,arguments)}catch(e2){if(!isQuota(e2))throw e2}}
+  if(Date.now()-lastFull>15000){lastFull=Date.now();setTimeout(function(){alert(fullMsg())},50)}
+  window.__gsDirty=true;try{if(typeof gsSchedule==='function')gsSchedule(1500)}catch(x){}}}}
+guarded('persist');guarded('persistPMWithEvidence');
+/* koi bhi button click par error aaye (jaise storage full) to chupchap fail na ho: user ko message dikhao */
+var lastErr=0;
+function showErr(e){try{if(!ses())return;var m=String((e&&e.message)||e||'');
+ if(/ResizeObserver|Script error|Failed to fetch|Load failed|NetworkError/i.test(m))return;
+ if(isQuota(e)){if(Date.now()-lastFull>15000){lastFull=Date.now();alert(fullMsg())}return}
+ if(Date.now()-lastErr<3000)return;lastErr=Date.now();
+ var t=document.createElement('div');t.className='up1-toast err';t.style.cssText='pointer-events:auto';t.textContent='Error: '+m.slice(0,160)+' - action may not have completed. Please screenshot this and tell Admin.';
+ var box=document.getElementById('up1-toasts');if(!box){box=document.createElement('div');box.id='up1-toasts';document.body.appendChild(box)}box.appendChild(t);setTimeout(function(){try{t.remove()}catch(x){}},9000)}catch(x){}}
+window.addEventListener('error',function(ev){showErr(ev.error||ev.message)});
+window.addEventListener('unhandledrejection',function(ev){showErr(ev.reason)});
 /* pending changes flag (sync pill me dikhta hai) */
 var _p=window.persist;
 if(typeof _p==='function')window.persist=function(k){if(k!=='audit')window.__gsDirty=true;return _p.apply(this,arguments)};
