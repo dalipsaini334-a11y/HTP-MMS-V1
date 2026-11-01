@@ -3341,7 +3341,7 @@ function savePM(){
  if(!r.date||!template)return alert('Please select Checklist and Done Date.');
  if(!String(r.machineNo||'').trim())return alert('Machine No. is required.');
  if(String(r.checkedBy||'').trim()&&String(r.checkedBy).trim().toLowerCase()===String(r.verifiedBy||'').trim().toLowerCase())return alert('Checked By and Verified By must be different persons.');
- const _me=(session()||{}).u||'';r.checkedByUser=(previousPM&&previousPM.checkedByUser)||(String(r.checkedBy||'').trim()?_me:'');
+ const _me=(mmsSession()||{}).u||'';r.checkedByUser=(previousPM&&previousPM.checkedByUser)||(String(r.checkedBy||'').trim()?_me:'');
  r.verifiedByUser=String(r.verifiedBy||'').trim()?((previousPM&&previousPM.verifiedBy===r.verifiedBy&&previousPM.verifiedByUser)||_me):'';
  if(r.verifiedByUser&&r.checkedByUser&&r.verifiedByUser===r.checkedByUser)return alert('Checked By and Verified By must be done from different login accounts. Ask the verifier to log in and verify.');
  if(String(r.verifiedBy||'').trim()&&!(previousPM&&previousPM.verifiedBy===r.verifiedBy)&&typeof window.mmsApprAllowed==='function'&&!window.mmsApprAllowed('pm'))return alert('Admin has not given your role permission to verify PM check sheets. Leave Verified By blank.');
