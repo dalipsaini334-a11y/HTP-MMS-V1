@@ -1790,7 +1790,7 @@ function applyThermocoupleReplacement(tcId,replaceDateStr,newSrid,note,extra){
   let r=data.tc.find(x=>sameId(x.id,tcId));if(!r)return false;   // pehle === tha: select ki string id aur number id match nahi hoti thi, replacement lagti hi nahi thi
   let d=replaceDateStr||new Date().toISOString().slice(0,10);
   if(!Array.isArray(r.history))r.history=[];
-  r.history.push({date:d,oldInst:r.inst||'',oldSrid:r.srid||'',oldDue:r.due||'',newSrid:newSrid||r.srid||'',note:note||'',reason:extra.reason||'',oldCertNo:r.certNo||'',oldCertDate:r.certDate||'',newCertNo:extra.certNo||'',newCertDate:extra.certDate||'',tech:extra.tech||'',appr:extra.appr||'',at:new Date().toISOString()});
+  r.history.push({date:d,oldInst:r.inst||'',oldSrid:r.srid||'',oldDue:r.due||'',newSrid:newSrid||r.srid||'',note:note||'',reason:extra.reason||'',oldCertNo:r.certNo||'',oldCertDate:r.certDate||'',newCertNo:extra.certNo||'',newCertDate:extra.certDate||'',tech:extra.tech||'',appr:extra.appr||'',needAppr:!String(extra.appr||'').trim(),preparedUser:((mmsSession()||{}).u||''),at:new Date().toISOString()});
   r.certNo=extra.certNo||'';r.certDate=extra.certDate||'';   // naye thermocouple ka certificate (purana History me chala gaya)
   if(newSrid)r.srid=newSrid;
   r.inst=d;r.due=tcNextDueLabel(d,r.freq);r.status='Planned';r.updatedAt=new Date().toISOString();
@@ -4484,7 +4484,7 @@ function mmsAuditNorm(arr){
 function auditList(){try{let x=JSON.parse(localStorage.getItem(AUDIT_KEY)||'[]');return mmsAuditNorm(x)}catch(e){return []}}
 // Audit me sirf: login / logout / kisi module me change (SAVE) / user-role-password changes / restore.
 // Sync, config, FY select, backup jaisi system activity ka log nahi banta.
-const AUDIT_ALLOW={LOGIN:1,LOGOUT:1,SAVE:1,RESTORE:1,PASSWORD:1,USER_ADD:1,USER_ROLE:1,USER_PERMS:1,USER_DELETE:1,USER_PASSWORD_RESET:1};
+const AUDIT_ALLOW={LOGIN:1,LOGOUT:1,SAVE:1,RESTORE:1,PASSWORD:1,USER_ADD:1,USER_ROLE:1,USER_PERMS:1,USER_DELETE:1,USER_PASSWORD_RESET:1,APPROVE:1};
 function auditVisible(x){return !!(x&&AUDIT_ALLOW[x.action])}
 function audit(action,module,detail){
     if(!AUDIT_ALLOW[action])return;
@@ -4502,6 +4502,7 @@ function audit(action,module,detail){
     localStorage.setItem(AUDIT_KEY,JSON.stringify(x));
     MMS.refreshAudit();
 }
+try{window.audit=audit}catch(e){}
 const origPersist=window.persist;
 // User ne pichhle 20 sec me click/type/touch kiya ho tabhi SAVE audit banega (timer / background persist ka nahi)
 window.__mmsLastUser=0;
@@ -4603,7 +4604,7 @@ function mmsReviewHtml(){
 function mmsReviewPrint(){const w=window.open('','_blank','width=1100,height=800');if(!w)return alert('Please allow pop-ups to print.');
   w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Management Review</title><style>@page{size:A4 portrait;margin:10mm}body{font:11px Arial}h2{text-align:center;margin:4px}h3{background:#eee;padding:3px 6px;border:1px solid #999;font-size:12px}.sg{display:flex;gap:10px;margin-top:26px}.sg div{flex:1;border-top:1px solid #000;text-align:center;padding-top:3px;font-weight:bold}</style></head><body><h2>Milestone Gears Ltd. UNIT-7</h2><h2>MAINTENANCE &amp; PYROMETRY - MANAGEMENT REVIEW / AUDIT SUMMARY</h2><div style="text-align:center">Report date: '+esc(fmtDate(new Date().toISOString().slice(0,10)))+'</div>'+mmsReviewHtml()+'<div class="sg"><div>Prepared by</div><div>Reviewed by</div><div>Approved by</div></div><script>window.onload=function(){window.print()}<\/script></body></html>');w.document.close();}
 /* Audit Center window */
-const MMS_DOCS=[['FMT-MNT-07','Maintenance Request','01','20.01.2020'],['FMT-MNT-BD-01','Daily Breakdown Register','-','Controlled copy'],['FMT-MNT-03','PM Monthly Work Register','00','18.07.2014'],['FMT-MNT-04','PM Check Sheet','00','18.07.2014'],['FMT-MNT-05','Machine History Card','00','18.07.2014'],['FMT-MNT-08','Report format','00','18.07.2014'],['FMT-MNT-11','Critical Spares Level Register','01','30.10.2014'],['FMT-MNT-PM-PLAN','PM Plan & Control','00','(date not set)'],['FMT-HT-70','Thermocouple Replacement Plan & Audit Control','-','Print footer shows FMT-MNT-01 Rev 01 22.04.2022 - CHECK'],['FR-HT-42','SAT Report / Register','01','03-07-2025']];
+const MMS_DOCS=[['FMT-MNT-07','Maintenance Request','01','20.01.2020'],['FMT-MNT-BD-01','Daily Breakdown Register','-','Controlled copy'],['FMT-MNT-02','Yearly PM Calendar','01','22.04.2022'],['FMT-MNT-03','PM Monthly Work Register','00','18.07.2014'],['FMT-MNT-04','PM Check Sheet','00','18.07.2014'],['FMT-MNT-05','Machine History Card','00','18.07.2014'],['FMT-MNT-08','Report format','00','18.07.2014'],['FMT-MNT-11','Critical Spares Level Register','01','30.10.2014'],['FMT-MNT-PM-PLAN','PM Plan & Control','00','(date not set) - CHECK'],['FMT-HT-70','Thermocouple Replacement Plan & Audit Control','-','Print footer shows FMT-MNT-01 Rev 01 22.04.2022 - CHECK'],['FR-HT-39','SAT Temperature Verification','00','(date not set) - CHECK'],['FR-HT-40','Oxy Probe MV & CP Controller MV Check','00','(date not set) - CHECK'],['FR-HT-41','O2 Probe Impedance Check','00','(date not set) - CHECK'],['FR-HT-42','SAT Report / Register','01','03-07-2025'],['FR-HT-43','TUS Survey Record','00','Doc. no. / date Quality se assign karwao - CHECK'],['FR-HT-44','Furnace Leak / Quench / Atmosphere Check','00','Doc. no. / date Quality se assign karwao - CHECK'],['FMT-HT-45','Contingency Plan Register','00','Doc. no. / date Quality se assign karwao - CHECK'],['FMT-HT-71','Oxy Probe Replacement Plan','00','10-04-2023'],['AMC-01','AMC & Service Register / Visit Log','01','(date not set) - CHECK']];
 function mmsOpenAuditCenter(t){let m=document.getElementById('mmsAC');if(!m){m=document.createElement('div');m.id='mmsAC';m.style.cssText='position:fixed;inset:0;z-index:99998;background:rgba(15,23,42,.55);display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow:auto';document.body.appendChild(m);}m.style.display='flex';mmsACRender(t||window.__acTab||'review');}
 function mmsACRender(t){const m=document.getElementById('mmsAC');if(!m)return;window.__acTab=t;const s=session()||{},adm=s.role==='Admin',E=esc;
   const tabs=[['review','Management Review'],['actions','Action Tracker'],['docs','Document List']].concat(adm?[['trail','Audit Trail'],['deleted','Deleted Records']]:[]);if(!tabs.some(x=>x[0]===t))t='review';
@@ -4621,7 +4622,7 @@ function mmsACRender(t){const m=document.getElementById('mmsAC');if(!m)return;wi
     b='<h4>Edits made after approval / verification</h4><table style="border-collapse:collapse;width:100%"><thead><tr><th '+th+'>Time</th><th '+th+'>User</th><th '+th+'>Module</th><th '+th+'>Record</th><th '+th+'>Fields changed</th></tr></thead><tbody>'+(X.map(x=>'<tr style="background:#fef2f2"><td '+td+'>'+E(new Date(x.at).toLocaleString('en-GB'))+'</td><td '+td+'>'+E(x.user)+'</td><td '+td+'>'+E(x.module)+'</td><td '+td+'>'+E(x.id)+'</td><td '+td+'>'+E((x.fields||[]).join(', '))+'</td></tr>').join('')||'<tr><td colspan="5" '+td+'>None</td></tr>')+'</tbody></table><h4>Activity log (latest 150)</h4><table style="border-collapse:collapse;width:100%"><thead><tr><th '+th+'>Time</th><th '+th+'>User</th><th '+th+'>Action</th><th '+th+'>Module</th><th '+th+'>Detail</th></tr></thead><tbody>'+A.map(x=>'<tr><td '+td+'>'+E(new Date(x.time).toLocaleString('en-GB'))+'</td><td '+td+'>'+E(x.user)+' ('+E(x.role)+')</td><td '+td+'>'+E(x.action)+'</td><td '+td+'>'+E(x.module)+'</td><td '+td+'>'+E(x.detail)+'</td></tr>').join('')+'</tbody></table>';}
   else if(t==='deleted'){const L=mmsLS(MMS_DEL_KEY);b='<table style="border-collapse:collapse;width:100%"><thead><tr><th '+th+'>Deleted on</th><th '+th+'>By</th><th '+th+'>Module</th><th '+th+'>Reason</th><th '+th+'>Record</th><th '+th+'></th></tr></thead><tbody>'+(L.map((x,i)=>'<tr><td '+td+'>'+E(new Date(x.at).toLocaleString('en-GB'))+'</td><td '+td+'>'+E(x.user)+'</td><td '+td+'>'+E(x.module)+'</td><td '+td+'>'+E(x.reason)+'</td><td '+td+'><small>'+E(JSON.stringify(x.record).slice(0,140))+'</small></td><td '+td+'><button class="secondary" onclick="mmsRestoreDeleted('+i+')">Restore</button></td></tr>').join('')||'<tr><td colspan="6" '+td+'>No deleted records on file.</td></tr>')+'</tbody></table>';}
   m.innerHTML='<div style="background:#fff;border-radius:8px;max-width:1150px;width:100%;padding:14px"><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px"><b style="font-size:16px;margin-right:auto">Audit Center</b><button class="secondary" onclick="mmsToggleAuditor()">Auditor View (read-only)</button><button class="secondary" onclick="mmsReviewPrint()">Print Audit Summary</button><button class="secondary" onclick="tcAuditReport()">TC Audit Report</button><button class="danger" onclick="document.getElementById(\'mmsAC\').style.display=\'none\'">Close</button></div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">'+tabs.map(x=>'<button class="'+(x[0]===t?'primary':'secondary')+'" onclick="mmsACRender(\''+x[0]+'\')">'+x[1]+'</button>').join('')+'</div><div style="overflow:auto;max-height:70vh">'+b+'</div></div>';}
-(function(){if(!document.body)return;const b=document.createElement('button');b.id='mmsAuditFab';b.textContent='Audit';b.style.cssText='position:fixed;left:10px;bottom:10px;z-index:9990;padding:8px 14px;border-radius:20px;border:0;background:#0f766e;color:#fff;font-weight:700;cursor:pointer;display:none';b.onclick=function(){mmsOpenAuditCenter()};document.body.appendChild(b);setInterval(function(){b.style.display=(session()&&!window.__auditorView)?'block':'none'},1500);})();
+(function(){if(!document.body)return;const b=document.createElement('button');b.id='mmsAuditFab';b.textContent='Audit';b.style.cssText='position:fixed;left:10px;bottom:10px;z-index:9990;padding:8px 14px;border-radius:20px;border:0;background:#0f766e;color:#fff;font-weight:700;cursor:pointer;display:none';b.onclick=function(){mmsOpenAuditCenter()};document.body.appendChild(b);{const st=document.createElement('style');st.textContent='@media(max-width:760px){#mmsAuditFab{bottom:84px!important}}#mmsAC h3{font-size:14px;margin:12px 0 6px}#mmsAC h4{font-size:13px;margin:10px 0 4px}#mmsAC table{font-size:12px}';document.head.appendChild(st);}setInterval(function(){b.style.display=(session()&&!window.__auditorView)?'block':'none'},1500);})();
 /* Controlled-copy footer on every print window */
 (function(){const o=window.open;window.open=function(){const w=o.apply(window,arguments);try{if(w&&w.document){const dw=w.document.write.bind(w.document);w.document.write=function(h){if(typeof h==='string'&&h.indexOf('window.print')>-1&&h.indexOf('</body>')>-1){const s=session()||{};h=h.replace('</body>',function(){return '<style>@page{@bottom-right{content:"Page " counter(page) " of " counter(pages);font:8px Arial;color:#444}}</style><div style="position:fixed;bottom:0;left:0;right:0;font:8px Arial;color:#444;text-align:center;border-top:1px solid #999;background:#fff;padding:1px">CONTROLLED COPY &bull; Printed on '+new Date().toLocaleString('en-GB')+' by '+(s.u||'-')+'</div></body>';});}return dw(h);};}}catch(e){}return w;};})();
 
@@ -5918,6 +5919,8 @@ document.addEventListener('visibilitychange',function(){if(!document.hidden)gsSc
 window.addEventListener('online',function(){gsSchedule(500)});
 window.addEventListener('load',function(){gsSchedule(1500)});
 
+/* Audit Center ke buttons inline onclick se chalte hain, isliye ye functions global (window) par hone zaroori hain */
+Object.assign(window,{mmsOpenAuditCenter,mmsACRender,mmsToggleAuditor,mmsActAdd,mmsActClose,mmsReviewPrint,mmsReviewHtml,mmsRestoreDeleted,mmsOpenActions});
 window.MMS={reauth:mmsReauthToken,audit:audit,setPin,gsDiag,gsRebuildReports,gsSync,gsConfigure,gsTogglePrimary,gsResetState,login,logout,backup,restore,exportExcel,validate,refreshAudit,exportAudit,addFY,applyFY,queueSync,clearSyncQueue,refreshKPIs,openTools,closeTools,changePassword,manageUsers,populatePermUserSelect,loadUserPerms,selectAllPerms,saveUserRoleLabel,saveUserPerms,deleteUserAccount};
 window.addEventListener('load',()=>{setBadge();let s=session();if(s){document.getElementById('mmsLogin').classList.add('hidden');}else document.getElementById('mmsLogin').classList.remove('hidden');initFY();refreshKPIs();gsRenderPrimaryUI();});
 })();
@@ -8028,22 +8031,41 @@ function hqClear(key) {
 const HQ_APPR = { satReport: { by: 'calibBy', label: 'Calibrate By' }, tus: { by: 'surveyBy', label: 'Survey done by' } };
 function hqWho() { try { const x = mmsSession(); return x ? String(x.u || '').trim() : ''; } catch (e) { return ''; } }
 function hqNorm(v) { return String(v || '').toLowerCase().replace(/[^a-z0-9]/g, ''); }
-function hqApprove(key, id) {
-  const cfg = HQ_APPR[key]; if (!cfg) return;
-  if (!mmsGuardEdit(key)) return;
-  const me = hqWho(); if (!me) return alert('Approve karne ke liye pehle login karo.');
-  const list = hqList(key), r = list.find(function (x) { return String(x.id) === String(id); }); if (!r) return;
-  if (String(r.approvedBy || '').trim()) return alert('Ye record pehle se approved hai (' + r.approvedBy + ').');
+function hqPermEditQuiet(key) {
+  try {
+    if (window.__auditorView) return false;
+    const x = mmsSession(); if (!x) return false; if (x.role === 'Admin') return true;
+    const rec = mmsCurrentUserRecord(), perms = (rec && rec.perms) || mmsDefaultPermsForRole(x.role), pp = perms[key];
+    return !!(pp && (pp.edit !== undefined ? pp.edit : pp.save));
+  } catch (e) { return false; }
+}
+/* '' = approve kar sakta hai; warna wajah ('SELF:' se shuru = preparer khud) */
+function hqApproveBlock(key, r) {
+  const cfg = HQ_APPR[key]; if (!cfg || !r) return 'Is module me approval nahi hai.';
+  const me = hqWho(); if (!me) return 'Approve karne ke liye pehle login karo.';
+  if (String(r.approvedBy || '').trim()) return 'Ye record pehle se approved hai (' + r.approvedBy + ').';
+  if (!hqPermEditQuiet(key)) return 'Is module me aapke paas Edit access nahi hai - Admin se access lo.';
   let rec = null; try { rec = mmsCurrentUserRecord(); } catch (e) { }
   const mine = [me, rec && rec.name, rec && rec.fullName].map(hqNorm).filter(Boolean);
   if ((r.preparedUser && hqNorm(r.preparedUser) === hqNorm(me)) || mine.indexOf(hqNorm(r[cfg.by])) >= 0)
-    return alert('Aap isi record ke ' + cfg.label + ' / preparer hain - apna record khud approve nahi kar sakte. Dusre login se approve karwao.');
-  if (!confirm('Approve this record?\n\nApproved By: ' + me + ' (login user)')) return;
+    return 'SELF:Aap isi record ke ' + cfg.label + ' / preparer hain - apna record khud approve nahi kar sakte. Dusre login se approve karwao.';
+  return '';
+}
+function hqApproveNow(key, r) {
+  const me = hqWho();
   r.approvedBy = me; r.approvedUser = me; r.approvedAt = new Date().toISOString(); r.updatedAt = r.approvedAt;
   persist(key);
-  try { if (typeof window.audit === 'function') window.audit('APPROVE', key, me + ' approved record ' + (r.furnace || '') + ' ' + (r.satDate || r.surveyDate || '')); } catch (e) { }
-  hqRender(key); try { hqDue(); } catch (e) { }
-  alert('Approved by ' + me + '.');
+  try { if (typeof window.audit === 'function') window.audit('APPROVE', key, me + ' approved ' + (r.furnace || '') + ' ' + (r.satDate || r.surveyDate || '')); } catch (e) { }
+  try { hqRender(key); } catch (e) { } try { hqDue(); } catch (e) { }
+}
+function hqApprove(key, id) {
+  if (!HQ_APPR[key]) return;
+  if (window.__auditorView) return alert('Auditor View read-only hai.');
+  const r = hqList(key).find(function (x) { return String(x.id) === String(id); }); if (!r) return;
+  const why = hqApproveBlock(key, r); if (why) return alert(why.replace(/^SELF:/, ''));
+  if (!confirm('Approve this record?\n\nApproved By: ' + hqWho() + ' (login user)')) return;
+  hqApproveNow(key, r);
+  alert('Approved by ' + hqWho() + '.');
 }
 function hqSave(key) {
   if (!mmsGuardSave(key)) return;
@@ -14402,7 +14424,7 @@ html:not(.aam-tl) .mrw-panel.locked .mrg input:disabled,html:not(.aam-tl) .mrw-p
      '<label>Naya Calibration Certificate No.<input id="tcm_cert" placeholder="optional"></label>'+
      '<label>Certificate Date<input id="tcm_certdate" type="date"></label>'+
      '<label>Kisne badla (Technician)<input id="tcm_tech" placeholder="naam"></label>'+
-     '<label>Approved by<input id="tcm_appr" placeholder="naam"></label>'+
+     '<label>Approved by<input id="tcm_appr" value="" readonly placeholder="Approver ke login se - Pending Approvals popup" style="background:#eef3f4"></label>'+
      '<label class="tcm-w">Note (optional)<input id="tcm_note" placeholder="jaise: Zone-2 TC burn ho gaya tha"></label>'+
      '</div><div class="tcm-act"><button class="primary" onclick="tcSaveReplaced('+i+')">💾 Save Replacement</button><button class="secondary" onclick="tcCloseModal()">Cancel</button></div>');
   };
@@ -14541,6 +14563,148 @@ html:not(.aam-tl) .tcm-chip{background:rgba(125,211,252,.15);color:#7dd3fc}
 })();
 </script>
 
+<script type="text/mms-defer" id="approval-center">
+/* =====================================================================
+ * PENDING APPROVALS popup - login ke baad us user ke liye jitne bhi approvals pending hain, ek jagah list.
+ * Sirf wahi dikhte hain jo ye user kar sakta hai (module ka Edit access + preparer khud nahi).
+ *   SAT Report, TUS Survey  -> Approve        | Thermocouple Replacement -> Approve
+ *   Maintenance Request (Work Done) -> Verify & Close
+ * ===================================================================== */
+(function () {
+  'use strict';
+  var SHOWN = 'mms_appr_shown', open = false;
+  function S() { try { return mmsSession(); } catch (e) { return null; } }
+  function E(v) { return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function fd(v) { try { return hqFmtD(v); } catch (e) { return v || ''; } }
+  function nm(v) { return String(v || '').toLowerCase().replace(/[^a-z0-9]/g, ''); }
+  function me() { var s = S(); return s ? String(s.u || '').trim() : ''; }
+
+  function collect() {
+    var out = [], mine = 0, s = S();
+    if (!s || window.__auditorView) return { items: out, mine: 0 };
+    [['satReport', 'SAT Report', '🎯'], ['tus', 'TUS Survey', '📈']].forEach(function (m) {
+      var list = []; try { list = hqList(m[0]); } catch (e) { }
+      list.forEach(function (r) {
+        if (String(r.approvedBy || '').trim()) return;
+        var why = hqApproveBlock(m[0], r);
+        if (why === '') {
+          out.push({
+            ico: m[2], mod: m[1], btn: '✔ Approve',
+            t: (r.furnace || '-') + ' • ' + fd(r.satDate || r.surveyDate),
+            sub: (m[0] === 'satReport' ? 'Calibrate By: ' + (r.calibBy || '-') : 'Survey by: ' + (r.surveyBy || '-')) + ' • Result: ' + (r.status || '-'),
+            run: function () {
+              var x = hqList(m[0]).find(function (q) { return String(q.id) === String(r.id); }); if (!x) return;
+              var w = hqApproveBlock(m[0], x); if (w) return alert(w.replace(/^SELF:/, ''));
+              if (!confirm('Approve?\n\n' + m[1] + ' - ' + (x.furnace || '') + '\nApproved By: ' + me())) return;
+              hqApproveNow(m[0], x); render();
+            }
+          });
+        } else if (why.indexOf('SELF:') === 0) mine++;
+      });
+    });
+    try {
+      (data.tc || []).forEach(function (t) {
+        (t.history || []).forEach(function (h) {
+          if (!h.needAppr || String(h.appr || '').trim()) return;
+          if (!hqPermEditQuiet('tc')) return;
+          if (nm(h.preparedUser) === nm(me()) || nm(h.tech) === nm(me())) { mine++; return; }
+          out.push({
+            ico: '🌡️', mod: 'Thermocouple Replacement', btn: '✔ Approve',
+            t: (t.furnace || '-') + ' • ' + fd(h.date),
+            sub: (h.reason || '-') + ' • ' + (h.oldSrid || '-') + ' → ' + (h.newSrid || '-') + (h.tech ? ' • Replaced by: ' + h.tech : ''),
+            run: function () {
+              if (h.appr) return;
+              if (!confirm('Approve thermocouple replacement?\n\n' + (t.furnace || '') + ' ' + fd(h.date) + '\nApproved By: ' + me())) return;
+              h.appr = me(); h.apprUser = me(); h.apprAt = new Date().toISOString(); t.updatedAt = h.apprAt;
+              persist('tc');
+              try { window.audit('APPROVE', 'tc', me() + ' approved TC replacement ' + (t.furnace || '') + ' ' + (h.date || '')); } catch (e) { }
+              try { renderThermocoupleTable(); } catch (e) { } render();
+            }
+          });
+        });
+      });
+    } catch (e) { }
+    try {
+      if (mmsCanSaveQuiet('mr')) (data.mr || []).forEach(function (r) {
+        if (r.status !== 'Work Done') return;
+        out.push({
+          ico: '🛠️', mod: 'Maintenance Request', btn: '✔ Verify & Close',
+          t: 'Sr. ' + (r.sr || '-') + ' • ' + (r.machine || r.machineNo || '-'),
+          sub: 'Work Done' + (r.maintSign ? ' by ' + r.maintSign : '') + (r.section ? ' • ' + r.section : '') + ' - Production verify baaki',
+          run: function () { var i = data.mr.indexOf(r); if (i < 0) return; closePop(); if (typeof window.mrVerify === 'function') window.mrVerify(i); }
+        });
+      });
+    } catch (e) { }
+    return { items: out, mine: mine };
+  }
+
+  function css() {
+    if (document.getElementById('apprCss')) return;
+    var st = document.createElement('style'); st.id = 'apprCss';
+    st.textContent = '#mmsApprPop{position:fixed;inset:0;z-index:99995;background:rgba(3,10,20,.65);display:flex;align-items:center;justify-content:center;padding:12px}' +
+      '#mmsApprPop .ap-card{width:min(640px,100%);max-height:88vh;display:flex;flex-direction:column;border-radius:16px;overflow:hidden;background:linear-gradient(160deg,#18385c,#0e2238);color:#e6f0fa;border:1px solid rgba(255,255,255,.16);box-shadow:0 24px 60px rgba(0,0,0,.55);font-family:Arial,Helvetica,sans-serif}' +
+      '#mmsApprPop .ap-h{padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.14)}#mmsApprPop .ap-h b{font-size:17px;color:#7dd3fc}#mmsApprPop .ap-h small{display:block;color:#9fc0e0;margin-top:3px;font-size:12px}' +
+      '#mmsApprPop .ap-b{padding:10px 12px;overflow:auto;flex:1}' +
+      '#mmsApprPop .ap-i{display:flex;gap:10px;align-items:center;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-left:4px solid #38bdf8;border-radius:10px;padding:10px;margin-bottom:8px}' +
+      '#mmsApprPop .ap-i .ap-t{flex:1;min-width:0}#mmsApprPop .ap-i .ap-m{font-size:11px;color:#7dd3fc;font-weight:700;text-transform:uppercase;letter-spacing:.3px}' +
+      '#mmsApprPop .ap-i .ap-n{font-weight:700;font-size:14px;color:#fff;word-break:break-word}#mmsApprPop .ap-i .ap-s{font-size:12px;color:#9fc0e0;word-break:break-word}' +
+      '#mmsApprPop button{border:0;border-radius:8px;padding:9px 12px;font-weight:700;cursor:pointer;font-size:13px}' +
+      '#mmsApprPop .ap-ok{background:#16a34a;color:#fff;white-space:nowrap}#mmsApprPop .ap-x{background:rgba(255,255,255,.14);color:#e6f0fa}' +
+      '#mmsApprPop .ap-f{padding:10px 12px;border-top:1px solid rgba(255,255,255,.14);display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}' +
+      '#mmsApprPop .ap-e{text-align:center;padding:26px 10px;color:#bbf7d0;font-weight:700}#mmsApprPop .ap-w{font-size:11px;color:#9fc0e0}' +
+      '#mmsApprFab{position:fixed;left:10px;bottom:52px;z-index:9990;padding:8px 14px;border-radius:20px;border:0;background:#d97706;color:#fff;font-weight:700;cursor:pointer;display:none;box-shadow:0 4px 12px rgba(0,0,0,.35)}' +
+      '@media(max-width:760px){#mmsApprFab{bottom:128px}}';
+    document.head.appendChild(st);
+  }
+  var ITEMS = [];
+  function closePop() { var e = document.getElementById('mmsApprPop'); if (e) e.remove(); open = false; fab(); }
+  function render() {
+    var c = collect(); ITEMS = c.items;
+    var pop = document.getElementById('mmsApprPop');
+    if (!pop) { fab(); return; }
+    var s = S() || {};
+    pop.querySelector('.ap-card').innerHTML =
+      '<div class="ap-h"><b>🔔 Pending Approvals (' + c.items.length + ')</b><small>' + E(s.u || '') + ' • ' + E(s.role || '') + ' - sirf wahi jo aap approve kar sakte ho</small></div>' +
+      '<div class="ap-b">' + (c.items.length ? c.items.map(function (x, i) {
+        return '<div class="ap-i"><div style="font-size:22px">' + x.ico + '</div><div class="ap-t"><div class="ap-m">' + E(x.mod) + '</div><div class="ap-n">' + E(x.t) + '</div><div class="ap-s">' + E(x.sub) + '</div></div>' +
+          '<button class="ap-ok" data-i="' + i + '">' + E(x.btn) + '</button></div>';
+      }).join('') : '<div class="ap-e">✅ Aapke liye koi approval pending nahi hai.</div>') + '</div>' +
+      '<div class="ap-f"><span class="ap-w">' + (c.mine ? c.mine + ' record aapne banaye hain - dusre login ke approval ka intezaar.' : '&nbsp;') + '</span><span><button class="ap-x" id="apRef">↻ Refresh</button> <button class="ap-x" id="apClose">Close</button></span></div>';
+    pop.querySelectorAll('.ap-ok').forEach(function (b) { b.onclick = function () { var it = ITEMS[Number(b.getAttribute('data-i'))]; if (it) it.run(); }; });
+    pop.querySelector('#apClose').onclick = closePop;
+    pop.querySelector('#apRef').onclick = render;
+    fab();
+  }
+  function openPop() {
+    css(); if (document.getElementById('mmsApprPop')) return render();
+    var d = document.createElement('div'); d.id = 'mmsApprPop'; d.innerHTML = '<div class="ap-card"></div>';
+    d.addEventListener('click', function (e) { if (e.target === d) closePop(); });
+    document.body.appendChild(d); open = true; render();
+  }
+  function fab() {
+    css();
+    var b = document.getElementById('mmsApprFab');
+    if (!b) { b = document.createElement('button'); b.id = 'mmsApprFab'; b.onclick = openPop; document.body.appendChild(b); }
+    var n = collect().items.length, show = n > 0 && !!S() && !window.__auditorView && !document.getElementById('mmsApprPop');
+    b.textContent = '🔔 Approvals (' + n + ')'; b.style.display = show ? 'block' : 'none';
+  }
+  window.mmsOpenApprovals = openPop;
+
+  /* login ke baad (ya app kholne par) ek baar apne aap popup - data sync hone ka thoda intezaar */
+  setInterval(function () {
+    try {
+      var s = S(); if (!s) { var f = document.getElementById('mmsApprFab'); if (f) f.style.display = 'none'; return; }
+      var tag = String(s.loginAt || s.u);
+      if (sessionStorage.getItem(SHOWN) !== tag) {
+        var login = document.getElementById('mmsLogin'); if (login && !login.classList.contains('hidden')) return;
+        if (collect().items.length) { sessionStorage.setItem(SHOWN, tag); openPop(); }
+        else if (Date.now() - (Date.parse(s.loginAt) || 0) > 25000) sessionStorage.setItem(SHOWN, tag);
+      }
+      if (open) render(); else fab();
+    } catch (e) { }
+  }, 2500);
+})();
+</script>
 <script>
 /* Auditor View: koi bhi save path (mmsGuard use kare ya nahi) persist par rok diya jata hai */
 (function(){var _p=window.persist;if(typeof _p!=='function'||window.__audPersistGuard)return;window.__audPersistGuard=true;var warned=0;
