@@ -4310,6 +4310,10 @@ function mmRemoveMachine(){
 <div id="mmsPermGrid" style="max-height:260px;overflow:auto;border:1px solid #ddd;border-radius:8px"></div>
 <button style="margin-top:8px" onclick="MMS.saveUserPerms()">💾 Save Module Access</button>
 </div>
+<div class="mms-box" style="grid-column:1/-1"><h3>✅ Approval Access (Role × Module)</h3><div class="sub">Kaun sa role kis module ka data approve / verify kar sakta hai. Jise tick milega sirf usi ko "Pending Approvals" popup aur Approve / Verify button dikhega (server par bhi yahi check hota hai). Admin hamesha allowed hai. Koi bhi record apne preparer / technician se approve nahi hota - ye rule alag se hamesha lagta hai.</div>
+<div id="mmsApprMatrix" style="overflow:auto;margin:8px 0"></div>
+<button onclick="mmsApprSave()">💾 Save Approval Access</button> <button onclick="mmsApprReset()" style="background:#fdecea;color:#c0392b;border-color:#e6b3ad">↺ Reset (sab edit-access wale)</button>
+</div>
 <div class="mms-box"><h3>💾 Backup / Restore</h3><button onclick="MMS.backup()">Download Complete Backup</button><button onclick="MMS.restore()">Restore Backup</button><div class="sub">Includes module data, machine master, PM checklists and settings.</div></div>
 <div class="mms-box"><h3>📊 Excel Export</h3><button onclick="MMS.exportExcel()">Export Complete Excel Workbook</button><div class="sub">Excel-compatible multi-sheet workbook with all module records.</div></div>
 <div class="mms-box"><h3>✅ Data Validation</h3><button onclick="MMS.validate()">Run Full Validation</button><div id="mmsValidation"></div></div>
@@ -4503,6 +4507,9 @@ function audit(action,module,detail){
     MMS.refreshAudit();
 }
 try{window.audit=audit}catch(e){}
+/* ===== Naye synced modules: Audit Center lists + Approval Access config (printFmt jaisa: KEY + data runtime par register) ===== */
+const AC_MODS={acAct:'htp7_ac_act_v1',acDel:'htp7_ac_del_v1',acEdit:'htp7_ac_edit_v1',apprCfg:'htp7_appr_cfg_v1'};
+Object.keys(AC_MODS).forEach(function(m){if(!KEY[m])KEY[m]=AC_MODS[m];if(!Array.isArray(data[m]))data[m]=load(m)});
 const origPersist=window.persist;
 // User ne pichhle 20 sec me click/type/touch kiya ho tabhi SAVE audit banega (timer / background persist ka nahi)
 window.__mmsLastUser=0;
@@ -4535,20 +4542,30 @@ if(typeof origPersist==='function'&&!window.__mmsPersistWrapped){
     window.persist=function(k){
         let before=null;
         try{before=localStorage.getItem(KEY[k])}catch(e){}
-        try{mmsPreSave(k,before)}catch(e){console.warn('audit pre-save',e)}
+        if(!AC_MODS[k]){try{mmsPreSave(k,before)}catch(e){console.warn('audit pre-save',e)}}
         origPersist(k);
         let after=null;
         try{after=localStorage.getItem(KEY[k])}catch(e){}
         // Kuch change nahi hua ya sync ke baad ka auto-render hai -> na audit, na naya sync schedule
         if(before===after||window.__mmsQuiet)return;
-        if(Date.now()-(window.__mmsLastUser||0)<20000)audit('SAVE',k,mmsDiffSummary(before,after));
+        if(!AC_MODS[k]&&Date.now()-(window.__mmsLastUser||0)<20000)audit('SAVE',k,mmsDiffSummary(before,after));
         gsSchedule(1500);
     }
 }
 
 /* ===== AUDIT CENTER: record trace, deleted archive, auditor view, action tracker, management review ===== */
 const MMS_DEL_KEY='htp_deleted_v1',MMS_EDIT_KEY='htp_editlog_v1',MMS_ACT_KEY='htp_actions_v1';
-function mmsLS(k){try{const x=JSON.parse(localStorage.getItem(k)||'[]');return Array.isArray(x)?x:[]}catch(e){return []}}
+const AC_MAP={};AC_MAP[MMS_DEL_KEY]='acDel';AC_MAP[MMS_EDIT_KEY]='acEdit';AC_MAP[MMS_ACT_KEY]='acAct';
+function acUid(p){return p+'-'+Date.now()+'-'+Math.random().toString(36).slice(2,7)}
+/* Audit Center lists ab data.acAct / acDel / acEdit me hain (server se sync). mmsLS = naye-pehle sorted copy */
+function mmsLS(k){const m=AC_MAP[k];if(!m){try{const x=JSON.parse(localStorage.getItem(k)||'[]');return Array.isArray(x)?x:[]}catch(e){return []}}
+  const a=Array.isArray(data[m])?data[m]:[];return a.filter(x=>x&&typeof x==='object').sort((x,y)=>String(y.at||'').localeCompare(String(x.at||'')))}
+function acSave(k,L){const m=AC_MAP[k];L.forEach(x=>{if(x&&!x.id)x.id=acUid(m)});const cap=m==='acEdit'?2000:(m==='acDel'?500:5000),arr=data[m];arr.splice.apply(arr,[0,arr.length].concat(L.slice(0,cap)));persist(m)}
+/* purana device-local data (htp_*_v1) ek baar naye synced lists me */
+(function(){try{Object.keys(AC_MAP).forEach(function(ok){let old=null;try{old=JSON.parse(localStorage.getItem(ok)||'null')}catch(e){}
+  if(!Array.isArray(old)||!old.length)return;const m=AC_MAP[ok],arr=data[m],have=new Set(arr.map(x=>x&&x.id));
+  old.forEach(function(x){if(!x||typeof x!=='object')return;if(!x.id)x.id=acUid(m);if(!have.has(x.id)){arr.push(x);have.add(x.id)}});
+  localStorage.setItem(KEY[m],JSON.stringify(arr));localStorage.removeItem(ok)})}catch(e){console.warn('ac migrate',e)}})();
 function mmsPreSave(k,beforeStr){
   if(window.__mmsQuiet||Date.now()-(window.__mmsLastUser||0)>=20000)return;
   const s=session();if(!s)return;const arr=data[k];if(!Array.isArray(arr))return;
@@ -4560,17 +4577,41 @@ function mmsPreSave(k,beforeStr){
     if(!o){if(!r.savedBy){r.savedBy=s.u;r.savedByAt=now;}}
     else if(strip(o)!==strip(r)){if(!r.savedBy&&o.savedBy){r.savedBy=o.savedBy;r.savedByAt=o.savedByAt;}r.editedBy=s.u;r.editedByAt=now;
       const ch=Object.keys(r).filter(f=>!/^(editedBy|editedByAt|savedBy|savedByAt|restoredBy|entries|checklistRows|updatedAt|savedAt)$/.test(f)&&JSON.stringify(r[f])!==JSON.stringify(o[f]));
-      chg.push({id,fields:ch.slice(0,12),afterApproval:!!String(o.verifiedBy||o.approvedBy||'').trim()});}});
+      const tcApprEdited=Array.isArray(o.history)&&o.history.some(h=>{if(!h||!String(h.appr||'').trim())return false;const kk=h.at||h.date,n=(Array.isArray(r.history)?r.history:[]).find(x=>x&&(x.at||x.date)===kk);return !n||JSON.stringify(n)!==JSON.stringify(h)});
+      chg.push({id,fields:ch.slice(0,12),afterApproval:!!String(o.verifiedBy||o.approvedBy||'').trim()||tcApprEdited});}});
   const del=[];pm.forEach((o,id)=>{if(!cur.has(id))del.push(o)});
   if(del.length){let why=prompt('Deleting '+del.length+' record(s) from "'+k+'". Reason (needed for audit):','')||'';mmsArchive(k,del,why.trim()||'Reason not entered',s);}
   if(chg.length)mmsEditLog(k,chg,s);
 }
-function mmsArchive(k,recs,why,s){const L=mmsLS(MMS_DEL_KEY);recs.forEach(r=>L.unshift({at:new Date().toISOString(),user:s.u,module:k,reason:why,record:r}));localStorage.setItem(MMS_DEL_KEY,JSON.stringify(L.slice(0,500)));}
-function mmsEditLog(k,chg,s){const L=mmsLS(MMS_EDIT_KEY);chg.forEach(c=>L.unshift({at:new Date().toISOString(),user:s.u,module:k,id:c.id,fields:c.fields,afterApproval:c.afterApproval}));localStorage.setItem(MMS_EDIT_KEY,JSON.stringify(L.slice(0,2000)));}
+function mmsArchive(k,recs,why,s){const L=mmsLS(MMS_DEL_KEY);recs.forEach(r=>L.unshift({at:new Date().toISOString(),user:s.u,module:k,reason:why,record:r}));acSave(MMS_DEL_KEY,L);}
+function mmsEditLog(k,chg,s){const L=mmsLS(MMS_EDIT_KEY);chg.forEach(c=>L.unshift({at:new Date().toISOString(),user:s.u,module:k,id:c.id,fields:c.fields,afterApproval:c.afterApproval}));acSave(MMS_EDIT_KEY,L);}
 function mmsRestoreDeleted(i){const s=session();if(!s||s.role!=='Admin')return alert('Only Admin can restore deleted records.');const L=mmsLS(MMS_DEL_KEY),x=L[i];if(!x||!KEY[x.module])return alert('Module not found.');
   const arr=Array.isArray(data[x.module])?data[x.module]:(typeof hqList==='function'?hqList(x.module):null);if(!arr)return;
   if(arr.some(r=>r&&String(r.id)===String(x.record.id)))return alert('Record already exists.');
-  x.record.restoredBy=s.u;arr.push(x.record);L.splice(i,1);localStorage.setItem(MMS_DEL_KEY,JSON.stringify(L));persist(x.module);try{renderAll()}catch(e){}mmsACRender('deleted');}
+  x.record.restoredBy=s.u;arr.push(x.record);L.splice(i,1);acSave(MMS_DEL_KEY,L);persist(x.module);try{renderAll()}catch(e){}mmsACRender('deleted');}
+/* ===== Approval Access: role x module (Admin set karta hai; data.apprCfg[0] = {id:'cfg',rules:{role:[mods]}}) ===== */
+const APPR_MODS=[['satReport','SAT Report'],['tus','TUS Survey'],['tc','Thermocouple Replacement'],['mr','MR Verify & Close']];
+function apprRn(v){return String(v||'').toLowerCase().replace(/[^a-z0-9]/g,'')}
+function apprCfgRec(){const a=data.apprCfg;return Array.isArray(a)&&a.length&&a[0]&&a[0].rules?a[0]:null}
+/* true = ye login user is module ko approve kar sakta hai. Config nahi bani to purana rule (edit access wale sab). */
+function mmsApprAllowed(mod){const s=session();if(!s)return false;if(s.role==='Admin')return true;const c=apprCfgRec();if(!c)return true;
+  let l=null;Object.keys(c.rules).forEach(k=>{if(apprRn(k)===apprRn(s.role))l=c.rules[k]});return Array.isArray(l)&&l.indexOf(mod)>=0}
+function mmsApprRoles(){const set=new Set(['Technician','Operator','Supervisor']);try{users().forEach(u=>{if(u&&u.role&&u.role!=='Admin')set.add(String(u.role))})}catch(e){}
+  const c=apprCfgRec();if(c)Object.keys(c.rules).forEach(k=>{if(k!=='Admin')set.add(k)});return Array.from(set)}
+function mmsApprRender(){const el=document.getElementById('mmsApprMatrix');if(!el)return;const c=apprCfgRec(),roles=mmsApprRoles();
+  const th='style="border:1px solid #ccc;padding:4px 8px;background:#f1f5f9;text-align:center"',td='style="border:1px solid #ddd;padding:4px 8px;text-align:center"';
+  el.innerHTML='<div style="font-size:12px;margin-bottom:6px;color:'+(c?'#166534':'#92400e')+'"><b>'+(c?'Restriction ON':'Abhi koi restriction nahi')+'</b> - '+(c?('last saved by '+esc2(c.updatedBy||'-')+' '+esc2(c.updatedAt?new Date(c.updatedAt).toLocaleString('en-GB'):'')):'jab tak save nahi karte, module me Edit access wale sab approve kar sakte hain.')+'</div>'+
+  '<table style="border-collapse:collapse;font-size:12px"><thead><tr><th '+th+'>Role</th>'+APPR_MODS.map(m=>'<th '+th+'>'+m[1]+'</th>').join('')+'</tr></thead><tbody>'+
+  roles.map(r=>{let l=null;if(c)Object.keys(c.rules).forEach(k=>{if(apprRn(k)===apprRn(r))l=c.rules[k]});
+    return '<tr><td style="border:1px solid #ddd;padding:4px 8px;text-align:left"><b>'+esc2(r)+'</b></td>'+APPR_MODS.map(m=>'<td '+td+'><input type="checkbox" data-role="'+esc2(r)+'" data-mod="'+m[0]+'"'+((c?(Array.isArray(l)&&l.indexOf(m[0])>=0):true)?' checked':'')+'></td>').join('')+'</tr>'}).join('')+
+  '<tr><td style="border:1px solid #ddd;padding:4px 8px;text-align:left"><b>Admin</b></td>'+APPR_MODS.map(()=>'<td '+td+'>✔ always</td>').join('')+'</tr></tbody></table>';}
+function mmsApprSave(){const s=session();if(!s||s.role!=='Admin')return alert('Only Admin.');const rules={};
+  document.querySelectorAll('#mmsApprMatrix input[type=checkbox]').forEach(cb=>{const r=cb.getAttribute('data-role');if(!rules[r])rules[r]=[];if(cb.checked)rules[r].push(cb.getAttribute('data-mod'))});
+  const rec={id:'cfg',rules:rules,updatedBy:s.u,updatedAt:new Date().toISOString()};data.apprCfg.splice(0,data.apprCfg.length,rec);persist('apprCfg');
+  try{audit('USER_PERMS','system','Approval access: '+Object.keys(rules).map(r=>r+'='+(rules[r].join('/')||'none')).join('; '))}catch(e){}
+  mmsApprRender();alert('Approval access save ho gaya. Ab sirf tick wale roles ko approve / verify option dikhega.');}
+function mmsApprReset(){const s=session();if(!s||s.role!=='Admin')return alert('Only Admin.');if(!confirm('Restriction hata dein? Phir module me Edit access wale sab approve kar sakenge.'))return;
+  data.apprCfg.splice(0,data.apprCfg.length);persist('apprCfg');try{audit('USER_PERMS','system','Approval access reset (no restriction)')}catch(e){}mmsApprRender();}
 /* Auditor view (read-only) */
 window.__auditorView=false;
 (function(){const st=document.createElement('style');st.textContent='body.auditor-view .danger,body.auditor-view .editbar,body.auditor-view .pm-editor-actions,body.auditor-view .no-print-pmplan{display:none!important}body.auditor-view{padding-top:22px}';document.head.appendChild(st);})();
@@ -4578,8 +4619,8 @@ function mmsToggleAuditor(){window.__auditorView=!window.__auditorView;document.
   if(window.__auditorView){if(!b){b=document.createElement('div');b.id='mmsAuditorBar';b.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:#b45309;color:#fff;text-align:center;font:700 12px Arial;padding:4px;cursor:pointer';b.textContent='AUDITOR VIEW - read-only. Click here to exit.';b.onclick=mmsToggleAuditor;document.body.appendChild(b);}var m=document.getElementById('mmsAC');if(m)m.style.display='none';}else if(b)b.remove();}
 /* Action tracker */
 function mmsActAdd(){if(window.__auditorView)return;const g=id=>document.getElementById(id).value.trim();if(!g('ac_act')||!g('ac_owner')||!g('ac_tgt'))return alert('Action, Owner and Target date are required.');
-  const L=mmsLS(MMS_ACT_KEY);L.unshift({id:'act-'+Date.now(),at:new Date().toISOString(),by:(session()||{}).u||'',source:g('ac_src'),ref:g('ac_ref'),action:g('ac_act'),owner:g('ac_owner'),target:g('ac_tgt'),status:'Open'});localStorage.setItem(MMS_ACT_KEY,JSON.stringify(L));mmsACRender('actions');}
-function mmsActClose(i){if(window.__auditorView)return;const L=mmsLS(MMS_ACT_KEY),a=L[i];if(!a)return;const r=prompt('Closure remark / evidence (required):','');if(!r||!r.trim())return;a.status='Closed';a.closedOn=new Date().toISOString().slice(0,10);a.closedBy=(session()||{}).u||'';a.closeRemark=r.trim();localStorage.setItem(MMS_ACT_KEY,JSON.stringify(L));mmsACRender('actions');}
+  const L=mmsLS(MMS_ACT_KEY);L.unshift({id:'act-'+Date.now(),at:new Date().toISOString(),by:(session()||{}).u||'',source:g('ac_src'),ref:g('ac_ref'),action:g('ac_act'),owner:g('ac_owner'),target:g('ac_tgt'),status:'Open'});acSave(MMS_ACT_KEY,L);mmsACRender('actions');}
+function mmsActClose(i){if(window.__auditorView)return;const L=mmsLS(MMS_ACT_KEY),a=L[i];if(!a)return;const r=prompt('Closure remark / evidence (required):','');if(!r||!r.trim())return;a.status='Closed';a.closedOn=new Date().toISOString().slice(0,10);a.closedBy=(session()||{}).u||'';a.closeRemark=r.trim();acSave(MMS_ACT_KEY,L);mmsACRender('actions');}
 function mmsOpenActions(){const a=mmsLS(MMS_ACT_KEY).filter(x=>x.status!=='Closed').length;let p=0,q=0;try{p=(data.pm||[]).filter(r=>r.action&&r.actionStatus!=='Closed').length;}catch(e){}try{q=hqList('satReport').filter(r=>r.status==='NOT OK').length;}catch(e){}return a+p+q;}
 /* Management review */
 function mmsReviewHtml(){
@@ -4613,7 +4654,8 @@ function mmsACRender(t){const m=document.getElementById('mmsAC');if(!m)return;wi
   if(t==='review')b=mmsReviewHtml();
   else if(t==='docs')b='<table style="border-collapse:collapse;width:100%"><thead><tr><th '+th+'>Form No.</th><th '+th+'>Document</th><th '+th+'>Rev</th><th '+th+'>Date</th></tr></thead><tbody>'+MMS_DOCS.map(r=>'<tr>'+r.map((c,i)=>'<td '+td+(i===3&&/CHECK/.test(c)?' style="color:#b91c1c;font-weight:700;border:1px solid #ddd;padding:4px 6px"':'')+'>'+E(c)+'</td>').join('')+'</tr>').join('')+'</tbody></table><p style="font-size:11px;color:#555">This list shows what the app currently prints. Correct Rev/Date against the controlled copies.</p>';
   else if(t==='actions'){const L=mmsLS(MMS_ACT_KEY),td0=new Date().toISOString().slice(0,10);
-    b='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px;margin-bottom:8px"><select id="ac_src"><option>Manual</option><option>PM</option><option>SAT</option><option>Calibration</option><option>Audit</option></select><input id="ac_ref" placeholder="Reference (machine / furnace)"><input id="ac_act" placeholder="Action"><input id="ac_owner" placeholder="Owner"><input id="ac_tgt" type="date"><button class="primary" onclick="mmsActAdd()">Add Action</button></div>';
+    const lb='style="display:flex;flex-direction:column;gap:2px;font-size:11px;font-weight:700;color:#475569"';
+    b='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px;margin-bottom:8px;align-items:end"><label '+lb+'>Source<select id="ac_src"><option>Manual</option><option>PM</option><option>SAT</option><option>Calibration</option><option>Audit</option></select></label><label '+lb+'>Reference<input id="ac_ref" placeholder="machine / furnace"></label><label '+lb+'>Action *<input id="ac_act" placeholder="kya karna hai"></label><label '+lb+'>Owner *<input id="ac_owner" placeholder="kaun karega"></label><label '+lb+'>Target date *<input id="ac_tgt" type="date"></label><button class="primary" onclick="mmsActAdd()">Add Action</button></div>';
     let rows=L.map((a,i)=>'<tr><td '+td+'>'+E(a.source)+'</td><td '+td+'>'+E(a.ref)+'</td><td '+td+'>'+E(a.action)+'</td><td '+td+'>'+E(a.owner)+'</td><td '+td+'>'+E(fmtDate(a.target))+'</td><td '+td+'>'+(a.status==='Closed'?'Closed '+E(fmtDate(a.closedOn))+'<br><small>'+E(a.closeRemark)+'</small>':(a.target<td0?'<b style="color:#b91c1c">OVERDUE</b>':'Open')+' <button class="secondary" onclick="mmsActClose('+i+')">Close</button>')+'</td></tr>');
     try{(data.pm||[]).filter(r=>r.action&&r.actionStatus!=='Closed').forEach(r=>rows.push('<tr><td '+td+'>PM sheet</td><td '+td+'>'+E(r.machineNo)+'</td><td '+td+'>'+E(r.action)+'</td><td '+td+'>'+E(r.checkedBy||'')+'</td><td '+td+'>'+E(fmtDate(r.actionTarget))+'</td><td '+td+'>Open (close in PM Check Sheet)</td></tr>'));}catch(e){}
     try{hqList('satReport').filter(r=>r.status==='NOT OK').forEach(r=>rows.push('<tr><td '+td+'>SAT</td><td '+td+'>'+E(r.furnace)+'</td><td '+td+'>'+E(r.corrAction||'Corrective action not entered')+'</td><td '+td+'>'+E(r.calibBy||'')+'</td><td '+td+'>-</td><td '+td+'>NOT OK ('+E(fmtDate(r.satDate))+')</td></tr>'));}catch(e){}
@@ -4870,7 +4912,7 @@ function applyFY(){let v=document.getElementById('mmsFY')?.value;if(!v)return;lo
 function queueSync(){if(!requireRole(['Admin','Technician']))return;let q={queuedAt:new Date().toISOString(),data:JSON.parse(JSON.stringify(data))};localStorage.setItem(SYNC_KEY,JSON.stringify(q));audit('SYNC_QUEUE','system','Offline snapshot prepared for Google Sheet sync');document.getElementById('mmsSyncStatus').textContent='✓ Sync queue prepared locally at '+new Date(q.queuedAt).toLocaleString()}
 function clearSyncQueue(){if(!requireRole(['Admin']))return;localStorage.removeItem(SYNC_KEY);document.getElementById('mmsSyncStatus').textContent='Sync queue cleared.'}
 function refreshKPIs(){let el=document.getElementById('mmsKPIs');if(!el)return;let open=(data.mr||[]).filter(r=>!['closed','complete','cancelled'].includes(String(r.status||'').toLowerCase())).length,bd=(data.bd||[]).length,pm=(data.pm||[]).length,sp=(data.spares||[]).filter(r=>spareStatus(r)==='LOW').length;el.innerHTML=`Open Requests: <b>${open}</b><br>Breakdown Records: <b>${bd}</b><br>PM Records: <b>${pm}</b><br>Low Stock Items: <b>${sp}</b>`}
-function openTools(){let s=session();if(!s){alert('Please login first.');return}if(s.role!=='Admin'){alert('System Tools is available to Admin only.');return}document.getElementById('mmsUpgradePanel').classList.add('open');setBadge();refreshAudit();initFY();refreshKPIs();populatePermUserSelect();let q=localStorage.getItem(SYNC_KEY);document.getElementById('mmsSyncStatus').textContent=q?'✓ Sync queue is ready.':'No sync queue prepared.'}
+function openTools(){let s=session();if(!s){alert('Please login first.');return}if(s.role!=='Admin'){alert('System Tools is available to Admin only.');return}document.getElementById('mmsUpgradePanel').classList.add('open');setBadge();refreshAudit();initFY();refreshKPIs();populatePermUserSelect();try{mmsApprRender()}catch(e){}let q=localStorage.getItem(SYNC_KEY);document.getElementById('mmsSyncStatus').textContent=q?'✓ Sync queue is ready.':'No sync queue prepared.'}
 function closeTools(){document.getElementById('mmsUpgradePanel').classList.remove('open')}
 async function changePassword(){
  if(!requireRole(['Admin']))return;let s=session();if(!s)return;
@@ -4983,7 +5025,7 @@ const GS_CFG_KEY='htp_mms_gs_cfg_v1',GS_META_KEY='htp_mms_gs_meta_v1';
 // LIVE BACKEND: shared by every browser/device. The token must match Code.gs.
 // Device-local localStorage is still used for cache/state, but the Google Sheet is the shared source.
 const GS_DEFAULT_URL='https://script.google.com/macros/s/AKfycbwhKmOBMXzuIcMOFwFeSyQ32ZBfSOfcc99yv1sfFmElA_TSN6Q8Rf2OSKyUN8I4Bg16/exec';
-const GS_ALL=['pf','pc','dg','mr','mh','pm','bd','spares','critical','tc','cal','utility','airCompressor','machineMaster','users','pmPlan','pmCheck','pmMap', 'audit','meeting','sparePurchase','powerCost','hpsebBill','satReport','satTemp','oxyMV','oxyImp','oxyRep','mttr','amc','amcLog','tus','furnChk','contingency','printFmt'];
+const GS_ALL=['pf','pc','dg','mr','mh','pm','bd','spares','critical','tc','cal','utility','airCompressor','machineMaster','users','pmPlan','pmCheck','pmMap', 'audit','meeting','sparePurchase','powerCost','hpsebBill','satReport','satTemp','oxyMV','oxyImp','oxyRep','mttr','amc','amcLog','tus','furnChk','contingency','printFmt','acAct','acDel','acEdit','apprCfg'];
 // PM Plan schedule / PM checklists / machine-checklist map pehle localStorage me alag save
 // hote the aur kabhi sync hi nahi hote the - isliye ek device ka PM schedule change dusre
 // device par nahi dikhta tha. Ab inhe bhi upar wale GS_ALL engine se hi sync karte hain.
@@ -5043,7 +5085,7 @@ function gsHash(str){let h1=0xdeadbeef,h2=0x41c6ce57;for(let i=0,ch;i<str.length
 function gsClean(r){return JSON.stringify(r,function(k,v){if(k==='evidence')return undefined;if((k==='h'||k==='s'||k==='p')&&this&&typeof this.u==='string'&&this.role!==undefined)return undefined;return v})}
 /* ===== Sheet report tabs: one tab per module (and per month), same columns as the print formats ===== */
 const GS_MONTHLY=['pf','pc','dg','mr','bd','mh','airCompressor','utility','pm','pmPlan','meeting'];
-const GS_MASTERS=['mttr','spares','critical','tc','cal','machineMaster','utility', 'audit','meeting','sparePurchase','powerCost','hpsebBill','satReport','satTemp','oxyMV','oxyImp','oxyRep','amc','amcLog','tus','furnChk','contingency','printFmt']; 
+const GS_MASTERS=['mttr','spares','critical','tc','cal','machineMaster','utility', 'audit','meeting','sparePurchase','powerCost','hpsebBill','satReport','satTemp','oxyMV','oxyImp','oxyRep','amc','amcLog','tus','furnChk','contingency','printFmt','acAct','acDel','acEdit','apprCfg']; 
 const GS_TAB={pf:'PowerFactor',pc:'PowerCut',dg:'DG',mr:'MaintReq',bd:'Breakdown',mh:'MachHistory',airCompressor:'AirCompressor',utility:'UtilityLog',spares:'SpareParts',critical:'CriticalSpares',tc:'Thermocouple',cal:'Calibration',machineMaster:'MachineMaster', audit:'AuditLog',meeting:'MeetingLog',sparePurchase:'SparePurchase',powerCost:'PowerCost',hpsebBill:'HPSEBLBill',pm:'PMCheckSheet',pmPlan:'PMPlan',satReport:'SATReport',satTemp:'SATTemp',oxyMV:'OxyMV',oxyImp:'OxyImpedance',oxyRep:'OxyReplace',amc:'AMCContracts',amcLog:'AMCServiceLog',tus:'TUSSurvey',furnChk:'FurnaceChecks',contingency:'ContingencyPlan',mttr:'MTTR',printFmt:'PrintFormats'};
 const GS_COMPANY='Milestone Gears Ltd. UNIT-7';
 function gsMonthKey(d){d=String(d||'').slice(0,7);return /^\d{4}-\d{2}$/.test(d)?d:''}
@@ -5059,7 +5101,7 @@ function gsRecMonth(mod,r){
  if(mod==='mr')return gsMonthKey(r.pdate||r.mdate||r.hdate)||null;
  if(mod==='utility')return gsIsUtilLog(r)?(gsMonthKey(r.date)||null):'*';
  if(['pf','pc','dg','bd','mh','airCompressor'].indexOf(mod)>=0)return gsMonthKey(r.date)||null;
- if(['spares','critical','tc','cal','machineMaster', 'audit','sparePurchase','powerCost','hpsebBill','satReport','satTemp','oxyMV','oxyImp','oxyRep','mttr','amc','amcLog','tus','furnChk','contingency','printFmt'].indexOf(mod)>=0)return '*';
+ if(['spares','critical','tc','cal','machineMaster', 'audit','sparePurchase','powerCost','hpsebBill','satReport','satTemp','oxyMV','oxyImp','oxyRep','mttr','amc','amcLog','tus','furnChk','contingency','printFmt','acAct','acDel','acEdit','apprCfg'].indexOf(mod)>=0)return '*';
  if(mod==='meeting'||mod==='pm')return gsMonthKey(r.date)||null;
  if(mod==='pmPlan')return r.t==='m'?'*':(gsPmKeyMonth(r.k)||null);
  return null;
@@ -5920,7 +5962,7 @@ window.addEventListener('online',function(){gsSchedule(500)});
 window.addEventListener('load',function(){gsSchedule(1500)});
 
 /* Audit Center ke buttons inline onclick se chalte hain, isliye ye functions global (window) par hone zaroori hain */
-Object.assign(window,{mmsOpenAuditCenter,mmsACRender,mmsToggleAuditor,mmsActAdd,mmsActClose,mmsReviewPrint,mmsReviewHtml,mmsRestoreDeleted,mmsOpenActions});
+Object.assign(window,{mmsOpenAuditCenter,mmsACRender,mmsToggleAuditor,mmsActAdd,mmsActClose,mmsReviewPrint,mmsReviewHtml,mmsRestoreDeleted,mmsOpenActions,mmsApprAllowed,mmsApprRender,mmsApprSave,mmsApprReset});
 window.MMS={reauth:mmsReauthToken,audit:audit,setPin,gsDiag,gsRebuildReports,gsSync,gsConfigure,gsTogglePrimary,gsResetState,login,logout,backup,restore,exportExcel,validate,refreshAudit,exportAudit,addFY,applyFY,queueSync,clearSyncQueue,refreshKPIs,openTools,closeTools,changePassword,manageUsers,populatePermUserSelect,loadUserPerms,selectAllPerms,saveUserRoleLabel,saveUserPerms,deleteUserAccount};
 window.addEventListener('load',()=>{setBadge();let s=session();if(s){document.getElementById('mmsLogin').classList.add('hidden');}else document.getElementById('mmsLogin').classList.remove('hidden');initFY();refreshKPIs();gsRenderPrimaryUI();});
 })();
@@ -8045,6 +8087,7 @@ function hqApproveBlock(key, r) {
   const me = hqWho(); if (!me) return 'Approve karne ke liye pehle login karo.';
   if (String(r.approvedBy || '').trim()) return 'Ye record pehle se approved hai (' + r.approvedBy + ').';
   if (!hqPermEditQuiet(key)) return 'Is module me aapke paas Edit access nahi hai - Admin se access lo.';
+  if (typeof window.mmsApprAllowed === 'function' && !window.mmsApprAllowed(key)) return 'Aapke role ko is module ka approval karne ki permission Admin ne nahi di.';
   let rec = null; try { rec = mmsCurrentUserRecord(); } catch (e) { }
   const mine = [me, rec && rec.name, rec && rec.fullName].map(hqNorm).filter(Boolean);
   if ((r.preparedUser && hqNorm(r.preparedUser) === hqNorm(me)) || mine.indexOf(hqNorm(r[cfg.by])) >= 0)
@@ -8147,7 +8190,7 @@ function hqRender(key) {
   body.innerHTML = a.map(function (r) {
     return '<tr>' + c.cols.map(function (x) { const v = x.v(r); return '<td>' + (x.html ? v : esc(v)) + '</td>'; }).join('') +
       '<td class="editbar">' + (c.rowPrint ? '<button class="secondary" onclick="' + c.rowPrint + '(\'' + r.id + '\')">🖨️ Print</button>' : '') +
-      (HQ_APPR[key] && !String(r.approvedBy || '').trim() ? '<button class="primary" onclick="hqApprove(\'' + key + '\',\'' + r.id + '\')">✔ Approve</button>' : '') +
+      (HQ_APPR[key] && !String(r.approvedBy || '').trim() && !(typeof window.mmsApprAllowed === 'function' && !window.mmsApprAllowed(key)) ? '<button class="primary" onclick="hqApprove(\'' + key + '\',\'' + r.id + '\')">✔ Approve</button>' : '') +
       '<button class="secondary" onclick="hqEdit(\'' + key + '\',\'' + r.id + '\')">Edit</button>' +
       '<button class="danger" onclick="hqDel(\'' + key + '\',\'' + r.id + '\')">Delete</button></td></tr>';
   }).join('') || '<tr><td colspan="' + (c.cols.length + 1) + '">No records found.</td></tr>';
@@ -13470,6 +13513,7 @@ setInterval(sync,2500);
   /* ---------- Production steps: Verify & Close / Reopen / Cancel ---------- */
   window.mrVerify = function (i) {
     if (!mmsGuardSave('mr')) return; var r = data.mr[i]; if (!r || stOf(r) !== ST.DONE) return;
+    if (typeof window.mmsApprAllowed === 'function' && !window.mmsApprAllowed('mr')) return alert('Aapke role ko Verify & Close ki permission Admin ne nahi di.');
     if (!confirm('Sr. ' + r.sr + ' — ' + (r.machine || '') + '\n\nKya kaam sahi hua hai aur machine theek chal rahi hai?\nOK = Verify & Close')) return;
     var by = String(((mmsSession() || {}).u) || '').trim();
     if (!by) return alert('Verify karne ke liye pehle login karo - Verified By login user ke naam se hi lagta hai.');
@@ -14607,6 +14651,7 @@ html:not(.aam-tl) .tcm-chip{background:rgba(125,211,252,.15);color:#7dd3fc}
         (t.history || []).forEach(function (h) {
           if (!h.needAppr || String(h.appr || '').trim()) return;
           if (!hqPermEditQuiet('tc')) return;
+          if (typeof window.mmsApprAllowed === 'function' && !window.mmsApprAllowed('tc')) return;
           if (nm(h.preparedUser) === nm(me()) || nm(h.tech) === nm(me())) { mine++; return; }
           out.push({
             ico: '🌡️', mod: 'Thermocouple Replacement', btn: '✔ Approve',
@@ -14614,6 +14659,7 @@ html:not(.aam-tl) .tcm-chip{background:rgba(125,211,252,.15);color:#7dd3fc}
             sub: (h.reason || '-') + ' • ' + (h.oldSrid || '-') + ' → ' + (h.newSrid || '-') + (h.tech ? ' • Replaced by: ' + h.tech : ''),
             run: function () {
               if (h.appr) return;
+              if (typeof window.mmsApprAllowed === 'function' && !window.mmsApprAllowed('tc')) return alert('Aapke role ko TC approval ki permission nahi hai.');
               if (!confirm('Approve thermocouple replacement?\n\n' + (t.furnace || '') + ' ' + fd(h.date) + '\nApproved By: ' + me())) return;
               h.appr = me(); h.apprUser = me(); h.apprAt = new Date().toISOString(); t.updatedAt = h.apprAt;
               persist('tc');
@@ -14625,7 +14671,7 @@ html:not(.aam-tl) .tcm-chip{background:rgba(125,211,252,.15);color:#7dd3fc}
       });
     } catch (e) { }
     try {
-      if (mmsCanSaveQuiet('mr')) (data.mr || []).forEach(function (r) {
+      if (mmsCanSaveQuiet('mr') && !(typeof window.mmsApprAllowed === 'function' && !window.mmsApprAllowed('mr'))) (data.mr || []).forEach(function (r) {
         if (r.status !== 'Work Done') return;
         out.push({
           ico: '🛠️', mod: 'Maintenance Request', btn: '✔ Verify & Close',
