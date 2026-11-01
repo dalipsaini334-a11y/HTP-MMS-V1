@@ -8139,9 +8139,10 @@ function hqApprove(key, id) {
   if (window.__auditorView) return alert('Auditor View is read-only.');
   const r = hqList(key).find(function (x) { return String(x.id) === String(id); }); if (!r) return;
   const why = hqApproveBlock(key, r); if (why) return alert(why.replace(/^SELF:/, ''));
-  if (!confirm('Approve this record?\n\nApproved By: ' + hqWho() + ' (login user)')) return;
-  hqApproveNow(key, r);
-  alert('Approved by ' + hqWho() + '.');
+  window.apprReview({ kind: 'hq', key: key, rec: r, fields: HQ_CFG[key].fields, title: HQ_CFG[key].title, who: hqWho() }, function () {
+    const w2 = hqApproveBlock(key, r); if (w2) return alert(w2.replace(/^SELF:/, ''));
+    hqApproveNow(key, r); alert('Approved by ' + hqWho() + '.');
+  });
 }
 function hqSave(key) {
   if (!mmsGuardSave(key)) return;
@@ -13547,13 +13548,15 @@ setInterval(sync,2500);
   window.mrVerify = function (i) {
     if (!mmsGuardSave('mr')) return; var r = data.mr[i]; if (!r || stOf(r) !== ST.DONE) return;
     if (typeof window.mmsApprAllowed === 'function' && !window.mmsApprAllowed('mr')) return alert('Admin has not given your role permission to Verify & Close.');
-    if (!confirm('Sr. ' + r.sr + ' — ' + (r.machine || '') + '\n\nHas the work been done correctly and is the machine running properly?\nOK = Verify & Close')) return;
+    window.apprReview({ kind: 'mr', rec: r, who: String(((mmsSession() || {}).u) || '') }, function () {
+    if (stOf(r) !== ST.DONE) return;
     var by = String(((mmsSession() || {}).u) || '').trim();
     if (!by) return alert('Log in first to verify - Verified By is always recorded as the logged-in user.');
     r.status = ST.CLOSED; r.verifiedBy = by; r.verifiedAt = new Date().toISOString(); if (!r.hprodSign) r.hprodSign = by;
     log(r, ST.CLOSED, 'Verified by ' + by);
     try { syncHistoryFromMaintenance(r); } catch (e) { } try { syncBreakdownFromMaintenance(r); } catch (e) { }
     persist('mr'); refreshAll(); offer(r, 'closed', 'Request Closed');
+    });
   };
   window.mrReopen = function (i) {
     if (!mmsGuardSave('mr')) return; var r = data.mr[i]; if (!r || (stOf(r) !== ST.DONE && !(stOf(r) === ST.CLOSED && isAdmin()))) return;
@@ -14672,8 +14675,10 @@ html:not(.aam-tl) .tcm-chip{background:rgba(125,211,252,.15);color:#7dd3fc}
             run: function () {
               var x = hqList(m[0]).find(function (q) { return String(q.id) === String(r.id); }); if (!x) return;
               var w = hqApproveBlock(m[0], x); if (w) return alert(w.replace(/^SELF:/, ''));
-              if (!confirm('Approve?\n\n' + m[1] + ' - ' + (x.furnace || '') + '\nApproved By: ' + me())) return;
-              hqApproveNow(m[0], x); render();
+              window.apprReview({ kind: 'hq', key: m[0], rec: x, fields: HQ_CFG[m[0]].fields, title: HQ_CFG[m[0]].title, who: me() }, function () {
+                var w2 = hqApproveBlock(m[0], x); if (w2) return alert(w2.replace(/^SELF:/, ''));
+                hqApproveNow(m[0], x); render();
+              });
             }
           });
         } else if (why.indexOf('SELF:') === 0) mine++;
@@ -14693,11 +14698,13 @@ html:not(.aam-tl) .tcm-chip{background:rgba(125,211,252,.15);color:#7dd3fc}
             run: function () {
               if (h.appr) return;
               if (typeof window.mmsApprAllowed === 'function' && !window.mmsApprAllowed('tc')) return alert('Your role does not have TC approval permission.');
-              if (!confirm('Approve thermocouple replacement?\n\n' + (t.furnace || '') + ' ' + fd(h.date) + '\nApproved By: ' + me())) return;
+              window.apprReview({ kind: 'tc', rec: h, parent: t, who: me() }, function () {
+              if (h.appr) return;
               h.appr = me(); h.apprUser = me(); h.apprAt = new Date().toISOString(); t.updatedAt = h.apprAt;
               persist('tc');
               try { window.audit('APPROVE', 'tc', me() + ' approved TC replacement ' + (t.furnace || '') + ' ' + (h.date || '')); } catch (e) { }
               try { renderThermocoupleTable(); } catch (e) { } render();
+              });
             }
           });
         });
@@ -14726,7 +14733,8 @@ html:not(.aam-tl) .tcm-chip{background:rgba(125,211,252,.15);color:#7dd3fc}
             if (r.verifiedBy) return;
             if (typeof window.mmsApprAllowed === 'function' && !window.mmsApprAllowed('pm')) return alert('Your role does not have PM verification permission.');
             if (r.checkedByUser && r.checkedByUser === String((S() || {}).u || '')) return alert('You prepared this sheet - it must be verified from a different login.');
-            if (!confirm('Verify PM check sheet?\n\n' + (r.machineNo || '') + ' ' + fd(r.date) + '\nVerified By: ' + me())) return;
+            window.apprReview({ kind: 'pm', rec: r, who: me() }, function () {
+            if (r.verifiedBy) return;
             r.verifiedBy = me(); r.verifiedByUser = String((S() || {}).u || ''); r.verifiedAt = new Date().toISOString();
             var unans = (r.entries || []).filter(function (e) { return !e.workDone; }).length;
             if (!unans && String(r.checkedBy || '').trim() && String(r.machineNo || '').trim()) r.partial = false;
@@ -14734,9 +14742,25 @@ html:not(.aam-tl) .tcm-chip{background:rgba(125,211,252,.15);color:#7dd3fc}
             try { pmPlanLinkFromCheckSheet(r); } catch (e) { }
             try { window.audit('APPROVE', 'pm', me() + ' verified PM sheet ' + (r.machineNo || '') + ' ' + (r.date || '')); } catch (e) { }
             try { renderAll(); } catch (e) { } render();
+          });
           }
         });
       });
+    } catch (e) { }
+    try {
+      var isAdm = !!(s && s.role === 'Admin');
+      function mineCorr(r) { var c = r && r.corrReq; if (!c || !c.open) return false; return isAdm || nm(c.toUser) === nm(me()); }
+      function addC(ico, mod, r, t, open) {
+        out.push({ ico: ico, mod: 'Correction: ' + mod, btn: '✏ View', t: t, sub: String(r.corrReq.msg || '').split('\n').slice(4, 6).join(' ').slice(0, 110) || ('By ' + (r.corrReq.by || '-')),
+          run: function () { if (typeof window.apprShowCorr === 'function') window.apprShowCorr(r, t, function () { closePop(); open(); }); } });
+      }
+      (data.pm || []).forEach(function (r, i) { if (mineCorr(r)) addC('🔧', 'PM Check Sheet', r, (r.machineNo || '-') + ' • ' + fd(r.date), function () { try { showTab('pm'); } catch (e) { } loadPMRecord(i); }); });
+      (data.mr || []).forEach(function (r) { if (mineCorr(r)) addC('🛠', 'Maintenance Request', r, 'Sr. ' + (r.sr || '-') + ' • ' + (r.machine || ''), function () { try { showTab('mr'); } catch (e) { } }); });
+      [['satReport', 'SAT Report', '🎯'], ['tus', 'TUS Survey', '📈']].forEach(function (m) {
+        var list = []; try { list = hqList(m[0]); } catch (e) { }
+        list.forEach(function (r) { if (mineCorr(r)) addC(m[2], m[1], r, (r.furnace || '-') + ' • ' + fd(r.satDate || r.surveyDate), function () { try { showTab(m[0]); } catch (e) { } hqEdit(m[0], r.id); }); });
+      });
+      (data.tc || []).forEach(function (t) { (t.history || []).forEach(function (h) { if (mineCorr(h)) addC('🌡️', 'Thermocouple Replacement', h, (t.furnace || '-') + ' • ' + fd(h.date), function () { try { showTab('thermocouple'); } catch (e) { } }); }); });
     } catch (e) { }
     return { items: out, mine: mine };
   }
@@ -14968,6 +14992,134 @@ function showErr(e){try{if(!ses())return;var m=String((e&&e.message)||e||'');
  var box=document.getElementById('up1-toasts');if(!box){box=document.createElement('div');box.id='up1-toasts';document.body.appendChild(box)}box.appendChild(t);setTimeout(function(){try{t.remove()}catch(x){}},9000)}catch(x){}}
 window.addEventListener('error',function(ev){showErr(ev.error||ev.message)});
 window.addEventListener('unhandledrejection',function(ev){showErr(ev.reason)});
+/* ===== Approve se pehle detailed REVIEW report: dekhe + tick kiye bina Approve button nahi chalta ===== */
+var rcss=document.createElement('style');rcss.textContent=
+'.rv-ov{position:fixed;inset:0;background:rgba(2,10,24,.72);z-index:100002;display:flex;align-items:center;justify-content:center;padding:10px}'+
+'.rv-box{background:#fff;color:#0f172a;width:100%;max-width:860px;max-height:96vh;border-radius:14px;display:flex;flex-direction:column;box-shadow:0 14px 50px rgba(0,0,0,.5);font:13px/1.4 system-ui,sans-serif;overflow:hidden}'+
+'.rv-h{padding:12px 16px;background:#12324f;color:#fff}.rv-h b{font-size:15px;display:block}.rv-h span{font-size:12px;opacity:.85}'+
+'.rv-body{overflow:auto;padding:12px 16px;flex:1;-webkit-overflow-scrolling:touch}'+
+'.rv-flags{margin:0 0 12px;padding:0;list-style:none}.rv-flags li{padding:7px 10px;border-radius:8px;margin:4px 0;font-weight:600}'+
+'.rv-flags .bad{background:#fde2e2;color:#9b1c1c;border-left:5px solid #dc2626}.rv-flags .warn{background:#fff4d6;color:#7a4b00;border-left:5px solid #f59e0b}.rv-flags .ok{background:#e3f6e8;color:#14532d;border-left:5px solid #22c55e}'+
+'.rv-sec{margin:14px 0 4px;font-weight:800;color:#0148b1;border-bottom:2px solid #dbe5f3;padding-bottom:3px}'+
+'.rv-t{width:100%;border-collapse:collapse;font-size:12.5px}.rv-t td,.rv-t th{border:1px solid #d5dde8;padding:5px 7px;text-align:left;vertical-align:top}.rv-t th{background:#eef3fa;white-space:nowrap}'+
+'.rv-t td.l{width:38%;background:#f7f9fc;font-weight:600}.rv-t tr.bad td{background:#fde2e2}.rv-t tr.warn td{background:#fff4d6}.rv-t td.empty{color:#94a3b8}'+
+'.rv-f{padding:10px 16px;border-top:1px solid #d5dde8;background:#f8fafc}.rv-f label{display:flex;gap:8px;align-items:flex-start;margin:4px 0;font-weight:600;cursor:pointer}.rv-f input{margin-top:3px;transform:scale(1.2)}'+
+'.rv-row{display:flex;gap:8px;justify-content:flex-end;align-items:center;margin-top:8px;flex-wrap:wrap}.rv-hint{flex:1;font-size:12px;color:#b45309;font-weight:600}'+
+'.rv-row button{padding:9px 16px;border:0;border-radius:8px;font-weight:800;cursor:pointer}.rv-ok{background:#16a34a;color:#fff}.rv-ok:disabled{background:#94a3b8;cursor:not-allowed}.rv-no{background:#e2e8f0;color:#0f172a}'+
+'.rv-cr textarea{width:100%;min-height:130px;box-sizing:border-box;border:1px solid #f59e0b;border-radius:8px;padding:8px;font:12.5px/1.4 system-ui,sans-serif;margin:6px 0}.rv-cr .rv-ret{background:#fff4d6;color:#7a4b00;border:1px solid #f59e0b}.rv-cr .rv-send{background:#d97706;color:#fff}'+
+'@media print{.rv-ov{display:none!important}}';
+document.head.appendChild(rcss);
+function E(s){return String(s==null?'':s).replace(/[&<>"]/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]})}
+function hum(k){return String(k).replace(/([a-z0-9])([A-Z])/g,'$1 $2').replace(/[_-]+/g,' ').replace(/^./,function(c){return c.toUpperCase()})}
+function fv(v){if(v===null||v===undefined||v==='')return '';
+ if(typeof v==='boolean')return v?'Yes':'No';
+ if(typeof v==='string'){if(/^data:image/.test(v))return '[photo attached]';
+  var m=v.match(/^(\d{4})-(\d{2})-(\d{2})$/);if(m)return m[3]+'-'+m[2]+'-'+m[1];
+  if(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(v)){var d=new Date(v);if(!isNaN(d))return d.toLocaleString('en-IN')}return v}
+ if(Array.isArray(v)){if(!v.length)return '';if(v.every(function(x){return typeof x!=='object'}))return v.map(fv).join(', ');return v.length+' item(s)'}
+ if(typeof v==='object')return Object.keys(v).map(function(k){return hum(k)+': '+fv(v[k])}).join('; ');
+ return String(v)}
+var SKIP=/^(id|_sid|sno|sr_no|evidence|checklistRows|entries|history|log|editLog|updatedAt|savedAt|auto|sourceRef|sourceSr|sourceMrSr|spareLink)$/;
+function rowsOf(rec,labels){var out=[];Object.keys(rec||{}).forEach(function(k){if(SKIP.test(k))return;var v=fv(rec[k]);out.push([labels&&labels[k]||hum(k),v,k])});return out}
+function tbl(rows){return '<table class="rv-t">'+rows.map(function(r){return '<tr class="'+(r[2]||'')+'"><td class="l">'+E(r[0])+'</td><td class="'+(r[1]===''?'empty':'')+'">'+(r[1]===''?'— (blank)':E(r[1]).replace(/\n/g,'<br>'))+'</td></tr>'}).join('')+'</table>'}
+function build(o){var rec=o.rec||{},flags=[],secs=[],head='',sub='';
+ function F(l,t){flags.push({l:l,t:t})}
+ if(o.kind==='hq'){
+  head=(o.title||'Record').replace(/\s+/g,' ');var by={};var cur='General';var groups=[],g=null;
+  (o.fields||[]).forEach(function(fd){if(fd.sec||!g){g={t:fd.sec||cur,rows:[]};cur=g.t;groups.push(g)}
+   if(fd.t==='image'){if(rec[fd.k])g.rows.push([fd.l,'[photo attached]']);return}
+   var v=fv(rec[fd.k]),cls='';
+   if(fd.req&&v==='' ){cls='bad';F('bad','Required field is blank: '+fd.l)}
+   if(/^not ?ok$/i.test(String(rec[fd.k]||'').trim())||/^fail/i.test(String(rec[fd.k]||'').trim())){cls='warn';F('warn',fd.l+' = '+rec[fd.k])}
+   if(v==='' && !fd.req && !fd.calc && fd.t!=='textarea'){ if(!/^(m2|f?ieldInst|fieldSensor)/.test(fd.k)) {} }
+   g.rows.push([fd.l,v,cls])});
+  groups=groups.filter(function(x){return x.rows.some(function(r){return r[1]!==''||r[2]})});
+  secs=groups.map(function(x){return {t:x.t,rows:x.rows}});
+  var st=String(rec.status||'');
+  if(/not ?ok|fail/i.test(st)){F('warn','Overall result is "'+st+'"');
+   if(!String(rec.corrAction||'').trim())F('bad','Result is NOT OK but Corrective Action is blank');
+   if(rec.rootCause!==undefined&&!String(rec.rootCause||'').trim()&&o.key==='satReport')F('bad','Result is NOT OK but Root Cause is blank')}
+  else if(st)F('ok','Overall result: '+st);
+  sub='Prepared by: '+(rec.calibBy||rec.surveyBy||rec.preparedUser||'-')+'  •  Approving as: '+(o.who||'-');
+ }else if(o.kind==='pm'){
+  head='PM Check Sheet — '+(rec.machineNo||'')+' ('+(rec.template||'')+')';
+  sub='Checked by: '+(rec.checkedBy||'-')+'  •  Verifying as: '+(o.who||'-');
+  var en=rec.entries||[],cr=rec.checklistRows||[],un=0,no=0,okc=0,na=0;
+  en.forEach(function(e){var w=e&&e.workDone;if(!w)un++;else if(w==='Not OK')no++;else if(w==='OK')okc++;else na++});
+  if(!rec.checkedBy||!String(rec.checkedBy).trim())F('bad','Checked By is blank');
+  if(un)F('bad',un+' checkpoint(s) are not answered (OK / Not OK / N/A). Complete the sheet first.');
+  if(no){F('warn',no+' checkpoint(s) are "Not OK"');if(!String(rec.action||'').trim())F('bad','Not OK points exist but Action is blank')}
+  if(!rec.start||!rec.end)F('warn','Start / End time missing');else if(rec.start>=rec.end)F('warn','End time is not after Start time');
+  if(!un&&!no)F('ok','All '+en.length+' checkpoints answered, no Not OK');
+  secs.push({t:'Sheet details',rows:rowsOf({template:rec.template,machineNo:rec.machineNo,doneDate:rec.date,start:rec.start,end:rec.end,checkedBy:rec.checkedBy,planMonth:rec.planMonth,action:rec.action,actionTarget:rec.actionTarget,actionStatus:rec.actionStatus,editsAfterVerify:(rec.editLog||[]).length})});
+  var tr=[];en.forEach(function(e,i){var c=cr[i]||{},w=(e&&e.workDone)||'';tr.push('<tr class="'+(w==='Not OK'?'bad':(!w?'warn':''))+'"><td>'+(i+1)+'</td><td>'+E(c.activity||'')+'</td><td>'+E(c.standard||'')+'</td><td>'+E((e&&e.observation)||'')+'</td><td><b>'+E(w||'—')+'</b></td><td>'+E((e&&e.remark)||'')+'</td></tr>')});
+  secs.push({t:'Checkpoints (OK '+okc+' • Not OK '+no+' • N/A '+na+' • Unanswered '+un+')',html:'<div style="overflow:auto"><table class="rv-t"><tr><th>#</th><th>Activity</th><th>Standard</th><th>Observation</th><th>Result</th><th>Remark</th></tr>'+tr.join('')+'</table></div>'});
+  var sp=[];en.forEach(function(e){(e&&e.spareUsed||[]).forEach(function(s){if(s&&(s.desc||s.qty))sp.push([s.desc||'',s.qty||''])})});
+  if(sp.length)secs.push({t:'Spare parts used',rows:sp});
+ }else if(o.kind==='mr'){
+  head='Maintenance Request Sr. '+(rec.sr||'')+' — '+(rec.machine||'');
+  sub='Verify & Close as: '+(o.who||'-');
+  if(!String(rec.observation||'').trim())F('warn','Maintenance observation / work done details are blank');
+  if(!rec.maintSign)F('warn','Maintenance sign is blank');
+  if(!rec.hdate&&!rec.workDoneAt)F('warn','Work completion date/time not recorded');
+  F('warn','Confirm physically: work done correctly and machine running properly');
+  secs.push({t:'Request details',rows:rowsOf(rec,{pdate:'Production date',ptime:'Production time',reqBy:'Request by',reqCode:'E-Code',prodSign:'Production supervisor sign',recvBy:'Received by',recvCode:'Maintenance code',mdate:'Maintenance date',mtime:'Maintenance time',maintSign:'Maintenance sign',hdate:'Handover date',htime:'Handover time',hprodSign:'Handover sign'})});
+  if((rec.log||[]).length)secs.push({t:'Timeline',rows:rec.log.map(function(e){return [new Date(e.t).toLocaleString('en-IN')+' — '+e.st,(e.by||'')+(e.note?': '+e.note:'')]})});
+ }else if(o.kind==='tc'){
+  var t=o.parent||{};head='Thermocouple Replacement — '+(t.furnace||'')+' ('+fv(rec.date)+')';
+  sub='Replaced by: '+(rec.tech||'-')+'  •  Approving as: '+(o.who||'-');
+  if(!String(rec.tech||'').trim())F('bad','Replaced By is blank');
+  if(!String(rec.reason||'').trim())F('warn','Reason is blank');
+  if(rec.oldSrid&&rec.newSrid&&String(rec.oldSrid)===String(rec.newSrid))F('warn','New Serial/ID is same as old ('+rec.newSrid+')');
+  if(!String(rec.newCertNo||'').trim())F('warn','New calibration certificate no. is blank');
+  secs.push({t:'Furnace / Thermocouple',rows:rowsOf({furnace:t.furnace,frequency:t.freq,currentDue:t.due})});
+  secs.push({t:'Replacement details',rows:rowsOf(rec,{oldInst:'Old installed on',oldSrid:'Old Serial / ID',oldDue:'Old due',newSrid:'New Serial / ID',oldCertNo:'Old cert no.',oldCertDate:'Old cert date',newCertNo:'New cert no.',newCertDate:'New cert date',tech:'Replaced by',appr:'Approved by',needAppr:'Approval needed',preparedUser:'Entered by (login)',at:'Entered at'})});
+ }else{head='Record';secs.push({t:'Details',rows:rowsOf(rec)})}
+ var to='';
+ if(o.kind==='hq')to=rec.preparedUser||rec.calibBy||rec.surveyBy||'';
+ else if(o.kind==='pm')to=rec.checkedByUser||rec.checkedBy||'';
+ else if(o.kind==='tc')to=rec.preparedUser||rec.tech||'';
+ else if(o.kind==='mr'){var lg=(rec.log||[]).filter(function(e){return /done/i.test(String(e.st||''))&&e.by});to=lg.length?lg[lg.length-1].by:(rec.maintSign||'')}
+ return {head:head,sub:sub,flags:flags,secs:secs,to:String(to||'')}}
+window.apprShowCorr=function(rec,title,openFn){
+ if(!rec||!rec.corrReq)return;var c=rec.corrReq;
+ var ov=document.createElement('div');ov.className='rv-ov';
+ ov.innerHTML='<div class="rv-box"><div class="rv-h" style="background:#92400e"><b>📨 Correction required — '+E(title||c.title||'')+'</b><span>Requested by '+E(c.by||'-')+' • '+E(fv(c.at))+'</span></div><div class="rv-body"><div style="white-space:pre-wrap;font-size:13.5px">'+E(c.msg||'')+'</div></div><div class="rv-f"><div class="rv-row"><button class="rv-no rv-x">Close</button>'+(openFn?'<button class="rv-ok rv-open" style="background:#d97706">✏ Open record to fix</button>':'')+'</div></div></div>';
+ document.body.appendChild(ov);ov.querySelector('.rv-x').onclick=function(){ov.remove()};
+ var ob=ov.querySelector('.rv-open');if(ob)ob.onclick=function(){ov.remove();try{openFn()}catch(e){console.error(e)}}};
+window.apprReview=function(o,onOk){
+ if(document.querySelector('.rv-ov'))return;
+ var b;try{b=build(o)}catch(e){console.error('apprReview build',e);b={head:'Record',sub:'',flags:[{l:'warn',t:'Report could not be generated fully ('+e.message+'). Check the record manually before approving.'}],secs:[]}}
+ var bad=b.flags.filter(function(f){return f.l==='bad'}),warn=b.flags.filter(function(f){return f.l==='warn'});
+ var fl=b.flags.slice().sort(function(a,c){var r={bad:0,warn:1,ok:2};return r[a.l]-r[c.l]});
+ var ov=document.createElement('div');ov.className='rv-ov';
+ var body='<ul class="rv-flags">'+(fl.length?fl.map(function(f){return '<li class="'+f.l+'">'+(f.l==='bad'?'⛔ ':f.l==='warn'?'⚠ ':'✔ ')+E(f.t)+'</li>'}).join(''):'<li class="ok">✔ No issues found by automatic checks</li>')+'</ul>'+
+  b.secs.map(function(s){return '<div class="rv-sec">'+E(s.t)+'</div>'+(s.html||tbl(s.rows))}).join('')+'<div style="text-align:center;color:#64748b;margin:14px 0 4px;font-size:12px">— End of report —</div>';
+ ov.innerHTML='<div class="rv-box"><div class="rv-h"><b>🔍 Review before approval — '+E(b.head)+'</b><span>'+E(b.sub)+'</span></div><div class="rv-body">'+body+'</div>'+
+  '<div class="rv-f">'+(bad.length?'<div style="color:#9b1c1c;font-weight:800">⛔ '+bad.length+' blocking issue(s) — approval is not possible until the record is corrected.</div>':
+  '<label><input type="checkbox" class="c1"> I have read the full report above and all details are correct.</label>'+(warn.length?'<label><input type="checkbox" class="c2"> I have checked the '+warn.length+' warning(s) (⚠) and accept responsibility for this approval.</label>':''))+
+  (b.flags.some(function(f){return f.l!=='ok'})?'<div class="rv-cr"><button type="button" class="rv-no rv-ret" style="'+(bad.length?'display:none':'')+'">📨 Return for correction to '+E(b.to||'preparer')+'</button><div class="rv-cbox" style="'+(bad.length?'':'display:none')+'"><b style="color:#9b1c1c">Message to '+E(b.to||'preparer')+' (edit if needed):</b><textarea class="rv-msg"></textarea><button type="button" class="rv-ok rv-send">📨 Send correction request to '+E(b.to||'preparer')+'</button></div></div>':'')+
+  '<div class="rv-row"><span class="rv-hint"></span><button class="rv-no rv-cancel">Cancel</button><button class="rv-ok rv-appr" disabled>✔ Verified — Approve</button></div></div></div>';
+ document.body.appendChild(ov);
+ var bodyEl=ov.querySelector('.rv-body'),okb=ov.querySelector('.rv-appr'),hint=ov.querySelector('.rv-hint'),c1=ov.querySelector('.c1'),c2=ov.querySelector('.c2'),seen=false;
+ function upd(){if(!seen)seen=bodyEl.scrollHeight-bodyEl.scrollTop-bodyEl.clientHeight<24;
+  var ready=!bad.length&&seen&&c1&&c1.checked&&(!c2||c2.checked);okb.disabled=!ready;
+  hint.textContent=bad.length?'':(!seen?'Scroll down to read the full report':(!(c1&&c1.checked)||(c2&&!c2.checked)?'Tick the confirmation(s) to enable Approve':''))}
+ bodyEl.addEventListener('scroll',upd);if(c1)c1.onchange=upd;if(c2)c2.onchange=upd;setTimeout(upd,60);
+ ov.querySelector('.rv-cancel').onclick=function(){ov.remove()};
+ var ta=ov.querySelector('.rv-msg'),ret=ov.querySelector('.rv-ret'),snd=ov.querySelector('.rv-send');
+ if(ta){var iss=fl.filter(function(f){return f.l!=='ok'});
+  ta.value='Correction required: '+b.head+'\nChecked by: '+(o.who||'-')+'\n\nIs record mein ye problems mili - isko sahi karo aur dobara submit karo:\n'+iss.map(function(f,i){return (i+1)+'. '+(f.l==='bad'?'[MUST FIX] ':'[CHECK] ')+f.t}).join('\n')+'\n\nSahi karke Save karo, phir verify/approve hoga.';
+  if(ret)ret.onclick=function(){ov.querySelector('.rv-cbox').style.display='block';ret.style.display='none'};
+  snd.onclick=function(){var rec=o.rec;if(!rec)return;
+   rec.corrReq={open:true,toUser:b.to,by:o.who||'',at:new Date().toISOString(),msg:ta.value,title:b.head,kind:o.kind,key:o.key||''};
+   try{if(o.kind==='pm')persistPMWithEvidence();else persist(o.kind==='hq'?o.key:o.kind)}catch(e){console.error(e)}
+   try{if(typeof gsSchedule==='function')gsSchedule(1500)}catch(e){}
+   try{window.audit('CORRECTION_REQUEST',o.kind==='hq'?o.key:o.kind,(o.who||'')+' -> '+b.to+': '+b.head)}catch(e){}
+   ov.remove();alert('Correction request sent to '+(b.to||'the preparer')+'. It will show in their Pending list after sync.')}}
+ okb.onclick=function(){if(okb.disabled)return;ov.remove();try{if(o.rec&&o.rec.corrReq&&o.rec.corrReq.open){o.rec.corrReq.open=false;o.rec.corrReq.closedAt=new Date().toISOString()}}catch(e){}try{onOk&&onOk()}catch(e){console.error(e);alert('Approval failed: '+e.message)}};
+};
+
 /* pending changes flag (sync pill me dikhta hai) */
 var _p=window.persist;
 if(typeof _p==='function')window.persist=function(k){if(k!=='audit')window.__gsDirty=true;return _p.apply(this,arguments)};
