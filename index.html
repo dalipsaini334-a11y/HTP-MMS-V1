@@ -14762,7 +14762,56 @@ html:not(.aam-tl) .tcm-chip{background:rgba(125,211,252,.15);color:#7dd3fc}
       });
       (data.tc || []).forEach(function (t) { (t.history || []).forEach(function (h) { if (mineCorr(h)) addC('🌡️', 'Thermocouple Replacement', h, (t.furnace || '-') + ' • ' + fd(h.date), function () { try { showTab('thermocouple'); } catch (e) { } }); }); });
     } catch (e) { }
+    try { alerts(out); } catch (e) { console.warn('alerts', e); }
     return { items: out, mine: mine };
+  }
+
+  /* ===== Notifications: approvals ke saath due / pending alerts (sirf unhi modules ke jinka user ko access hai) ===== */
+  function alerts(out) {
+    if (window.__auditorView) return;
+    function go(tab) { return function () { closePop(); try { showTab(tab); } catch (e) { } }; }
+    function add(ico, mod, t, sub, tab) { out.push({ ico: ico, mod: mod, t: t, sub: sub, btn: '➡ Open', al: 1, run: go(tab) }); }
+    function names(a, f, n) { return a.slice(0, n || 3).map(f).join(', ') + (a.length > (n || 3) ? ' …' : ''); }
+    try {   // Maintenance Request: breakdown + pending
+      if (mmsCanSaveQuiet('mr')) {
+        var pend = function (r) { var st = (r && r.status) || 'Open'; return st === 'Open' || st === 'In Progress' || st === 'Waiting for Spare'; };
+        var open_ = (data.mr || []).filter(pend), bd = open_.filter(function (r) { return r.priority === 'Breakdown'; }).slice(0, 5);
+        bd.forEach(function (r) { add('🔴', 'Breakdown Request', 'Sr. ' + (r.sr || '-') + ' • ' + (r.machine || r.machineNo || '-'), (r.status || 'Open') + (r.section ? ' • ' + r.section : '') + ' - machine ruki hui hai', 'mr'); });
+        var rest = open_.filter(function (r) { return bd.indexOf(r) < 0; }), od = 0;
+        if (typeof dateTimeMinutes === 'function') rest.forEach(function (r) { var m = dateTimeMinutes(r.pdate, r.ptime || '00:00'); if (m !== null && m !== undefined && (Date.now() / 60000 - m) / 60 >= 24) od++; });
+        if (rest.length) add('🛠️', 'Maintenance Request', rest.length + ' request open / pending', od ? '⚠ ' + od + ' request 24 ghante se zyada pending' : 'Open / In Progress / Waiting for Spare', 'mr');
+      }
+    } catch (e) { }
+    try {   // Calibration due (30 din)
+      if (mmsCanSaveQuiet('cal')) {
+        var cl = calibrationDueSoon(30), ov = cl.filter(function (x) { return x.diff < 0; }).length;
+        if (cl.length) add(ov ? '⛔' : '📏', 'Calibration', cl.length + ' instrument due (30 din)' + (ov ? ' • ' + ov + ' overdue' : ''), names(cl, function (x) { return x.r.name || x.r.idno || '-'; }), 'calibration');
+      }
+    } catch (e) { }
+    try {   // Thermocouple due (30 din)
+      if (hqPermEditQuiet('tc')) {
+        var n = 0, o = 0, nm = [], now = new Date(); now.setHours(0, 0, 0, 0);
+        (data.tc || []).forEach(function (r) { var x = tcDueDate(r); if (!x) return; x = new Date(x); if (isNaN(x)) return; var df = Math.round((x - now) / 864e5); if (df <= 30) { n++; if (df < 0) o++; if (nm.length < 3) nm.push(r.furnace || '-'); } });
+        if (n) add(o ? '⛔' : '🌡️', 'Thermocouple', n + ' furnace thermocouple due (30 din)' + (o ? ' • ' + o + ' overdue' : ''), nm.join(', ') + (n > 3 ? ' …' : ''), 'thermocouple');
+      }
+    } catch (e) { }
+    try {   // CQI-9: SAT / TUS / Oxy probe / Contingency
+      var LBL = { satReport: 'SAT', oxyRep: 'Oxy probe replacement', oxyMV: 'Oxy probe MV check', oxyImp: 'O2 probe impedance', tus: 'TUS survey', contingency: 'Contingency', amc: 'AMC contract', amcPlan: 'AMC service' }, grp = {}, ord = [];
+      hqDueItems().forEach(function (x) { if (!hqPermEditQuiet(x.m === 'amcPlan' ? 'amc' : x.m)) return; if (!grp[x.m]) { grp[x.m] = []; ord.push(x.m); } grp[x.m].push(x); });
+      ord.forEach(function (m) { var g = grp[m], ov = g.filter(function (x) { return x.d < 0; }).length; add(ov ? '⛔' : '📋', LBL[m] || m, g.length + ' due / pending' + (ov ? ' • ' + ov + ' overdue' : ''), names(g, function (x) { return x.t; }, 2), m); });
+    } catch (e) { }
+    try {   // AMC contract expiry (60 din)
+      if (hqPermEditQuiet('amc')) {
+        var ac = hqList('amc').filter(function (x) { return x.endDate && hqDaysTo(x.endDate) <= 60; }), ae = ac.filter(function (x) { return hqDaysTo(x.endDate) < 0; }).length;
+        if (ac.length) add(ae ? '⛔' : '📄', 'AMC Contract', ac.length + ' contract expire hone wale (60 din)' + (ae ? ' • ' + ae + ' expired' : ''), names(ac, function (x) { return x.vendor || x.name || x.machine || x.id || '-'; }), 'amc');
+      }
+    } catch (e) { }
+    try {   // Low stock spares
+      if (mmsCanSaveQuiet('spares')) {
+        var lo = (data.spares || []).filter(function (r) { return spareStatus(r) === 'LOW'; });
+        if (lo.length) add('📦', 'Spares', lo.length + ' item low stock', names(lo, function (r) { return r.desc || r.code || '-'; }), 'spares');
+      }
+    } catch (e) { }
   }
 
   function css() {
@@ -14776,7 +14825,7 @@ html:not(.aam-tl) .tcm-chip{background:rgba(125,211,252,.15);color:#7dd3fc}
       '#mmsApprPop .ap-i .ap-t{flex:1;min-width:0}#mmsApprPop .ap-i .ap-m{font-size:11px;color:#7dd3fc;font-weight:700;text-transform:uppercase;letter-spacing:.3px}' +
       '#mmsApprPop .ap-i .ap-n{font-weight:700;font-size:14px;color:#fff;word-break:break-word}#mmsApprPop .ap-i .ap-s{font-size:12px;color:#9fc0e0;word-break:break-word}' +
       '#mmsApprPop button{border:0;border-radius:8px;padding:9px 12px;font-weight:700;cursor:pointer;font-size:13px}' +
-      '#mmsApprPop .ap-ok{background:#16a34a;color:#fff;white-space:nowrap}#mmsApprPop .ap-x{background:rgba(255,255,255,.14);color:#e6f0fa}' +
+      '#mmsApprPop .ap-go{background:#d97706;color:#fff;white-space:nowrap}#mmsApprPop .ap-ok{background:#16a34a;color:#fff;white-space:nowrap}#mmsApprPop .ap-x{background:rgba(255,255,255,.14);color:#e6f0fa}' +
       '#mmsApprPop .ap-f{padding:10px 12px;border-top:1px solid rgba(255,255,255,.14);display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}' +
       '#mmsApprPop .ap-e{text-align:center;padding:26px 10px;color:#bbf7d0;font-weight:700}#mmsApprPop .ap-w{font-size:11px;color:#9fc0e0}' +
       '#mmsApprFab{position:fixed;left:10px;bottom:52px;z-index:9990;padding:8px 14px;border-radius:20px;border:0;background:#d97706;color:#fff;font-weight:700;cursor:pointer;display:none;box-shadow:0 4px 12px rgba(0,0,0,.35)}' +
@@ -14791,13 +14840,13 @@ html:not(.aam-tl) .tcm-chip{background:rgba(125,211,252,.15);color:#7dd3fc}
     if (!pop) { fab(); return; }
     var s = S() || {};
     pop.querySelector('.ap-card').innerHTML =
-      '<div class="ap-h"><b>🔔 Pending Approvals (' + c.items.length + ')</b><small>' + E(s.u || '') + ' • ' + E(s.role || '') + ' - only the ones you can approve</small></div>' +
+      '<div class="ap-h"><b>🔔 Notifications (' + c.items.length + ')</b><small>' + E(s.u || '') + ' • ' + E(s.role || '') + ' - approvals, corrections aur due alerts (sirf aapke modules ke)</small></div>' +
       '<div class="ap-b">' + (c.items.length ? c.items.map(function (x, i) {
-        return '<div class="ap-i"><div style="font-size:22px">' + x.ico + '</div><div class="ap-t"><div class="ap-m">' + E(x.mod) + '</div><div class="ap-n">' + E(x.t) + '</div><div class="ap-s">' + E(x.sub) + '</div></div>' +
-          '<button class="ap-ok" data-i="' + i + '">' + E(x.btn) + '</button></div>';
-      }).join('') : '<div class="ap-e">✅ Aapke liye koi approval pending nahi hai.</div>') + '</div>' +
+        return '<div class="ap-i"' + (x.al ? ' style="border-left-color:#f59e0b"' : '') + '><div style="font-size:22px">' + x.ico + '</div><div class="ap-t"><div class="ap-m">' + E(x.mod) + '</div><div class="ap-n">' + E(x.t) + '</div><div class="ap-s">' + E(x.sub) + '</div></div>' +
+          '<button class="' + (x.al ? 'ap-go' : 'ap-ok') + '" data-i="' + i + '">' + E(x.btn) + '</button></div>';
+      }).join('') : '<div class="ap-e">✅ Aapke liye koi notification ya approval pending nahi hai.</div>') + '</div>' +
       '<div class="ap-f"><span class="ap-w">' + (c.mine ? c.mine + ' record aapne banaye hain - dusre login ke approval ka intezaar.' : '&nbsp;') + '</span><span><button class="ap-x" id="apRef">↻ Refresh</button> <button class="ap-x" id="apClose">Close</button></span></div>';
-    pop.querySelectorAll('.ap-ok').forEach(function (b) { b.onclick = function () { var it = ITEMS[Number(b.getAttribute('data-i'))]; if (it) it.run(); }; });
+    pop.querySelectorAll('.ap-ok,.ap-go').forEach(function (b) { b.onclick = function () { var it = ITEMS[Number(b.getAttribute('data-i'))]; if (it) it.run(); }; });
     pop.querySelector('#apClose').onclick = closePop;
     pop.querySelector('#apRef').onclick = render;
     fab();
@@ -14813,7 +14862,7 @@ html:not(.aam-tl) .tcm-chip{background:rgba(125,211,252,.15);color:#7dd3fc}
     var b = document.getElementById('mmsApprFab');
     if (!b) { b = document.createElement('button'); b.id = 'mmsApprFab'; b.onclick = openPop; document.body.appendChild(b); }
     var n = collect().items.length, show = n > 0 && !!S() && !window.__auditorView && !document.getElementById('mmsApprPop');
-    b.textContent = '🔔 Approvals (' + n + ')'; b.style.display = show ? 'block' : 'none';
+    b.textContent = '🔔 Notifications (' + n + ')'; b.style.display = show ? 'block' : 'none';
   }
   window.mmsOpenApprovals = openPop;
 
