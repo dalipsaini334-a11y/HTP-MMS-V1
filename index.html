@@ -129,7 +129,7 @@
  window.__mmsStore={active:function(){return active},flush:flush,size:function(){var t=0;mem.forEach(function(v,k){t+=k.length+v.length});return t},keys:function(){return Array.from(mem.entries()).map(function(e){return [e[0],e[1].length]})}};
 })();
 </script>
-<script>window.APP_VERSION='111-notifications';</script>
+<script>window.APP_VERSION='113-doc-control-sync';</script>
 <script>if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js?v='+encodeURIComponent(window.APP_VERSION||'0')).then(function(r){try{r.update()}catch(e){}}).catch(function(e){console.warn('SW',e)})})}</script>
 <title>Milestone Gears Ltd. Unit-7 | Maintenance & Utility Daily Log</title>
 <style>
@@ -309,13 +309,13 @@ button{border:0;border-radius:8px;padding:9px 13px;cursor:pointer;font-weight:70
 #mh .history-form{margin-top:8px}
 #mh .history-form .field{min-width:0}
 /* official document-control strips */
-#mr .card:first-child:before{content:'FORM NO.: FMT-MNT-07   |   DOCUMENT: MAINTENANCE REQUEST   |   REV: 01';display:block;text-align:right;background:#f5f7f8;color:#5a6873;font-size:9px;font-weight:800;letter-spacing:.35px;padding:5px 10px;border-bottom:1px solid #d8e0e5}
-#bd .card:first-child:before{content:'FORM NO.: FMT-MNT-BD-01   |   DOCUMENT: DAILY BREAKDOWN REGISTER   |   CONTROLLED COPY';display:block;text-align:right;background:#f5f7f8;color:#5a6873;font-size:9px;font-weight:800;letter-spacing:.35px;padding:5px 10px;border-bottom:1px solid #d8e0e5}
+#mr .card:first-child:before,#mr .fm-bar+.card:before{content:'FORM NO.: FMT-MNT-07   |   DOCUMENT: MAINTENANCE REQUEST   |   REV: 01';display:block;text-align:right;background:#f5f7f8;color:#5a6873;font-size:9px;font-weight:800;letter-spacing:.35px;padding:5px 10px;border-bottom:1px solid #d8e0e5}
+#bd .card:first-child:before,#bd .fm-bar+.card:before{content:'FORM NO.: FMT-MNT-BD-01   |   DOCUMENT: DAILY BREAKDOWN REGISTER   |   CONTROLLED COPY';display:block;text-align:right;background:#f5f7f8;color:#5a6873;font-size:9px;font-weight:800;letter-spacing:.35px;padding:5px 10px;border-bottom:1px solid #d8e0e5}
 #mttr .card:first-child:before{content:'REPORT: MAINTENANCE PERFORMANCE   |   MTTR / MTBF / BREAKDOWN TREND';display:block;text-align:right;background:#f5f7f8;color:#5a6873;font-size:9px;font-weight:800;letter-spacing:.35px;padding:5px 10px;border-bottom:1px solid #d8e0e5}
-#pmPlan .card:first-child:before{content:'FORM NO.: FMT-MNT-PM-PLAN   |   DOCUMENT: PREVENTIVE MAINTENANCE PLAN & CONTROL   |   REV: 00';display:block;text-align:right;background:#f5f7f8;color:#5a6873;font-size:9px;font-weight:800;letter-spacing:.35px;padding:5px 10px;border-bottom:1px solid #d8e0e5}
-#pm .card:first-child:before{content:'FORM NO.: FMT-MNT-04   |   DOCUMENT: PREVENTIVE MAINTENANCE CHECK SHEET   |   REV: 00   |   DATE: 18.07.2014';display:block;text-align:right;background:#f5f7f8;color:#5a6873;font-size:9px;font-weight:800;letter-spacing:.35px;padding:5px 10px;border-bottom:1px solid #d8e0e5}
+#pmPlan .card:first-child:before,#pmPlan .fm-bar+.card:before{content:'FORM NO.: FMT-MNT-PM-PLAN   |   DOCUMENT: PREVENTIVE MAINTENANCE PLAN & CONTROL   |   REV: 00';display:block;text-align:right;background:#f5f7f8;color:#5a6873;font-size:9px;font-weight:800;letter-spacing:.35px;padding:5px 10px;border-bottom:1px solid #d8e0e5}
+#pm .card:first-child:before,#pm .fm-bar+.card:before{content:'FORM NO.: FMT-MNT-04   |   DOCUMENT: PREVENTIVE MAINTENANCE CHECK SHEET   |   REV: 00   |   DATE: 18.07.2014';display:block;text-align:right;background:#f5f7f8;color:#5a6873;font-size:9px;font-weight:800;letter-spacing:.35px;padding:5px 10px;border-bottom:1px solid #d8e0e5}
 #mm .card:first-child:before{content:'DOCUMENT: MASTER LIST OF EQUIPMENTS / MACHINES   |   CONTROLLED MASTER DATA';display:block;text-align:right;background:#f5f7f8;color:#5a6873;font-size:9px;font-weight:800;letter-spacing:.35px;padding:5px 10px;border-bottom:1px solid #d8e0e5}
-#mh .card:first-child:before{content:'FORM NO.: FMT-MNT-05   |   DOCUMENT: MACHINE HISTORY CARD   |   REV: 00';display:block;text-align:right;background:#f5f7f8;color:#5a6873;font-size:9px;font-weight:800;letter-spacing:.35px;padding:5px 10px;border-bottom:1px solid #d8e0e5}
+#mh .card:first-child:before,#mh .fm-bar+.card:before{content:'FORM NO.: FMT-MNT-05   |   DOCUMENT: MACHINE HISTORY CARD   |   REV: 00';display:block;text-align:right;background:#f5f7f8;color:#5a6873;font-size:9px;font-weight:800;letter-spacing:.35px;padding:5px 10px;border-bottom:1px solid #d8e0e5}
 @media(max-width:800px){#mr .form,#bd .breakdown-form,#mh .history-form{padding:10px}#mr .tbl,#bd .report-table,#pmPlan .pmplan-table,#pm .pm-table,#mm .tbl,#mh .tbl{font-size:10px}#mr .tbl th,#bd .report-table th,#pmPlan .pmplan-table th,#pm .pm-table th,#mm .tbl th,#mh .tbl th{padding:6px 4px}.tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch}}
 @media print{#mr .card,#bd .card,#mttr .card,#pmPlan .card,#pm .card,#mm .card,#mh .card{box-shadow:none;border-color:#222}#mr .card>.head,#bd .card>.head,#mttr .card>.head,#pmPlan .card>.head,#pm .card>.head,#mm .card>.head,#mh .card>.head{background:#fff!important;color:#000!important;border-bottom:2px solid #000}#mr .tbl th,#bd .report-table th,#mttr .mttr-report th,#pmPlan .pmplan-table th,#pm .pm-table th,#mm .tbl th,#mh .tbl th{background:#eee!important;color:#000!important;border-color:#222}}
 </style>
@@ -4530,7 +4530,7 @@ function audit(action,module,detail){
 }
 try{window.audit=audit}catch(e){}
 /* ===== Naye synced modules: Audit Center lists + Approval Access config (printFmt jaisa: KEY + data runtime par register) ===== */
-const AC_MODS={acAct:'htp7_ac_act_v1',acDel:'htp7_ac_del_v1',acEdit:'htp7_ac_edit_v1',apprCfg:'htp7_appr_cfg_v1'};
+const AC_MODS={acAct:'htp7_ac_act_v1',acDel:'htp7_ac_del_v1',acEdit:'htp7_ac_edit_v1',apprCfg:'htp7_appr_cfg_v1',docCtl:'htp7_doc_ctl_v1'};
 Object.keys(AC_MODS).forEach(function(m){if(!KEY[m])KEY[m]=AC_MODS[m];if(!Array.isArray(data[m]))data[m]=load(m)});
 const origPersist=window.persist;
 // User ne pichhle 20 sec me click/type/touch kiya ho tabhi SAVE audit banega (timer / background persist ka nahi)
@@ -4676,14 +4676,14 @@ function mmsReviewHtml(){
 function mmsReviewPrint(){const w=window.open('','_blank','width=1100,height=800');if(!w)return alert('Please allow pop-ups to print.');
   w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Management Review</title><style>@page{size:A4 portrait;margin:10mm}body{font:11px Arial}h2{text-align:center;margin:4px}h3{background:#eee;padding:3px 6px;border:1px solid #999;font-size:12px}.sg{display:flex;gap:10px;margin-top:26px}.sg div{flex:1;border-top:1px solid #000;text-align:center;padding-top:3px;font-weight:bold}</style></head><body><h2>Milestone Gears Ltd. UNIT-7</h2><h2>MAINTENANCE &amp; PYROMETRY - MANAGEMENT REVIEW / AUDIT SUMMARY</h2><div style="text-align:center">Report date: '+esc(fmtDate(new Date().toISOString().slice(0,10)))+'</div>'+mmsReviewHtml()+'<div class="sg"><div>Prepared by</div><div>Reviewed by</div><div>Approved by</div></div><script>window.onload=function(){window.print()}<\/script></body></html>');w.document.close();}
 /* Audit Center window */
-const MMS_DOCS=[['FMT-MNT-07','Maintenance Request','01','20.01.2020'],['FMT-MNT-BD-01','Daily Breakdown Register','-','Controlled copy'],['FMT-MNT-02','Yearly PM Calendar','01','22.04.2022'],['FMT-MNT-03','PM Monthly Work Register','00','18.07.2014'],['FMT-MNT-04','PM Check Sheet','00','18.07.2014'],['FMT-MNT-05','Machine History Card','00','18.07.2014'],['FMT-MNT-08','Report format','00','18.07.2014'],['FMT-MNT-11','Critical Spares Level Register','01','30.10.2014'],['FMT-MNT-PM-PLAN','PM Plan & Control','00','(date not set) - CHECK'],['FMT-HT-70','Thermocouple Replacement Plan & Audit Control','-','Print footer shows FMT-MNT-01 Rev 01 22.04.2022 - CHECK'],['FR-HT-39','SAT Temperature Verification','00','(date not set) - CHECK'],['FR-HT-40','Oxy Probe MV & CP Controller MV Check','00','(date not set) - CHECK'],['FR-HT-41','O2 Probe Impedance Check','00','(date not set) - CHECK'],['FR-HT-42','SAT Report / Register','01','03-07-2025'],['FR-HT-43','TUS Survey Record','00','Doc. no. / date Quality se assign karwao - CHECK'],['FR-HT-44','Furnace Leak / Quench / Atmosphere Check','00','Doc. no. / date Quality se assign karwao - CHECK'],['FMT-HT-45','Contingency Plan Register','00','Doc. no. / date Quality se assign karwao - CHECK'],['FMT-HT-71','Oxy Probe Replacement Plan','00','10-04-2023'],['AMC-01','AMC & Service Register / Visit Log','01','(date not set) - CHECK']];
+const MMS_DOCS=[['FMT-MNT-07','Maintenance Request','01','20.01.2020'],['FMT-MNT-BD-01','Daily Breakdown Register','-','Controlled copy'],['FMT-MNT-02','Yearly PM Calendar','01','22.04.2022'],['FMT-MNT-03','PM Monthly Work Register','00','18.07.2014'],['FMT-MNT-04','PM Check Sheet','00','18.07.2014'],['FMT-MNT-05','Machine History Card','00','18.07.2014'],['FMT-MNT-08','Report format','00','18.07.2014'],['FMT-MNT-11','Critical Spares Level Register','01','30.10.2014'],['FMT-MNT-PM-PLAN','PM Plan & Control','00','(date not set) - CHECK'],['FMT-HT-70','Thermocouple Replacement Plan & Audit Control','-','(date not set) - CHECK  [abhi print footer par FMT-MNT-01 Rev 01 22.04.2022 chhapta hai; yahan number daalte hi footer FMT-HT-70 ho jayega]'],['FR-HT-39','SAT Temperature Verification','00','(date not set) - CHECK'],['FR-HT-40','Oxy Probe MV & CP Controller MV Check','00','(date not set) - CHECK'],['FR-HT-41','O2 Probe Impedance Check','00','(date not set) - CHECK'],['FR-HT-42','SAT Report / Register','01','03-07-2025'],['FR-HT-43','TUS Survey Record','00','Doc. no. / date Quality se assign karwao - CHECK'],['FR-HT-44','Furnace Leak / Quench / Atmosphere Check','00','Doc. no. / date Quality se assign karwao - CHECK'],['FMT-HT-45','Contingency Plan Register','00','Doc. no. / date Quality se assign karwao - CHECK'],['FMT-HT-71','Oxy Probe Replacement Plan','00','10-04-2023'],['AMC-01','AMC & Service Register / Visit Log','01','(date not set) - CHECK'],['FMT-MNT-01','Master List of Equipments / Machines','01','22.04.2022'],['FMT-MNT-16','MTTR / MTBF Report','00','15.07.2017'],['FMT-HT-12','Periodic Calibration Plan of HT Instruments','-','(date not set) - CHECK']];window.MMS_DOCS=MMS_DOCS;
 function mmsOpenAuditCenter(t){let m=document.getElementById('mmsAC');if(!m){m=document.createElement('div');m.id='mmsAC';m.style.cssText='position:fixed;inset:0;z-index:99998;background:rgba(15,23,42,.55);display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow:auto';document.body.appendChild(m);}m.style.display='flex';mmsACRender(t||window.__acTab||'review');}
 function mmsACRender(t){const m=document.getElementById('mmsAC');if(!m)return;window.__acTab=t;const s=session()||{},adm=s.role==='Admin',E=esc;
   const tabs=[['review','Management Review'],['actions','Action Tracker'],['docs','Document List']].concat(adm?[['trail','Audit Trail'],['deleted','Deleted Records']]:[]);if(!tabs.some(x=>x[0]===t))t='review';
   const th='style="border:1px solid #bbb;padding:4px 6px;background:#f1f5f9;text-align:left"',td='style="border:1px solid #ddd;padding:4px 6px;vertical-align:top"';
   let b='';
   if(t==='review')b=mmsReviewHtml();
-  else if(t==='docs')b='<table style="border-collapse:collapse;width:100%"><thead><tr><th '+th+'>Form No.</th><th '+th+'>Document</th><th '+th+'>Rev</th><th '+th+'>Date</th></tr></thead><tbody>'+MMS_DOCS.map(r=>'<tr>'+r.map((c,i)=>'<td '+td+(i===3&&/CHECK/.test(c)?' style="color:#b91c1c;font-weight:700;border:1px solid #ddd;padding:4px 6px"':'')+'>'+E(c)+'</td>').join('')+'</tr>').join('')+'</tbody></table><p style="font-size:11px;color:#555">This list shows what the app currently prints. Correct Rev/Date against the controlled copies.</p>';
+  else if(t==='docs')b=mmsDocsHtml(adm,th,td,E);
   else if(t==='actions'){const L=mmsLS(MMS_ACT_KEY),td0=new Date().toISOString().slice(0,10);
     const lb='style="display:flex;flex-direction:column;gap:2px;font-size:11px;font-weight:700;color:#475569"';
     b='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px;margin-bottom:8px;align-items:end"><label '+lb+'>Source<select id="ac_src"><option>Manual</option><option>PM</option><option>SAT</option><option>Calibration</option><option>Audit</option></select></label><label '+lb+'>Reference<input id="ac_ref" placeholder="machine / furnace"></label><label '+lb+'>Action *<input id="ac_act" placeholder="kya karna hai"></label><label '+lb+'>Owner *<input id="ac_owner" placeholder="kaun karega"></label><label '+lb+'>Target date *<input id="ac_tgt" type="date"></label><button class="primary" onclick="mmsActAdd()">Add Action</button></div>';
@@ -5056,7 +5056,7 @@ const GS_CFG_KEY='htp_mms_gs_cfg_v1',GS_META_KEY='htp_mms_gs_meta_v1';
 // LIVE BACKEND: shared by every browser/device. The token must match Code.gs.
 // Device-local localStorage is still used for cache/state, but the Google Sheet is the shared source.
 const GS_DEFAULT_URL='https://script.google.com/macros/s/AKfycbwhKmOBMXzuIcMOFwFeSyQ32ZBfSOfcc99yv1sfFmElA_TSN6Q8Rf2OSKyUN8I4Bg16/exec';
-const GS_ALL=['pf','pc','dg','mr','mh','pm','bd','spares','critical','tc','cal','utility','airCompressor','machineMaster','users','pmPlan','pmCheck','pmMap', 'audit','meeting','sparePurchase','powerCost','hpsebBill','satReport','satTemp','oxyMV','oxyImp','oxyRep','mttr','amc','amcLog','tus','furnChk','contingency','printFmt','acAct','acDel','acEdit','apprCfg'];
+const GS_ALL=['pf','pc','dg','mr','mh','pm','bd','spares','critical','tc','cal','utility','airCompressor','machineMaster','users','pmPlan','pmCheck','pmMap', 'audit','meeting','sparePurchase','powerCost','hpsebBill','satReport','satTemp','oxyMV','oxyImp','oxyRep','mttr','amc','amcLog','tus','furnChk','contingency','printFmt','acAct','acDel','acEdit','apprCfg','docCtl'];
 // PM Plan schedule / PM checklists / machine-checklist map pehle localStorage me alag save
 // hote the aur kabhi sync hi nahi hote the - isliye ek device ka PM schedule change dusre
 // device par nahi dikhta tha. Ab inhe bhi upar wale GS_ALL engine se hi sync karte hain.
@@ -5116,7 +5116,7 @@ function gsHash(str){let h1=0xdeadbeef,h2=0x41c6ce57;for(let i=0,ch;i<str.length
 function gsClean(r){return JSON.stringify(r,function(k,v){if(k==='evidence')return undefined;if((k==='h'||k==='s'||k==='p')&&this&&typeof this.u==='string'&&this.role!==undefined)return undefined;return v})}
 /* ===== Sheet report tabs: one tab per module (and per month), same columns as the print formats ===== */
 const GS_MONTHLY=['pf','pc','dg','mr','bd','mh','airCompressor','utility','pm','pmPlan','meeting'];
-const GS_MASTERS=['mttr','spares','critical','tc','cal','machineMaster','utility', 'audit','meeting','sparePurchase','powerCost','hpsebBill','satReport','satTemp','oxyMV','oxyImp','oxyRep','amc','amcLog','tus','furnChk','contingency','printFmt','acAct','acDel','acEdit','apprCfg']; 
+const GS_MASTERS=['mttr','spares','critical','tc','cal','machineMaster','utility', 'audit','meeting','sparePurchase','powerCost','hpsebBill','satReport','satTemp','oxyMV','oxyImp','oxyRep','amc','amcLog','tus','furnChk','contingency','printFmt','acAct','acDel','acEdit','apprCfg','docCtl']; 
 const GS_TAB={pf:'PowerFactor',pc:'PowerCut',dg:'DG',mr:'MaintReq',bd:'Breakdown',mh:'MachHistory',airCompressor:'AirCompressor',utility:'UtilityLog',spares:'SpareParts',critical:'CriticalSpares',tc:'Thermocouple',cal:'Calibration',machineMaster:'MachineMaster', audit:'AuditLog',meeting:'MeetingLog',sparePurchase:'SparePurchase',powerCost:'PowerCost',hpsebBill:'HPSEBLBill',pm:'PMCheckSheet',pmPlan:'PMPlan',satReport:'SATReport',satTemp:'SATTemp',oxyMV:'OxyMV',oxyImp:'OxyImpedance',oxyRep:'OxyReplace',amc:'AMCContracts',amcLog:'AMCServiceLog',tus:'TUSSurvey',furnChk:'FurnaceChecks',contingency:'ContingencyPlan',mttr:'MTTR',printFmt:'PrintFormats'};
 const GS_COMPANY='Milestone Gears Ltd. UNIT-7';
 function gsMonthKey(d){d=String(d||'').slice(0,7);return /^\d{4}-\d{2}$/.test(d)?d:''}
@@ -5132,7 +5132,7 @@ function gsRecMonth(mod,r){
  if(mod==='mr')return gsMonthKey(r.pdate||r.mdate||r.hdate)||null;
  if(mod==='utility')return gsIsUtilLog(r)?(gsMonthKey(r.date)||null):'*';
  if(['pf','pc','dg','bd','mh','airCompressor'].indexOf(mod)>=0)return gsMonthKey(r.date)||null;
- if(['spares','critical','tc','cal','machineMaster', 'audit','sparePurchase','powerCost','hpsebBill','satReport','satTemp','oxyMV','oxyImp','oxyRep','mttr','amc','amcLog','tus','furnChk','contingency','printFmt','acAct','acDel','acEdit','apprCfg'].indexOf(mod)>=0)return '*';
+ if(['spares','critical','tc','cal','machineMaster', 'audit','sparePurchase','powerCost','hpsebBill','satReport','satTemp','oxyMV','oxyImp','oxyRep','mttr','amc','amcLog','tus','furnChk','contingency','printFmt','acAct','acDel','acEdit','apprCfg','docCtl'].indexOf(mod)>=0)return '*';
  if(mod==='meeting'||mod==='pm')return gsMonthKey(r.date)||null;
  if(mod==='pmPlan')return r.t==='m'?'*':(gsPmKeyMonth(r.k)||null);
  return null;
@@ -5168,7 +5168,7 @@ function gsReport(mod,mk){
   rep.headers=['','','','','','','From','To','Breakdown Hours','','Spare Parts Used','Qty','',''];
   rep.rows=a.map(function(r,i){return [i+1,fmtDate(r.date),r.machine,r.reason,r.type,r.section,r.from,r.to,num(r.hours).toFixed(2),r.action,r.spare,r.qty,r.attended,r.status]});
   rep.summary=[['TOTAL TIME',a.reduce(function(s,r){return s+num(r.hours)},0).toFixed(2)+' HRS']];
-  rep.footer='FMT-MNT-08, Rev.-00, Date- 18.07.2014';
+  rep.footer=(window.mmsDocTxt||function(x){return x})('FMT-MNT-08, Rev.-00, Date- 18.07.2014');
  }else if(mod==='mr'){
   const a=getMRMonthRecords(label);
   const c=function(s){return a.filter(function(x){return x.status===s}).length};
@@ -5202,24 +5202,24 @@ function gsReport(mod,mk){
   rep.headers=['Sr.No.','Item Code','Part Description','Part Specification','Make','Min Qty','Max Qty','Available Qty','Status','Location'];
   rep.rows=data.spares.map(function(r,i){return [i+1,r.code,r.desc,r.spec,r.make,r.min,r.max,inventoryAvailableQty(r),spareStatus(r),r.loc]});
  }else if(mod==='critical'){
-  rep.title='CRITICAL SPARES LEVEL MONITORING REGISTER (FMT-MNT-11)';rep.footer='FMT-MNT-11 REV NO: 01 DATE: 30.10.2014';
+  rep.title=(window.mmsDocTxt||function(x){return x})('CRITICAL SPARES LEVEL MONITORING REGISTER (FMT-MNT-11)');rep.footer=(window.mmsDocTxt||function(x){return x})('FMT-MNT-11 REV NO: 01 DATE: 30.10.2014');
   rep.headers=['S.No','Item Code','Part Description','Specification','Min Qty','Max Qty','M/c No.','Location','Avail Qty','Status','Remark'];
   rep.rows=data.critical.map(function(r,i){return [i+1,r.code,r.desc,r.spec,r.min,r.max,r.machine,r.loc,r.avail,criticalStatus(r),r.remark]});
  }else if(mod==='tc'){
-  rep.title='THERMOCOUPLE REPLACEMENT PLAN & AUDIT CONTROL (FMT-HT-70)';rep.footer='FMT-MNT-01, REV NO: 01, DATE: 22.04.2022';
+  rep.title=(window.mmsDocTxt||function(x){return x})('THERMOCOUPLE REPLACEMENT PLAN & AUDIT CONTROL (FMT-HT-70)');rep.footer=(window.mmsDocTxt||function(x){return x})('FMT-MNT-01, REV NO: 01, DATE: 22.04.2022','tc');
   rep.headers=['Sl.No.','Furnace No.','Location','Type','Sr.No/ID','Replacement Frequency','Installation Date','Replacement Date','Status'];
   rep.rows=data.tc.map(function(r,i){return [i+1,r.furnace,r.loc,r.type,r.srid,r.freq,fmtDate(r.inst),r.due,tcEffStatus(r)]});
  }else if(mod==='cal'){
-  rep.title='PERIODIC CALIBRATION PLAN OF HT INSTRUMENTS (FMT-HT-12)';
+  rep.title=(window.mmsDocTxt||function(x){return x})('PERIODIC CALIBRATION PLAN OF HT INSTRUMENTS (FMT-HT-12)');
   rep.headers=['Sr.No.','Instruments Name','Make','Inst ID No.','Range','L.C','Location','Cali. Date','Due Date'];
   rep.rows=data.cal.map(function(r,i){return [i+1,r.name,r.make,r.idno,r.range,r.lc,r.location,fmtDate(r.date),fmtDate(r.duedate)]});
  }else if(mod==='machineMaster'){
-  rep.title='MASTER LIST OF EQUIPMENTS / MACHINES';rep.footer='FMT-MNT-01, REV NO: 01, DATE: 22.04.2022';
+  rep.title='MASTER LIST OF EQUIPMENTS / MACHINES';rep.footer=(window.mmsDocTxt||function(x){return x})('FMT-MNT-01, REV NO: 01, DATE: 22.04.2022');
   rep.headers=['S. No.','Department','Machine Number','Machine Name','Machine Grade','Make / Manufacturer','Cost Center'];
   rep.rows=getSortedMachinesForDisplay().map(function(m,i){return [i+1,m.department,m.machineNumber,m.machineName,m.grade,m.make,m.costCenter]});
  }else if(mod==='pm'){
   const a=data.pm.filter(inMonth).sort(function(x,y){return (x.date||'').localeCompare(y.date||'')});
-  rep.title='PREVENTIVE MAINTENANCE CHECK SHEET';rep.sub='MONTH: '+label;rep.footer='FMT-MNT-04 REV NO: 00 DATE: 18.07.2014';
+  rep.title='PREVENTIVE MAINTENANCE CHECK SHEET';rep.sub='MONTH: '+label;rep.footer=(window.mmsDocTxt||function(x){return x})('FMT-MNT-04 REV NO: 00 DATE: 18.07.2014');
   rep.headers=['Done Date','M/C Name','M/C No.','Start Time','End Time','S.No.','Freq.','Activity','Standard','Observation','Work Done','Remark','Spare Part Used','Checked By','Verified By'];
   a.forEach(function(r){
    const crow=normalizePMRows(r.checklistRows||(PM_CHECKLISTS[r.template]||{}).rows||[]);
@@ -5234,7 +5234,7 @@ function gsReport(mod,mk){
   const key=pmPlanMonthKey(label);
   const ms=pmPlanMachines().map(function(m){const d=pmPlanData[key+'__'+m.machineNumber]||{};return {m:m,d:d,sched:pmScheduledMonths(m).indexOf(label)>=0}}).filter(function(x){return x.sched||x.d.planned||x.d.actual});
   const cnt={};
-  rep.title='PREVENTIVE MAINTENANCE MONTHLY WORK REGISTER';rep.sub='MONTH: '+label;rep.footer='FMT-MNT-03-, REV NO: 00 DATE :- 18.07.2014';
+  rep.title='PREVENTIVE MAINTENANCE MONTHLY WORK REGISTER';rep.sub='MONTH: '+label;rep.footer=(window.mmsDocTxt||function(x){return x})('FMT-MNT-03-, REV NO: 00 DATE :- 18.07.2014');
   rep.headers=['Sr.','Machine','Machine Name','Frequency','Planned','Actual','Next PM','Status','Technician','Remarks'];
   rep.rows=ms.map(function(x,i){
    const planned=x.d.planned||(x.sched&&!x.d.actual?pmDueDate(label,pmMasterGet(x.m).dueDay):'');
@@ -9772,6 +9772,7 @@ function xlCapture(code){
   try{(new Function(code)).call(window)}catch(e){console.error('xl capture',e)}
   finally{window.open=oo;window.print=op;window.alert=oa;window.confirm=oc}
   try{if(html&&window.FieldManager&&FieldManager.xform)html=FieldManager.xform(html)}catch(e){}
+  try{if(html&&window.mmsDocApply)html=window.mmsDocApply(html,'html')}catch(e){}
   if(!html){
     var m=/^\s*([A-Za-z0-9_]+)/.exec(code),cid=m&&XL_CONT[m[1]],el=cid&&document.getElementById(cid);
     if(el)html=el.innerHTML;
@@ -11554,7 +11555,7 @@ html body main.wrap .dashboard-footer span{color:#4a5a69!important}
     ifr.style.cssText = 'position:fixed;left:-20000px;top:0;width:' + CW + 'px;height:1000px;border:0;visibility:hidden';
     document.body.appendChild(ifr);
     var d = ifr.contentDocument; d.open();
-    d.write('<!doctype html><html><head><meta charset="utf-8"><style>body{margin:0;background:#fff}' + pdfCss() + '</style></head><body><div class="rp">' + build(true) + '</div></body></html>'); d.close();
+    var __h = '<!doctype html><html><head><meta charset="utf-8"><style>body{margin:0;background:#fff}' + pdfCss() + '</style></head><body><div class="rp">' + build(true) + '</div></body></html>'; try { if (window.mmsDocApply) __h = window.mmsDocApply(__h, 'html'); } catch (e) { } d.write(__h); d.close();
     var imgs = Array.prototype.slice.call(d.images);
     return Promise.all(imgs.map(function (im) { return im.complete ? 0 : new Promise(function (r) { im.onload = im.onerror = r; }); })).then(function () {
       var root = d.querySelector('.rp'), pages = [], y0 = 0;
@@ -13008,7 +13009,7 @@ setInterval(sync,2500);
   }
   function applyAll() {
     busy = true;
-    try { adminBars(); LIST.forEach(function (m) { try { injectForm(m[0]); applyTables(m[0]); } catch (e) { console.warn('FM', m[0], e); } }); } finally { setTimeout(function () { busy = false; }, 0); }
+    try { adminBars(); LIST.forEach(function (m) { try { injectForm(m[0]); applyTables(m[0]); } catch (e) { console.warn('FM', m[0], e); } }); try { if (window.FM2 && FM2.post) FM2.post(); } catch (e) { console.warn('FM2', e); } } finally { setTimeout(function () { busy = false; }, 0); }
   }
 
   /* ---------- cell edit (Machine Master / PM Master / PM Monthly) ---------- */
@@ -13058,7 +13059,7 @@ setInterval(sync,2500);
     if (/print|excel|xlsx|xl[A-Z_]|export|download/i.test(oc + ' ' + b.textContent)) ctx = { t: Date.now(), items: snapCtx(sec.id) }; else ctx = null;
     for (var q = 0; q < ids.length; q++) {
       var k = ids[q], M = MOD[k]; if (M.cell) continue;
-      var c = mcfg(k, false); if (!c.custom.length) continue;
+      var c = mcfg(k, false); if (!c.custom.length && !(window.FM2 && FM2.has && FM2.has(k))) continue;
       if (M.saveRe.test(oc) && !b.closest('.cf-block')) { hookSave(ev, k, c); return; }
       if (M.editRe.test(oc)) { hookEdit(k, parseRef(M, oc)); return; }
       if (M.clearRe.test(oc)) { setTimeout(function () { clearCF(k); delete activeEdit[k]; }, 20); return; }
@@ -13071,6 +13072,8 @@ setInterval(sync,2500);
       if (d.req && !v && !missing) missing = d;
       if (v && d.type === 'number' && !bad) bad = numErr(d, v);
     });
+    if (window.FM2 && FM2.check) { var em = FM2.check(k); missing = null; bad = ''; if (em) { if (em !== '\u0001') alert(em); ev.stopPropagation(); ev.preventDefault(); return; } }
+    if (!c.custom.length) return;
     if (missing) { alert('"' + missing.label + '" is required.'); ev.stopPropagation(); ev.preventDefault(); return; }
     if (bad) { alert(bad); ev.stopPropagation(); ev.preventDefault(); return; }
     var before = new Map(); (M.arr() || []).forEach(function (r) { before.set(r, JSON.stringify(r)); });
@@ -13195,6 +13198,7 @@ setInterval(sync,2500);
   }
   function openMgr(k) {
     if (!isAdmin()) return alert('This option is for Admin only.');
+    if (window.FM2 && FM2.open) return FM2.open(k);
     cur = (k && MOD[k] && secOf(k)) ? k : (LIST.filter(function (m) { return $(m[2]); })[0] || [])[0];
     editId = null; ensureModal().classList.add('open'); renderMgr();
   }
@@ -13352,6 +13356,7 @@ setInterval(sync,2500);
   setTimeout(boot, 800); setTimeout(boot, 3000);
   setInterval(function () { var s = sig(); toolsBox(); if (s !== lastSig) { lastSig = s; applyAll(); } else adminBars(); }, 4000);
   document.addEventListener('click', function (e) { if (e.target.closest && e.target.closest('.tab,.module-tile,.nav-group button')) setTimeout(applyAll, 150); }, false);
+  window.__FMI = { mcfg: mcfg, getRec: getRec, MOD: MOD, LIST: LIST, secOf: secOf, keysOfSec: keysOfSec, builtinFields: builtinFields, colList: colList, tablesOf: tablesOf, saveCfg: saveCfg, guard: guard, fid: fid, dispLabel: dispLabel, typeName: typeName, applyAll: applyAll, activeEdit: activeEdit, isAdmin: isAdmin };
   window.FieldManager = { open: openMgr, apply: applyAll, xform: xform };
 })();
 </script>
@@ -15177,5 +15182,668 @@ var _gs=window.gsStatus;
 if(typeof _gs==='function')window.gsStatus=function(msg,bad){try{if(!bad&&/Synced/.test(String(msg))){window.__gsDirty=false;window.__gsRej=0}}catch(e){}return _gs.apply(this,arguments)};
 })();
 </script>
+<script>
+/* ===== Document Control: Admin controlled-document Form No. / Rev / Date edit kar sakta hai ===== */
+(function () {
+  var KEY = 'htp_mms_docs_v1', cache = null, cacheRaw = null, obs = null, tmr = null, pend = [];
+  var HQK = { satReport: 'FR-HT-42', satTemp: 'FR-HT-39', oxyMV: 'FR-HT-40', oxyImp: 'FR-HT-41', oxyRep: 'FMT-HT-71', tus: 'FR-HT-43', furnChk: 'FR-HT-44', contingency: 'FMT-HT-45', amc: 'AMC-01', amcLog: 'AMC-01' };
+  var BAN = { 'FMT-MNT-07': '#mr', 'FMT-MNT-BD-01': '#bd', 'FMT-MNT-PM-PLAN': '#pmPlan', 'FMT-MNT-04': '#pm', 'FMT-MNT-05': '#mh' };
+  var SKIP = { SCRIPT: 1, STYLE: 1, TEXTAREA: 1, INPUT: 1, NOSCRIPT: 1 };
+  function DOCS() { return window.MMS_DOCS || []; }
+  function H(x) { return String(x == null ? '' : x).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function RX(s) { return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+  /* Edits ab data.docCtl[0] = {id:'cfg', edits:{...}} me hain (Google Sheet sync se sab devices par). Purani local key (KEY) sirf fallback. */
+  var cacheRec = null, cacheAt = null;
+  function cfgRec() {
+    try { var a = data.docCtl; return (Array.isArray(a) && a[0] && a[0].edits && typeof a[0].edits === 'object') ? a[0] : null; } catch (e) { return null; }
+  }
+  function edits() {
+    var rec = cfgRec();
+    if (rec) {
+      if (rec === cacheRec && rec.updatedAt === cacheAt && cache) return cache;
+      cacheRec = rec; cacheAt = rec.updatedAt; cache = rec.edits; cacheRaw = null; return cache;
+    }
+    var raw = null; try { raw = localStorage.getItem(KEY); } catch (e) { }
+    if (raw === cacheRaw && cache && !cacheRec) return cache;
+    cacheRec = null; cacheRaw = raw; try { cache = JSON.parse(raw || '{}') || {}; } catch (e) { cache = {}; }
+    return cache;
+  }
+  function hasEdits() { return Object.keys(edits()).length > 0; }
+  function def(no) { for (var i = 0; i < DOCS().length; i++) if (DOCS()[i][0] === no) return DOCS()[i]; return null; }
+  function cur(i) {
+    var d = DOCS()[i], e = edits()[d[0]];
+    return e ? [e.no || d[0], e.name || d[1], e.rev === undefined ? d[2] : e.rev, e.date === undefined ? d[3] : e.date] : d.slice();
+  }
+  function fmt(orig, no, rev, date) {
+    rev = String(rev || '').trim().replace(/^rev[\s.:\-]*(no[\s.:\-]*)?/i, ''); date = String(date || '').trim();
+    if (/CHECK/.test(date)) date = '';
+    if (/^FMT-MNT/.test(orig)) return no + ' REV NO: ' + (rev || '-') + (date ? ' DATE: ' + date : '');
+    return no + (rev && rev !== '-' ? ' / Rev-' + rev : '') + (date ? ' / Date-' + date : '');
+  }
+  var TCF = 'FMT-MNT-01, REV NO: 01, DATE: 22.04.2022';
+  function tcFooter() {
+    var e = edits()['FMT-HT-70'], d = def('FMT-HT-70'); if (!e || !d) return '';
+    return fmt('FMT-HT-70', e.no || 'FMT-HT-70', e.rev === undefined ? d[2] : e.rev, e.date === undefined ? d[3] : e.date);
+  }
+  /* Google Sheet report (rep.title / rep.footer) ke liye text helper */
+  window.mmsDocTxt = function (s, kind) {
+    try { if (kind === 'tc') return tcFooter() || s; return apply(s, 'text'); } catch (e) { return s; }
+  };
+  function apply(s, mode) {
+    if (typeof s !== 'string' || s.length < 6) return s;
+    var E = edits(), ks = Object.keys(E);
+    if (!ks.length || !/(?:FMT|FR|AMC)-/.test(s)) return s;
+    var out = s, marks = [], esc = mode === 'html' ? H : function (x) { return x; };
+    /* Thermocouple print ke footer par default FMT-MNT-01 chhapta hai: use Master List (FMT-MNT-01) ke edit se na badlo,
+       sirf FMT-HT-70 ka edit lagao */
+    if (out.indexOf(TCF) > -1 && /THERMOCOUPLE REPLACEMENT PLAN/i.test(out)) {
+      out = out.split(TCF).join('\u0001TCF\u0002'); marks.push(['\u0001TCF\u0002', esc(tcFooter() || TCF)]);
+    }
+    ks.forEach(function (orig, idx) {
+      var d = def(orig); if (!d) return;
+      var e = E[orig], no = e.no || orig, rev = e.rev === undefined ? d[2] : e.rev, date = e.date === undefined ? d[3] : e.date;
+      var q = RX(orig), pf = '\u0001F' + idx + '\u0002', pt = '\u0001T' + idx + '\u0002';
+      marks.push([pf, esc(fmt(orig, no, rev, date))], [pt, esc(no)]);
+      out = out.replace(new RegExp(q + '\\s*/\\s*Doc\\. no\\. Quality se assign karwao\\s*/\\s*REV-\\d+', 'g'), pf);
+      out = out.replace(new RegExp(q + '[\\s,.\\-:/]*rev[^<>\\n\'"`]*', 'gi'), pf);
+      out = out.replace(new RegExp(q + '(?![A-Za-z0-9])', 'g'), pt);
+    });
+    marks.forEach(function (m) { out = out.split(m[0]).join(m[1]); });
+    return out;
+  }
+  function hq() {
+    try {
+      Object.keys(HQK).forEach(function (k) {
+        var c = HQ_CFG[k]; if (!c) return;
+        if (c._d0 === undefined) c._d0 = c.docNo;
+        var o = HQK[k], e = edits()[o], d = def(o);
+        c.docNo = (e && d) ? fmt(o, e.no || o, e.rev === undefined ? d[2] : e.rev, e.date === undefined ? d[3] : e.date) : c._d0;
+      });
+    } catch (x) { }
+  }
+  function cs(x) { return String(x).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/[\r\n]+/g, ' '); }
+  function css() {
+    var E = edits(), t = '';
+    Object.keys(BAN).forEach(function (orig) {
+      var e = E[orig], d = def(orig); if (!e || !d) return;
+      var no = e.no || orig, name = e.name || d[1], rev = e.rev === undefined ? d[2] : e.rev, date = e.date === undefined ? d[3] : e.date;
+      var p = ['FORM NO.: ' + no, 'DOCUMENT: ' + String(name).toUpperCase()];
+      if (rev && rev !== '-') p.push('REV: ' + rev);
+      if (date && !/CHECK/.test(date)) p.push(/controlled/i.test(date) ? String(date).toUpperCase() : 'DATE: ' + date);
+      t += BAN[orig] + " .card:first-child:before," + BAN[orig] + " .fm-bar+.card:before{content:'" + cs(p.join('   |   ')) + "'}\n";
+    });
+    var st = document.getElementById('mmsDocCss');
+    if (!st) { st = document.createElement('style'); st.id = 'mmsDocCss'; (document.head || document.documentElement).appendChild(st); }
+    st.textContent = t;
+  }
+  function fixText(n) {
+    var base = n.__mmsD0 !== undefined ? n.__mmsD0 : n.nodeValue;
+    if (!base || base.length < 6 || !/(?:FMT|FR|AMC)-/.test(base)) return;
+    var p = n.parentNode; if (p && SKIP[p.nodeName]) return;
+    if (p && p.closest && p.closest('#mmsAC,.up1-ov')) return;
+    var w = apply(base, 'text');
+    if (w !== n.nodeValue) { if (n.__mmsD0 === undefined) n.__mmsD0 = base; n.nodeValue = w; }
+  }
+  function walk(root) {
+    if (!root) return;
+    if (root.nodeType === 3) { fixText(root); return; }
+    if (root.nodeType !== 1 || SKIP[root.nodeName]) return;
+    var tw = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null), n;
+    while ((n = tw.nextNode())) fixText(n);
+  }
+  function startObs() {
+    if (obs || !window.MutationObserver || !document.body) return;
+    obs = new MutationObserver(function (ms) {
+      if (!hasEdits()) return;
+      ms.forEach(function (m) { for (var i = 0; i < m.addedNodes.length; i++) pend.push(m.addedNodes[i]); });
+      if (!tmr) tmr = setTimeout(function () {
+        tmr = null; var a = pend; pend = [];
+        try { if (a.length > 400) walk(document.body); else a.forEach(function (n) { if (n.isConnected !== false) walk(n); }); } catch (e) { }
+      }, 300);
+    });
+    obs.observe(document.body, { childList: true, subtree: true });
+  }
+  function all(force) {
+    hq(); css();
+    if (hasEdits()) startObs();
+    if (force || hasEdits()) walk(document.body);
+  }
+  /* doosre device se sync hokar naya number aaye (ya reset ho) to bhi header/strip/print me lagu ho */
+  var lastSig = '';
+  setInterval(function () { try { var g = JSON.stringify(edits()); if (g !== lastSig) { lastSig = g; all(true); } } catch (e) { } }, 4000);
+  window.mmsDocApplyAll = all;
+  window.mmsDocApply = apply;
+
+  /* print windows: naya number / rev / date har print me */
+  var _open = window.open;
+  window.open = function () {
+    var w = _open.apply(window, arguments);
+    try {
+      if (w && w.document && !w.__mmsDocW) {
+        w.__mmsDocW = 1; var dw = w.document.write;
+        w.document.write = function (h) { if (typeof h === 'string') h = apply(h, 'html'); return dw.call(w.document, h); };
+      }
+    } catch (e) { }
+    return w;
+  };
+
+  /* Audit Center > Document List (Admin edit) */
+  window.mmsDocsHtml = function (adm, th, td, E) {
+    var rows = DOCS().map(function (d, i) {
+      var c = cur(i), ed = !!edits()[d[0]];
+      return '<tr' + (ed ? ' style="background:#ecfdf5"' : '') + '>' + c.map(function (v, k) {
+        return '<td ' + td + (k === 3 && /CHECK/.test(v) ? ' style="color:#b91c1c;font-weight:700;border:1px solid #ddd;padding:4px 6px"' : '') + '>' + E(v) + (k === 0 && ed ? ' <small style="color:#047857">✔ edited</small>' : '') + '</td>';
+      }).join('') + (adm ? '<td ' + td + '><button class="secondary" onclick="mmsDocEdit(' + i + ')">✏ Edit</button>' + (ed ? ' <button class="secondary" onclick="mmsDocReset(' + i + ')">↺</button>' : '') + '</td>' : '') + '</tr>';
+    }).join('');
+    return '<table style="border-collapse:collapse;width:100%"><thead><tr><th ' + th + '>Form No.</th><th ' + th + '>Document</th><th ' + th + '>Rev</th><th ' + th + '>Date</th>' + (adm ? '<th ' + th + '></th>' : '') + '</tr></thead><tbody>' + rows + '</tbody></table>' +
+      '<p style="font-size:11px;color:#555">' + (adm ? 'Admin: ✏ Edit se Form No. / Rev / Date badlo - form ke upar wali strip, form header aur print footer me naya number aa jata hai. ' : '') + 'Lal "CHECK" wali rows ko controlled copy se match karke sahi karo. Badlav Google Sheet sync se sab devices par pahunchta hai (sirf Admin badal sakta hai).</p>';
+  };
+  function save(E, orig, msg) {
+    if (window.__auditorView) return alert('Auditor View is read-only.');
+    var s = mmsSession() || {};
+    try {
+      var rec = { id: 'cfg', edits: E, updatedBy: s.u || '', updatedAt: new Date().toISOString() };
+      if (!Array.isArray(data.docCtl)) data.docCtl = [];
+      data.docCtl.splice(0, data.docCtl.length, rec);
+      persist('docCtl');                       /* localStorage + Google Sheet sync (module 'docCtl', sirf Admin likh sakta hai) */
+      try { localStorage.removeItem(KEY); } catch (e) { }
+    } catch (e) { return alert('Save nahi ho paya: ' + e.message); }
+    try { window.audit('SAVE', 'docs', (s.u || '-') + ' ' + msg); } catch (e) { }
+    lastSig = JSON.stringify(edits());
+    all(true);
+    try { mmsACRender('docs'); } catch (e) { }
+  }
+  window.mmsDocReset = function (i) {
+    var s = null; try { s = mmsSession(); } catch (e) { }
+    if (!s || s.role !== 'Admin') return alert('Only Admin can edit controlled document numbers.');
+    var d = DOCS()[i], E = Object.assign({}, edits()); delete E[d[0]];
+    save(E, d[0], 'reset controlled doc ' + d[0] + ' to default');
+  };
+  window.mmsDocEdit = function (i) {
+    var s = null; try { s = mmsSession(); } catch (e) { }
+    if (!s || s.role !== 'Admin') return alert('Only Admin can edit controlled document numbers.');
+    var d = DOCS()[i], c = cur(i), ov = document.createElement('div'); ov.className = 'up1-ov';
+    var inp = 'style="width:100%;box-sizing:border-box;padding:7px;margin:3px 0 8px;border:1px solid #94a3b8;border-radius:8px;font:inherit"';
+    ov.innerHTML = '<div class="up1-box"><h3>✏ Controlled document edit</h3><div style="font-size:12px;color:#475569;margin-bottom:6px">Original: <b>' + H(d[0]) + '</b> - ' + H(d[1]) + '</div>' +
+      '<label style="font-size:12px;font-weight:700">Form No.</label><input id="mmsDoc_no" ' + inp + ' maxlength="40" value="' + H(c[0]) + '">' +
+      '<label style="font-size:12px;font-weight:700">Document name</label><input id="mmsDoc_name" ' + inp + ' maxlength="120" value="' + H(c[1]) + '">' +
+      '<label style="font-size:12px;font-weight:700">Rev (jaise 00, 01, 02)</label><input id="mmsDoc_rev" ' + inp + ' maxlength="20" value="' + H(c[2]) + '">' +
+      '<label style="font-size:12px;font-weight:700">Date (jaise 22.04.2022)</label><input id="mmsDoc_date" ' + inp + ' maxlength="40" value="' + H(/CHECK/.test(c[3]) ? '' : c[3]) + '">' +
+      '<div class="up1-row"><button class="sec">Cancel</button><button>Save</button></div></div>';
+    document.body.appendChild(ov);
+    var b = ov.querySelectorAll('button'), v = function (k) { return String(ov.querySelector('#mmsDoc_' + k).value || '').trim(); };
+    b[0].onclick = function () { ov.remove(); };
+    b[1].onclick = function () {
+      var no = v('no'), name = v('name'), rev = v('rev'), date = v('date');
+      if (!/^[A-Za-z0-9][A-Za-z0-9 \-\/._]{1,39}$/.test(no)) return alert('Form No. sahi likho (sirf letters, numbers aur - / . _ chalte hain).');
+      if (!name) return alert('Document name zaroori hai.');
+      if (DOCS().some(function (x, j) { return j !== i && cur(j)[0] === no; })) return alert('Ye Form No. kisi aur document ke liye already hai.');
+      var E = Object.assign({}, edits());
+      if (no === d[0] && name === d[1] && rev === d[2] && date === d[3]) delete E[d[0]]; else E[d[0]] = { no: no, name: name, rev: rev, date: date };
+      ov.remove();
+      save(E, d[0], 'changed controlled doc ' + d[0] + ' -> ' + no + ' Rev ' + rev + ' Date ' + date);
+      alert('Saved. Naya number print aur form header me lagu ho gaya. Sync ke baad baaki devices par bhi aa jayega.');
+    };
+  };
+  setTimeout(function () { all(false); }, 1200);
+  setTimeout(function () { all(false); }, 4000);
+})();
+</script>
+<script>
+/* ===== FIELD MANAGER 2 (Admin): field order + required, auto-calculate, rules, role-wise access, naya manager screen =====
+   Purani Field Manager config (data.printFmt '_fieldcfg') hi use hoti hai; nayi settings usi record me mods[k].bset / border / custom[].* me jati hain -> Sheet sync se sab devices par. */
+(function () {
+  'use strict';
+  if (window.FM2) return;
+  var $ = function (id) { return document.getElementById(id); };
+  var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+  var norm = function (s) { return String(s == null ? '' : s).replace(/\s+/g, ' ').trim().toLowerCase(); };
+  var I = function () { return window.__FMI; };
+
+  /* ---------- formula engine (no eval) ---------- */
+  function evalExpr(src, ref, dry) {
+    var re = /\s*(?:(\d+\.?\d*|\.\d+)|\{([^}]+)\}|"([^"]*)"|([A-Za-z]+)|(>=|<=|==|!=|[-+*\/%(),<>]))/g, T = [], m, last = 0;
+    src = String(src || '');
+    while (last < src.length) {
+      re.lastIndex = last; m = re.exec(src);
+      if (!m || m.index !== last) { if (/^\s*$/.test(src.slice(last))) break; throw new Error('bad'); }
+      last = re.lastIndex;
+      if (m[1] !== undefined) T.push({ t: 'n', v: parseFloat(m[1]) }); else if (m[2] !== undefined) T.push({ t: 'r', v: m[2] });
+      else if (m[3] !== undefined) T.push({ t: 's', v: m[3] }); else if (m[4] !== undefined) T.push({ t: 'f', v: m[4].toUpperCase() }); else T.push({ t: 'o', v: m[5] });
+    }
+    var p = 0, isO = function (v) { var t = T[p]; return !!(t && t.t === 'o' && t.v === v); };
+    var num = function (x) { if (typeof x !== 'number' || !isFinite(x)) throw new Error('nan'); return x; };
+    function cmp() {
+      var a = add(), t = T[p];
+      if (t && t.t === 'o' && /^(>=|<=|==|!=|>|<)$/.test(t.v)) {
+        p++; var b = add(), x = a, y = b;
+        if (!(typeof x === 'number' && typeof y === 'number')) { x = String(x == null ? '' : x).toLowerCase(); y = String(y == null ? '' : y).toLowerCase(); }
+        switch (t.v) { case '>': return x > y; case '<': return x < y; case '>=': return x >= y; case '<=': return x <= y; case '==': return x === y; default: return x !== y; }
+      }
+      return a;
+    }
+    function add() { var a = mul(); while (isO('+') || isO('-')) { var o = T[p++].v, b = mul(); if (a === null || b === null) a = null; else { a = num(a); b = num(b); a = o === '+' ? a + b : a - b; } } return a; }
+    function mul() { var a = un(); while (isO('*') || isO('/') || isO('%')) { var o = T[p++].v, b = un(); if (a === null || b === null) a = null; else { a = num(a); b = num(b); if (o === '*') a = a * b; else { if (b === 0) { if (dry) { a = 0; continue; } throw new Error('div0'); } a = o === '/' ? a / b : a % b; } } } return a; }
+    function un() { if (isO('-')) { p++; var v = un(); return v === null ? null : -num(v); } return pr(); }
+    function pr() {
+      var t = T[p++]; if (!t) throw new Error('end');
+      if (t.t === 'n' || t.t === 's') return t.v;
+      if (t.t === 'r') return ref(t.v);
+      if (t.t === 'o' && t.v === '(') { var v = cmp(); if (!isO(')')) throw new Error('close'); p++; return v; }
+      if (t.t === 'f') {
+        if (!isO('(')) throw new Error('open'); p++; var a = [];
+        if (!isO(')')) { a.push(cmp()); while (isO(',')) { p++; a.push(cmp()); } }
+        if (!isO(')')) throw new Error('close'); p++; return fn(t.v, a);
+      }
+      throw new Error('tok');
+    }
+    function dnum(s) { var q = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s)); return q ? Date.UTC(+q[1], +q[2] - 1, +q[3]) / 864e5 : null; }
+    function tnum(s) { var q = /^(\d{1,2}):(\d{2})$/.exec(String(s)); return q ? (+q[1]) + (+q[2]) / 60 : null; }
+    function fn(n, a) {
+      var anyNull = a.some(function (x) { return x === null; });
+      switch (n) {
+        case 'IF': return a[0] ? a[1] : a[2];
+        case 'SUM': return a.reduce(function (s, x) { return s + (typeof x === 'number' ? x : 0); }, 0);
+        case 'AVG': var q = a.filter(function (x) { return typeof x === 'number'; }); return q.length ? q.reduce(function (s, x) { return s + x; }, 0) / q.length : null;
+        case 'ROUND': if (anyNull) return null; var d = a.length > 1 ? num(a[1]) : 0, f = Math.pow(10, d); return Math.round(num(a[0]) * f) / f;
+        case 'ABS': if (anyNull) return null; return Math.abs(num(a[0]));
+        case 'MIN': if (anyNull) return null; return Math.min.apply(null, a.map(num));
+        case 'MAX': if (anyNull) return null; return Math.max.apply(null, a.map(num));
+        case 'DAYS': if (anyNull) return null; var x = dnum(a[0]), y = dnum(a[1]); return (x === null || y === null) ? null : Math.round(y - x);
+        case 'HRS': if (anyNull) return null; var h1 = tnum(a[0]), h2 = tnum(a[1]); if (h1 === null || h2 === null) return null; var df = h2 - h1; if (df < 0) df += 24; return Math.round(df * 100) / 100;
+      }
+      throw new Error('fn');
+    }
+    var r = cmp(); if (p < T.length) throw new Error('extra'); return r;
+  }
+  function fmtRes(r, dec) {
+    if (typeof r === 'number' && isFinite(r)) { var d = (dec === '' || dec == null || isNaN(Number(dec))) ? 2 : Math.max(0, Math.min(6, Number(dec))); return String(+r.toFixed(d)); }
+    return typeof r === 'string' ? r : '';
+  }
+
+  /* ---------- helpers ---------- */
+  function role() { try { var s = mmsSession(); return (s && s.role) || ''; } catch (e) { return ''; } }
+  function roleList() { var set = ['Technician', 'Operator', 'Supervisor']; try { users().forEach(function (u) { if (u && u.role && u.role !== 'Admin' && set.indexOf(u.role) < 0) set.push(String(u.role)); }); } catch (e) { } return set; }
+  function C(k) { return I().mcfg(k, false); }
+  function S(k, id) { var c = C(k), i; for (i = 0; i < c.custom.length; i++) if (c.custom[i].id === id) return c.custom[i]; return (c.bset && c.bset[id]) || {}; }
+  function el(k, id) { var c = C(k), isC = c.custom.some(function (d) { return d.id === id; }); return isC ? $(I().fid(k, id)) : $(id); }
+  function wr(e) { return e ? (e.closest('.field') || e.parentElement) : null; }
+  function val(k, id) { var e = el(k, id); return e ? String(e.value == null ? '' : e.value).trim() : ''; }
+  function condOk(k, cd) {
+    if (!cd || !cd.f) return true; var cur = norm(val(k, cd.f)), want = String(cd.v == null ? '' : cd.v).split('|').map(norm).filter(Boolean);
+    return want.length ? want.indexOf(cur) >= 0 : cur !== '';
+  }
+  function roleMode(k, id) { var r = role(); if (!r || r === 'Admin') return 'edit'; var a = S(k, id).acc; return (a && a[r]) || 'edit'; }
+  function builtinOrdered(k) {
+    var c = C(k), ord = c.border || [], bl = I().builtinFields(k).map(function (f, i) { return { f: f, i: i }; });
+    bl.sort(function (a, b) { var x = ord.indexOf(a.f.id), y = ord.indexOf(b.f.id); if (x < 0) x = 1e4 + a.i; if (y < 0) y = 1e4 + b.i; return x - y; });
+    return bl.map(function (o) { return { id: o.f.id, label: c.labels[o.f.id] || o.f.label, cust: false, can: o.f.can }; });
+  }
+  function allFields(k) {
+    var c = C(k), out = builtinOrdered(k);
+    c.custom.forEach(function (d) { out.push({ id: d.id, label: d.label, cust: true, d: d }); });
+    return out;
+  }
+  function kind(k, f) {
+    if (f.cust) return f.d.type === 'calc' ? 'num' : (f.d.type === 'number' ? 'num' : f.d.type === 'date' ? 'date' : (f.d.type === 'text' || f.d.type === 'textarea') ? 'text' : '');
+    var e = $(f.id); if (!e) return ''; if (e.tagName === 'SELECT') return ''; if (e.type === 'number') return 'num'; if (e.type === 'date') return 'date'; if (e.type === 'time') return ''; return 'text';
+  }
+  function toIds(k, txt) {
+    var fs = allFields(k), bad = null;
+    var out = String(txt || '').replace(/\[([^\]]+)\]/g, function (_, nm) { var f = fs.filter(function (x) { return norm(x.label) === norm(nm); })[0]; if (!f) { bad = nm; return ''; } return '{' + f.id + '}'; });
+    return { s: out, bad: bad };
+  }
+  function toLabels(k, f) { var fs = allFields(k); return String(f || '').replace(/\{([^}]+)\}/g, function (_, id) { var x = fs.filter(function (q) { return q.id === id; })[0]; return '[' + (x ? x.label : '?') + ']'; }); }
+
+  /* ---------- live form behaviour: calc / show-if / warn / order / role ---------- */
+  function getRef(k) { return function (id) { var e = el(k, id); if (!e) return null; var v = String(e.value == null ? '' : e.value).trim(); if (v === '') return null; if (e.type === 'date' || e.type === 'time') return v; return isFinite(Number(v)) ? Number(v) : v; }; }
+  function calcMod(k) {
+    var c = C(k), cs = c.custom.filter(function (d) { return d.type === 'calc'; }); if (!cs.length) return;
+    for (var pass = 0; pass < 2; pass++) cs.forEach(function (d) {
+      var e = $(I().fid(k, d.id)); if (!e) return; e.readOnly = true; e.setAttribute('data-fm2calc', '1');
+      var v = ''; try { v = fmtRes(evalExpr(d.formula, getRef(k)), d.dec); } catch (x) { v = ''; }
+      if (e.value !== v) e.value = v;
+    });
+  }
+  function warnOf(s, v) {
+    if (v === '' || !isFinite(Number(v))) return ''; var n = Number(v);
+    if (s.warnAbove !== undefined && s.warnAbove !== '' && n > Number(s.warnAbove)) return 'above ' + s.warnAbove;
+    if (s.warnBelow !== undefined && s.warnBelow !== '' && n < Number(s.warnBelow)) return 'below ' + s.warnBelow;
+    return '';
+  }
+  function liveMod(k) {
+    var fs = allFields(k);
+    for (var pass = 0; pass < 2; pass++) fs.forEach(function (f) {
+      var s = S(k, f.id), e = el(k, f.id), w = wr(e); if (!w) return;
+      if (s.showIf && s.showIf.f) w.classList.toggle('fm2-ch', !condOk(k, s.showIf)); else w.classList.remove('fm2-ch');
+    });
+    calcMod(k);
+    fs.forEach(function (f) { var s = S(k, f.id), w = wr(el(k, f.id)); if (w) w.classList.toggle('fm2-warn', !!warnOf(s, val(k, f.id))); });
+  }
+  function setRO(e, on) {
+    if (!e) return; var tag = e.tagName === 'SELECT' || e.type === 'date' || e.type === 'time' || e.type === 'checkbox';
+    if (on) { if (!e.hasAttribute('data-fm2ro')) { e.setAttribute('data-fm2ro', tag ? 'd' : 'r'); if (tag) e.disabled = true; else e.readOnly = true; } }
+    else if (e.hasAttribute('data-fm2ro')) { if (e.getAttribute('data-fm2ro') === 'd') e.disabled = false; else e.readOnly = false; e.removeAttribute('data-fm2ro'); }
+  }
+  function postMod(k) {
+    var c = C(k), ord = c.border || [];
+    allFields(k).forEach(function (f) {
+      var e = el(k, f.id), w = wr(e); if (!w) return; var s = S(k, f.id);
+      if (!f.cust) {
+        var ix = ord.indexOf(f.id);
+        if (ix >= 0) { w.style.order = ix + 1; w.setAttribute('data-fm2o', '1'); } else if (w.hasAttribute('data-fm2o')) { w.style.order = ''; w.removeAttribute('data-fm2o'); }
+        w.classList.toggle('fm2-req', !!s.req);
+      }
+      var m = roleMode(k, f.id);
+      w.classList.toggle('fm2-rh', m === 'hide');
+      if (!(f.cust && f.d.type === 'calc')) setRO(e, m === 'view');
+    });
+    liveMod(k);
+  }
+  function post() { try { I().LIST.forEach(function (m) { if (!I().MOD[m[0]].cell) { try { postMod(m[0]); } catch (e) { console.warn('FM2', m[0], e); } } }); } catch (e) { console.warn(e); } tablePostAll(); }
+  function tablePost(k) {
+    var c = C(k), r = role();
+    I().tablesOf(k).forEach(function (t) {
+      [].slice.call(t.querySelectorAll('.fm2-colhide,.fm2-warn-td')).forEach(function (x) { x.classList.remove('fm2-colhide'); x.classList.remove('fm2-warn-td'); });
+      c.custom.forEach(function (d) {
+        var hide = r && r !== 'Admin' && d.acc && d.acc[r] === 'hide', hasW = d.warnAbove !== undefined && d.warnAbove !== '' || d.warnBelow !== undefined && d.warnBelow !== '';
+        if (!hide && !hasW) return;
+        var hr = t.tHead.rows[0], idx = -1, lab = I().dispLabel(d);
+        [].slice.call(hr.cells).forEach(function (th, i) { if (th.classList.contains('cf-th') && th.textContent === lab) idx = i; });
+        if (idx < 0) return;
+        if (hide) hr.cells[idx].classList.add('fm2-colhide');
+        [].slice.call(t.tBodies[0].rows).forEach(function (tr) { var td = tr.cells[idx]; if (!td) return; if (hide) td.classList.add('fm2-colhide'); else if (warnOf(d, td.textContent.trim())) td.classList.add('fm2-warn-td'); });
+      });
+    });
+  }
+  function tablePostAll() { try { I().LIST.forEach(function (m) { tablePost(m[0]); }); } catch (e) { } }
+  var tmT = 0, tmL = 0;
+  new MutationObserver(function () { clearTimeout(tmT); tmT = setTimeout(tablePostAll, 200); }).observe(document.body, { childList: true, subtree: true });
+  function liveSec(ev) {
+    var t = ev.target; if (!t || !t.closest || t.closest('#fm2Modal')) return; var sec = t.closest('section'); if (!sec || !I()) return;
+    clearTimeout(tmL); tmL = setTimeout(function () { I().keysOfSec(sec.id).forEach(function (k) { if (!I().MOD[k].cell) liveMod(k); }); }, 120);
+  }
+  document.addEventListener('input', liveSec, true); document.addEventListener('change', liveSec, true);
+  document.addEventListener('click', function (e) { if (e.target && e.target.closest && e.target.closest('section')) { liveSec(e); setTimeout(function () { liveSec(e); }, 350); } }, true);
+
+  /* ---------- save-time validation (original hookSave se call hota hai) ---------- */
+  function has(k) { var c = C(k); return !!(c.bset && Object.keys(c.bset).length); }
+  function check(k) {
+    var c = C(k), warns = []; calcMod(k);
+    var fs = allFields(k), act = I().activeEdit[k], arr = I().MOD[k].arr() || [];
+    for (var i = 0; i < fs.length; i++) {
+      var f = fs[i], s = S(k, f.id), e = el(k, f.id); if (!e) continue; var w = wr(e);
+      if (w && w.classList.contains('fm2-ch')) { if (f.cust) e.value = ''; continue; }
+      if (w && (w.classList.contains('fm2-rh') || w.classList.contains('cf-hide'))) continue;
+      if (roleMode(k, f.id) === 'view') continue;
+      var v = val(k, f.id), nm = '"' + f.label + '"', kd = kind(k, f);
+      if (!v && (s.req || (s.reqIf && s.reqIf.f && condOk(k, s.reqIf)))) return nm + ' is required' + (!s.req ? ' (' + (allFields(k).filter(function (q) { return q.id === s.reqIf.f; })[0] || { label: '' }).label + ' ke hisaab se).' : '.');
+      if (!v) continue;
+      if (kd === 'num') {
+        var n = Number(v); if (!isFinite(n)) return nm + ' me number likho.';
+        if (s.min !== undefined && s.min !== '' && n < Number(s.min)) return nm + ' kam se kam ' + s.min + ' honi chahiye.';
+        if (s.max !== undefined && s.max !== '' && n > Number(s.max)) return nm + ' zyada se zyada ' + s.max + ' ho sakti hai.';
+        var wn = warnOf(s, v); if (wn) warns.push(f.label + ' = ' + v + ' (' + wn + ')');
+      }
+      if (kd === 'text') {
+        if (s.minLen && v.length < Number(s.minLen)) return nm + ' kam se kam ' + s.minLen + ' akshar ki honi chahiye.';
+        if (s.maxLen && v.length > Number(s.maxLen)) return nm + ' zyada se zyada ' + s.maxLen + ' akshar ki ho sakti hai.';
+      }
+      if (kd === 'date' && s.noFuture) { var n0 = new Date(), td = n0.getFullYear() + '-' + ('0' + (n0.getMonth() + 1)).slice(-2) + '-' + ('0' + n0.getDate()).slice(-2); if (v > td) return nm + ' me aage ki date allowed nahi hai.'; }
+      if (f.cust && s.unique) {
+        var dup = arr.some(function (r) { return r !== act && r && r.cf && norm(r.cf[f.id]) === norm(v); });
+        if (dup) return nm + ' = "' + v + '" pehle se maujood hai (duplicate allowed nahi).';
+      }
+    }
+    if (warns.length && !confirm('Limit se bahar value:\n\n' + warns.join('\n') + '\n\nPhir bhi save karna hai?')) return '\u0001';
+    return '';
+  }
+
+  /* ---------- Manager screen ---------- */
+  var cur = null, tab = 'fields', ed = null, q = '';
+  function guard() { return I().guard(); }
+  function openMgr(k) {
+    var F = I(); if (!F.isAdmin()) return alert('This option is for Admin only.');
+    var ok = F.LIST.filter(function (m) { return $(m[2]); });
+    cur = (k && F.MOD[k] && F.secOf(k)) ? k : (ok[0] || [])[0]; tab = 'fields'; ed = null; q = '';
+    ensure().classList.add('open'); render();
+  }
+  function close() { var m = $('fm2Modal'); if (m) m.classList.remove('open'); }
+  function ensure() {
+    var m = $('fm2Modal'); if (m) return m;
+    m = document.createElement('div'); m.id = 'fm2Modal';
+    m.innerHTML = '<div class="fm2-card"><div class="fm2-head"><b>🧱 Field Manager</b><small>Admin only</small><button type="button" data-a="close" class="fm2-x">✕</button></div><div class="fm2-mod"><input id="fm2Q" placeholder="🔍 Module search" autocomplete="off"><select id="fm2Mod"></select></div><div class="fm2-tabs" id="fm2Tabs"></div><div id="fm2Body" class="fm2-body"></div></div>';
+    document.body.appendChild(m);
+    m.addEventListener('click', function (ev) { if (ev.target === m) return close(); var t = ev.target.closest('[data-a]'); if (t) act(t.getAttribute('data-a'), t.getAttribute('data-x'), t.getAttribute('data-y')); });
+    m.addEventListener('change', function (ev) { var id = ev.target.id; if (id === 'fm2Mod') { cur = ev.target.value; ed = null; render(); } else if (id === 'f2Type' || id === 'f2Ins') typeToggle(ev.target); });
+    m.addEventListener('input', function (ev) { if (ev.target.id === 'fm2Q') { q = ev.target.value; fillMods(); } });
+    return m;
+  }
+  function fillMods() {
+    var F = I(), s = $('fm2Mod'); if (!s) return; var qq = norm(q);
+    var l = F.LIST.filter(function (m) { return $(m[2]) && (!qq || norm(m[1]).indexOf(qq) >= 0 || m[0] === cur); });
+    s.innerHTML = l.map(function (m) { return '<option value="' + m[0] + '"' + (m[0] === cur ? ' selected' : '') + '>' + esc(m[1]) + '</option>'; }).join('');
+  }
+  function badge(t, c) { return '<i class="fm2-b ' + (c || '') + '">' + esc(t) + '</i>'; }
+  function badges(k, f) {
+    var s = S(k, f.id), b = '', fs = allFields(k), nm = function (id) { return (fs.filter(function (x) { return x.id === id; })[0] || { label: '?' }).label; };
+    b += f.cust ? badge(f.d.type === 'calc' ? 'ƒ calc' : 'new · ' + I().typeName(f.d)) : badge('built-in', 'g');
+    if (s.req) b += badge('required', 'r'); if (s.reqIf && s.reqIf.f) b += badge('req if ' + nm(s.reqIf.f) + '=' + s.reqIf.v, 'r');
+    if (s.showIf && s.showIf.f) b += badge('show if ' + nm(s.showIf.f) + '=' + s.showIf.v, 'o');
+    if (s.unique) b += badge('unique', 'o'); if (s.noFuture) b += badge('no future', 'o');
+    if ((s.min !== undefined && s.min !== '') || (s.max !== undefined && s.max !== '')) b += badge('min/max', 'o');
+    if ((s.warnAbove !== undefined && s.warnAbove !== '') || (s.warnBelow !== undefined && s.warnBelow !== '')) b += badge('warn limit', 'o');
+    if (s.minLen || s.maxLen) b += badge('length', 'o');
+    var acc = s.acc || {}, ks = Object.keys(acc); if (ks.length) b += badge(ks.map(function (r) { return r + ':' + acc[r]; }).join(' '), 'p');
+    if (f.cust && f.d.inTable === false) b += badge('not in table', 'g'); if (f.cust && f.d.inPrint === false) b += badge('not in print', 'g');
+    return b;
+  }
+  function render() {
+    var body = $('fm2Body'); if (!body) return; fillMods();
+    var tb = [['fields', '📝 Form fields'], ['cols', '📊 Columns'], ['tools', '🛠 Tools']];
+    $('fm2Tabs').innerHTML = tb.map(function (t) { return '<button type="button" data-a="tab" data-x="' + t[0] + '" class="' + (tab === t[0] && !ed ? 'on' : '') + '">' + t[1] + '</button>'; }).join('');
+    var h = '<div class="fm2-note">Har badlav ke liye Admin PIN / password poocha jayega. Field hatane par purana data delete nahi hota.</div>';
+    if (ed) h += editHtml(); else if (tab === 'fields') h += fieldsHtml(); else if (tab === 'cols') h += colsHtml(); else h += toolsHtml();
+    body.innerHTML = h; if (ed) typeToggle(); else body.scrollTop = body.scrollTop;
+  }
+  function fieldsHtml() {
+    var k = cur, c = C(k), M = I().MOD[k], fs = allFields(k), h = '';
+    h += '<div class="fm2-bar"><button type="button" class="pri" data-a="new">➕ Add new field</button></div>';
+    if (M.cell) h += '<div class="fm-note fm2-note">Is module me nayi field table ke column ki tarah aati hai; cell par click karke value bharo. Order / rules / auto-calc / role access is module me nahi lagte.</div>';
+    h += '<div class="fm2-list">';
+    if (!fs.length) h += '<div class="fm2-note">Is module ka form screen par nahi mila. Module kholkar dobara aao.</div>';
+    fs.forEach(function (f, i) {
+      var hid = !f.cust && c.hidden.indexOf(f.id) >= 0;
+      h += '<div class="fm2-item' + (hid ? ' off' : '') + '"><div class="fm2-t"><b>' + esc(f.label) + '</b>' + (f.cust && f.d.unit ? ' <small>(' + esc(f.d.unit) + ')</small>' : '') + '<div>' + badges(k, f) + '</div></div><div class="fm2-bt">' +
+        '<button type="button" data-a="mv" data-x="' + esc(f.id) + '" data-y="-1" title="Up">↑</button><button type="button" data-a="mv" data-x="' + esc(f.id) + '" data-y="1" title="Down">↓</button>' +
+        '<button type="button" data-a="set" data-x="' + esc(f.id) + '">⚙ Settings</button>' +
+        (f.cust ? '<button type="button" data-a="dup" data-x="' + esc(f.id) + '">Copy</button><button type="button" class="del" data-a="delcf" data-x="' + esc(f.id) + '">Delete</button>' :
+          (f.can ? '<button type="button" data-a="rnf" data-x="' + esc(f.id) + '">Rename</button>' : '') + '<button type="button" data-a="hide" data-x="' + esc(f.id) + '">' + (hid ? 'Show' : 'Remove') + '</button>') + '</div></div>';
+    });
+    return h + '</div><div class="fm2-note">↑ ↓ se built-in fields ka order badlo (same row/section ke andar). Nayi fields "ADDITIONAL FIELDS" box me apne order me aati hain.</div>';
+  }
+  function colsHtml() {
+    var k = cur, c = C(k), cols = I().colList(k), h = '<div class="fm2-list">';
+    if (!cols.length) h += '<div class="fm2-note">Is module ka table abhi screen par nahi hai. Module kholkar dobara aao.</div>';
+    cols.forEach(function (x) {
+      var hid = c.hcols.indexOf(x.n) >= 0, rn = c.clabels[x.n];
+      h += '<div class="fm2-item' + (hid ? ' off' : '') + '"><div class="fm2-t"><b>' + esc(x.label) + '</b>' + (rn ? ' → <b class="g">' + esc(rn) + '</b>' : '') + '<div>' + badge('column', 'g') + '</div></div><div class="fm2-bt">' + (x.can ? '<button type="button" data-a="rnc" data-x="' + esc(x.n) + '">Rename</button>' : '') + '<button type="button" data-a="hcol" data-x="' + esc(x.n) + '">' + (hid ? 'Show' : 'Remove') + '</button></div></div>';
+    });
+    return h + '</div>';
+  }
+  function toolsHtml() {
+    var F = I(), opts = F.LIST.filter(function (m) { return $(m[2]) && m[0] !== cur && !F.MOD[m[0]].cell; }).map(function (m) { return '<option value="' + m[0] + '">' + esc(m[1]) + '</option>'; }).join('');
+    return '<div class="fm2-box"><h5>Copy new fields to another module</h5><div class="fm2-row"><select id="f2Copy">' + opts + '</select><button type="button" data-a="copyto">Copy</button></div><small>Is module ki nayi fields (rules ke saath) dusre module me bhi bann jayengi.</small></div>' +
+      '<div class="fm2-box"><h5>Field order</h5><button type="button" data-a="resetord">Reset built-in order to original</button></div>' +
+      '<div class="fm2-box"><h5>Backup / Restore settings of this module</h5><textarea id="f2Json" rows="5" placeholder="Export dabao, ya yahan JSON paste karke Import dabao"></textarea><div class="fm2-row"><button type="button" data-a="exp">Export</button><button type="button" data-a="imp">Import</button></div><small>Import is module ke fields / rules ko replace karta hai.</small></div>';
+  }
+  /* ----- edit form ----- */
+  function V(id) { var e = $(id); return e ? String(e.value || '').trim() : ''; }
+  function Ck(id) { var e = $(id); return !!(e && e.checked); }
+  function fl(l, inner, id, cls) { return '<label class="fm2-f ' + (cls || '') + '"' + (id ? ' id="' + id + '"' : '') + '><span>' + l + '</span>' + inner + '</label>'; }
+  function condHtml(pre, k, selfId, cd) {
+    var fs = allFields(k).filter(function (f) { return f.id !== selfId; });
+    return '<select id="' + pre + 'F"><option value="">— none —</option>' + fs.map(function (f) { return '<option value="' + esc(f.id) + '"' + (cd && cd.f === f.id ? ' selected' : '') + '>' + esc(f.label) + '</option>'; }).join('') + '</select><input id="' + pre + 'V" placeholder="value (A|B = any of)" value="' + esc(cd && cd.v || '') + '">';
+  }
+  function editHtml() {
+    var k = cur, F = I(), c = C(k), cell = F.MOD[k].cell, isNew = ed.mode === 'new', cust = ed.mode !== 'builtin';
+    var d = ed.d || {}, s = cust ? d : (c.bset && c.bset[ed.id]) || {}, f = !cust ? allFields(k).filter(function (x) { return x.id === ed.id; })[0] : null, kd = f ? kind(k, f) : '';
+    var h = '<h4>' + (isNew ? '➕ Add new field' : (cust ? '✏️ Edit: ' + esc(d.label) : '⚙ Settings: ' + esc(f ? f.label : ''))) + '</h4><div class="fm2-form">';
+    if (cust) {
+      var types = [['text', 'Text'], ['number', 'Number'], ['date', 'Date'], ['time', 'Time'], ['select', 'Dropdown'], ['yesno', 'Yes / No'], ['textarea', 'Long text']]; if (!cell) types.push(['calc', 'ƒ Auto-calculate']);
+      var tv = d.type === 'select' && d.options && d.options.length === 2 && d.options[0] === 'Yes' && d.options[1] === 'No' ? 'yesno' : (d.type || 'text');
+      h += '<div class="fm2-g">' + fl('Field name', '<input id="f2Label" maxlength="40" value="' + esc(d.label || '') + '" placeholder="e.g. Operator Name">') +
+        fl('Type', '<select id="f2Type">' + types.map(function (t) { return '<option value="' + t[0] + '"' + (tv === t[0] ? ' selected' : '') + '>' + t[1] + '</option>'; }).join('') + '</select>') + '</div>';
+      h += fl('Dropdown options (comma se alag)', '<input id="f2Opts" placeholder="A, B, C" value="' + esc((d.options || []).join(', ')) + '">', 'f2OptsW');
+      h += '<div id="f2CalcW" class="fm2-box"><h5>ƒ Formula</h5><textarea id="f2Formula" rows="2" placeholder="[Qty] * [Rate]">' + esc(toLabels(k, d.formula || '')) + '</textarea><div class="fm2-row"><select id="f2Ins"><option value="">+ Insert field…</option>' +
+        allFields(k).filter(function (x) { return x.id !== d.id; }).map(function (x) { return '<option value="' + esc(x.label) + '">' + esc(x.label) + '</option>'; }).join('') + '</select><input id="f2Dec" type="number" min="0" max="6" placeholder="decimals (2)" value="' + esc(d.dec == null ? '' : d.dec) + '"></div>' +
+        '<small>Fields ko [Name] likho. + − × ÷ ( ) chalte hain. Functions: ROUND(x,2) MIN MAX ABS SUM AVG IF(cond,a,b) DAYS(date1,date2) HRS(time1,time2). Value form me live aati hai aur save hoti hai.</small></div>';
+      h += '<div class="fm2-g" id="f2DefW">' + fl('Default value', '<input id="f2Def" maxlength="60" value="' + esc(d.def || '') + '" placeholder="date: today · time: now">') + fl('Hint / placeholder', '<input id="f2Hint" maxlength="60" value="' + esc(d.hint || '') + '">') + fl('Unit', '<input id="f2Unit" maxlength="10" placeholder="kg, hrs, ₹" value="' + esc(d.unit || '') + '">', 'f2UnitW') + '</div>';
+      h += '<div class="fm2-checks"><label><input type="checkbox" id="f2Wide"' + (d.wide ? ' checked' : '') + '> Full width</label><label><input type="checkbox" id="f2Tbl"' + (d.inTable !== false ? ' checked' : '') + '> Table me</label><label><input type="checkbox" id="f2Prn"' + (d.inPrint !== false ? ' checked' : '') + '> Print / Excel me</label></div>';
+    }
+    h += '<div class="fm2-box" id="f2RulesW"><h5>✅ Rules</h5>';
+    if (!cell) {
+      h += '<div class="fm2-checks"><label><input type="checkbox" id="f2Req"' + (s.req ? ' checked' : '') + '> Required</label>' + (cust ? '<label id="f2UniqW"><input type="checkbox" id="f2Uniq"' + (s.unique ? ' checked' : '') + '> Unique (no duplicate)</label>' : '') + '<label id="f2NoFutW"><input type="checkbox" id="f2NoFut"' + (s.noFuture ? ' checked' : '') + '> No future date</label></div>';
+      h += '<div class="fm2-cond"><span>Required only if</span>' + condHtml('f2RI', k, ed.id, s.reqIf) + '</div><div class="fm2-cond"><span>Show only if</span>' + condHtml('f2SI', k, ed.id, s.showIf) + '</div>';
+    } else h += '<div class="fm2-checks"><label><input type="checkbox" id="f2Req"' + (s.req ? ' checked' : '') + '> Required</label></div>';
+    h += '<div class="fm2-g" id="f2NumW">' + fl('Min', '<input id="f2Min" type="number" step="any" value="' + esc(s.min == null ? '' : s.min) + '">') + fl('Max', '<input id="f2Max" type="number" step="any" value="' + esc(s.max == null ? '' : s.max) + '">') +
+      fl('Warn above', '<input id="f2WA" type="number" step="any" value="' + esc(s.warnAbove == null ? '' : s.warnAbove) + '">') + fl('Warn below', '<input id="f2WB" type="number" step="any" value="' + esc(s.warnBelow == null ? '' : s.warnBelow) + '">') + '</div>';
+    h += '<div class="fm2-g" id="f2TxtW">' + fl('Min length', '<input id="f2MinL" type="number" min="0" value="' + esc(s.minLen || '') + '">') + fl('Max length', '<input id="f2MaxL" type="number" min="0" value="' + esc(s.maxLen || '') + '">') + '</div></div>';
+    if (!cell) {
+      h += '<div class="fm2-box"><h5>🔐 Role-wise access</h5><small>Admin ko hamesha full access rehta hai.</small>' + roleList().map(function (r) {
+        var m = (s.acc && s.acc[r]) || 'edit';
+        return '<div class="fm2-row"><span class="fm2-rl">' + esc(r) + '</span><select data-role="' + esc(r) + '"><option value="edit"' + (m === 'edit' ? ' selected' : '') + '>Can edit</option><option value="view"' + (m === 'view' ? ' selected' : '') + '>View only</option><option value="hide"' + (m === 'hide' ? ' selected' : '') + '>Hidden</option></select></div>';
+      }).join('') + '<small>Yeh screen-level control hai (form + table column). Built-in table columns par role-hide nahi lagta.</small></div>';
+    }
+    h += '</div><div class="fm2-stick"><button type="button" class="pri" data-a="save">' + (isNew ? 'Add Field' : 'Save') + '</button><button type="button" data-a="cancel">Cancel</button></div>';
+    ed.kd = kd; return h;
+  }
+  function typeToggle() {
+    var t = $('f2Type') ? $('f2Type').value : ''; if ($('f2Ins') && $('f2Ins').value) { var fe = $('f2Formula'); if (fe) fe.value += (fe.value && !/\s$/.test(fe.value) ? ' ' : '') + '[' + $('f2Ins').value + ']'; $('f2Ins').value = ''; }
+    var cust = ed && ed.mode !== 'builtin', kd = cust ? ({ number: 'num', calc: 'num', date: 'date', text: 'text', textarea: 'text' }[t] || '') : ed.kd;
+    var sh = function (id, on) { if ($(id)) $(id).style.display = on ? '' : 'none'; };
+    sh('f2OptsW', t === 'select'); sh('f2CalcW', t === 'calc'); sh('f2UnitW', t === 'number' || t === 'calc'); sh('f2DefW', t !== 'calc');
+    sh('f2NumW', kd === 'num'); sh('f2TxtW', kd === 'text'); sh('f2NoFutW', kd === 'date'); sh('f2UniqW', t !== 'calc');
+    if ($('f2Def')) $('f2Def').placeholder = t === 'date' ? 'YYYY-MM-DD ya today' : (t === 'time' ? 'HH:MM ya now' : 'optional');
+  }
+  function readCond(pre) { var f = V(pre + 'F'); return f ? { f: f, v: V(pre + 'V') } : null; }
+  function collectRules(o, cell) {
+    var nv = function (id) { var v = V(id); return v === '' ? '' : Number(v); };
+    o.req = Ck('f2Req'); o.min = nv('f2Min'); o.max = nv('f2Max'); o.warnAbove = nv('f2WA'); o.warnBelow = nv('f2WB'); o.minLen = nv('f2MinL') || ''; o.maxLen = nv('f2MaxL') || '';
+    if (!cell) { o.noFuture = Ck('f2NoFut'); o.unique = Ck('f2Uniq'); o.reqIf = readCond('f2RI'); o.showIf = readCond('f2SI'); var acc = {}; [].slice.call(document.querySelectorAll('#fm2Modal select[data-role]')).forEach(function (s) { if (s.value !== 'edit') acc[s.getAttribute('data-role')] = s.value; }); o.acc = acc; }
+    ['min', 'max', 'warnAbove', 'warnBelow', 'minLen', 'maxLen', 'noFuture', 'unique', 'reqIf', 'showIf', 'req'].forEach(function (p) { if (o[p] === '' || o[p] === false || o[p] == null) delete o[p]; });
+    if (o.acc && !Object.keys(o.acc).length) delete o.acc; return o;
+  }
+  function saveEdit() {
+    var k = cur, F = I(), c = C(k), cell = F.MOD[k].cell, cust = ed.mode !== 'builtin', props = {}, chk = collectRules({}, cell);
+    var chkErr = function (o, lbl) { if (o.min !== undefined && o.max !== undefined && o.min > o.max) return 'Min value Max se bada nahi ho sakta.'; if (o.reqIf && o.showIf && o.reqIf.f === o.showIf.f) return ''; return ''; };
+    var er = chkErr(chk); if (er) return alert(er);
+    if (cust) {
+      var label = V('f2Label'), type = V('f2Type'), opts = V('f2Opts').split(',').map(function (x) { return x.trim(); }).filter(Boolean), def = V('f2Def'), unit = V('f2Unit'), nl = norm(label);
+      if (!label) return alert('Field ka naam likho.');
+      if (type === 'yesno') { type = 'select'; opts = ['Yes', 'No']; }
+      if (c.custom.some(function (x) { return x.id !== ed.id && norm(x.label) === nl; }) || builtinOrdered(k).some(function (x) { return norm(x.label) === nl; }) || F.colList(k).some(function (x) { return x.n === nl || (c.clabels[x.n] && norm(c.clabels[x.n]) === nl); })) return alert('A field / column with this name already exists.');
+      var formula = '';
+      if (type === 'select') { if (opts.length < 2) return alert('Dropdown ke liye kam se kam 2 options likho.'); if (def && opts.indexOf(def) < 0) return alert('Default value must be one of the options.'); } else opts = [];
+      if (type === 'calc') {
+        var tr = toIds(k, V('f2Formula')); if (!tr.s.trim()) return alert('Formula likho.'); if (tr.bad) return alert('Formula me "' + tr.bad + '" naam ki field nahi mili.');
+        if (ed.id && tr.s.indexOf('{' + ed.id + '}') >= 0) return alert('Formula apni hi field ko use nahi kar sakta.');
+        try { evalExpr(tr.s, function () { return 1; }, true); } catch (x) { return alert('Formula galat hai. Bracket / operator check karo.'); } formula = tr.s; def = '';
+      }
+      if (type === 'number') { if (def !== '') { var dn = Number(def); if (!isFinite(dn)) return alert('Default value must be a number.'); if (chk.min !== undefined && dn < chk.min) return alert('Default value is below Min.'); if (chk.max !== undefined && dn > chk.max) return alert('Default value is above Max.'); } } else if (type !== 'calc') { unit = ''; }
+      if (type === 'date' && def && def.toLowerCase() !== 'today' && !/^\d{4}-\d{2}-\d{2}$/.test(def)) return alert('Default date YYYY-MM-DD ho ya "today" likho.');
+      if (type === 'time' && def && def.toLowerCase() !== 'now' && !/^([01]\d|2[0-3]):[0-5]\d$/.test(def)) return alert('Default time HH:MM ho ya "now" likho.');
+      if (type === 'date' || type === 'time') def = /^(today|now)$/i.test(def) ? def.toLowerCase() : def;
+      props = { label: label, type: type, options: opts, def: def, hint: V('f2Hint'), unit: unit, wide: Ck('f2Wide'), inTable: Ck('f2Tbl'), inPrint: Ck('f2Prn'), formula: formula, dec: V('f2Dec') === '' ? '' : Number(V('f2Dec')) };
+      if (type === 'calc') { delete chk.unique; }
+    }
+    guard().then(function (ok) {
+      if (!ok) return; var cc = I().mcfg(k, true), note;
+      if (cust) {
+        var ex = ed.id ? cc.custom.filter(function (x) { return x.id === ed.id; })[0] : null;
+        if (ex) { ['req', 'min', 'max', 'warnAbove', 'warnBelow', 'minLen', 'maxLen', 'noFuture', 'unique', 'reqIf', 'showIf', 'acc'].forEach(function (p) { delete ex[p]; }); Object.assign(ex, props, chk); note = 'field edited: ' + props.label; }
+        else { var o = Object.assign({ id: 'f' + Date.now().toString(36) + Math.floor(Math.random() * 99) }, props, chk); if (!o.req) o.req = false; cc.custom.push(o); note = 'field added: ' + props.label; }
+      } else { cc.bset = cc.bset || {}; if (Object.keys(chk).length) cc.bset[ed.id] = chk; else delete cc.bset[ed.id]; note = 'field settings: ' + ed.id; }
+      ed = null; I().saveCfg(k + ' ' + note); render();
+    });
+  }
+  function moveField(x, dir) {
+    var k = cur, c = I().mcfg(k, true), cx = c.custom, ci = -1; cx.forEach(function (d, i) { if (d.id === x) ci = i; });
+    if (ci >= 0) { var t = ci + dir; if (t < 0 || t >= cx.length) return; var tmp = cx[ci]; cx[ci] = cx[t]; cx[t] = tmp; return I().saveCfg(k + ' field order changed: ' + tmp.label); }
+    var list = builtinOrdered(k).map(function (o) { return o.id; }), par = function (id) { var w = wr($(id)); return w ? w.parentElement : null; };
+    var sib = list.filter(function (id) { return par(id) === par(x); }), i = sib.indexOf(x), j = i + dir; if (i < 0 || j < 0 || j >= sib.length) return;
+    c.border = list.slice(); var a = c.border.indexOf(sib[i]), b = c.border.indexOf(sib[j]), t2 = c.border[a]; c.border[a] = c.border[b]; c.border[b] = t2; I().saveCfg(k + ' field order changed: ' + x);
+  }
+  function act(a, x, y) {
+    var k = cur, F = I();
+    if (a === 'close') return close();
+    if (a === 'tab') { tab = x; ed = null; return render(); }
+    if (a === 'cancel') { ed = null; return render(); }
+    if (a === 'new') { ed = { mode: 'new', d: { inTable: true, inPrint: true } }; return render(); }
+    if (a === 'set') { var d0 = C(k).custom.filter(function (d) { return d.id === x; })[0]; ed = d0 ? { mode: 'custom', id: x, d: d0 } : { mode: 'builtin', id: x }; return render(); }
+    if (a === 'save') return saveEdit();
+    if (a === 'hide' && C(k).hidden.indexOf(x) < 0 && !confirm('This field will be hidden from the screen.\nIf this is required for saving, saving may be blocked. Continue?')) return;
+    if (a === 'delcf') { var dd = C(k).custom.filter(function (d) { return d.id === x; })[0]; if (!dd || !confirm('"' + dd.label + '" field will be deleted. Continue?\nValues entered in old entries will be hidden from the screen.')) return; }
+    if (a === 'imp' && !confirm('Is module ki nayi fields / rules replace ho jayengi. Continue?')) return;
+    guard().then(function (ok) {
+      if (!ok) return; var c = F.mcfg(k, true), i;
+      if (a === 'mv') return moveField(x, +y), render();
+      if (a === 'hide') { i = c.hidden.indexOf(x); if (i >= 0) c.hidden.splice(i, 1); else c.hidden.push(x); F.saveCfg(k + ' field ' + x + (i >= 0 ? ' shown' : ' hidden')); }
+      else if (a === 'hcol') { i = c.hcols.indexOf(x); if (i >= 0) c.hcols.splice(i, 1); else c.hcols.push(x); F.saveCfg(k + ' column ' + x + (i >= 0 ? ' shown' : ' hidden')); }
+      else if (a === 'rnf' || a === 'rnc') {
+        var isF = a === 'rnf', map = isF ? c.labels : c.clabels, list = isF ? builtinOrdered(k).map(function (o) { return { id: o.id, label: (F.builtinFields(k).filter(function (z) { return z.id === o.id; })[0] || o).label }; }) : F.colList(k).map(function (z) { return { id: z.n, label: z.label }; }), it = list.filter(function (z) { return z.id === x; })[0];
+        if (!it) return; var v = prompt('Enter the new name (blank = restore original "' + it.label + '"):', map[x] || it.label); if (v === null) return; v = v.trim().replace(/\s+/g, ' ');
+        if (v.length > 40) return alert('Naam 40 akshar se chhota rakho.');
+        if (v === '' || v === it.label) delete map[x]; else {
+          var nv = norm(v); if (c.custom.some(function (z) { return norm(z.label) === nv; }) || list.some(function (z) { return z.id !== x && (norm(z.label) === nv || (map[z.id] && norm(map[z.id]) === nv)); })) return alert('A field / column with this name already exists.');
+          map[x] = v;
+        }
+        F.saveCfg(k + (isF ? ' field ' : ' column ') + it.label + ' renamed: ' + (map[x] || '(original)'));
+      }
+      else if (a === 'delcf') { c.custom = c.custom.filter(function (z) { return z.id !== x; }); if (c.bset) delete c.bset[x]; F.saveCfg(k + ' field deleted: ' + x); }
+      else if (a === 'dup') {
+        var s0 = c.custom.filter(function (z) { return z.id === x; })[0]; if (!s0) return; var o = JSON.parse(JSON.stringify(s0)); o.id = 'f' + Date.now().toString(36) + Math.floor(Math.random() * 99);
+        var nm = s0.label + ' 2', n = 2; while (allFields(k).some(function (z) { return norm(z.label) === norm(nm); })) nm = s0.label + ' ' + (++n); o.label = nm; if (o.type === 'calc') o.formula = s0.formula;
+        c.custom.push(o); F.saveCfg(k + ' field copied: ' + nm);
+      }
+      else if (a === 'resetord') { c.border = []; F.saveCfg(k + ' field order reset'); }
+      else if (a === 'copyto') {
+        var t = V('f2Copy'); if (!t) return; var tc = F.mcfg(t, true), idmap = {}, add = 0, src = c.custom.slice();
+        src.forEach(function (d) { idmap[d.id] = 'f' + Date.now().toString(36) + Math.floor(Math.random() * 999) + add++; });
+        src.forEach(function (d) {
+          if (tc.custom.some(function (z) { return norm(z.label) === norm(d.label); })) return; var o = JSON.parse(JSON.stringify(d)); o.id = idmap[d.id];
+          if (o.type === 'calc') { var okc = true; o.formula = String(o.formula || '').replace(/\{([^}]+)\}/g, function (_, id) { if (!idmap[id]) { okc = false; return ''; } return '{' + idmap[id] + '}'; }); if (!okc) return; }
+          ['reqIf', 'showIf'].forEach(function (p) { if (o[p]) { if (idmap[o[p].f]) o[p].f = idmap[o[p].f]; else delete o[p]; } }); tc.custom.push(o);
+        });
+        F.saveCfg(k + ' fields copied to ' + t); alert('Copy ho gaya.');
+      }
+      else if (a === 'exp') { var tx = $('f2Json'); if (tx) { tx.value = JSON.stringify({ custom: c.custom, bset: c.bset || {}, border: c.border || [] }); tx.select(); try { document.execCommand('copy'); } catch (e) { } } return; }
+      else if (a === 'imp') { var j; try { j = JSON.parse(V('f2Json')); } catch (e) { return alert('JSON sahi nahi hai.'); } if (!j || !Array.isArray(j.custom)) return alert('Yeh is tool ka export nahi lagta.'); c.custom = j.custom; c.bset = j.bset || {}; c.border = j.border || []; F.saveCfg(k + ' settings imported'); }
+      render();
+    });
+  }
+
+  /* ---------- style ---------- */
+  var st = document.createElement('style');
+  st.textContent = '.fm2-rh,.fm2-ch{display:none!important}.fm2-colhide{display:none!important}.fm2-req>label:after{content:" *";color:#dc2626}.fm2-warn input,.fm2-warn select{border-color:#dc2626!important;background:#fef2f2!important}.fm2-warn>label{color:#dc2626!important}.fm2-warn-td{background:#fee2e2!important;color:#b91c1c!important;font-weight:800}[data-fm2calc]{background:#f1f5f9!important;font-weight:700}[data-fm2ro]{background:#f1f5f9!important;opacity:.85}' +
+    '#fm2Modal{display:none;position:fixed;inset:0;background:rgba(10,25,41,.6);z-index:100001;align-items:flex-start;justify-content:center;overflow:auto;padding:14px}#fm2Modal.open{display:flex}' +
+    '.fm2-card{background:#fff;color:#17232d;width:min(760px,100%);border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,.4);display:flex;flex-direction:column;max-height:calc(100vh - 28px);overflow:hidden}' +
+    '.fm2-head{display:flex;align-items:center;gap:8px;padding:12px 14px;background:#17324d;color:#fff}.fm2-head b{font-size:15px}.fm2-head small{opacity:.7;flex:1}.fm2-x{background:none;border:0;color:#fff;font-size:18px;cursor:pointer}' +
+    '.fm2-mod{display:flex;gap:6px;padding:8px 12px;border-bottom:1px solid #e3eaef;background:#f5f8fa}.fm2-mod input{flex:0 0 38%;min-width:0}.fm2-mod select{flex:1;min-width:0}.fm2 input,.fm2-card input,.fm2-card select,.fm2-card textarea{padding:7px;border:1px solid #cfd9e0;border-radius:6px;font-size:13px;box-sizing:border-box;background:#fff;color:#17232d}' +
+    '.fm2-tabs{display:flex;border-bottom:1px solid #e3eaef}.fm2-tabs button{flex:1;padding:9px 4px;border:0;background:#fff;font-weight:700;font-size:12px;color:#53616b;cursor:pointer;border-bottom:3px solid transparent}.fm2-tabs button.on{color:#17324d;border-bottom-color:#0f766e;background:#f1f8f7}' +
+    '.fm2-body{padding:10px 12px 16px;overflow:auto;flex:1}.fm2-note{font-size:11px;color:#65727d;margin:4px 0 8px}.fm2-card h4{margin:6px 0 8px;color:#17324d;font-size:14px}.fm2-card h5{margin:0 0 6px;font-size:12px;color:#17324d}' +
+    '.fm2-bar{margin-bottom:8px}.fm2-card button{border:1px solid #17324d;background:#fff;color:#17324d;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer}.fm2-card button.pri{background:#17324d;color:#fff}.fm2-card button.del{color:#c0392b;border-color:#c0392b}.fm2-card button:disabled{opacity:.35}' +
+    '.fm2-list{border:1px solid #dbe4ea;border-radius:8px;overflow:hidden}.fm2-item{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:8px 10px;border-bottom:1px solid #eef2f4}.fm2-item:last-child{border-bottom:0}.fm2-item.off .fm2-t b{text-decoration:line-through;opacity:.5}.fm2-t{flex:1 1 200px;min-width:0;font-size:13px}.fm2-t small{color:#65727d}.fm2-t b.g{color:#0f766e}.fm2-bt{display:flex;gap:4px;flex-wrap:wrap}' +
+    '.fm2-b{display:inline-block;font-style:normal;font-size:9.5px;font-weight:800;border-radius:9px;padding:1px 7px;margin:3px 3px 0 0;background:#e8eef3;color:#37506a}.fm2-b.r{background:#fde8e8;color:#b91c1c}.fm2-b.o{background:#fff3dc;color:#a15c00}.fm2-b.p{background:#ece8fb;color:#5b3fc4}.fm2-b.g{background:#eef2f4;color:#65727d}' +
+    '.fm2-form{display:flex;flex-direction:column;gap:8px}.fm2-g{display:flex;flex-wrap:wrap;gap:8px}.fm2-f{display:flex;flex-direction:column;gap:3px;flex:1 1 130px;font-size:11px;font-weight:700;color:#17324d}.fm2-f input,.fm2-f select{width:100%}.fm2-box{border:1px solid #dbe4ea;border-radius:8px;padding:9px;background:#fafcfd}.fm2-box textarea{width:100%}.fm2-box small,.fm2-form small{display:block;font-size:10.5px;color:#65727d;margin-top:4px}' +
+    '.fm2-row{display:flex;gap:6px;align-items:center;margin:4px 0}.fm2-row select,.fm2-row input{flex:1;min-width:0}.fm2-rl{flex:0 0 100px;font-size:12px;font-weight:700}.fm2-checks{display:flex;flex-wrap:wrap;gap:6px 14px}.fm2-checks label{font-size:12px;display:flex;gap:4px;align-items:center}.fm2-cond{display:flex;gap:6px;align-items:center;margin:6px 0;flex-wrap:wrap}.fm2-cond span{font-size:12px;font-weight:700;flex:0 0 110px}.fm2-cond select,.fm2-cond input{flex:1 1 120px;min-width:0}' +
+    '.fm2-stick{position:sticky;bottom:-16px;display:flex;gap:8px;padding:10px 0 0;margin-top:10px;background:linear-gradient(transparent,#fff 30%)}.fm2-stick button{flex:1;padding:9px}@media(max-width:700px){#fm2Modal{padding:0}.fm2-card{max-height:100vh;height:100vh;border-radius:0}.fm2-mod{flex-direction:column}.fm2-mod input{flex:1}}';
+  document.head.appendChild(st);
+
+  window.FM2 = { open: openMgr, post: post, check: check, has: has, eval: evalExpr, fmt: fmtRes };
+  [800, 3200].forEach(function (t) { setTimeout(post, t); });
+})();
+</script>
+
 </body>
 </html>

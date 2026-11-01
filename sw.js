@@ -1,5 +1,5 @@
-/* HTP MMS service worker - app shell offline. Version ab index.html ke window.APP_VERSION se auto aata hai. */
-const CACHE = 'htp-mms-' + (new URL(self.location.href).searchParams.get('v') || 'x');   // version index.html ke APP_VERSION se aata hai
+/* HTP MMS service worker - app shell offline. Version badlo jab files update karo. */
+const CACHE = 'htp-mms-v114-fieldmgr2';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './favicon-32.png', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', function (e) {
