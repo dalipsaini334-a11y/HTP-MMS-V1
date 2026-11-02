@@ -130,7 +130,7 @@
  window.__mmsStore={active:function(){return active},flush:flush,size:function(){var t=0;mem.forEach(function(v,k){t+=k.length+v.length});return t},keys:function(){return Array.from(mem.entries()).map(function(e){return [e[0],e[1].length]})}};
 })();
 </script>
-<script>window.APP_VERSION='113-doc-control-sync';</script>
+<script>window.APP_VERSION='118-daily-checks';</script>
 <script>if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js?v='+encodeURIComponent(window.APP_VERSION||'0')).then(function(r){try{r.update()}catch(e){}}).catch(function(e){console.warn('SW',e)})})}</script>
 <title>Milestone Gears Ltd. Unit-7 | Maintenance & Utility Daily Log</title>
 <style>
@@ -1434,11 +1434,11 @@ const KEY={pf:'htp7_pf',pc:'htp7_pc',dg:'htp7_dg',mr:'htp7_mr',mh:'htp7_mh',pm:'
 function mmsSession(){try{return JSON.parse(localStorage.getItem('htp_mms_session_v1')||'null')}catch(e){return null}}
 function mmsRole(){return (mmsSession()||{}).role||null}
 function mmsDefaultPermsForRole(role){
- const mods=['pf','pc','dg','mr','mh','pm','bd','spares','critical','tc','cal','utility','airCompressor','pmMaster','pmMonthly'];
+ const mods=['pf','pc','dg','mr','mh','pm','bd','spares','critical','tc','cal','utility','airCompressor','pmMaster','pmMonthly','ptm','dsm','dsoot'];
  let o={};mods.forEach(k=>o[k]={save:false,edit:false,delete:false});
  if(role==='Admin')mods.forEach(k=>{o[k].save=true;o[k].edit=true;o[k].delete=true});
  else if(role==='Technician')mods.forEach(k=>{o[k].save=true;o[k].edit=true});
- else if(role==='Operator'){o.mr.save=true;o.mr.edit=true}
+ else if(role==='Operator'){o.mr.save=true;o.mr.edit=true;o.ptm.save=true;o.ptm.edit=true;o.dsm.save=true;o.dsm.edit=true}
  return o;
 }
 function mmsCurrentUserRecord(){
@@ -2733,7 +2733,7 @@ let calDueSoon=calibrationDueSoon(30);setText('dashCalDue',calDueSoon.length);{l
                 'pf':'Power Factor', 'pc':'Power Cut', 'dg':'DG Reading', 'mr':'Maintenance Request', 
                 'mh':'Machine History', 'pm':'PM Check Sheet', 'bd':'Breakdown', 'spares':'Spare Parts', 
                 'critical':'Critical Spares', 'tc':'Thermocouple', 'cal':'Calibration', 'utility':'Utility', 
-                'airCompressor':'Air Compressor', 'pmMaster':'PM Master Schedule', 'pmMonthly':'Monthly PM',
+                'airCompressor':'Air Compressor', 'pmMaster':'PM Master Schedule', 'pmMonthly':'Monthly PM', 'ptm':'Predictive Check Sheet (FMT-MNT-10)', 'dsm':'Daily Shiftwise Check (FMT-HT-96)', 'dsoot':'SQF De-sooting PM (FMT-MNT-04)', 'dcTpl':'Check Sheet Templates',
                 'meeting':'Meeting Log', 'sparePurchase':'Spare Purchase', 'machineMaster':'Machine Master', 'powerCost':'Power Cost (Unit 7)', 'hpsebBill':'HPSEBL Bill (Unit 7)',
                 'satReport':'SAT Report (CQI-9)', 'satTemp':'SAT Temp Verification (FR-HT-39)', 'oxyMV':'Oxy Probe MV Check (FR-HT-40)', 'oxyImp':'O2 Probe Impedance (FR-HT-41)', 'oxyRep':'Oxy Probe Replacement (FMT-HT-71)', 'amc':'AMC Contracts', 'amcLog':'AMC Service Visit Log', 'tus':'TUS Survey (FR-HT-43)', 'furnChk':'Furnace Leak/Quench/Atmosphere (FR-HT-44)', 'contingency':'Contingency Plan (FMT-HT-45)', 'printFmt':'Print Formats'
             };
@@ -4421,6 +4421,9 @@ const MMS_MODULES=[
   {key:'oxyRep',label:'Oxy Probe Replacement (FMT-HT-71)'},
   {key:'amc',label:'AMC & Service Contracts'},
   {key:'amcLog',label:'AMC Service Visit Log'},
+  {key:'ptm',label:'Predictive Maintenance Check Sheet (FMT-MNT-10)'},
+  {key:'dsm',label:'Daily Shiftwise Maintenance Check (FMT-HT-96)'},
+  {key:'dsoot',label:'SQF De-sooting PM Sheet (FMT-MNT-04)'},
   {key:'tus',label:'TUS Survey (FR-HT-43)'},
   {key:'furnChk',label:'Furnace Leak/Quench/Atmosphere (FR-HT-44)'},
   {key:'contingency',label:'Contingency Plan (FMT-HT-45)'}
@@ -5057,7 +5060,7 @@ const GS_CFG_KEY='htp_mms_gs_cfg_v1',GS_META_KEY='htp_mms_gs_meta_v1';
 // LIVE BACKEND: shared by every browser/device. The token must match Code.gs.
 // Device-local localStorage is still used for cache/state, but the Google Sheet is the shared source.
 const GS_DEFAULT_URL='https://script.google.com/macros/s/AKfycbwhKmOBMXzuIcMOFwFeSyQ32ZBfSOfcc99yv1sfFmElA_TSN6Q8Rf2OSKyUN8I4Bg16/exec';
-const GS_ALL=['pf','pc','dg','mr','mh','pm','bd','spares','critical','tc','cal','utility','airCompressor','machineMaster','users','pmPlan','pmCheck','pmMap', 'audit','meeting','sparePurchase','powerCost','hpsebBill','satReport','satTemp','oxyMV','oxyImp','oxyRep','mttr','amc','amcLog','tus','furnChk','contingency','printFmt','acAct','acDel','acEdit','apprCfg','docCtl'];
+const GS_ALL=['pf','pc','dg','mr','mh','pm','bd','spares','critical','tc','cal','utility','airCompressor','machineMaster','users','pmPlan','pmCheck','pmMap', 'audit','meeting','sparePurchase','powerCost','hpsebBill','satReport','satTemp','oxyMV','oxyImp','oxyRep','mttr','amc','amcLog','tus','furnChk','contingency','ptm','dsm','dsoot','dcTpl','printFmt','acAct','acDel','acEdit','apprCfg','docCtl'];
 // PM Plan schedule / PM checklists / machine-checklist map pehle localStorage me alag save
 // hote the aur kabhi sync hi nahi hote the - isliye ek device ka PM schedule change dusre
 // device par nahi dikhta tha. Ab inhe bhi upar wale GS_ALL engine se hi sync karte hain.
@@ -5117,8 +5120,8 @@ function gsHash(str){let h1=0xdeadbeef,h2=0x41c6ce57;for(let i=0,ch;i<str.length
 function gsClean(r){return JSON.stringify(r,function(k,v){if(k==='evidence')return undefined;if((k==='h'||k==='s'||k==='p')&&this&&typeof this.u==='string'&&this.role!==undefined)return undefined;return v})}
 /* ===== Sheet report tabs: one tab per module (and per month), same columns as the print formats ===== */
 const GS_MONTHLY=['pf','pc','dg','mr','bd','mh','airCompressor','utility','pm','pmPlan','meeting'];
-const GS_MASTERS=['mttr','spares','critical','tc','cal','machineMaster','utility', 'audit','meeting','sparePurchase','powerCost','hpsebBill','satReport','satTemp','oxyMV','oxyImp','oxyRep','amc','amcLog','tus','furnChk','contingency','printFmt','acAct','acDel','acEdit','apprCfg','docCtl']; 
-const GS_TAB={pf:'PowerFactor',pc:'PowerCut',dg:'DG',mr:'MaintReq',bd:'Breakdown',mh:'MachHistory',airCompressor:'AirCompressor',utility:'UtilityLog',spares:'SpareParts',critical:'CriticalSpares',tc:'Thermocouple',cal:'Calibration',machineMaster:'MachineMaster', audit:'AuditLog',meeting:'MeetingLog',sparePurchase:'SparePurchase',powerCost:'PowerCost',hpsebBill:'HPSEBLBill',pm:'PMCheckSheet',pmPlan:'PMPlan',satReport:'SATReport',satTemp:'SATTemp',oxyMV:'OxyMV',oxyImp:'OxyImpedance',oxyRep:'OxyReplace',amc:'AMCContracts',amcLog:'AMCServiceLog',tus:'TUSSurvey',furnChk:'FurnaceChecks',contingency:'ContingencyPlan',mttr:'MTTR',printFmt:'PrintFormats'};
+const GS_MASTERS=['mttr','spares','critical','tc','cal','machineMaster','utility', 'audit','meeting','sparePurchase','powerCost','hpsebBill','satReport','satTemp','oxyMV','oxyImp','oxyRep','amc','amcLog','tus','furnChk','contingency','ptm','dsm','dsoot','dcTpl','printFmt','acAct','acDel','acEdit','apprCfg','docCtl']; 
+const GS_TAB={pf:'PowerFactor',pc:'PowerCut',dg:'DG',mr:'MaintReq',bd:'Breakdown',mh:'MachHistory',airCompressor:'AirCompressor',utility:'UtilityLog',spares:'SpareParts',critical:'CriticalSpares',tc:'Thermocouple',cal:'Calibration',machineMaster:'MachineMaster', audit:'AuditLog',meeting:'MeetingLog',sparePurchase:'SparePurchase',powerCost:'PowerCost',hpsebBill:'HPSEBLBill',pm:'PMCheckSheet',pmPlan:'PMPlan',satReport:'SATReport',satTemp:'SATTemp',oxyMV:'OxyMV',oxyImp:'OxyImpedance',oxyRep:'OxyReplace',amc:'AMCContracts',amcLog:'AMCServiceLog',tus:'TUSSurvey',furnChk:'FurnaceChecks',contingency:'ContingencyPlan',ptm:'PredictiveCheck',dsm:'DailyShiftCheck',dsoot:'SQFDesootPM',dcTpl:'DCTemplates',mttr:'MTTR',printFmt:'PrintFormats'};
 const GS_COMPANY='Milestone Gears Ltd. UNIT-7';
 function gsMonthKey(d){d=String(d||'').slice(0,7);return /^\d{4}-\d{2}$/.test(d)?d:''}
 function gsNextMonth(mk){const y=+mk.slice(0,4),m=+mk.slice(5,7);return m===12?(y+1)+'-01':y+'-'+String(m+1).padStart(2,'0')}
@@ -5133,7 +5136,7 @@ function gsRecMonth(mod,r){
  if(mod==='mr')return gsMonthKey(r.pdate||r.mdate||r.hdate)||null;
  if(mod==='utility')return gsIsUtilLog(r)?(gsMonthKey(r.date)||null):'*';
  if(['pf','pc','dg','bd','mh','airCompressor'].indexOf(mod)>=0)return gsMonthKey(r.date)||null;
- if(['spares','critical','tc','cal','machineMaster', 'audit','sparePurchase','powerCost','hpsebBill','satReport','satTemp','oxyMV','oxyImp','oxyRep','mttr','amc','amcLog','tus','furnChk','contingency','printFmt','acAct','acDel','acEdit','apprCfg','docCtl'].indexOf(mod)>=0)return '*';
+ if(['spares','critical','tc','cal','machineMaster', 'audit','sparePurchase','powerCost','hpsebBill','satReport','satTemp','oxyMV','oxyImp','oxyRep','mttr','amc','amcLog','tus','furnChk','contingency','ptm','dsm','dsoot','dcTpl','printFmt','acAct','acDel','acEdit','apprCfg','docCtl'].indexOf(mod)>=0)return '*';
  if(mod==='meeting'||mod==='pm')return gsMonthKey(r.date)||null;
  if(mod==='pmPlan')return r.t==='m'?'*':(gsPmKeyMonth(r.k)||null);
  return null;
@@ -5263,6 +5266,8 @@ function gsReport(mod,mk){
   rep.summary=[['Total',a.length],['Requirement (PR pending)',a.filter(function(x){return stg(x)==='Planned'}).length],['PR Raised',a.filter(function(x){return stg(x)==='PR Raised'}).length],['PO Created',a.filter(function(x){return stg(x)==='PO Created'}).length],['Sent to Vendor (material awaited)',a.filter(function(x){return stg(x)==='Sent to Vendor'}).length],['Unit 4 se Lana Hai (pending)',a.filter(function(x){return stg(x)==='Unit 4 Pending'}).length],['Received',a.filter(function(x){return stg(x)==='Received'}).length]];
  }else if(mod==='powerCost'||mod==='hpsebBill'){
   pwFillReport(rep,mod);
+ }else if((mod==='ptm'||mod==='dsm'||mod==='dsoot')&&typeof window.dcGsReport==='function'){
+  rep=window.dcGsReport(mod,mk);
  }else if(typeof hqIsMod==='function'&&hqIsMod(mod)){
   return hqGsReport(mod);
  }else if(mod==='mttr'){
@@ -9755,6 +9760,687 @@ if (typeof renderAll !== 'undefined') {
   }
   init(0);
 })();
+</script>
+<script type="text/mms-defer" id="daily-check-modules">
+/* =====================================================================
+ * DAILY & PREDICTIVE CHECK SHEETS  (3 naye modules, ek hi block me)
+ *   ptm    - Predictive Maintenance Check Sheet   (FMT-MNT-10 Rev 01)  - machine-wise, month grid (1..31), tick / cross
+ *   dsm    - Daily Shift wise Maintenance Check   (FMT-HT-96 Rev 00)   - furnace-wise, month grid, readings
+ *   dsoot  - SQF De-sooting PM Check Sheet        (FMT-MNT-04 Rev 00)  - monthly during de-sooting, observation / work done
+ *   dcTpl  - in teeno ke check points (templates) - app me hi edit ho sakte hain
+ * Is block me: data storage, Google Sheet sync registration, Module Access Control, print formats,
+ * sidebar group, check-point editor. Records din-wise alag save hote hain (ptm / dsm), taaki
+ * alag-alag shift / phone se bhari entries ek dusre ko overwrite na karein.
+ * ===================================================================== */
+(function () {
+  'use strict';
+  if (window.__dcInit) return; window.__dcInit = 1;
+
+  /* ---------- registration (storage / sync / permissions) ---------- */
+  var MODS = [
+    { key: 'ptm', label: 'Predictive Maintenance Check Sheet (FMT-MNT-10)', tab: 'PredictiveCheck', storage: 'htp7_predictive_chk_v1', icon: '🩺', nav: 'Predictive Check Sheet' },
+    { key: 'dsm', label: 'Daily Shiftwise Maintenance Check (FMT-HT-96)', tab: 'DailyShiftCheck', storage: 'htp7_daily_shift_chk_v1', icon: '🕒', nav: 'Daily Shiftwise Check' },
+    { key: 'dsoot', label: 'SQF De-sooting PM Sheet (FMT-MNT-04)', tab: 'SQFDesootPM', storage: 'htp7_sqf_desoot_v1', icon: '🧹', nav: 'SQF De-sooting PM' },
+    { key: 'dcTpl', label: 'Check Sheet Templates', tab: 'DCTemplates', storage: 'htp7_dc_templates_v1' }
+  ];
+  MODS.forEach(function (m) {
+    KEY[m.key] = m.storage;
+    if (!Array.isArray(data[m.key])) data[m.key] = load(m.key);
+    try { GS_TAB[m.key] = m.tab; } catch (e) { }
+    try { if (GS_ALL.indexOf(m.key) < 0) GS_ALL.push(m.key); } catch (e) { }
+    try { if (GS_MASTERS.indexOf(m.key) < 0) GS_MASTERS.push(m.key); } catch (e) { }
+  });
+
+  /* ---------- small helpers ---------- */
+  var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  function $(i) { return document.getElementById(i); }
+  function pad(n) { return String(n).padStart(2, '0'); }
+  function today() { var d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function ymNow() { return today().slice(0, 7); }
+  function dim(ym) { return new Date(+ym.slice(0, 4), +ym.slice(5, 7), 0).getDate(); }
+  function ymLbl(ym) { return /^\d{4}-\d{2}$/.test(ym || '') ? MON[+ym.slice(5, 7) - 1] + '-' + ym.slice(0, 4) : (ym || ''); }
+  function fmtD(s) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s || ''); return m ? m[3] + '-' + m[2] + '-' + m[1] : (s || ''); }
+  function who() { try { var s = mmsSession(); return s ? String(s.u || '').trim() : ''; } catch (e) { return ''; } }
+  function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+  function A(k) { if (!Array.isArray(data[k])) data[k] = load(k); return data[k]; }
+  function E(s) { return esc(s === undefined || s === null ? '' : s); }
+  function nOf(x) { var n = parseFloat(String(x === undefined || x === null ? '' : x).replace(/,/g, '')); return isNaN(n) ? NaN : n; }
+  function saveGuard(k) { return typeof mmsGuardSave === 'function' ? mmsGuardSave(k) : true; }
+  function editGuard(k) { return typeof mmsGuardEdit === 'function' ? mmsGuardEdit(k) : true; }
+  function delGuard(k) { return typeof mmsGuardDelete === 'function' ? mmsGuardDelete(k) : true; }
+  function machNos() {
+    var out = [];
+    try { MACHINE_MASTER.forEach(function (m) { if (m && m.machineNumber && out.indexOf(m.machineNumber) < 0) out.push(m.machineNumber); }); } catch (e) { }
+    return out;
+  }
+  function sqfNos() {
+    var out = ['SQF-01', 'SQF-02', 'SQF-03', 'SQF-04'];
+    try { if (typeof hqOpts === 'function') { var o = hqOpts('sqf'); if (o && o.length) out = o; } } catch (e) { }
+    return out;
+  }
+  /* "110 AMP.MAX" / "24 ~27 VOLT" / "Min.110 - Max.1100" / "Less then 1000 mv" se limit nikalta hai (reading highlight ke liye) */
+  function parseLimit(spec) {
+    var s = String(spec || ''), nums = s.match(/\d+(?:\.\d+)?/g) || [];
+    if (!nums.length) return null;
+    if (/min/i.test(s) && /max/i.test(s) && nums.length >= 2) return { min: +nums[0], max: +nums[1] };
+    var rg = /(\d+(?:\.\d+)?)\s*(?:-|~|–|to)\s*(\d+(?:\.\d+)?)/i.exec(s);
+    if (rg && !/max|less/i.test(s)) return { min: +rg[1], max: +rg[2] };
+    if (/max|less|upto|up to/i.test(s)) return { max: +nums[0] };
+    return null;
+  }
+  function outOfLimit(spec, val) {
+    var n = nOf(val); if (isNaN(n)) return false;
+    var l = parseLimit(spec); if (!l) return false;
+    return (l.min !== undefined && n < l.min) || (l.max !== undefined && n > l.max);
+  }
+
+  /* ---------- default templates (Excel sheets se) ---------- */
+  var NOTE = 'नोट:- मशीन में कुछ भी गलत पाए जाने पर अपने सुपरवाइजर की सहायता से मेंटेनेंस डिपार्टमेंट को सूचित करे और मशीन ठीक करवाकर ही मशीन चलाये I';
+  var DOC_PTM = 'FMT-MNT-10 REV NO: 01 DATE: 01.01.2022';
+  var DOC_DSM = 'FMT-HT-96, Rev-00, Effective date 01.09.2022';
+  var DOC_DSOOT = 'FMT-MNT-04 REV NO: 00 DATE: 03-10-2022';
+  var ES = 'काम करने की स्थिति में';
+  var DRY = 'सूखा कपड़ा/ Brush';
+  var DMG = 'क्षतिग्रस्त नहीं होना चाहिए';
+  function R(p, s, m, t) { return { p: p, s: s || '', m: m || '', t: t || 'tick' }; }
+  function N(p, s) { return { p: p, s: s || '', m: '', t: 'num' }; }
+
+  var DEF = [
+    { mod: 'ptm', name: 'PUNCHING M/C', doc: DOC_PTM, rows: [R('मशीन और Fixture सफाई', 'Chips और धूल से मुक्त', DRY), R('टाइमिंग बेल्ट की स्थिति', 'कोई क्षति नहीं'), R('Check Air Leakage', 'NO air lekage नहीं'), R('कीबोर्ड CLEANING', 'कोई तेल या नमी नहीं', DRY), R('FRL Unit में तेल का स्तर (VG-32)', 'पानी नीकालो Lub .में तेल डालो'), R('Position Sensor', 'कोई क्षति नहीं'), R('Emergency Switch', ES)] },
+    { mod: 'ptm', name: 'CHARGE WEGON', doc: DOC_PTM, rows: [R('Maintain 5s', 'साफ होने चाहिए'), R('loading fixture की गति की जाँच करें', 'smooth होना चाहिए'), R('Operating Panel', 'साफ होने चाहिए'), R('Catcher condition', DMG), R('Table Rotation condition.', DMG), R('Emergency Switch', ES)] },
+    { mod: 'ptm', name: 'SQF', doc: DOC_PTM, rows: [R('Ampere meter की Reading on Load (80 to 110 Amp.)', 'Heatup Condition'), R('Loading fixture Working.', 'smooth होना चाहिए'), R('Opreating Panel', 'कोई तेल या Dust नहीं', 'सूखा कपड़ा'), R('All moving part will be lubricated', 'Lub.में तेल डालो'), R('All flow meater', 'साफ होने चाहिए'), R('Charge machine working.', 'कोई असामान्य आवाज नहीं'), R('Emergency Switch', ES)] },
+    { mod: 'ptm', name: 'WASHING MACHINE', doc: DOC_PTM, rows: [R('चेक TANK CHEMICAL CONCENTRATION', '2~6%'), R('TIMER WORKING', 'काम कर रहा है'), R('चेक WATER level', 'LEVEL GUAGE'), R('TEMPERATURE', '50~80%'), R('मशीन से कोई असामान्य शोर नहीं', 'कोई शोर नहीं'), R('WATER LEAKAGE', 'कोई LEAKAGE नहीं'), R('AIR LEAKAGE', 'कोई LEAKAGE नहीं'), R('OIL LEAKAGE', 'कोई LEAKAGE नहीं'), R('Emergency Switch', ES)] },
+    { mod: 'ptm', name: 'WASHING MACHINE (WEEKLY)', doc: 'FMT-MNT-10 REV NO: 01 DATE: 12.12.2024', colS: 'FREQUENCY', noMethod: true, rows: [R('NOZZEL CLEANING', 'WEEKLY'), R('OIL SKIMMER BELT CLEANING', 'WEEKLY')] },
+    { mod: 'ptm', name: 'TEMPERING', doc: DOC_PTM, rows: [R('Heater Condition', DMG), R('loading fixture की गति की जाँच करें', 'smooth होना चाहिए'), R('Operating Panel', 'साफ होने चाहिए'), R('Door chain condition', DMG), R('check door sprocket condition.', DMG), R('Emergency Switch', ES)] },
+    { mod: 'ptm', name: 'PRE-HEATING', doc: DOC_PTM, rows: [R('Heater Condition', DMG), R('loading fixture की गति की जाँच करें', 'smooth होना चाहिए'), R('Operating Panel', 'साफ होने चाहिए'), R('Door chain condition', DMG), R('check door sprocket condition.', DMG), R('Emergency Switch', ES)] },
+    { mod: 'ptm', name: 'CHAMFERING', doc: DOC_PTM, rows: [R('मशीन और Fixture सफाई', 'Chips और धूल से मुक्त', DRY), R('बिना लोड के Spindle', 'कोई असामान्य आवाज नहीं'), R('Check Air Leakage', 'कोई air lekage नहीं'), R('FIXTURE मोटर बेल्ट की स्थिति', 'कोई damage or loose नहीं'), R('Emergency Switch', ES)] },
+    { mod: 'ptm', name: 'SHOT BLASTING', doc: DOC_PTM, rows: [R('Ampere meter की Reading on Load (18 to 20 Amp.)', 'Every blast साइकिल पर'), R('Loading fixture Working.', 'smooth होना चाहिए'), R('Opreating Panel', 'कोई तेल या Dust नहीं', 'सूखा कपड़ा'), R('FRL Unit में तेल का स्तर (VG-32)', 'पानी नीकालो Lub.में तेल डालो'), R('Dust collector discharge', 'साफ होने चाहिए'), R('Machine Conveyor working.', 'कोई असामान्य आवाज नहीं'), R('Emergency Switch', ES)] },
+    { mod: 'ptm', name: 'SURFACE GRINDER', doc: DOC_PTM, rows: [R('Maintain 5s', 'साफ होना चाहिए'), R('Coolant के तेल के स्तर', 'Level के अनुसार'), R('Check Coolant Flow', 'आवश्यकता के अनुसार'), R('आपरेटर पैनल', 'कोई तेल या नमी नहीं', DRY), R('Check Slide Movement', 'कोई असामान्य आवाज नहीं'), R('Bellows कवर की स्थिति', 'Damage नाही'), R('Magnetic Seperator', 'साफ होना चाहिए'), R('Emergency Switch', ES)] },
+    { mod: 'ptm', name: 'CUTTING MACHINE', doc: DOC_PTM, rows: [R('Maintain 5s', 'साफ होना चाहिए'), R('Coolant के तेल के स्तर', 'Level के अनुसार'), R('Check Coolant Flow', 'आवश्यकता के अनुसार'), R('आपरेटर पैनल', 'कोई तेल या नमी नहीं', DRY), R('Cutting Wheel Moter', 'कोई असामान्य आवाज नहीं'), R('Vice Movment', 'Smooth'), R('Emergency Switch', ES)] },
+    { mod: 'ptm', name: 'CUTTING MC 01 (SERVO)', doc: DOC_PTM, rows: [R('Maintain 5s', 'साफ होना चाहिए'), R('Coolant के तेल के स्तर', 'Level के अनुसार'), R('Check Coolant Flow', 'आवश्यकता के अनुसार'), R('आपरेटर पैनल', 'कोई तेल या नमी नहीं', DRY), R('Door Limit Switch', ES), R('Cutting Wheel Moter', 'कोई असामान्य आवाज नहीं'), R('Vice Movment', 'Smooth'), R('Servo Moter', 'कोई असामान्य आवाज नहीं'), R('Emergency Switch', ES)] },
+    { mod: 'ptm', name: 'SUB-ZERO', doc: DOC_PTM, rows: [R('मशीन और Panel सफाई', 'धूल से मुक्त', DRY), R('Door Sliding Track', 'धूल से मुक्त', DRY), R('Check Air Leakage', 'NO air lekage नहीं'), R('Door Lock Condition', 'कोई क्षति नहीं'), R('FRL Unit', 'पानी नीकालो'), R('Position Sensor', 'कोई क्षति नहीं'), R('Emergency Switch', ES)] },
+
+    { mod: 'dsm', name: 'SQF', doc: DOC_DSM, rows: [N('MAIN HEATING LOAD FIRST', '110 AMP.MAX'), N('MAIN HEATING LOAD SECOND', '100 AMP MAX'), N('OIL BATH HEATING LOAD RIGHT SIDE', '100 AMP MAX'), N('OIL BATH HEATING LOAD LEFT SIDE', '100 AMP MAX'), N('VOLTMETER (DC)', '24 ~27 VOLT'), N('VOLTMETER (AC)', '440 max'), N('PANEL AC TEMP.', '20-43 Deg.'), R('HEATING CHAMBER FAN CONDITION', 'Should not any vibration & Abnormal Sound'), R('HC FAN BEARING COOLING OIL LEVEL', 'VISUALLY'), N('Oxy-Probe MV during Purge Process', 'Less then 1000 mv'), N('DILLUTION AIR FLOW', 'Min.110 - Max.1100 Nlph'), N('Temp Diff. of Control & Safety Controller', '10⁰C Max')] },
+    { mod: 'dsm', name: 'TEMPERING', doc: DOC_DSM, rows: [N('FRONT ZONE HEATING AMP.METER', '150 AMP.MAX.'), N('MIDDLE ZONE HEATING AMP.METER', '150 AMP.MAX.'), N('REAR ZONE HEATING AMP.METER', '150 AMP.MAX.'), N('CIRCULATION FAN RPM', '1450-1500')] },
+    { mod: 'dsm', name: 'PRE-HEATING', doc: DOC_DSM, rows: [N('FRONT ZONE HEATING AMP.METER', '150 AMP.MAX.'), N('MIDDLE ZONE HEATING AMP.METER', '150 AMP.MAX.'), N('REAR ZONE HEATING AMP.METER', '150 AMP.MAX.'), N('CIRCULATION FAN RPM', '1450-1500')] },
+    { mod: 'dsm', name: 'WASHING', doc: DOC_DSM, rows: [N('WASHING HETING AMP METER', '150 AMP.MAX.')] },
+
+    { mod: 'dsoot', name: 'SQF DE-SOOTING', doc: DOC_DSOOT, rows: [
+      ['All alignment to be checked while loading fixtures.', 'ALIGNED'], ['HEATER CURRENT', '100-130 A'], ['QUENCH TANK HEATER', '60-100 A'], ['AGITATOR MOTOR', 'NO ABNORMAL SOUND'],
+      ['Checking and rectification of all leakage of gases from furnace', 'NO LEAKAGE'], ['Checking leakages from pipe line and flow meter.', 'NO LEAKAGE'], ['checking of shot purge and Probe burn Off', 'AS PER FLOW METER'],
+      ['Checking of all flame sensor', 'WORKING OK'], ['All Chains will be checked for tension and replaced if required', 'WORKING OK'], ['Greasing and oiling of all moving and rotary parts', 'WORKING OK'],
+      ['cleaning of all pilot burners and exhaust pipe/Dampler/Flapper', 'CLEAN'], ['Cleaning of all controllers/ blowers/panels', 'DUST FREE'], ['Cleaning of Heater Connection & Tightning', 'CLEAN/TIGHT'],
+      ['Greasing of Front Door Sealing & Explosion Flaps', 'GREASED'], ['Check Furnace Normal Pressure Maintain', '1.5-5mBar'], ['Tightning of All electrical Connection of Controler /Oxyegen probe & termocouple', 'TIGHT'],
+      ['ALL Alarm Checking', 'WORKING OK'], ['Furnace Skin Temp', 'AMBIENT +40 TO 50 DEG'], ['Check Elevator Home Position', 'WORKING OK'], ['Deshooting Air Flow', '1-2.5 nm3'],
+      ['Machine Earthing / Electrical Pannel', 'Voltage between Neutral and earth is less than 2 volts.'], ['CLEANING OF ALL (LPG,METHANOL,DILLUTION AIR AND NITROGEN) FLOW METER', 'CLEAN'],
+      ['CHARGE MACHINE CATCHER CHECKING', 'TIGHT'], ['OIL FILTERATION BY CENTRIFIGUAL OIL FILTER', ''], ['ANY TRAPE MATERIAL FOUND NEARBY F/C AND FRONT CHAMBER', '']
+    ].map(function (x) { return { p: x[0], s: x[1], m: '', t: 'obs', f: 'MONTHLY (DURING DE-SOOTING)' }; }) }
+  ];
+
+  function seed() {
+    if (A('dcTpl').length) return;
+    var out = [];
+    DEF.forEach(function (d, i) {
+      out.push({
+        id: 'tpl:' + d.mod + ':' + d.name, mod: d.mod, name: d.name, doc: d.doc, colS: d.colS || '', noMethod: !!d.noMethod, ord: i,
+        rows: d.rows.map(function (r, j) { var o = { id: 'r' + (j + 1), p: r.p, s: r.s, m: r.m || '', t: r.t }; if (r.f) o.f = r.f; return o; })
+      });
+    });
+    data.dcTpl = out;
+    try { localStorage.setItem(KEY.dcTpl, JSON.stringify(out)); } catch (e) { }
+  }
+  function tpls(mod) { return A('dcTpl').filter(function (t) { return t && t.mod === mod; }).sort(function (a, b) { return (a.ord || 0) - (b.ord || 0); }); }
+  function tplBy(mod, name) { return tpls(mod).filter(function (t) { return t.name === name; })[0]; }
+  function nextRowId(t) { var m = 0; (t.rows || []).forEach(function (r) { var n = parseInt(String(r.id || '').replace(/\D/g, ''), 10); if (n > m) m = n; }); return 'r' + (m + 1); }
+
+  /* ---------- styles ---------- */
+  var css = '' +
+    '.dc-wrap{overflow:auto;max-height:72vh;background:#fff;border:1px solid #c5cfd6;border-radius:9px}' +
+    '.dc-tbl{border-collapse:collapse;font-size:11px;min-width:100%}' +
+    '.dc-tbl th,.dc-tbl td{border:1px solid #cfd8df;padding:3px 4px;text-align:center;white-space:nowrap}' +
+    '.dc-tbl thead th{position:sticky;top:0;background:#e8eef2;color:#17324d;z-index:3}' +
+    '.dc-tbl td.l,.dc-tbl th.l{text-align:left;white-space:normal;min-width:150px;max-width:230px}' +
+    '.dc-tbl .st{position:sticky;left:0;background:#fff;z-index:2;box-shadow:1px 0 0 #cfd8df}' +
+    '.dc-tbl thead th.st{z-index:4;background:#e8eef2}' +
+    '.dc-c{cursor:pointer;min-width:30px;font-size:15px;font-weight:800;user-select:none;-webkit-user-select:none}' +
+    '.dc-c.ok{color:#15803d;background:#ecfdf3}.dc-c.ng{color:#b91c1c;background:#fef2f2}' +
+    '.dc-n input{width:46px;border:1px solid #c8d1d7;border-radius:4px;padding:2px;font-size:11px;text-align:center}' +
+    '.dc-n input.bad{background:#fee2e2;border-color:#dc2626;color:#991b1b;font-weight:700}' +
+    '.dc-sg{width:46px;font-size:9px;border:1px solid #c8d1d7;border-radius:4px;padding:2px}' +
+    '.dc-today{background:#fff8db!important}' +
+    '.dc-msg{margin:8px 0;padding:7px 10px;border-radius:7px;font-size:12px;background:#f0f5f6;border-left:4px solid #0f766e}' +
+    '.dc-msg.warn{background:#fff7ed;border-left-color:#ea580c}' +
+    '.dc-chip{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;margin:2px 4px 2px 0;background:#eef5f6;color:#17324d}' +
+    '.dc-chip.good{background:#dcfce7;color:#166534}.dc-chip.bad{background:#fee2e2;color:#991b1b}.dc-chip.mid{background:#fef3c7;color:#92400e}' +
+    '.dc-ed input,.dc-ed select{width:100%;box-sizing:border-box;padding:4px;font-size:11px}' +
+    '.dc-ed td{vertical-align:top}.dc-ed .tiny{padding:3px 7px;font-size:11px}' +
+    '.dc-obs{min-width:120px;width:100%;box-sizing:border-box;padding:4px;font-size:11px}' +
+    '.dc-notok td{background:#fef2f2!important}';
+  var st0 = document.createElement('style'); st0.id = 'dc-style'; st0.textContent = css; document.head.appendChild(st0);
+
+  /* ====================== PTM / DSM : month grid engine ====================== */
+  var CFG = {
+    ptm: { title: 'PREDICTIVE MAINTENANCE CHECK SHEET', head: 'MGPL', method: true, hasShift: false, noLabel: 'MACHINE NO.', sel: 'Machine / Check Sheet',
+      help: 'Machine ke hisaab se sheet chuno, Machine No. aur Month bharo. Cell par tap karo: <b>✓</b> (sahi) → <b>✗</b> (galat) → khali. Galat mile to supervisor ke through Maintenance ko batao. Save dabane par din-wise record save hota hai (Google Sheet par sync).' },
+    dsm: { title: 'DAILY SHIFT WISE MAINTENANCE CHECK SHEET', head: 'Milestone Gears Limited', method: false, hasShift: true, noLabel: 'FURNACE / M/C NUMBER', sel: 'Furnace / Check Sheet',
+      help: 'Furnace chuno, Furnace No., Shift aur Month bharo. Har din ki reading box me likho (limit se bahar ho to <b>laal</b> ho jaati hai); fan / oil level jaise points par tap karke ✓ / ✗ lagao. Save dabane par din-wise record save hota hai.' }
+  };
+  var S = {};   /* S[key] = {sel, draft:{day:{v,sign}}, dirty:{day:1}} */
+
+  function dayRecs(key, sel) {
+    return A(key).filter(function (r) { return r && r.tpl === sel.tpl && String(r.machineNo || '') === sel.no && String(r.shift || '') === sel.shift && r.month === sel.month; });
+  }
+  function loadDraft(key) {
+    var st = S[key]; st.draft = {}; st.dirty = {};
+    dayRecs(key, st.sel).forEach(function (r) { st.draft[r.day] = { v: Object.assign({}, r.v || {}), sign: r.sign || '' }; });
+  }
+  function readSel(key) {
+    var sh = $('dc_' + key + '_shift');
+    return { tpl: ($('dc_' + key + '_tpl') || {}).value || '', no: (($('dc_' + key + '_no') || {}).value || '').trim(), shift: sh ? (sh.value || '').trim() : '', month: ($('dc_' + key + '_month') || {}).value || ymNow() };
+  }
+  function writeSel(key) {
+    var sel = S[key].sel;
+    if ($('dc_' + key + '_tpl')) $('dc_' + key + '_tpl').value = sel.tpl;
+    if ($('dc_' + key + '_no')) $('dc_' + key + '_no').value = sel.no;
+    if ($('dc_' + key + '_shift')) $('dc_' + key + '_shift').value = sel.shift;
+    if ($('dc_' + key + '_month')) $('dc_' + key + '_month').value = sel.month;
+  }
+  function isDirty(key) { return S[key] && Object.keys(S[key].dirty).length > 0; }
+  function fillTplSelect(key) {
+    var s = $('dc_' + key + '_tpl'); if (!s) return;
+    var cur = s.value, list = tpls(key);
+    s.innerHTML = list.map(function (t) { return '<option>' + E(t.name) + '</option>'; }).join('');
+    if (cur && list.some(function (t) { return t.name === cur; })) s.value = cur;
+  }
+  function onSel(key) {
+    var st = S[key], nu = readSel(key);
+    if (!/^\d{4}-\d{2}$/.test(nu.month)) { nu.month = ymNow(); }
+    if (isDirty(key) && (nu.tpl !== st.sel.tpl || nu.no !== st.sel.no || nu.shift !== st.sel.shift || nu.month !== st.sel.month)) {
+      if (!confirm('Is sheet me unsaved changes hain. Chhod kar dusri sheet kholni hai?')) { writeSel(key); return; }
+    }
+    st.sel = nu; loadDraft(key); writeSel(key); renderGrid(key);
+  }
+  function gridHtml(key) {
+    var cfg = CFG[key], st = S[key], sel = st.sel, t = tplBy(key, sel.tpl);
+    if (!t) return '<div class="dc-msg warn">Is naam ka check sheet template nahi mila. Neeche "Edit check points" se template banao.</div>';
+    var n = dim(sel.month), td = sel.month === ymNow() ? +today().slice(8, 10) : 0, showM = cfg.method && !t.noMethod, h = '';
+    h += '<div class="dc-wrap"><table class="tbl dc-tbl"><thead><tr><th>Sr</th><th class="l st">' + (key === 'dsm' ? 'INSTRUMENT NAME' : 'CHECK POINTS') + '</th><th class="l">' + E(t.colS || (key === 'dsm' ? 'SPECIFICATION' : 'STANDARDS')) + '</th>' + (showM ? '<th class="l">METHOD</th>' : '');
+    for (var d = 1; d <= n; d++) h += '<th' + (d === td ? ' class="dc-today"' : '') + '>' + d + '</th>';
+    h += '</tr></thead><tbody>';
+    (t.rows || []).forEach(function (r, i) {
+      h += '<tr><td>' + (i + 1) + '</td><td class="l st">' + E(r.p) + '</td><td class="l">' + E(r.s) + '</td>' + (showM ? '<td class="l">' + E(r.m) + '</td>' : '');
+      for (var d = 1; d <= n; d++) {
+        var v = ((st.draft[d] || {}).v || {})[r.id], tdc = d === td ? ' dc-today' : '';
+        if (r.t === 'num') {
+          h += '<td class="dc-n' + tdc + '"><input inputmode="decimal" data-a="val" data-r="' + E(r.id) + '" data-d="' + d + '" value="' + E(v || '') + '"' + (outOfLimit(r.s, v) ? ' class="bad"' : '') + '></td>';
+        } else {
+          h += '<td class="dc-c' + (v === 'ok' ? ' ok' : v === 'ng' ? ' ng' : '') + tdc + '" data-a="tick" data-r="' + E(r.id) + '" data-d="' + d + '">' + (v === 'ok' ? '✓' : v === 'ng' ? '✗' : '') + '</td>';
+        }
+      }
+      h += '</tr>';
+    });
+    h += '<tr><td colspan="' + (showM ? 4 : 3) + '" class="l st" style="font-weight:800">OPERATOR SIGN. (DAILY)</td>';
+    for (var d2 = 1; d2 <= n; d2++) h += '<td class="' + (d2 === td ? 'dc-today' : '') + '"><input class="dc-sg" data-a="sign" data-d="' + d2 + '" maxlength="12" value="' + E((st.draft[d2] || {}).sign || '') + '"></td>';
+    h += '</tr></tbody></table></div>';
+    return h;
+  }
+  function summaryHtml(key) {
+    var st = S[key], sel = st.sel, t = tplBy(key, sel.tpl); if (!t) return '';
+    var ok = 0, ng = 0, days = 0, ngList = [], bad = [];
+    Object.keys(st.draft).forEach(function (d) {
+      var v = st.draft[d].v || {}, any = false;
+      (t.rows || []).forEach(function (r, i) {
+        var x = v[r.id]; if (x === undefined || x === '') return; any = true;
+        if (r.t === 'num') { if (outOfLimit(r.s, x)) bad.push('Day ' + d + ' – ' + r.p + ' = ' + x + ' (limit: ' + r.s + ')'); }
+        else if (x === 'ok') ok++; else if (x === 'ng') { ng++; ngList.push('Day ' + d + ' – ' + r.p); }
+      });
+      if (any) days++;
+    });
+    var h = '<span class="dc-chip">Days filled: ' + days + '</span>';
+    if (key === 'ptm') h += '<span class="dc-chip good">✓ ' + ok + '</span><span class="dc-chip ' + (ng ? 'bad' : '') + '">✗ ' + ng + '</span>';
+    else h += '<span class="dc-chip ' + (bad.length ? 'bad' : 'good') + '">Out of limit: ' + bad.length + '</span><span class="dc-chip">✗ ' + ng + '</span>';
+    if (isDirty(key)) h += '<span class="dc-chip mid">Unsaved changes</span>';
+    var lst = ngList.concat(bad);
+    if (lst.length) h += '<div class="dc-msg warn"><b>Dhyan do (supervisor / maintenance ko batao):</b><br>' + lst.slice(0, 12).map(E).join('<br>') + (lst.length > 12 ? '<br>… +' + (lst.length - 12) + ' more' : '') + '</div>';
+    return h;
+  }
+  function listHtml(key) {
+    var sel = S[key].sel, rows = {}, h;
+    A(key).forEach(function (r) {
+      if (!r || r.month !== sel.month) return;
+      var k = [r.tpl, r.machineNo || '', r.shift || ''].join('|');
+      var o = rows[k] || (rows[k] = { tpl: r.tpl, no: r.machineNo || '', shift: r.shift || '', days: 0, ng: 0, last: '' });
+      o.days++; if (r.day > +o.last || !o.last) o.last = String(r.day);
+      var t = tplBy(key, r.tpl);
+      (t ? t.rows : []).forEach(function (rw) { var x = (r.v || {})[rw.id]; if (rw.t === 'num' ? outOfLimit(rw.s, x) : x === 'ng') o.ng++; });
+    });
+    var arr = Object.keys(rows).map(function (k) { return rows[k]; }).sort(function (a, b) { return (a.tpl + a.no).localeCompare(b.tpl + b.no); });
+    h = '<div class="head2" style="margin-top:0">Sheets saved for ' + E(ymLbl(sel.month)) + '</div>';
+    if (!arr.length) return h + '<div class="note">Is month ki koi sheet save nahi hui.</div>';
+    h += '<div class="tablewrap"><table class="tbl"><thead><tr><th>Check Sheet</th><th>' + E(CFG[key].noLabel) + '</th>' + (CFG[key].hasShift ? '<th>Shift</th>' : '') + '<th>Days filled</th><th>Last day</th><th>Problem points</th><th>Action</th></tr></thead><tbody>';
+    arr.forEach(function (o) {
+      h += '<tr><td>' + E(o.tpl) + '</td><td>' + E(o.no) + '</td>' + (CFG[key].hasShift ? '<td>' + E(o.shift) + '</td>' : '') + '<td>' + o.days + '</td><td>' + E(o.last) + '</td><td>' + (o.ng ? '<b style="color:#b91c1c">' + o.ng + '</b>' : '0') + '</td>' +
+        '<td><button class="secondary tiny" data-a="open" data-t="' + E(o.tpl) + '" data-n="' + E(o.no) + '" data-s="' + E(o.shift) + '">Open</button> <button class="secondary tiny" data-a="del" data-t="' + E(o.tpl) + '" data-n="' + E(o.no) + '" data-s="' + E(o.shift) + '" style="color:#b91c1c">Delete</button></td></tr>';
+    });
+    return h + '</tbody></table></div>';
+  }
+  function renderGrid(key) {
+    var g = $('dc_' + key + '_grid'); if (!g) return;
+    var sc = g.querySelector('.dc-wrap'), sl = sc ? sc.scrollLeft : 0, stp = sc ? sc.scrollTop : 0;
+    g.innerHTML = gridHtml(key);
+    var sc2 = g.querySelector('.dc-wrap'); if (sc2) { sc2.scrollLeft = sl; sc2.scrollTop = stp; }
+    $('dc_' + key + '_sum').innerHTML = summaryHtml(key);
+    $('dc_' + key + '_list').innerHTML = listHtml(key);
+  }
+  function setCell(key, d, rid, val) {
+    var st = S[key], dd = st.draft[d] || (st.draft[d] = { v: {}, sign: '' });
+    if (val === '' || val === undefined) delete dd.v[rid]; else dd.v[rid] = val;
+    if (!dd.sign && Object.keys(dd.v).length) dd.sign = who().slice(0, 12);
+    st.dirty[d] = 1;
+  }
+  function futureBlock(key, d) {
+    var sel = S[key].sel, ds = sel.month + '-' + pad(d);
+    if (ds > today()) { alert('Aage ki date (' + fmtD(ds) + ') me entry nahi ho sakti.'); return true; }
+    return false;
+  }
+  function saveSheet(key) {
+    var st = S[key], sel = st.sel, days = Object.keys(st.dirty);
+    if (!days.length) { alert('Koi naya change nahi hai.'); return; }
+    if (!sel.tpl) { alert('Check sheet chuno.'); return; }
+    if (!saveGuard(key)) return;
+    var existing = {}; dayRecs(key, sel).forEach(function (r) { existing[r.day] = r; });
+    if (days.some(function (d) { return existing[d]; }) && !editGuard(key)) return;
+    var arr = A(key), now = new Date().toISOString(), cnt = 0;
+    days.forEach(function (d) {
+      var dd = st.draft[d] || { v: {}, sign: '' }, id = key + '|' + sel.tpl + '|' + sel.no + '|' + sel.shift + '|' + sel.month + '|' + pad(d);
+      var empty = !Object.keys(dd.v || {}).length;
+      var i = arr.findIndex(function (r) { return r && r.id === id; });
+      if (empty) { if (i >= 0) arr.splice(i, 1); return; }
+      var rec = { id: id, tpl: sel.tpl, machineNo: sel.no, shift: sel.shift, month: sel.month, day: +d, date: sel.month + '-' + pad(d), v: Object.assign({}, dd.v), sign: dd.sign || '', by: who(), at: now };
+      if (i >= 0) arr[i] = rec; else arr.push(rec);
+      cnt++;
+    });
+    persist(key);
+    loadDraft(key); renderGrid(key);
+    alert('Sheet save ho gayi (' + cnt + ' din ka record).');
+  }
+  function delSheet(key, tpl, no, shift) {
+    if (!delGuard(key)) return;
+    var sel = { tpl: tpl, no: no, shift: shift, month: S[key].sel.month }, n = dayRecs(key, sel).length;
+    if (!n || !confirm(tpl + ' ' + no + ' – ' + ymLbl(sel.month) + ' ki poori sheet (' + n + ' din) delete karni hai?')) return;
+    data[key] = A(key).filter(function (r) { return !(r && r.tpl === tpl && String(r.machineNo || '') === no && String(r.shift || '') === shift && r.month === sel.month); });
+    persist(key);
+    var cur = S[key].sel; if (cur.tpl === tpl && cur.no === no && cur.shift === shift) loadDraft(key);
+    renderGrid(key);
+  }
+  function allOk(key) {
+    var st = S[key], t = tplBy(key, st.sel.tpl), d = +($('dc_' + key + '_allday') || {}).value;
+    if (!t || !d) { alert('Din chuno.'); return; }
+    if (d > dim(st.sel.month) || futureBlock(key, d)) return;
+    t.rows.forEach(function (r) { if (r.t !== 'num') setCell(key, d, r.id, 'ok'); });
+    renderGrid(key);
+  }
+  function printSheet(key) {
+    var cfg = CFG[key], st = S[key], sel = st.sel, t = tplBy(key, sel.tpl); if (!t) { alert('Check sheet chuno.'); return; }
+    var n = dim(sel.month), showM = cfg.method && !t.noMethod, h = '';
+    h += '<table class="hd"><tr><td rowspan="2" style="width:90px"><img src="' + APP_LOGO + '" style="height:44px"></td><td class="tt" colspan="3">' + E(cfg.title) + '</td></tr>' +
+      '<tr><td><b>' + E(cfg.head) + '</b></td><td><b>' + (key === 'dsm' ? 'FURNACE: ' : 'MACHINE NAME: ') + E(t.name) + '</b></td><td><b>' + E(cfg.noLabel) + ' :- ' + E(sel.no) + (cfg.hasShift ? ' &nbsp; SHIFT: ' + E(sel.shift) : '') + ' &nbsp; MONTH :- ' + E(ymLbl(sel.month)) + '</b></td></tr></table>';
+    h += '<table class="g"><thead><tr><th rowspan="2">Sr. No</th><th rowspan="2" class="l">' + (key === 'dsm' ? 'INSTRUMENT NAME' : 'CHECK POINTS') + '</th><th rowspan="2" class="l">' + E(t.colS || (key === 'dsm' ? 'SPECIFICATION' : 'STANDARDS')) + '</th>' + (showM ? '<th rowspan="2" class="l">METHOD</th>' : '') + '<th colspan="' + n + '">DATE</th></tr><tr>';
+    for (var d = 1; d <= n; d++) h += '<th class="dd">' + d + '</th>';
+    h += '</tr></thead><tbody>';
+    t.rows.forEach(function (r, i) {
+      h += '<tr><td>' + (i + 1) + '</td><td class="l">' + E(r.p) + '</td><td class="l">' + E(r.s) + '</td>' + (showM ? '<td class="l">' + E(r.m) + '</td>' : '');
+      for (var d3 = 1; d3 <= n; d3++) {
+        var v = ((st.draft[d3] || {}).v || {})[r.id];
+        h += '<td class="dd' + (r.t === 'num' && outOfLimit(r.s, v) ? ' bad' : '') + '">' + (v === 'ok' ? '✓' : v === 'ng' ? '✗' : E(v || '')) + '</td>';
+      }
+      h += '</tr>';
+    });
+    h += '<tr><td colspan="' + (showM ? 4 : 3) + '" class="l"><b>OPERATOR SIGN. (DAILY)</b></td>';
+    for (var d4 = 1; d4 <= n; d4++) h += '<td class="dd sg">' + E(((st.draft[d4] || {}).sign || '').slice(0, 5)) + '</td>';
+    h += '</tr></tbody></table>';
+    h += '<table class="lg"><tr><td style="width:90px"><b>Legend</b></td><td>✓ &nbsp; सही पाया गया</td><td>✗ &nbsp; गलत पाया गया</td></tr></table>';
+    h += '<div class="nt">' + E(NOTE) + '</div><div class="ft">' + E(t.doc || '') + '</div>';
+    printWin(cfg.title, h, true);
+  }
+  function printWin(title, body, land) {
+    var c = '@page{size:A4 ' + (land ? 'landscape' : 'portrait') + ';margin:8mm}body{font-family:Arial,"Nirmala UI",sans-serif;font-size:10px;color:#000}table{border-collapse:collapse;width:100%}td,th{border:1px solid #000;padding:2px 3px;text-align:center}' +
+      '.l{text-align:left}.tt{font-size:15px;font-weight:800;text-align:center}.hd{margin-bottom:4px}.g th{background:#eee}.dd{width:19px;padding:2px 0;font-size:10px}.dd.bad{background:#ddd;font-weight:800}.sg{font-size:7px}.lg{margin-top:4px;width:60%}.nt{margin-top:5px;font-size:10px}.ft{margin-top:6px;font-size:9px;text-align:right;font-weight:700}' +
+      '.big{font-size:12px}.big td,.big th{padding:4px 5px}';
+    var w = window.open('', '_blank', 'width=1200,height=850');
+    if (!w) { alert('Please allow pop-ups to print.'); return; }
+    w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>' + E(title) + '</title><style>' + c + '</style></head><body>' + body + '<script>window.onload=function(){window.print()}<\/script></body></html>');
+    w.document.close();
+  }
+
+  function gridPanel(key) {
+    var cfg = CFG[key], m = MODS.filter(function (x) { return x.key === key; })[0];
+    return '<div class="card"><div class="head">Milestone Gears Ltd. UNIT-7</div><div class="head2">' + E(cfg.title) + '</div>' +
+      '<div class="utility-help">' + cfg.help + '</div><div class="form">' +
+      '<div class="field"><label>' + E(cfg.sel) + '</label><select id="dc_' + key + '_tpl" data-a="sel"></select></div>' +
+      '<div class="field"><label>' + E(cfg.noLabel) + '</label><input id="dc_' + key + '_no" list="dc_machlist" data-a="sel" placeholder="e.g. 01"></div>' +
+      (cfg.hasShift ? '<div class="field"><label>Shift</label><input id="dc_' + key + '_shift" list="dc_shiftlist" data-a="sel" placeholder="A / B / C"></div>' : '') +
+      '<div class="field"><label>Month</label><input type="month" id="dc_' + key + '_month" data-a="sel"></div>' +
+      '<div class="actions wide"><button class="primary" data-a="save">Save Sheet</button><button class="secondary" data-a="print">Print Sheet</button>' +
+      (key === 'ptm' ? '<span style="margin-left:8px;font-size:11px">Sab ✓ for day: <input type="number" min="1" max="31" id="dc_ptm_allday" style="width:56px"> <button class="secondary tiny" data-a="allok">Apply</button></span>' : '') +
+      '</div></div></div>' +
+      '<div class="card"><div id="dc_' + key + '_sum"></div><div id="dc_' + key + '_grid"></div></div>' +
+      '<div class="card" id="dc_' + key + '_list"></div>' + editorShell(key);
+  }
+
+  /* ====================== SQF De-sooting PM ====================== */
+  var DS = { editId: null, rows: [] };
+  function dsTpl() { return tpls('dsoot')[0]; }
+  function dsNewRows() { var t = dsTpl(); return (t ? t.rows : []).map(function (r) { return { id: r.id, p: r.p, f: r.f || '', s: r.s, m: r.m || '', obs: '', work: '', rem: '' }; }); }
+  function dsPanel() {
+    return '<div class="card"><div class="head">Milestone Gears Ltd. UNIT-7</div><div class="head2">SQF DE-SOOTING – PREVENTIVE MAINTENANCE CHECK SHEET (FMT-MNT-04)</div>' +
+      '<div class="utility-help">Har SQF ka monthly de-sooting PM yahan bharo. Har point par <b>Observation</b>, <b>Work Done</b> aur <b>Remark</b> likho. "Not OK" likhne par row laal ho jaati hai aur Not OK points ginti me aate hain.</div>' +
+      '<div class="form"><input type="hidden" id="dsoot_id">' +
+      '<div class="field"><label>M/C No. (SQF)</label><select id="dsoot_machine"></select></div>' +
+      '<div class="field"><label>Done Date</label><input type="date" id="dsoot_date"></div>' +
+      '<div class="field"><label>Start Time</label><input type="time" id="dsoot_start"></div>' +
+      '<div class="field"><label>End Time</label><input type="time" id="dsoot_end"></div>' +
+      '<div class="field"><label>Checked By</label><input id="dsoot_checked"></div>' +
+      '<div class="field"><label>Verified By</label><input id="dsoot_verified" readonly placeholder="Auto: login user" style="background:#eef3f4"></div>' +
+      '<div class="actions wide"><button class="primary" data-a="save" id="dsoot_savebtn">Save De-sooting Record</button><button class="secondary" data-a="clear">Clear</button><button class="secondary" data-a="printcur">Print Current</button></div></div></div>' +
+      '<datalist id="dsoot_obslist"><option value="Found OK"><option value="Not OK"><option value="Cleaning OK"><option value="Done"></datalist>' +
+      '<div class="card"><div class="tablewrap"><table class="tbl"><thead><tr><th>S.No.</th><th>Freq.</th><th class="l">Activity (Electrical + Mechanical)</th><th>Standard</th><th>Observation</th><th>Work Done</th><th>Remark</th></tr></thead><tbody id="dsoot_rows"></tbody></table></div><div id="dsoot_sum" style="margin-top:6px"></div></div>' +
+      '<div class="card"><div class="head2" style="margin-top:0">Saved De-sooting Records</div><div class="toolbar"><label style="font-size:11px;font-weight:700">Month: <select id="dsoot_month" data-a="month" style="padding:4px;border-radius:5px;font-size:12px"></select></label></div><div id="dsoot_cover"></div>' +
+      '<div class="tablewrap"><table class="tbl"><thead><tr><th>Date</th><th>M/C No.</th><th>Start</th><th>End</th><th>Checked By</th><th>Verified By</th><th>Not OK</th><th>Action</th></tr></thead><tbody id="dsoot_list"></tbody></table></div></div>' + editorShell('dsoot');
+  }
+  function dsRenderRows() {
+    var b = $('dsoot_rows'); if (!b) return;
+    b.innerHTML = DS.rows.map(function (r, i) {
+      var nok = /not\s*ok|\bng\b|✗/i.test(r.obs || '');
+      return '<tr' + (nok ? ' class="dc-notok"' : '') + '><td>' + (i + 1) + '</td><td style="font-size:10px">' + E(r.f) + '</td><td class="l">' + E(r.p) + '</td><td>' + E(r.s) + '</td>' +
+        '<td><input class="dc-obs" list="dsoot_obslist" data-a="f" data-i="' + i + '" data-k="obs" value="' + E(r.obs) + '"></td>' +
+        '<td><input class="dc-obs" data-a="f" data-i="' + i + '" data-k="work" value="' + E(r.work) + '"></td>' +
+        '<td><input class="dc-obs" data-a="f" data-i="' + i + '" data-k="rem" value="' + E(r.rem) + '"></td></tr>';
+    }).join('');
+    dsSum();
+  }
+  function dsSum() {
+    var nk = DS.rows.filter(function (r) { return /not\s*ok|\bng\b|✗/i.test(r.obs || ''); }).length, fl = DS.rows.filter(function (r) { return String(r.obs || '').trim(); }).length;
+    $('dsoot_sum').innerHTML = '<span class="dc-chip">Filled: ' + fl + ' / ' + DS.rows.length + '</span><span class="dc-chip ' + (nk ? 'bad' : 'good') + '">Not OK: ' + nk + '</span>';
+  }
+  function dsMonths() {
+    var m = {}; m[ymNow()] = 1; A('dsoot').forEach(function (r) { if (r && r.date) m[r.date.slice(0, 7)] = 1; });
+    return Object.keys(m).sort().reverse();
+  }
+  function dsRenderList() {
+    var sel = $('dsoot_month'); if (!sel) return;
+    var cur = sel.value, ms = dsMonths();
+    sel.innerHTML = ms.map(function (m) { return '<option value="' + m + '">' + E(ymLbl(m)) + '</option>'; }).join('') + '<option value="*">All months</option>';
+    sel.value = (cur && (cur === '*' || ms.indexOf(cur) >= 0)) ? cur : ymNow();
+    var mo = sel.value, rows = A('dsoot').filter(function (r) { return r && (mo === '*' || (r.date || '').slice(0, 7) === mo); }).sort(function (a, b) { return String(b.date || '').localeCompare(String(a.date || '')); });
+    var cov = '';
+    if (mo !== '*') cov = sqfNos().map(function (m) { var d = rows.filter(function (r) { return r.machineNo === m; })[0]; return '<span class="dc-chip ' + (d ? 'good' : 'mid') + '">' + E(m) + ': ' + (d ? 'Done ' + E(fmtD(d.date)) : 'Pending') + '</span>'; }).join('');
+    $('dsoot_cover').innerHTML = cov;
+    $('dsoot_list').innerHTML = rows.length ? rows.map(function (r) {
+      return '<tr><td>' + E(fmtD(r.date)) + '</td><td>' + E(r.machineNo) + '</td><td>' + E(r.start) + '</td><td>' + E(r.end) + '</td><td>' + E(r.checkedBy) + '</td><td>' + E(r.verifiedBy) + '</td><td>' + (r.notOk ? '<b style="color:#b91c1c">' + r.notOk + '</b>' : '0') + '</td>' +
+        '<td><button class="secondary tiny" data-a="redit" data-id="' + E(r.id) + '">Edit</button> <button class="secondary tiny" data-a="print" data-id="' + E(r.id) + '">Print</button> <button class="secondary tiny" data-a="del" data-id="' + E(r.id) + '" style="color:#b91c1c">Delete</button></td></tr>';
+    }).join('') : '<tr><td colspan="8" style="text-align:center;color:#7b8a94">Koi record nahi.</td></tr>';
+  }
+  function dsClear() {
+    DS.editId = null; DS.rows = dsNewRows();
+    $('dsoot_id').value = ''; $('dsoot_date').value = today(); $('dsoot_start').value = ''; $('dsoot_end').value = ''; $('dsoot_checked').value = ''; $('dsoot_verified').value = who();
+    var s = $('dsoot_machine'), cur = s.value; s.innerHTML = sqfNos().map(function (m) { return '<option>' + E(m) + '</option>'; }).join(''); if (cur) s.value = cur;
+    $('dsoot_savebtn').textContent = 'Save De-sooting Record';
+    dsRenderRows();
+  }
+  function dsSave() {
+    var mc = $('dsoot_machine').value, date = $('dsoot_date').value;
+    if (!mc || !date) { alert('M/C No. aur Done Date bharo.'); return; }
+    var filled = DS.rows.filter(function (r) { return String(r.obs || '').trim() || String(r.work || '').trim(); }).length;
+    if (!filled) { alert('Kam se kam ek point ka Observation / Work Done bharo.'); return; }
+    var arr = A('dsoot'), i = DS.editId ? arr.findIndex(function (r) { return r && r.id === DS.editId; }) : -1;
+    if (i >= 0 ? !editGuard('dsoot') : !saveGuard('dsoot')) return;
+    var nk = DS.rows.filter(function (r) { return /not\s*ok|\bng\b|✗/i.test(r.obs || ''); }).length, t = dsTpl();
+    var rec = {
+      id: i >= 0 ? arr[i].id : 'dsoot-' + uid(), machineNo: mc, date: date, start: $('dsoot_start').value, end: $('dsoot_end').value, checkedBy: $('dsoot_checked').value.trim(), verifiedBy: who() || $('dsoot_verified').value,
+      doc: (t && t.doc) || DOC_DSOOT, notOk: nk, rows: DS.rows.map(function (r) { return { id: r.id, p: r.p, f: r.f, s: r.s, m: r.m, obs: r.obs, work: r.work, rem: r.rem }; }), by: who(), at: new Date().toISOString()
+    };
+    if (i >= 0) arr[i] = rec; else arr.push(rec);
+    persist('dsoot'); dsClear(); dsRenderList();
+    alert('De-sooting record save ho gaya.' + (nk ? '\nNot OK points: ' + nk + ' – Maintenance Request / Breakdown register me entry karo.' : ''));
+  }
+  function dsEdit(id) {
+    if (!editGuard('dsoot')) return;
+    var r = A('dsoot').filter(function (x) { return x && x.id === id; })[0]; if (!r) return;
+    DS.editId = r.id; DS.rows = (r.rows || []).map(function (x) { return Object.assign({}, x); });
+    $('dsoot_id').value = r.id; $('dsoot_machine').value = r.machineNo; $('dsoot_date').value = r.date; $('dsoot_start').value = r.start || ''; $('dsoot_end').value = r.end || ''; $('dsoot_checked').value = r.checkedBy || ''; $('dsoot_verified').value = r.verifiedBy || '';
+    $('dsoot_savebtn').textContent = 'Update De-sooting Record'; dsRenderRows(); $('dsoot').scrollIntoView({ behavior: 'smooth' });
+  }
+  function dsDel(id) {
+    if (!delGuard('dsoot')) return;
+    var r = A('dsoot').filter(function (x) { return x && x.id === id; })[0]; if (!r || !confirm(r.machineNo + ' – ' + fmtD(r.date) + ' ka de-sooting record delete karna hai?')) return;
+    data.dsoot = A('dsoot').filter(function (x) { return x && x.id !== id; }); persist('dsoot');
+    if (DS.editId === id) dsClear(); dsRenderList();
+  }
+  function dsPrintRec(r) {
+    var h = '<table class="big"><tr><td colspan="8" style="font-size:16px;font-weight:800">MILESTONE GEARS LTD.</td></tr><tr><td colspan="4" style="font-weight:800;font-size:14px">Preventive Maintenance Check Sheet</td><td colspan="2">Start Time: ' + E(r.start) + '</td><td colspan="2">End Time: ' + E(r.end) + '</td></tr>' +
+      '<tr><td colspan="3" class="l"><b>M/C NAME:- SQF</b></td><td colspan="3" class="l"><b>M/C. No.:- ' + E(r.machineNo) + '</b></td><td colspan="2" class="l"><b>Done Date:- ' + E(fmtD(r.date)) + '</b></td></tr>' +
+      '<tr><th>S.No.</th><th>Freq.</th><th class="l">Activity (Electrical + Mechanical)</th><th>Standard</th><th>Method</th><th>Observation</th><th>Work Done</th><th>Remark</th></tr>' +
+      (r.rows || []).map(function (x, i) { return '<tr><td>' + (i + 1) + '</td><td>' + E(x.f) + '</td><td class="l">' + E(x.p) + '</td><td>' + E(x.s) + '</td><td>' + E(x.m) + '</td><td>' + E(x.obs) + '</td><td>' + E(x.work) + '</td><td>' + E(x.rem) + '</td></tr>'; }).join('') +
+      '<tr><td colspan="3" class="l" style="height:42px"><b>CHECKED BY-</b> ' + E(r.checkedBy) + '</td><td colspan="5" class="l"><b>VERIFIED BY-</b> ' + E(r.verifiedBy) + '</td></tr></table><div class="ft">' + E(r.doc || DOC_DSOOT) + '</div>';
+    printWin('SQF De-sooting PM', h, false);
+  }
+  function dsPrintCur() {
+    var mc = $('dsoot_machine').value; if (!mc) return;
+    dsPrintRec({ machineNo: mc, date: $('dsoot_date').value, start: $('dsoot_start').value, end: $('dsoot_end').value, checkedBy: $('dsoot_checked').value, verifiedBy: $('dsoot_verified').value || who(), doc: (dsTpl() || {}).doc, rows: DS.rows });
+  }
+
+  /* ====================== check-point (template) editor ====================== */
+  var ED = {};   /* ED[key] = {name, isNew, t:{...copy}} */
+  function editorShell(key) {
+    return '<details class="card" id="dc_' + key + '_edwrap"><summary style="cursor:pointer;font-weight:800;color:#0f3d5e">✏️ Edit check points / templates</summary><div id="dc_' + key + '_ed" class="dc-ed" style="margin-top:10px"></div></details>';
+  }
+  function edLoad(key, name, isNew) {
+    var t = isNew ? { id: 'tpl:' + key + ':' + name, mod: key, name: name, doc: key === 'ptm' ? DOC_PTM : key === 'dsm' ? DOC_DSM : DOC_DSOOT, colS: '', noMethod: false, ord: tpls(key).length + 1, rows: [] } : JSON.parse(JSON.stringify(tplBy(key, name) || {}));
+    ED[key] = { isNew: !!isNew, t: t };
+  }
+  function edRender(key) {
+    var box = $('dc_' + key + '_ed'); if (!box) return;
+    if (!ED[key]) { var l = tpls(key); if (l.length) edLoad(key, l[0].name, false); else edLoad(key, 'NEW SHEET', true); }
+    var e = ED[key], t = e.t, list = tpls(key), h = '';
+    h += '<div class="form"><div class="field"><label>Template</label><select data-a="edsel">' + list.map(function (x) { return '<option' + (!e.isNew && x.name === t.name ? ' selected' : '') + '>' + E(x.name) + '</option>'; }).join('') + (e.isNew ? '<option selected>(new) ' + E(t.name) + '</option>' : '') + '</select></div>' +
+      '<div class="field"><label>Name (machine / sheet)</label><input data-a="edname" value="' + E(t.name) + '"' + (e.isNew ? '' : ' readonly style="background:#eef3f4" title="Purane records is naam se jude hain, isliye naam badal nahi sakte"') + '></div>' +
+      '<div class="field wide"><label>Document no. line (print footer)</label><input data-a="eddoc" value="' + E(t.doc) + '"></div>' +
+      (key === 'ptm' ? '<div class="field"><label>Standards column title</label><input data-a="edcols" value="' + E(t.colS || '') + '" placeholder="STANDARDS (ya FREQUENCY)"></div><div class="field"><label>Method column</label><select data-a="ednomethod"><option value="0"' + (t.noMethod ? '' : ' selected') + '>Show</option><option value="1"' + (t.noMethod ? ' selected' : '') + '>Hide</option></select></div>' : '') +
+      '</div>';
+    h += '<div class="tablewrap"><table class="tbl"><thead><tr><th>#</th><th>' + (key === 'dsm' ? 'Instrument name' : key === 'dsoot' ? 'Activity' : 'Check point') + '</th><th>' + (key === 'dsm' ? 'Specification' : 'Standard') + '</th>' + (key === 'dsm' ? '<th>Entry type</th>' : '<th>Method</th>') + (key === 'dsoot' ? '<th>Freq.</th>' : '') + '<th></th></tr></thead><tbody>';
+    (t.rows || []).forEach(function (r, i) {
+      h += '<tr><td>' + (i + 1) + '</td><td><input data-a="edf" data-i="' + i + '" data-k="p" value="' + E(r.p) + '"></td><td><input data-a="edf" data-i="' + i + '" data-k="s" value="' + E(r.s) + '"></td>' +
+        (key === 'dsm' ? '<td><select data-a="edf" data-i="' + i + '" data-k="t"><option value="num"' + (r.t === 'num' ? ' selected' : '') + '>Reading</option><option value="tick"' + (r.t === 'tick' ? ' selected' : '') + '>✓ / ✗</option></select></td>' : '<td><input data-a="edf" data-i="' + i + '" data-k="m" value="' + E(r.m) + '"></td>') +
+        (key === 'dsoot' ? '<td><input data-a="edf" data-i="' + i + '" data-k="f" value="' + E(r.f || '') + '"></td>' : '') +
+        '<td style="white-space:nowrap"><button class="secondary tiny" data-a="edup" data-i="' + i + '">↑</button><button class="secondary tiny" data-a="eddn" data-i="' + i + '">↓</button><button class="secondary tiny" data-a="edrm" data-i="' + i + '" style="color:#b91c1c">✕</button></td></tr>';
+    });
+    h += '</tbody></table></div><div class="actions" style="margin-top:8px"><button class="secondary" data-a="edadd">+ Add row</button><button class="primary" data-a="edsave">Save Template</button><button class="secondary" data-a="ednew">+ New template</button><button class="secondary" data-a="eddel" style="color:#b91c1c">Delete template</button></div>' +
+      '<div class="dc-msg warn">Dhyan: rows ka order badalna / row delete karna safe hai, lekin kisi row ko delete karne par uske purane records ki us row ki entries dikhna band ho jaati hain.</div>';
+    box.innerHTML = h;
+  }
+  function edAction(key, el, ev) {
+    var a = el.getAttribute('data-a'), e = ED[key], i = +el.getAttribute('data-i');
+    if (!e) { edRender(key); e = ED[key]; }
+    var t = e.t;
+    if (a === 'edsel') { var nm = el.value.replace(/^\(new\)\s*/, ''); if (/^\(new\)/.test(el.value)) return; edLoad(key, nm, false); edRender(key); return; }
+    if (a === 'edname') { if (e.isNew) { t.name = el.value.trim(); t.id = 'tpl:' + key + ':' + t.name; } return; }
+    if (a === 'eddoc') { t.doc = el.value; return; }
+    if (a === 'edcols') { t.colS = el.value.trim(); return; }
+    if (a === 'ednomethod') { t.noMethod = el.value === '1'; return; }
+    if (a === 'edf') { t.rows[i][el.getAttribute('data-k')] = el.value; return; }
+    if (ev !== 'click') return;
+    if (a === 'edup' && i > 0) { var x = t.rows[i]; t.rows[i] = t.rows[i - 1]; t.rows[i - 1] = x; edRender(key); }
+    else if (a === 'eddn' && i < t.rows.length - 1) { var y = t.rows[i]; t.rows[i] = t.rows[i + 1]; t.rows[i + 1] = y; edRender(key); }
+    else if (a === 'edrm') { t.rows.splice(i, 1); edRender(key); }
+    else if (a === 'edadd') { t.rows.push({ id: nextRowId(t), p: '', s: '', m: '', t: key === 'dsm' ? 'num' : key === 'dsoot' ? 'obs' : 'tick', f: key === 'dsoot' ? 'MONTHLY (DURING DE-SOOTING)' : undefined }); edRender(key); }
+    else if (a === 'ednew') { var n = prompt('Naye check sheet / machine ka naam likho:'); if (!n || !n.trim()) return; n = n.trim(); if (tplBy(key, n)) { alert('Is naam ka template pehle se hai.'); return; } edLoad(key, n, true); edRender(key); }
+    else if (a === 'edsave') {
+      if (!editGuard(key)) return;
+      var nm2 = (t.name || '').trim(); if (!nm2) { alert('Name bharo.'); return; }
+      t.rows = t.rows.filter(function (r) { return String(r.p || '').trim(); });
+      if (!t.rows.length) { alert('Kam se kam ek check point rakho.'); return; }
+      var arr = A('dcTpl'), idx = arr.findIndex(function (x) { return x && x.id === t.id; });
+      if (e.isNew && tplBy(key, nm2)) { alert('Is naam ka template pehle se hai.'); return; }
+      var cp = JSON.parse(JSON.stringify(t));
+      if (idx >= 0) arr[idx] = cp; else arr.push(cp);
+      persist('dcTpl'); e.isNew = false;
+      fillTplSelect(key); if (S[key]) { writeSel(key); renderGrid(key); }
+      if (key === 'dsoot' && !DS.editId) { DS.rows = dsNewRows(); dsRenderRows(); }
+      edRender(key); alert('Template save ho gaya.');
+    }
+    else if (a === 'eddel') {
+      if (e.isNew) { ED[key] = null; edRender(key); return; }
+      if (!delGuard(key)) return;
+      var used = A(key).some(function (r) { return r && r.tpl === t.name; });
+      if (used) { alert('Is template ke records bane hue hain – delete nahi ho sakta. Pehle records delete karo.'); return; }
+      if (key === 'dsoot' && tpls('dsoot').length <= 1) { alert('Kam se kam ek De-sooting template rehna chahiye.'); return; }
+      if (!confirm(t.name + ' template delete karna hai?')) return;
+      data.dcTpl = A('dcTpl').filter(function (x) { return x && x.id !== t.id; }); persist('dcTpl'); ED[key] = null;
+      fillTplSelect(key); if (S[key]) { onSel(key); } edRender(key);
+    }
+  }
+
+  /* ====================== wiring ====================== */
+  function bind(key) {
+    var p = $(key); if (!p) return;
+    p.addEventListener('click', function (ev) {
+      var el = ev.target.closest('[data-a]'); if (!el || !p.contains(el)) return;
+      var a = el.getAttribute('data-a');
+      if (['edup', 'eddn', 'edrm', 'edadd', 'ednew', 'edsave', 'eddel'].indexOf(a) >= 0) return edAction(key, el, 'click');
+      if (key === 'dsoot') {
+        if (a === 'save') dsSave(); else if (a === 'clear') dsClear(); else if (a === 'printcur') dsPrintCur();
+        else if (a === 'redit') dsEdit(el.getAttribute('data-id')); else if (a === 'del') dsDel(el.getAttribute('data-id'));
+        else if (a === 'print') { var r = A('dsoot').filter(function (x) { return x && x.id === el.getAttribute('data-id'); })[0]; if (r) dsPrintRec(r); }
+        return;
+      }
+      if (a === 'tick') {
+        var d = +el.getAttribute('data-d'), rid = el.getAttribute('data-r'); if (futureBlock(key, d)) return;
+        var cur = ((S[key].draft[d] || {}).v || {})[rid]; setCell(key, d, rid, cur === 'ok' ? 'ng' : cur === 'ng' ? '' : 'ok'); renderGrid(key);
+      } else if (a === 'save') saveSheet(key);
+      else if (a === 'print') printSheet(key);
+      else if (a === 'allok') allOk(key);
+      else if (a === 'open') { S[key].sel = { tpl: el.getAttribute('data-t'), no: el.getAttribute('data-n'), shift: el.getAttribute('data-s'), month: S[key].sel.month }; if (isDirty(key) && !confirm('Unsaved changes chhod kar dusri sheet kholni hai?')) return; loadDraft(key); writeSel(key); renderGrid(key); window.scrollTo(0, 0); }
+      else if (a === 'del') delSheet(key, el.getAttribute('data-t'), el.getAttribute('data-n'), el.getAttribute('data-s'));
+    });
+    var inputHandler = function (ev) {
+      var el = ev.target.closest('[data-a]'); if (!el || !p.contains(el)) return;
+      var a = el.getAttribute('data-a');
+      if (a === 'edf' || a === 'edname' || a === 'eddoc' || a === 'edcols') return edAction(key, el, 'input');
+      if (key === 'dsoot') {
+        if (a === 'f') { var i = +el.getAttribute('data-i'), k = el.getAttribute('data-k'); DS.rows[i][k] = el.value; if (k === 'obs') { var tr = el.closest('tr'); if (tr) tr.classList.toggle('dc-notok', /not\s*ok|\bng\b|✗/i.test(el.value)); dsSum(); } }
+        return;
+      }
+      if (a === 'val') {
+        var d = +el.getAttribute('data-d'), rid = el.getAttribute('data-r');
+        if (ev.type === 'input') {
+          if (futureBlock(key, d)) { el.value = ''; return; }
+          setCell(key, d, rid, el.value.trim());
+          var tt = tplBy(key, S[key].sel.tpl), rw = tt && tt.rows.filter(function (x) { return x.id === rid; })[0];
+          el.classList.toggle('bad', !!(rw && outOfLimit(rw.s, el.value)));
+          var sg = el.closest('table').querySelector('input[data-a="sign"][data-d="' + d + '"]'); if (sg && !sg.value && S[key].draft[d]) sg.value = S[key].draft[d].sign || '';
+          $('dc_' + key + '_sum').innerHTML = summaryHtml(key);
+        }
+      } else if (a === 'sign' && ev.type === 'input') {
+        var d2 = +el.getAttribute('data-d'), dd = S[key].draft[d2] || (S[key].draft[d2] = { v: {}, sign: '' }); dd.sign = el.value; S[key].dirty[d2] = 1;
+        $('dc_' + key + '_sum').innerHTML = summaryHtml(key);
+      }
+    };
+    p.addEventListener('input', inputHandler);
+    p.addEventListener('change', function (ev) {
+      var el = ev.target.closest('[data-a]'); if (!el) return;
+      var a = el.getAttribute('data-a');
+      if (a === 'sel' && key !== 'dsoot') return onSel(key);
+      if (a === 'month' && key === 'dsoot') return dsRenderList();
+      if (a === 'edsel' || a === 'ednomethod') return edAction(key, el, 'change');
+      if (a === 'edf' && el.tagName === 'SELECT') return edAction(key, el, 'change');
+      inputHandler(ev);
+    });
+  }
+  function inject() {
+    var sc = document.querySelector('.app-sidebar .side-scroll'), main = document.querySelector('main.wrap');
+    if (!sc || !main) return false;
+    if (!$('dcNavGroup')) {
+      var g = document.createElement('div'); g.className = 'nav-group'; g.id = 'dcNavGroup';
+      g.innerHTML = '<div class="nav-group-title">DAILY & PREDICTIVE CHECKS</div>' + MODS.filter(function (m) { return m.nav; }).map(function (m) {
+        return '<button type="button" class="tab" id="side_' + m.key + '" data-target="' + m.key + '" onclick="showTab(\'' + m.key + '\',this)"><span>' + m.icon + '</span> ' + E(m.nav) + '</button>';
+      }).join('');
+      var t = [].slice.call(sc.querySelectorAll('.nav-group')).filter(function (x) { return x.textContent.indexOf('PREVENTIVE MAINTENANCE') >= 0; })[0];
+      if (t && t.nextSibling) sc.insertBefore(g, t.nextSibling); else sc.appendChild(g);
+    }
+    if (!$('dc_machlist')) {
+      var dl = document.createElement('datalist'); dl.id = 'dc_machlist'; dl.innerHTML = machNos().map(function (m) { return '<option value="' + E(m) + '">'; }).join(''); document.body.appendChild(dl);
+      var dl2 = document.createElement('datalist'); dl2.id = 'dc_shiftlist'; dl2.innerHTML = ['A', 'B', 'C', 'General'].map(function (m) { return '<option value="' + m + '">'; }).join(''); document.body.appendChild(dl2);
+    }
+    MODS.filter(function (m) { return m.nav; }).forEach(function (m) {
+      if ($(m.key)) return;
+      var s = document.createElement('section'); s.id = m.key; s.className = 'panel official-module';
+      s.innerHTML = m.key === 'dsoot' ? dsPanel() : gridPanel(m.key);
+      main.appendChild(s); bind(m.key);
+    });
+    return true;
+  }
+  function renderAllDC() {
+    ['ptm', 'dsm'].forEach(function (key) {
+      if (!$('dc_' + key + '_grid') || !S[key]) return;
+      fillTplSelect(key);
+      if (!S[key].sel.tpl) { var l = tpls(key); if (l.length) { $('dc_' + key + '_tpl').value = l[0].name; S[key].sel = readSel(key); loadDraft(key); } }
+      if (!isDirty(key)) loadDraft(key);
+      renderGrid(key);
+    });
+    if ($('dsoot_rows')) { dsRenderList(); if (!DS.editId && !DS.rows.length) { DS.rows = dsNewRows(); dsRenderRows(); } }
+    ['ptm', 'dsm', 'dsoot'].forEach(function (k) { var w = $('dc_' + k + '_edwrap'); if (w && w.open && !ED[k]) edRender(k); });
+  }
+  /* editor ko tab khulte hi bharo */
+  document.addEventListener('toggle', function (ev) { var d = ev.target; if (d && d.id && /^dc_(ptm|dsm|dsoot)_edwrap$/.test(d.id) && d.open) edRender(d.id.split('_')[1]); }, true);
+
+  /* ---------- Google Sheet report tabs ---------- */
+  window.dcGsReport = function (mod, mk) {
+    var tabName = MODS.filter(function (x) { return x.key === mod; })[0].tab;
+    var rep = { tab: tabName, company: 'Milestone Gears Ltd. UNIT-7', title: '', sub: '', headers: [], groups: null, rows: [], summary: [], footer: '' };
+    if (mod === 'dsoot') {
+      rep.title = 'SQF DE-SOOTING PM CHECK SHEET REGISTER (FMT-MNT-04)';
+      rep.headers = ['Date', 'M/C No.', 'Start', 'End', 'Checked By', 'Verified By', 'S.No.', 'Activity', 'Standard', 'Observation', 'Work Done', 'Remark'];
+      A('dsoot').slice().sort(function (a, b) { return String(a.date || '').localeCompare(String(b.date || '')); }).forEach(function (r) {
+        (r.rows || []).forEach(function (x, i) { rep.rows.push([fmtD(r.date), r.machineNo, r.start || '', r.end || '', r.checkedBy || '', r.verifiedBy || '', i + 1, x.p, x.s, x.obs || '', x.work || '', x.rem || '']); });
+      });
+      rep.summary = [['Total De-sooting records', A('dsoot').length]];
+    } else {
+      rep.title = mod === 'ptm' ? 'PREDICTIVE MAINTENANCE CHECK SHEET REGISTER (FMT-MNT-10)' : 'DAILY SHIFT WISE MAINTENANCE CHECK REGISTER (FMT-HT-96)';
+      rep.headers = ['Month', 'Check Sheet', 'M/C No.', 'Shift', 'Day', 'Check point', 'Standard / Spec', 'Result / Reading', 'Operator'];
+      A(mod).slice().sort(function (a, b) { return String(a.date || '').localeCompare(String(b.date || '')); }).forEach(function (r) {
+        var t = tplBy(mod, r.tpl);
+        (t ? t.rows : []).forEach(function (rw) {
+          var v = (r.v || {})[rw.id]; if (v === undefined || v === '') return;
+          rep.rows.push([ymLbl(r.month), r.tpl, r.machineNo || '', r.shift || '', r.day, rw.p, rw.s, v === 'ok' ? 'OK' : v === 'ng' ? 'NOT OK' : v, r.sign || '']);
+        });
+      });
+      rep.summary = [['Day records', A(mod).length]];
+    }
+    return rep;
+  };
+
+  /* ---------- init ---------- */
+  if (typeof renderAll === 'function' && !renderAll.__dc) {
+    var _ra = renderAll;
+    renderAll = function () { var r = _ra.apply(this, arguments); try { renderAllDC(); } catch (e) { console.warn('dc render', e); } return r; };
+    renderAll.__dc = 1;
+  }
+  seed();
+  function init(n) {
+    if (!inject()) { if ((n || 0) < 40) setTimeout(function () { init((n || 0) + 1); }, 250); return; }
+    ['ptm', 'dsm'].forEach(function (key) {
+      fillTplSelect(key);
+      var m = $('dc_' + key + '_month'); if (m && !m.value) m.value = ymNow();
+      S[key] = { sel: readSel(key), draft: {}, dirty: {} };
+      loadDraft(key);
+    });
+    dsClear();
+    try { renderAllDC(); } catch (e) { console.warn('dc init', e); }
+  }
+  init(0);
+})();
+
 </script>
 <script type="text/mms-defer" id="xl-export">
 /* ===== EXCEL EXPORT: har module ka print format .xlsx me (koi external library nahi, offline bhi chalta hai) ===== */
