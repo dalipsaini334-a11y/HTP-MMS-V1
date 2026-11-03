@@ -130,7 +130,8 @@
  window.__mmsStore={active:function(){return active},flush:flush,size:function(){var t=0;mem.forEach(function(v,k){t+=k.length+v.length});return t},keys:function(){return Array.from(mem.entries()).map(function(e){return [e[0],e[1].length]})}};
 })();
 </script>
-<script>window.APP_VERSION='121-sync-fix';</script>
+<script>/* FIX v122: pwHr startup pe hi chahiye (renderDG), isliye sabse pehle define */function pwHr(v){if(v==null||v==='')return NaN;var t=String(v).trim();if(t.indexOf(':')>=0){var p=t.split(':'),h=Number(p[0]),m=Number(p[1]||0);return isFinite(h)&&isFinite(m)?h+m/60:NaN}var n=Number(t);return isFinite(n)?n:NaN}</script>
+<script>window.APP_VERSION='122-pwhr-fix';</script>
 <script>if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js?v='+encodeURIComponent(window.APP_VERSION||'0')).then(function(r){try{r.update()}catch(e){}}).catch(function(e){console.warn('SW',e)})})}</script>
 <title>Milestone Gears Ltd. Unit-7 | Maintenance & Utility Daily Log</title>
 <style>
@@ -772,20 +773,22 @@ main.wrap{margin-left:252px;padding:94px 22px 25px;max-width:none}.sidebar-overl
     <div class="utility-section-head"><span>POWER INTERRUPTION ENTRY</span><span>One record for each interruption / daily entry</span></div>
     <div class="form">
       <div class="utility-subgroup">A. DATE & DG AVAILABILITY</div>
-      <div class="field utility-field prodOnly"><label>Date</label><input id="pc_date" type="date"></div>
-      <div class="field utility-field prodOnly"><label>Record Time</label><input id="pc_time" type="time" value="06:30"></div>
-      <div class="field utility-field prodOnly"><label>DG 01 Available / Stock</label><input id="pc_dg1stock" type="number" step="0.01"></div>
-      <div class="field utility-field prodOnly"><label>DG 02 Available / Stock</label><input id="pc_dg2stock" type="number" step="0.01"></div>
-      <div class="field utility-field prodOnly"><label>Available in Stock</label><input id="pc_stock" type="number" step="0.01"></div>
-      <div class="field utility-field"><label>Add Stock</label><input id="pc_addstock" type="number" step="0.01"></div>
+      <div class="field utility-field prodOnly"><label>Date</label><input id="pc_date" type="date" onchange="pcAutoFill();pcStockCalc()"></div>
+      <div class="field utility-field prodOnly"><label>Record Time</label><input id="pc_time" type="time" value="06:30" onchange="pcAutoFill();pcStockCalc()"></div>
+      <div class="field utility-field prodOnly"><label>DG 01 Available / Stock</label><input id="pc_dg1stock" type="number" step="0.01" oninput="this.dataset.man=1;pcStockCalc()"></div>
+      <div class="field utility-field prodOnly"><label>DG 02 Available / Stock</label><input id="pc_dg2stock" type="number" step="0.01" oninput="this.dataset.man=1;pcStockCalc()"></div>
+      <div class="field utility-field prodOnly"><label>Diesel Drum Stock</label><input id="pc_drum" type="number" step="0.01" oninput="this.dataset.man=1;pcStockCalc()"></div>
+      <div class="field utility-field prodOnly"><label>Total Stock (Auto: DG 01 + DG 02 + Drum)</label><input id="pc_stock" type="number" step="0.01" readonly style="background:#f1f5f9;font-weight:700"></div>
+      <div class="field utility-field"><label>Add Stock</label><input id="pc_addstock" type="number" step="0.01" oninput="pcStockCalc()"></div>
 
       <div class="utility-subgroup">B. POWER INTERRUPTION TIMING</div>
       <div class="field utility-field"><label>Power Cut From <button type="button" class="secondary" style="padding:1px 7px;font-size:10px;margin-left:6px" onclick="setv('pc_from',getLiveTimeString());pcSyncBtn()">Now</button></label><input id="pc_from" type="time" oninput="pcSyncBtn()"></div>
       <div class="field utility-field"><label>Power Restored To <button type="button" class="secondary" style="padding:1px 7px;font-size:10px;margin-left:6px" onclick="setv('pc_to',getLiveTimeString());pcSyncBtn()">Now</button></label><input id="pc_to" type="time" oninput="pcSyncBtn()"></div>
-      <div class="field utility-field"><label>DG 01 Consumed</label><input id="pc_c1" type="number" step="0.01"></div>
-      <div class="field utility-field"><label>DG 02 Consumed</label><input id="pc_c2" type="number" step="0.01"></div>
+      <div class="field utility-field"><label>DG 01 Consumed</label><input id="pc_c1" type="number" step="0.01" oninput="pcStockCalc()"></div>
+      <div class="field utility-field"><label>DG 02 Consumed</label><input id="pc_c2" type="number" step="0.01" oninput="pcStockCalc()"></div>
       <div class="field utility-field"><label>Recorded / Verified By</label><input id="pc_sign" placeholder="Name / Sign."></div>
     </div>
+    <div id="pcStockBox" style="margin:10px 14px"></div>
     <div class="utility-actions">
       <button id="pcSaveBtn" class="primary" onclick="savePC()">🔴 Save Power Cut</button>
       <button class="secondary" onclick="clearPC()">↺ Clear</button>
@@ -803,7 +806,7 @@ main.wrap{margin-left:252px;padding:94px 22px 25px;max-width:none}.sidebar-overl
       </div>
     </div>
     <div class="tablewrap"><table class="tbl"><thead><tr>
-      <th>Date</th><th>Time</th><th>DG 01</th><th>DG 02</th><th>Stock</th><th>Add Stock</th><th>From</th><th>To</th><th>Total Cut</th><th>DG 01 Cons.</th><th>DG 02 Cons.</th><th>Total Cons.</th><th>Sign.</th><th>Action</th>
+      <th>Date</th><th>Time</th><th>DG 01</th><th>DG 02</th><th>Drum</th><th>Total Stock</th><th>Add Stock</th><th>From</th><th>To</th><th>Total Cut</th><th>DG 01 Cons.</th><th>DG 02 Cons.</th><th>Total Cons.</th><th>Closing Stock</th><th>Sign.</th><th>Action</th>
     </tr></thead><tbody id="pcBody"></tbody></table></div>
     <div id="pcMonthlySummary" class="utility-monthly-summary"></div>
   </div>
@@ -2922,25 +2925,75 @@ function renderPF(){
 
 
 function clearPC(){
-  ['pc_date','pc_dg1stock','pc_dg2stock','pc_stock','pc_addstock','pc_from','pc_to','pc_c1','pc_c2','pc_sign'].forEach(id=>setv(id,''));
+  ['pc_date','pc_dg1stock','pc_dg2stock','pc_drum','pc_stock','pc_addstock','pc_from','pc_to','pc_c1','pc_c2','pc_sign'].forEach(id=>setv(id,''));
   setv('pc_time','06:30');
   edit.pc=null;
   const today=new Date().toISOString().slice(0,10);
   setv('pc_date',today);
-  pcSyncBtn();
+  ['pc_dg1stock','pc_dg2stock','pc_drum'].forEach(id=>{const e=document.getElementById(id); if(e) delete e.dataset.man;});
+  pcSyncBtn();pcAutoFill();pcStockCalc();
 }
 function editPC(i){if(!mmsGuardEdit('pc'))return;
   const r=data.pc[i]; if(!r)return;
   edit.pc=i;
   Object.entries({
-    pc_date:r.date,pc_time:r.time,pc_dg1stock:r.dg1,pc_dg2stock:r.dg2,
+    pc_date:r.date,pc_time:r.time,pc_dg1stock:r.dg1,pc_dg2stock:r.dg2,pc_drum:r.drum,
     pc_stock:r.stock,pc_addstock:r.add,pc_from:r.from,pc_to:r.to,
     pc_c1:r.c1,pc_c2:r.c2,pc_sign:r.sign
   }).forEach(([k,v])=>setv(k,v));
-  pcSyncBtn();
+  pcSyncBtn();pcStockCalc();
   document.getElementById('pc')?.scrollIntoView({behavior:'smooth',block:'start'});
 }
 /* ===== POWER CUT FLOW: (1) Power cut start -> report, (2) Power restored -> report ===== */
+/* ===== DIESEL STOCK AUTO CALCULATION =====
+   Opening = DG01 + DG02 stock | Closing = Opening + Add Stock - (DG01 + DG02 Consumed)
+   Nayi entry me DG01/DG02 stock pichli entry ke closing se auto bhar jata hai. */
+function pcOpening(r){ const s=num(r.stock); return s ? s : num(r.dg1)+num(r.dg2)+num(r.drum); }
+function pcClosing(r){ return pcOpening(r)+num(r.add)-(num(r.c1)+num(r.c2)); }
+function pcPrevRec(date,time,selfId){
+  const key=(date||'')+(time||''); let best=null,bk='';
+  (data.pc||[]).forEach(r=>{
+    if(selfId!=null && r.id===selfId) return;
+    const k=(r.date||'')+(r.time||'');
+    const before = selfId==null ? (k<=key) : (k<key || (k===key && r.id<selfId));
+    if(!before) return;
+    if(!best || k>bk || (k===bk && r.id>best.id)){ best=r; bk=k; }
+  });
+  return best;
+}
+function pcAutoFill(){
+  if(edit.pc!==null) return;
+  const e1=document.getElementById('pc_dg1stock'), e2=document.getElementById('pc_dg2stock');
+  const e3=document.getElementById('pc_drum');
+  if(!e1||!e2||!e3||e1.dataset.man||e2.dataset.man||e3.dataset.man) return;
+  const p=pcPrevRec(f('pc_date'),f('pc_time'),null);
+  if(!p) return;
+  const r2=v=>Math.round(Math.max(0,v)*100)/100;
+  const t1=r2(num(p.dg1)-num(p.c1)), t2=r2(num(p.dg2)-num(p.c2));
+  setv('pc_dg1stock',t1);
+  setv('pc_dg2stock',t2);
+  setv('pc_drum',r2(pcClosing(p)-t1-t2));   // drum = pichla closing − dono tank (Add Stock bhi isi me)
+}
+function pcStockCalc(){
+  const e1=f('pc_dg1stock'), e2=f('pc_dg2stock'), e3=f('pc_drum');
+  const tot=Math.round((num(e1)+num(e2)+num(e3))*100)/100;
+  setv('pc_stock',(e1===''&&e2===''&&e3==='')?'':tot);
+  const box=document.getElementById('pcStockBox'); if(!box) return;
+  const add=num(f('pc_addstock')), cons=num(f('pc_c1'))+num(f('pc_c2')), close=tot+add-cons;
+  const old=(edit.pc!==null&&data.pc[edit.pc])?data.pc[edit.pc]:null;
+  const p=pcPrevRec(f('pc_date'),f('pc_time'),old?old.id:null);
+  let hint='';
+  if(p){
+    const pcl=pcClosing(p), diff=Math.round((tot-pcl)*100)/100;
+    hint=`<div style="font-size:11px;margin-top:6px;color:${Math.abs(diff)>0.5?'#b45309':'#475569'}">Pichli entry (${fmtDate(p.date)}) ka closing stock: <b>${pcl.toFixed(2)}</b>`+(Math.abs(diff)>0.5?` &nbsp;⚠ Abhi ka total stock (tanks+drum) isse <b>${diff>0?'+':''}${diff.toFixed(2)}</b> alag hai (Add Stock / dip reading check karo)`:'')+`</div>`;
+  }
+  const cell=(l,v,c)=>`<div style="flex:1;min-width:92px;padding:6px 8px;border:1px solid #cbd5e1;border-radius:8px;background:#f8fafc;text-align:center"><div style="font-size:10px;color:#64748b;font-weight:700">${l}</div><div style="font-size:15px;font-weight:800;color:${c||'#0f172a'}">${v}</div></div>`;
+  box.innerHTML=`<div style="font-size:11px;font-weight:800;margin-bottom:5px">⛽ DIESEL STOCK (AUTO)</div><div style="display:flex;gap:6px;flex-wrap:wrap">`+
+    cell('OPENING (TANKS+DRUM)',tot.toFixed(2))+cell('+ ADD STOCK',add.toFixed(2),'#15803d')+cell('− CONSUMED',cons.toFixed(2),'#b91c1c')+cell('= CLOSING',close.toFixed(2),close<0?'#dc2626':'#1d4ed8')+`</div>`+hint;
+}
+function pcDieselLines(r){
+  return `\n⛽ *Diesel:*\n• DG-01 Consumed: ${num(r.c1).toFixed(2)}\n• DG-02 Consumed: ${num(r.c2).toFixed(2)}\n• Total Consumed: ${(num(r.c1)+num(r.c2)).toFixed(2)}\n• Closing Stock: ${pcClosing(r).toFixed(2)}\n`;
+}
 function pcFmtDur(from,to){return timeDuration(from,to)||'--:--';}
 function pcMsgStart(r){
   let m=`⚡ *POWER CUT REPORT*\n`+
@@ -2953,7 +3006,8 @@ function pcMsgStart(r){
     m+=`\n⛽ *DG Availability / Stock:*\n`+
        `• DG-01: ${r.dg1||0}\n`+
        `• DG-02: ${r.dg2||0}\n`+
-       `• Available Stock: ${r.stock||0}\n`;
+       `• Diesel Drum: ${r.drum||0}\n`+
+       `• Total Stock: ${r.stock||0}\n`;
   }
   if(r.sign) m+=`\n👤 Recorded By: ${r.sign}\n`;
   return m+`\n🔴 *STATUS: POWER CUT (RESTORATION PENDING)*`;
@@ -2966,7 +3020,7 @@ function pcMsgRestored(r){
         `• Power Cut From: ${r.from}\n`+
         `• Power Restored At: ${r.to}\n\n`+
         `📈 *Duration:*\n`+
-        `• Total Power Cut: ${pcFmtDur(r.from,r.to)} hrs\n`;
+        `• Total Power Cut: ${pcFmtDur(r.from,r.to)} hrs\n`+pcDieselLines(r);
   if(r.sign) m+=`\n👤 Recorded By: ${r.sign}\n`;
   return m+`\n✅ *STATUS: POWER RESTORED*`;
 }
@@ -3019,6 +3073,10 @@ function savePC() {
     if (hasTo && (f('pc_c1').trim() === '' || f('pc_c2').trim() === '')) {
         return alert('To save Power Restored, enter DG 01 and DG 02 Consumed (diesel). Enter 0 if the DG did not run.');
     }
+    if (hasTo) {
+        const cl = (num(f('pc_dg1stock'))+num(f('pc_dg2stock'))+num(f('pc_drum'))) + num(f('pc_addstock')) - (num(f('pc_c1'))+num(f('pc_c2')));
+        if (cl < 0 && !confirm('Consumption available stock se zyada hai — Closing stock ' + cl.toFixed(2) + ' (negative) aa raha hai.\n\nPhir bhi save karein?')) return;
+    }
 
     const r = {
         id: old?.id || Date.now(),
@@ -3026,7 +3084,8 @@ function savePC() {
         time: f('pc_time'),
         dg1: num(f('pc_dg1stock')),
         dg2: num(f('pc_dg2stock')),
-        stock: num(f('pc_stock')),
+        drum: num(f('pc_drum')),
+        stock: Math.round((num(f('pc_dg1stock'))+num(f('pc_dg2stock'))+num(f('pc_drum')))*100)/100,
         add: num(f('pc_addstock')),
         from: f('pc_from'),
         to: f('pc_to'),
@@ -3070,14 +3129,14 @@ function renderPC(){
   });
   document.getElementById('pcBody').innerHTML=filtered.map(r=>{
     let i=data.pc.indexOf(r), tot=r.c1+r.c2;
-    return `<tr><td>${fmtDate(r.date)}</td><td>${esc(r.time)}</td><td class="num">${r.dg1||''}</td><td class="num">${r.dg2||''}</td><td class="num">${r.stock||''}</td><td class="num">${r.add||''}</td><td>${r.from||''}</td><td>${r.to?r.to:(r.from?'<b style="color:#dc2626">🔴 ON</b>':'')}</td><td>${r.to?timeDuration(r.from,r.to):(r.from?'<b style="color:#dc2626">Chalu hai</b>':'')}</td><td class="num">${r.c1||''}</td><td class="num">${r.c2||''}</td><td class="num">${tot.toFixed(2)}</td><td>${esc(r.sign)}</td><td><div class="editbar">${(r.from&&!r.to)?`<button class="primary" style="background:#16a34a;border-color:#16a34a" onclick="pcRestoreFlow(${i})">🟢 Power Aaya</button>`:''}<button class="secondary" onclick="editPC(${i})">Edit</button><button class="danger" onclick="delRow('pc',${i})">Delete</button></div></td></tr>`;
+    return `<tr><td>${fmtDate(r.date)}</td><td>${esc(r.time)}</td><td class="num">${r.dg1||''}</td><td class="num">${r.dg2||''}</td><td class="num">${r.drum||''}</td><td class="num">${r.stock||''}</td><td class="num">${r.add||''}</td><td>${r.from||''}</td><td>${r.to?r.to:(r.from?'<b style="color:#dc2626">🔴 ON</b>':'')}</td><td>${r.to?timeDuration(r.from,r.to):(r.from?'<b style="color:#dc2626">Chalu hai</b>':'')}</td><td class="num">${r.c1||''}</td><td class="num">${r.c2||''}</td><td class="num">${tot.toFixed(2)}</td><td class="num"><b>${pcClosing(r).toFixed(2)}</b></td><td>${esc(r.sign)}</td><td><div class="editbar">${(r.from&&!r.to)?`<button class="primary" style="background:#16a34a;border-color:#16a34a" onclick="pcRestoreFlow(${i})">🟢 Power Aaya</button>`:''}<button class="secondary" onclick="editPC(${i})">Edit</button><button class="danger" onclick="delRow('pc',${i})">Delete</button></div></td></tr>`;
   }).join('');
-  pcRenderBanner();pcSyncBtn();
+  pcRenderBanner();pcSyncBtn();pcAutoFill();pcStockCalc();
   let selVal=f('pc_month');
   setText('pcMonthTitle', selVal ? selVal.toUpperCase() : '');
   let totalMinutes=0,totalC1=0,totalC2=0;
   filtered.forEach(r=>{let dur=timeDuration(r.from,r.to);if(dur){let p=dur.split(':').map(Number);totalMinutes+=p[0]*60+p[1];}totalC1+=num(r.c1);totalC2+=num(r.c2);});
-  const el=document.getElementById('pcMonthlySummary');if(el){const h=Math.floor(totalMinutes/60),m=totalMinutes%60;el.innerHTML=`<div class="ms-item"><span class="ms-label">Monthly Power Cut</span><span class="ms-value">${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}</span><span class="ms-sub">HH:MM total duration</span></div><div class="ms-item"><span class="ms-label">DG-01 Consumption</span><span class="ms-value">${totalC1.toFixed(2)}</span><span class="ms-sub">Monthly total</span></div><div class="ms-item"><span class="ms-label">DG-02 Consumption</span><span class="ms-value">${totalC2.toFixed(2)}</span><span class="ms-sub">Monthly total</span></div><div class="ms-item"><span class="ms-label">Total DG Consumption</span><span class="ms-value">${(totalC1+totalC2).toFixed(2)}</span><span class="ms-sub">DG-01 + DG-02</span></div>`;}
+  const el=document.getElementById('pcMonthlySummary');if(el){const h=Math.floor(totalMinutes/60),m=totalMinutes%60;el.innerHTML=`<div class="ms-item"><span class="ms-label">Monthly Power Cut</span><span class="ms-value">${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}</span><span class="ms-sub">HH:MM total duration</span></div><div class="ms-item"><span class="ms-label">DG-01 Consumption</span><span class="ms-value">${totalC1.toFixed(2)}</span><span class="ms-sub">Monthly total</span></div><div class="ms-item"><span class="ms-label">DG-02 Consumption</span><span class="ms-value">${totalC2.toFixed(2)}</span><span class="ms-sub">Monthly total</span></div><div class="ms-item"><span class="ms-label">Total DG Consumption</span><span class="ms-value">${(totalC1+totalC2).toFixed(2)}</span><span class="ms-sub">DG-01 + DG-02</span></div><div class="ms-item"><span class="ms-label">Diesel Added</span><span class="ms-value">${filtered.reduce((s,r)=>s+num(r.add),0).toFixed(2)}</span><span class="ms-sub">Monthly total</span></div><div class="ms-item"><span class="ms-label">Closing Diesel Stock</span><span class="ms-value">${filtered.length?pcClosing(filtered[filtered.length-1]).toFixed(2):'0.00'}</span><span class="ms-sub">Last entry of month</span></div>`;}
 }
 
 function dgPfStatus(pf){const n=Number(pf);if(!isFinite(n))return '';return n>=PFOK('dg')?'OK':'NOT OK';}
@@ -3186,7 +3245,7 @@ function clearDG(){['dg_date','dg1_hr','dg1_kwh','dg1_kvah','dg1_fuel','dg1_batt
 function readingLogConfigs(){
  return {
   pf:{title:'POWER FACTOR',monthId:'pf_month',cols:['Date','Time','KWH','KVAH','KWH (Diff)','KVAH (Diff)','P.F.','Status','Sign.'],getData:(label)=>{let c=pfMonthlyCalc(label);return {rows:c.rows.map(x=>[fmtDate(x.r.date),x.r.time,x.r.kwh,x.r.kvah,x.kd,x.vd,x.pf,x.pf===''?'':(Number(x.pf)>=PFOK('pf')?'OK':'NOT OK'),x.r.sign]),summary:[['MONTHLY TOTAL KWH',c.totalKwh.toFixed(1)],['MONTHLY TOTAL KVAH',c.totalKvah.toFixed(1)],['MONTHLY PF',c.totalKvah?c.pf.toFixed(3):'—']]};}},
-  pc:{title:'POWER CUT DETAIL',monthId:'pc_month',cols:['Date','Time','DG1 Stock','DG2 Stock','Total Stock','Add Stock','From','To','Duration','Count 1','Count 2','Total Count','Sign.'],getData:(label)=>{let targetD=new Date(label+' 1'),rows=[...data.pc].sort((x,y)=>(x.date+x.time).localeCompare(y.date+y.time)).filter(r=>{let d=new Date((r.date||'')+'T00:00:00');return !isNaN(d)&&!isNaN(targetD)&&d.getFullYear()===targetD.getFullYear()&&d.getMonth()===targetD.getMonth()});let mins=0,c1=0,c2=0;rows.forEach(r=>{let dur=timeDuration(r.from,r.to);if(dur){let p=dur.split(':').map(Number);mins+=p[0]*60+p[1];}c1+=num(r.c1);c2+=num(r.c2);});return {rows:rows.map(r=>[fmtDate(r.date),r.time,r.dg1||'',r.dg2||'',r.stock||'',r.add||'',r.from||'',r.to||'',timeDuration(r.from,r.to),r.c1||'',r.c2||'',(r.c1+r.c2).toFixed(2),r.sign]),summary:[['TOTAL POWER CUT',String(Math.floor(mins/60)).padStart(2,'0')+':'+String(mins%60).padStart(2,'0')+' HRS'],['DG-01 TOTAL CONSUMPTION',c1.toFixed(2)],['DG-02 TOTAL CONSUMPTION',c2.toFixed(2)],['TOTAL DG CONSUMPTION',(c1+c2).toFixed(2)]]};}},
+  pc:{title:'POWER CUT DETAIL',monthId:'pc_month',cols:['Date','Time','DG1 Stock','DG2 Stock','Drum Stock','Total Stock','Add Stock','From','To','Duration','Count 1','Count 2','Total Count','Closing Stock','Sign.'],getData:(label)=>{let targetD=new Date(label+' 1'),rows=[...data.pc].sort((x,y)=>(x.date+x.time).localeCompare(y.date+y.time)).filter(r=>{let d=new Date((r.date||'')+'T00:00:00');return !isNaN(d)&&!isNaN(targetD)&&d.getFullYear()===targetD.getFullYear()&&d.getMonth()===targetD.getMonth()});let mins=0,c1=0,c2=0;rows.forEach(r=>{let dur=timeDuration(r.from,r.to);if(dur){let p=dur.split(':').map(Number);mins+=p[0]*60+p[1];}c1+=num(r.c1);c2+=num(r.c2);});return {rows:rows.map(r=>[fmtDate(r.date),r.time,r.dg1||'',r.dg2||'',r.drum||'',r.stock||'',r.add||'',r.from||'',r.to||'',timeDuration(r.from,r.to),r.c1||'',r.c2||'',(r.c1+r.c2).toFixed(2),pcClosing(r).toFixed(2),r.sign]),summary:[['TOTAL POWER CUT',String(Math.floor(mins/60)).padStart(2,'0')+':'+String(mins%60).padStart(2,'0')+' HRS'],['DG-01 TOTAL CONSUMPTION',c1.toFixed(2)],['DG-02 TOTAL CONSUMPTION',c2.toFixed(2)],['TOTAL DG CONSUMPTION',(c1+c2).toFixed(2)],['DIESEL ADDED',rows.reduce((a,r)=>a+num(r.add),0).toFixed(2)],['CLOSING DIESEL STOCK',rows.length?pcClosing(rows[rows.length-1]).toFixed(2):'0.00']]};}},
   dg:{title:'DG DAILY READING',monthId:'dg_month',cols:['Date','Time','DG1 Running Hour','DG1 KWH','DG1 KVAH','DG1 Fuel','DG1 Battery (V)','DG1 Coolant (°C)','DG2 Running Hour','DG2 KWH','DG2 KVAH','DG2 Fuel','DG2 Battery (V)','DG2 Coolant (°C)','Status','Remark'],getData:(label)=>{let targetD=new Date(label+' 1');let a=[...data.dg].sort((x,y)=>((x.date||'')+(x.time||'')).localeCompare((y.date||'')+(y.time||'')));let prev1=null, prev2=null, rows=[], m1k=0, m1v=0, m1hr=0, m2k=0, m2v=0, m2hr=0;a.forEach((r, idx)=>{let prev = a[idx - 1];let d1k = prev && r.dg1kwh !== '' && prev.dg1kwh !== '' ? (num(r.dg1kwh) - num(prev.dg1kwh)).toFixed(2) : '';let d1v = prev && r.dg1kvah !== '' && prev.dg1kvah !== '' ? (num(r.dg1kvah) - num(prev.dg1kvah)).toFixed(2) : '';let d2k = prev && r.dg2kwh !== '' && prev.dg2kwh !== '' ? (num(r.dg2kwh) - num(prev.dg2kwh)).toFixed(2) : '';let d2v = prev && r.dg2kvah !== '' && prev.dg2kvah !== '' ? (num(r.dg2kvah) - num(prev.dg2kvah)).toFixed(2) : '';let d = new Date((r.date || '') + 'T00:00:00');if(!isNaN(d) && !isNaN(targetD) && d.getFullYear() === targetD.getFullYear() && d.getMonth() === targetD.getMonth()){if(d1k !== '' && num(d1k) >= 0 && num(d1v) >= 0){ m1k += num(d1k); m1v += num(d1v); }if(prev && r.dg1hr !== '' && prev.dg1hr !== ''){ let dh1 = (pwHr(r.dg1hr) - pwHr(prev.dg1hr)) || 0; if(dh1 >= 0) m1hr += dh1; }if(d2k !== '' && num(d2k) >= 0 && num(d2v) >= 0){ m2k += num(d2k); m2v += num(d2v); }if(prev && r.dg2hr !== '' && prev.dg2hr !== ''){ let dh2 = (pwHr(r.dg2hr) - pwHr(prev.dg2hr)) || 0; if(dh2 >= 0) m2hr += dh2; }rows.push([fmtDate(r.date), r.time, r.dg1hr || '', r.dg1kwh || '', r.dg1kvah || '', r.dg1fuel || '', r.dg1batt ?? '', r.dg1coolant ?? '', r.dg2hr || '', r.dg2kwh || '', r.dg2kvah || '', r.dg2fuel || '', r.dg2batt ?? '', r.dg2coolant ?? '', r.status || '', r.remark || '']);}
   });
  return {rows,summary:[['DG-01 TOTAL KWH', m1k.toFixed(2)],['DG-01 TOTAL KVAH', m1v.toFixed(2)],['DG-01 RUNNING HOURS', m1hr.toFixed(2)],['DG-01 MONTHLY PF', m1v ? (m1k / m1v).toFixed(3) : '—'],['DG-02 TOTAL KWH', m2k.toFixed(2)],['DG-02 TOTAL KVAH', m2v.toFixed(2)],['DG-02 RUNNING HOURS', m2hr.toFixed(2)],['DG-02 MONTHLY PF', m2v ? (m2k / m2v).toFixed(3) : '—']]};}
