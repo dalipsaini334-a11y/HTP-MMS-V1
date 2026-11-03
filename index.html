@@ -130,7 +130,7 @@
  window.__mmsStore={active:function(){return active},flush:flush,size:function(){var t=0;mem.forEach(function(v,k){t+=k.length+v.length});return t},keys:function(){return Array.from(mem.entries()).map(function(e){return [e[0],e[1].length]})}};
 })();
 </script>
-<script>window.APP_VERSION='118-daily-checks';</script>
+<script>window.APP_VERSION='120-sync-fix';</script>
 <script>if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js?v='+encodeURIComponent(window.APP_VERSION||'0')).then(function(r){try{r.update()}catch(e){}}).catch(function(e){console.warn('SW',e)})})}</script>
 <title>Milestone Gears Ltd. Unit-7 | Maintenance & Utility Daily Log</title>
 <style>
@@ -2733,7 +2733,7 @@ let calDueSoon=calibrationDueSoon(30);setText('dashCalDue',calDueSoon.length);{l
                 'pf':'Power Factor', 'pc':'Power Cut', 'dg':'DG Reading', 'mr':'Maintenance Request', 
                 'mh':'Machine History', 'pm':'PM Check Sheet', 'bd':'Breakdown', 'spares':'Spare Parts', 
                 'critical':'Critical Spares', 'tc':'Thermocouple', 'cal':'Calibration', 'utility':'Utility', 
-                'airCompressor':'Air Compressor', 'pmMaster':'PM Master Schedule', 'pmMonthly':'Monthly PM', 'ptm':'Predictive Check Sheet (FMT-MNT-10)', 'dsm':'Daily Shiftwise Check (FMT-HT-96)', 'dsoot':'SQF De-sooting PM (FMT-MNT-04)', 'dcTpl':'Check Sheet Templates',
+                'airCompressor':'Air Compressor', 'pmMaster':'PM Master Schedule', 'pmMonthly':'Monthly PM', 'ptm':'Predictive Check Sheet (FMT-MNT-10)', 'dsm':'Daily Shiftwise Check (FMT-HT-96)', 'dsoot':'SQF De-sooting PM (FMT-MNT-04)', 'dcTpl':'Check Sheet Templates', 'dcMeta':'Check Sheet Info',
                 'meeting':'Meeting Log', 'sparePurchase':'Spare Purchase', 'machineMaster':'Machine Master', 'powerCost':'Power Cost (Unit 7)', 'hpsebBill':'HPSEBL Bill (Unit 7)',
                 'satReport':'SAT Report (CQI-9)', 'satTemp':'SAT Temp Verification (FR-HT-39)', 'oxyMV':'Oxy Probe MV Check (FR-HT-40)', 'oxyImp':'O2 Probe Impedance (FR-HT-41)', 'oxyRep':'Oxy Probe Replacement (FMT-HT-71)', 'amc':'AMC Contracts', 'amcLog':'AMC Service Visit Log', 'tus':'TUS Survey (FR-HT-43)', 'furnChk':'Furnace Leak/Quench/Atmosphere (FR-HT-44)', 'contingency':'Contingency Plan (FMT-HT-45)', 'printFmt':'Print Formats'
             };
@@ -4680,7 +4680,7 @@ function mmsReviewHtml(){
 function mmsReviewPrint(){const w=window.open('','_blank','width=1100,height=800');if(!w)return alert('Please allow pop-ups to print.');
   w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Management Review</title><style>@page{size:A4 portrait;margin:10mm}body{font:11px Arial}h2{text-align:center;margin:4px}h3{background:#eee;padding:3px 6px;border:1px solid #999;font-size:12px}.sg{display:flex;gap:10px;margin-top:26px}.sg div{flex:1;border-top:1px solid #000;text-align:center;padding-top:3px;font-weight:bold}</style></head><body><h2>Milestone Gears Ltd. UNIT-7</h2><h2>MAINTENANCE &amp; PYROMETRY - MANAGEMENT REVIEW / AUDIT SUMMARY</h2><div style="text-align:center">Report date: '+esc(fmtDate(new Date().toISOString().slice(0,10)))+'</div>'+mmsReviewHtml()+'<div class="sg"><div>Prepared by</div><div>Reviewed by</div><div>Approved by</div></div><script>window.onload=function(){window.print()}<\/script></body></html>');w.document.close();}
 /* Audit Center window */
-const MMS_DOCS=[['FMT-MNT-07','Maintenance Request','01','20.01.2020'],['FMT-MNT-BD-01','Daily Breakdown Register','-','Controlled copy'],['FMT-MNT-02','Yearly PM Calendar','01','22.04.2022'],['FMT-MNT-03','PM Monthly Work Register','00','18.07.2014'],['FMT-MNT-04','PM Check Sheet','00','18.07.2014'],['FMT-MNT-05','Machine History Card','00','18.07.2014'],['FMT-MNT-08','Report format','00','18.07.2014'],['FMT-MNT-11','Critical Spares Level Register','01','30.10.2014'],['FMT-MNT-PM-PLAN','PM Plan & Control','00','(date not set) - CHECK'],['FMT-HT-70','Thermocouple Replacement Plan & Audit Control','-','(date not set) - CHECK  [abhi print footer par FMT-MNT-01 Rev 01 22.04.2022 chhapta hai; yahan number daalte hi footer FMT-HT-70 ho jayega]'],['FR-HT-39','SAT Temperature Verification','00','(date not set) - CHECK'],['FR-HT-40','Oxy Probe MV & CP Controller MV Check','00','(date not set) - CHECK'],['FR-HT-41','O2 Probe Impedance Check','00','(date not set) - CHECK'],['FR-HT-42','SAT Report / Register','01','03-07-2025'],['FR-HT-43','TUS Survey Record','00','Doc. no. / date Quality se assign karwao - CHECK'],['FR-HT-44','Furnace Leak / Quench / Atmosphere Check','00','Doc. no. / date Quality se assign karwao - CHECK'],['FMT-HT-45','Contingency Plan Register','00','Doc. no. / date Quality se assign karwao - CHECK'],['FMT-HT-71','Oxy Probe Replacement Plan','00','10-04-2023'],['AMC-01','AMC & Service Register / Visit Log','01','(date not set) - CHECK'],['FMT-MNT-01','Master List of Equipments / Machines','01','22.04.2022'],['FMT-MNT-16','MTTR / MTBF Report','00','15.07.2017'],['FMT-HT-12','Periodic Calibration Plan of HT Instruments','-','(date not set) - CHECK']];window.MMS_DOCS=MMS_DOCS;
+const MMS_DOCS=[['FMT-MNT-07','Maintenance Request','01','20.01.2020'],['FMT-MNT-BD-01','Daily Breakdown Register','-','Controlled copy'],['FMT-MNT-02','Yearly PM Calendar','01','22.04.2022'],['FMT-MNT-03','PM Monthly Work Register','00','18.07.2014'],['FMT-MNT-04','PM Check Sheet','00','18.07.2014'],['FMT-MNT-05','Machine History Card','00','18.07.2014'],['FMT-MNT-08','Report format','00','18.07.2014'],['FMT-MNT-11','Critical Spares Level Register','01','30.10.2014'],['FMT-MNT-PM-PLAN','PM Plan & Control','00','(date not set) - CHECK'],['FMT-HT-70','Thermocouple Replacement Plan & Audit Control','-','(date not set) - CHECK  [abhi print footer par FMT-MNT-01 Rev 01 22.04.2022 chhapta hai; yahan number daalte hi footer FMT-HT-70 ho jayega]'],['FR-HT-39','SAT Temperature Verification','00','(date not set) - CHECK'],['FR-HT-40','Oxy Probe MV & CP Controller MV Check','00','(date not set) - CHECK'],['FR-HT-41','O2 Probe Impedance Check','00','(date not set) - CHECK'],['FR-HT-42','SAT Report / Register','01','03-07-2025'],['FR-HT-43','TUS Survey Record','00','Doc. no. / date Quality se assign karwao - CHECK'],['FR-HT-44','Furnace Leak / Quench / Atmosphere Check','00','Doc. no. / date Quality se assign karwao - CHECK'],['FMT-HT-45','Contingency Plan Register','00','Doc. no. / date Quality se assign karwao - CHECK'],['FMT-HT-71','Oxy Probe Replacement Plan','00','10-04-2023'],['AMC-01','AMC & Service Register / Visit Log','01','(date not set) - CHECK'],['FMT-MNT-01','Master List of Equipments / Machines','01','22.04.2022'],['FMT-MNT-16','MTTR / MTBF Report','00','15.07.2017'],['FMT-HT-12','Periodic Calibration Plan of HT Instruments','-','(date not set) - CHECK'],['FMT-MNT-10','Predictive Maintenance Check Sheet','01','01.01.2022'],['FMT-HT-96','Daily Shift wise Maintenance Check Sheet','00','01.09.2022']];window.MMS_DOCS=MMS_DOCS;
 function mmsOpenAuditCenter(t){let m=document.getElementById('mmsAC');if(!m){m=document.createElement('div');m.id='mmsAC';m.style.cssText='position:fixed;inset:0;z-index:99998;background:rgba(15,23,42,.55);display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow:auto';document.body.appendChild(m);}m.style.display='flex';mmsACRender(t||window.__acTab||'review');}
 function mmsACRender(t){const m=document.getElementById('mmsAC');if(!m)return;window.__acTab=t;const s=session()||{},adm=s.role==='Admin',E=esc;
   const tabs=[['review','Management Review'],['actions','Action Tracker'],['docs','Document List']].concat(adm?[['trail','Audit Trail'],['deleted','Deleted Records']]:[]);if(!tabs.some(x=>x[0]===t))t='review';
@@ -5060,7 +5060,7 @@ const GS_CFG_KEY='htp_mms_gs_cfg_v1',GS_META_KEY='htp_mms_gs_meta_v1';
 // LIVE BACKEND: shared by every browser/device. The token must match Code.gs.
 // Device-local localStorage is still used for cache/state, but the Google Sheet is the shared source.
 const GS_DEFAULT_URL='https://script.google.com/macros/s/AKfycbwhKmOBMXzuIcMOFwFeSyQ32ZBfSOfcc99yv1sfFmElA_TSN6Q8Rf2OSKyUN8I4Bg16/exec';
-const GS_ALL=['pf','pc','dg','mr','mh','pm','bd','spares','critical','tc','cal','utility','airCompressor','machineMaster','users','pmPlan','pmCheck','pmMap', 'audit','meeting','sparePurchase','powerCost','hpsebBill','satReport','satTemp','oxyMV','oxyImp','oxyRep','mttr','amc','amcLog','tus','furnChk','contingency','ptm','dsm','dsoot','dcTpl','printFmt','acAct','acDel','acEdit','apprCfg','docCtl'];
+const GS_ALL=['pf','pc','dg','mr','mh','pm','bd','spares','critical','tc','cal','utility','airCompressor','machineMaster','users','pmPlan','pmCheck','pmMap', 'audit','meeting','sparePurchase','powerCost','hpsebBill','satReport','satTemp','oxyMV','oxyImp','oxyRep','mttr','amc','amcLog','tus','furnChk','contingency','ptm','dsm','dsoot','dcTpl','dcMeta','printFmt','acAct','acDel','acEdit','apprCfg','docCtl'];
 // PM Plan schedule / PM checklists / machine-checklist map pehle localStorage me alag save
 // hote the aur kabhi sync hi nahi hote the - isliye ek device ka PM schedule change dusre
 // device par nahi dikhta tha. Ab inhe bhi upar wale GS_ALL engine se hi sync karte hain.
@@ -5109,6 +5109,8 @@ function gsApplyPmMapRows(){
  localStorage.setItem(PM_MACHINE_CHECKLIST_KEY,JSON.stringify(PM_MACHINE_CHECKLIST_MAP));
 }
 function gsRebuildPmRows(){gsRebuildPmPlanRows();gsRebuildPmCheckRows();gsRebuildPmMapRows()}
+const GS_NEWMODS=['ptm','dsm','dsoot','dcTpl'];   // Predictive / Daily / De-sooting check sheets + templates (Code.gs ALLOWED_MODULES me hone chahiye)
+function gsNewHold(){if(localStorage.getItem('htp_gs_new_ok')==='1')return false;const r=Number(localStorage.getItem('htp_gs_new_retry')||0);return !!r&&Date.now()-r<600000}
 let gsBusy=false,gsTimer=null;
 function gsCfg(){
  // Hamesha index.html wala URL (GS_DEFAULT_URL). Purana saved URL ignore + hata diya jata hai, warna purane deployment par chala jata tha.
@@ -5120,8 +5122,8 @@ function gsHash(str){let h1=0xdeadbeef,h2=0x41c6ce57;for(let i=0,ch;i<str.length
 function gsClean(r){return JSON.stringify(r,function(k,v){if(k==='evidence')return undefined;if((k==='h'||k==='s'||k==='p')&&this&&typeof this.u==='string'&&this.role!==undefined)return undefined;return v})}
 /* ===== Sheet report tabs: one tab per module (and per month), same columns as the print formats ===== */
 const GS_MONTHLY=['pf','pc','dg','mr','bd','mh','airCompressor','utility','pm','pmPlan','meeting'];
-const GS_MASTERS=['mttr','spares','critical','tc','cal','machineMaster','utility', 'audit','meeting','sparePurchase','powerCost','hpsebBill','satReport','satTemp','oxyMV','oxyImp','oxyRep','amc','amcLog','tus','furnChk','contingency','ptm','dsm','dsoot','dcTpl','printFmt','acAct','acDel','acEdit','apprCfg','docCtl']; 
-const GS_TAB={pf:'PowerFactor',pc:'PowerCut',dg:'DG',mr:'MaintReq',bd:'Breakdown',mh:'MachHistory',airCompressor:'AirCompressor',utility:'UtilityLog',spares:'SpareParts',critical:'CriticalSpares',tc:'Thermocouple',cal:'Calibration',machineMaster:'MachineMaster', audit:'AuditLog',meeting:'MeetingLog',sparePurchase:'SparePurchase',powerCost:'PowerCost',hpsebBill:'HPSEBLBill',pm:'PMCheckSheet',pmPlan:'PMPlan',satReport:'SATReport',satTemp:'SATTemp',oxyMV:'OxyMV',oxyImp:'OxyImpedance',oxyRep:'OxyReplace',amc:'AMCContracts',amcLog:'AMCServiceLog',tus:'TUSSurvey',furnChk:'FurnaceChecks',contingency:'ContingencyPlan',ptm:'PredictiveCheck',dsm:'DailyShiftCheck',dsoot:'SQFDesootPM',dcTpl:'DCTemplates',mttr:'MTTR',printFmt:'PrintFormats'};
+const GS_MASTERS=['mttr','spares','critical','tc','cal','machineMaster','utility', 'audit','meeting','sparePurchase','powerCost','hpsebBill','satReport','satTemp','oxyMV','oxyImp','oxyRep','amc','amcLog','tus','furnChk','contingency','ptm','dsm','dsoot','dcTpl','dcMeta','printFmt','acAct','acDel','acEdit','apprCfg','docCtl']; 
+const GS_TAB={pf:'PowerFactor',pc:'PowerCut',dg:'DG',mr:'MaintReq',bd:'Breakdown',mh:'MachHistory',airCompressor:'AirCompressor',utility:'UtilityLog',spares:'SpareParts',critical:'CriticalSpares',tc:'Thermocouple',cal:'Calibration',machineMaster:'MachineMaster', audit:'AuditLog',meeting:'MeetingLog',sparePurchase:'SparePurchase',powerCost:'PowerCost',hpsebBill:'HPSEBLBill',pm:'PMCheckSheet',pmPlan:'PMPlan',satReport:'SATReport',satTemp:'SATTemp',oxyMV:'OxyMV',oxyImp:'OxyImpedance',oxyRep:'OxyReplace',amc:'AMCContracts',amcLog:'AMCServiceLog',tus:'TUSSurvey',furnChk:'FurnaceChecks',contingency:'ContingencyPlan',ptm:'PredictiveCheck',dsm:'DailyShiftCheck',dsoot:'SQFDesootPM',dcTpl:'DCTemplates',dcMeta:'DCSheetInfo',mttr:'MTTR',printFmt:'PrintFormats'};
 const GS_COMPANY='Milestone Gears Ltd. UNIT-7';
 function gsMonthKey(d){d=String(d||'').slice(0,7);return /^\d{4}-\d{2}$/.test(d)?d:''}
 function gsNextMonth(mk){const y=+mk.slice(0,4),m=+mk.slice(5,7);return m===12?(y+1)+'-01':y+'-'+String(m+1).padStart(2,'0')}
@@ -5136,7 +5138,7 @@ function gsRecMonth(mod,r){
  if(mod==='mr')return gsMonthKey(r.pdate||r.mdate||r.hdate)||null;
  if(mod==='utility')return gsIsUtilLog(r)?(gsMonthKey(r.date)||null):'*';
  if(['pf','pc','dg','bd','mh','airCompressor'].indexOf(mod)>=0)return gsMonthKey(r.date)||null;
- if(['spares','critical','tc','cal','machineMaster', 'audit','sparePurchase','powerCost','hpsebBill','satReport','satTemp','oxyMV','oxyImp','oxyRep','mttr','amc','amcLog','tus','furnChk','contingency','ptm','dsm','dsoot','dcTpl','printFmt','acAct','acDel','acEdit','apprCfg','docCtl'].indexOf(mod)>=0)return '*';
+ if(['spares','critical','tc','cal','machineMaster', 'audit','sparePurchase','powerCost','hpsebBill','satReport','satTemp','oxyMV','oxyImp','oxyRep','mttr','amc','amcLog','tus','furnChk','contingency','ptm','dsm','dsoot','dcTpl','dcMeta','printFmt','acAct','acDel','acEdit','apprCfg','docCtl'].indexOf(mod)>=0)return '*';
  if(mod==='meeting'||mod==='pm')return gsMonthKey(r.date)||null;
  if(mod==='pmPlan')return r.t==='m'?'*':(gsPmKeyMonth(r.k)||null);
  return null;
@@ -5685,7 +5687,7 @@ async function gsPost(cfg,payload,ackOnly){
   catch(e){console.warn('Google Sheet report queue failed',e);return {ok:true,rows:[],maxSrv:since};}
  }
  const changes=payload&&payload.changes||[];
- const wanted={},isAdm=!!(session()&&session().role==='Admin');changes.forEach(function(c){if(c.module==='audit'&&!isAdm)return;wanted[c.module+'|'+c.sid]=Number(c.ts||0)});
+ const wanted={},isAdm=!!(session()&&session().role==='Admin');changes.forEach(function(c){if(c.module==='audit'&&!isAdm)return;if(GS_NEWMODS.indexOf(c.module)>=0)return;wanted[c.module+'|'+c.sid]=Number(c.ts||0)});   // naye check-sheet modules ka ack nahi roka jata (purana Code.gs unhe ignore karta hai -> sync atak jata tha)
  const hasAll=function(rows){return Object.keys(wanted).every(function(k){return (rows||[]).some(function(r){return r.module+'|'+r.sid===k&&Number(r.ts||0)>=wanted[k]})})};
  if(changes.length){
   // 1) baseline  2) POST  3) sirf naye rows (baseline ke baad) poll karke ack - poora data baar-baar download nahi hota
@@ -5717,6 +5719,21 @@ async function gsPost(cfg,payload,ackOnly){
   await new Promise(function(r){setTimeout(r,900)});
  }
  throw lastErr||new Error('Google Sheet read timeout');
+}
+async function gsNewCheck(cfg,changes){
+ try{
+  if(localStorage.getItem('htp_gs_new_ok')==='1'){window.__gsNewWarn=false;return}
+  if(!changes.some(function(c){return GS_NEWMODS.indexOf(c.module)>=0}))return;
+  let ok=false;
+  for(let t=0;t<3&&!ok;t++){
+   if(t)await new Promise(function(r){setTimeout(r,2500)});
+   try{const o=await gsJsonpPull(cfg,0,20000,'&offset=0&limit=5&mods='+encodeURIComponent(GS_NEWMODS.join(',')));ok=!!(o&&(o.rows||[]).some(function(r){return GS_NEWMODS.indexOf(r.module)>=0}))}catch(e){}
+  }
+  if(ok){localStorage.setItem('htp_gs_new_ok','1');localStorage.removeItem('htp_gs_new_retry');window.__gsNewWarn=false;return}
+  // Server (Code.gs) ko naye modules nahi pata: base saaf karo taaki Code.gs update hote hi sab dobara upload ho jaye
+  const mm=gsMeta();GS_NEWMODS.forEach(function(m){if(mm.base)delete mm.base[m]});localStorage.setItem(GS_META_KEY,JSON.stringify(mm));
+  localStorage.setItem('htp_gs_new_retry',String(Date.now()));window.__gsNewWarn=true;
+ }catch(e){console.warn('gsNewCheck',e)}
 }
 async function gsReconcileNew(cfg){
  const meta=gsMeta(),ob=meta.base||{};
@@ -5816,6 +5833,7 @@ async function gsSync(auto){
  if(!session())return;
  const cfg=gsCfg();
  if(!cfg.url||!cfg.token){if(!auto)alert('Please log in first.');return}
+ if(!auto)localStorage.removeItem('htp_gs_new_retry');   // Sync Now: naye modules ki koshish turant
  if(gsBusy){window.__gsAgain=true;return}
  if(auto&&typeof edit!=='undefined'&&Object.keys(edit).some(function(k){return edit[k]!==null&&edit[k]!==undefined}))return;
  gsBusy=true;gsStatus('⏳ Syncing…');
@@ -5848,6 +5866,7 @@ async function gsSync(auto){
   // 1) find local changes (new / edited / deleted records)
   GS_ALL.forEach(function(mod){
    const list=gsList(mod),used=new Set(),oldBase=meta.base[mod]||{},nb={};
+   if(GS_NEWMODS.indexOf(mod)>=0&&gsNewHold()){newBase[mod]=Object.assign({},oldBase);return}   // server in modules ko abhi nahi jaanta: 10 min me ek baar hi dobara koshish
    if(mod==='users'&&!(session()&&session().role==='Admin')){newBase[mod]=Object.assign({},oldBase);return}   // users/roles sirf Admin badal sakta hai
    list.forEach(function(r){
     if(!r||typeof r!=='object')return;
@@ -5915,6 +5934,7 @@ async function gsSync(auto){
   changed.forEach(gsPersist);
   const since2=out.maxSrv||meta.since;
   localStorage.setItem(GS_META_KEY,JSON.stringify({since:since2,base:newBase,pend:gsAffToJson(aff),lastOk:new Date().toISOString(),repAt:meta.repAt||0}));
+   await gsNewCheck(cfg,changes);
   if(changed.has('users')){try{populatePermUserSelect()}catch(e){}const cs=session();if(cs&&!users().some(function(x){return x.u===cs.u})){alert('Your account was removed by Admin. Please login again.');logout()}}
   if(changed.size){try{hydratePMEvidence()}catch(e){}try{mmsQuiet(renderAll)}catch(e){console.warn('renderAll after sync',e)}gsRebaseline(applied)}
   // Report tabs (print format) bhaari hote hain: records turant sync hote hain, par reports kam se kam
@@ -5929,7 +5949,7 @@ async function gsSync(auto){
   }
   if(dd.length)gsSchedule(1500);
   const t=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-  gsStatus('☁ Synced '+t+' (↑'+changes.length+' ↓'+changed.size+')'+repNote);
+  gsStatus('☁ Synced '+t+' (↑'+changes.length+' ↓'+changed.size+')'+repNote+(window.__gsNewWarn?' · ⚠ Code.gs update karo (naye Daily/Predictive modules server par nahi ja rahe)':''));
  }catch(e){
   console.error('Sheet sync failed',e);
   gsStatus('⚠ Sync failed: '+(e&&e.message||e),true);
@@ -9781,7 +9801,8 @@ if (typeof renderAll !== 'undefined') {
     { key: 'ptm', label: 'Predictive Maintenance Check Sheet (FMT-MNT-10)', tab: 'PredictiveCheck', storage: 'htp7_predictive_chk_v1', icon: '🩺', nav: 'Predictive Check Sheet' },
     { key: 'dsm', label: 'Daily Shiftwise Maintenance Check (FMT-HT-96)', tab: 'DailyShiftCheck', storage: 'htp7_daily_shift_chk_v1', icon: '🕒', nav: 'Daily Shiftwise Check' },
     { key: 'dsoot', label: 'SQF De-sooting PM Sheet (FMT-MNT-04)', tab: 'SQFDesootPM', storage: 'htp7_sqf_desoot_v1', icon: '🧹', nav: 'SQF De-sooting PM' },
-    { key: 'dcTpl', label: 'Check Sheet Templates', tab: 'DCTemplates', storage: 'htp7_dc_templates_v1' }
+    { key: 'dcTpl', label: 'Check Sheet Templates', tab: 'DCTemplates', storage: 'htp7_dc_templates_v1' },
+    { key: 'dcMeta', label: 'Check Sheet Info (additional fields)', tab: 'DCSheetInfo', storage: 'htp7_dc_meta_v1' }
   ];
   MODS.forEach(function (m) {
     KEY[m.key] = m.storage;
@@ -9802,6 +9823,8 @@ if (typeof renderAll !== 'undefined') {
   function fmtD(s) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s || ''); return m ? m[3] + '-' + m[2] + '-' + m[1] : (s || ''); }
   function who() { try { var s = mmsSession(); return s ? String(s.u || '').trim() : ''; } catch (e) { return ''; } }
   function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+  function cleanTxt(x) { return String(x || '').replace(/[|()'"\\]/g, '-').trim(); }
+  function js(x) { return E(String(x).replace(/\\/g, '\\\\').replace(/'/g, "\\'")); }
   function A(k) { if (!Array.isArray(data[k])) data[k] = load(k); return data[k]; }
   function E(s) { return esc(s === undefined || s === null ? '' : s); }
   function nOf(x) { var n = parseFloat(String(x === undefined || x === null ? '' : x).replace(/,/g, '')); return isNaN(n) ? NaN : n; }
@@ -9812,6 +9835,25 @@ if (typeof renderAll !== 'undefined') {
     var out = [];
     try { MACHINE_MASTER.forEach(function (m) { if (m && m.machineNumber && out.indexOf(m.machineNumber) < 0) out.push(m.machineNumber); }); } catch (e) { }
     return out;
+  }
+  /* sheet-level "Additional fields" (Field Manager) - values dcMeta me, sheet ke saath */
+  function enc(x) { return encodeURIComponent(String(x || '')).replace(/[!'()*]/g, function (c) { return '%' + c.charCodeAt(0).toString(16).toUpperCase(); }); }
+  function dec(x) { try { return decodeURIComponent(x); } catch (e) { return x; } }
+  function metaId(key, sel) { return ['meta', key, enc(sel.tpl), enc(sel.no), enc(sel.shift), sel.month].join('|'); }
+  function parseMetaId(id) { var p = String(id || '').split('|'); return p[0] === 'meta' && p.length === 6 ? { key: p[1], tpl: dec(p[2]), no: dec(p[3]), shift: dec(p[4]), month: p[5] } : null; }
+  function metaRec(key, sel) { var id = metaId(key, sel); return A('dcMeta').filter(function (r) { return r && r.id === id; })[0] || null; }
+  function cfDefs(key) {
+    try { var a = data.printFmt || []; for (var i = 0; i < a.length; i++) if (a[i] && a[i].key === '_fieldcfg') { var m = (a[i].mods || {})[key]; return m && m.custom ? m.custom.filter(function (d) { return d.inPrint !== false; }) : []; } } catch (e) { }
+    return [];
+  }
+  function cfLine(key, cf) {
+    var d = cfDefs(key); if (!d.length) return '';
+    return d.map(function (x) { return '<b>' + E(x.label + (x.unit ? ' (' + x.unit + ')' : '')) + ':</b> ' + E((cf || {})[x.id] || ''); }).join(' &nbsp; | &nbsp; ');
+  }
+  function loadMetaToForm(key) {
+    if (!S[key]) return;
+    var m = metaRec(key, S[key].sel) || {}, pre = 'cf__' + key + '__';
+    [].forEach.call(document.querySelectorAll('#' + key + ' [id^="' + pre + '"]'), function (e) { e.value = (m.cf && m.cf[e.id.slice(pre.length)]) || ''; });
   }
   function sqfNos() {
     var out = ['SQF-01', 'SQF-02', 'SQF-03', 'SQF-04'];
@@ -9936,7 +9978,7 @@ if (typeof renderAll !== 'undefined') {
   }
   function readSel(key) {
     var sh = $('dc_' + key + '_shift');
-    return { tpl: ($('dc_' + key + '_tpl') || {}).value || '', no: (($('dc_' + key + '_no') || {}).value || '').trim(), shift: sh ? (sh.value || '').trim() : '', month: ($('dc_' + key + '_month') || {}).value || ymNow() };
+    return { tpl: ($('dc_' + key + '_tpl') || {}).value || '', no: cleanTxt(($('dc_' + key + '_no') || {}).value), shift: sh ? cleanTxt(sh.value) : '', month: ($('dc_' + key + '_month') || {}).value || ymNow() };
   }
   function writeSel(key) {
     var sel = S[key].sel;
@@ -9958,7 +10000,7 @@ if (typeof renderAll !== 'undefined') {
     if (isDirty(key) && (nu.tpl !== st.sel.tpl || nu.no !== st.sel.no || nu.shift !== st.sel.shift || nu.month !== st.sel.month)) {
       if (!confirm('Is sheet me unsaved changes hain. Chhod kar dusri sheet kholni hai?')) { writeSel(key); return; }
     }
-    st.sel = nu; loadDraft(key); writeSel(key); renderGrid(key);
+    st.sel = nu; loadDraft(key); writeSel(key); renderGrid(key); loadMetaToForm(key);
   }
   function gridHtml(key) {
     var cfg = CFG[key], st = S[key], sel = st.sel, t = tplBy(key, sel.tpl);
@@ -10004,34 +10046,44 @@ if (typeof renderAll !== 'undefined') {
     if (lst.length) h += '<div class="dc-msg warn"><b>Dhyan do (supervisor / maintenance ko batao):</b><br>' + lst.slice(0, 12).map(E).join('<br>') + (lst.length > 12 ? '<br>… +' + (lst.length - 12) + ' more' : '') + '</div>';
     return h;
   }
-  function listHtml(key) {
-    var sel = S[key].sel, rows = {}, h;
+  function sheetRows(key) {
+    var sel = S[key].sel, rows = {};
     A(key).forEach(function (r) {
       if (!r || r.month !== sel.month) return;
       var k = [r.tpl, r.machineNo || '', r.shift || ''].join('|');
-      var o = rows[k] || (rows[k] = { tpl: r.tpl, no: r.machineNo || '', shift: r.shift || '', days: 0, ng: 0, last: '' });
-      o.days++; if (r.day > +o.last || !o.last) o.last = String(r.day);
-      var t = tplBy(key, r.tpl);
-      (t ? t.rows : []).forEach(function (rw) { var x = (r.v || {})[rw.id]; if (rw.t === 'num' ? outOfLimit(rw.s, x) : x === 'ng') o.ng++; });
+      var o = rows[k] || (rows[k] = { id: metaId(key, { tpl: r.tpl, no: r.machineNo || '', shift: r.shift || '', month: r.month }), tpl: r.tpl, no: r.machineNo || '', shift: r.shift || '', days: 0, ng: 0, last: 0 });
+      o.days++; if (r.day > o.last) o.last = r.day;
+      o.ng += dayStats(key, r).bad;
     });
-    var arr = Object.keys(rows).map(function (k) { return rows[k]; }).sort(function (a, b) { return (a.tpl + a.no).localeCompare(b.tpl + b.no); });
-    h = '<div class="head2" style="margin-top:0">Sheets saved for ' + E(ymLbl(sel.month)) + '</div>';
-    if (!arr.length) return h + '<div class="note">Is month ki koi sheet save nahi hui.</div>';
-    h += '<div class="tablewrap"><table class="tbl"><thead><tr><th>Check Sheet</th><th>' + E(CFG[key].noLabel) + '</th>' + (CFG[key].hasShift ? '<th>Shift</th>' : '') + '<th>Days filled</th><th>Last day</th><th>Problem points</th><th>Action</th></tr></thead><tbody>';
-    arr.forEach(function (o) {
-      h += '<tr><td>' + E(o.tpl) + '</td><td>' + E(o.no) + '</td>' + (CFG[key].hasShift ? '<td>' + E(o.shift) + '</td>' : '') + '<td>' + o.days + '</td><td>' + E(o.last) + '</td><td>' + (o.ng ? '<b style="color:#b91c1c">' + o.ng + '</b>' : '0') + '</td>' +
-        '<td><button class="secondary tiny" data-a="open" data-t="' + E(o.tpl) + '" data-n="' + E(o.no) + '" data-s="' + E(o.shift) + '">Open</button> <button class="secondary tiny" data-a="del" data-t="' + E(o.tpl) + '" data-n="' + E(o.no) + '" data-s="' + E(o.shift) + '" style="color:#b91c1c">Delete</button></td></tr>';
-    });
-    return h + '</tbody></table></div>';
+    return Object.keys(rows).map(function (k) { return rows[k]; }).sort(function (a, b) { return (a.tpl + a.no).localeCompare(b.tpl + b.no); });
   }
+  function dayStats(key, r) {
+    var t = tplBy(key, r.tpl), o = { ok: 0, ng: 0, filled: 0, oor: 0, bad: 0 };
+    (t ? t.rows : []).forEach(function (rw) {
+      var x = (r.v || {})[rw.id]; if (x === undefined || x === '') return; o.filled++;
+      if (rw.t === 'num') { if (outOfLimit(rw.s, x)) o.oor++; } else if (x === 'ok') o.ok++; else if (x === 'ng') o.ng++;
+    });
+    o.bad = o.ng + o.oor; return o;
+  }
+  function renderList(key) {
+    var h = $('dc_' + key + '_listhead'), b = $('dc_' + key + '_listbody'); if (!h || !b || !S[key]) return;
+    var arr = sheetRows(key), cols = CFG[key].hasShift ? 7 : 6;
+    h.textContent = 'Sheets saved for ' + ymLbl(S[key].sel.month);
+    b.innerHTML = arr.length ? arr.map(function (o) {
+      return '<tr><td>' + E(o.tpl) + '</td><td>' + E(o.no) + '</td>' + (CFG[key].hasShift ? '<td>' + E(o.shift) + '</td>' : '') + '<td>' + o.days + '</td><td>' + (o.last || '') + '</td><td>' + (o.ng ? '<b style="color:#b91c1c">' + o.ng + '</b>' : '0') + '</td>' +
+        '<td style="white-space:nowrap"><button type="button" class="secondary tiny" onclick="' + OPEN[key] + '(\'' + js(o.id) + '\')">Open</button> <button type="button" class="secondary tiny" onclick="' + DEL[key] + '(\'' + js(o.id) + '\')" style="color:#b91c1c">Delete</button></td></tr>';
+    }).join('') : '<tr><td colspan="' + cols + '" style="text-align:center;color:#7b8a94">Is month ki koi sheet save nahi hui.</td></tr>';
+  }
+  var OPEN = { ptm: 'dcOpenPtm', dsm: 'dcOpenDsm' }, DEL = { ptm: 'deleteDcPtm', dsm: 'deleteDcDsm' };
   function renderGrid(key) {
     var g = $('dc_' + key + '_grid'); if (!g) return;
     var sc = g.querySelector('.dc-wrap'), sl = sc ? sc.scrollLeft : 0, stp = sc ? sc.scrollTop : 0;
     g.innerHTML = gridHtml(key);
     var sc2 = g.querySelector('.dc-wrap'); if (sc2) { sc2.scrollLeft = sl; sc2.scrollTop = stp; }
     $('dc_' + key + '_sum').innerHTML = summaryHtml(key);
-    $('dc_' + key + '_list').innerHTML = listHtml(key);
+    if (typeof window[LISTFN[key]] === 'function') window[LISTFN[key]](); else renderList(key);
   }
+  var LISTFN = { ptm: 'dcRenderPtm', dsm: 'dcRenderDsm' };
   function setCell(key, d, rid, val) {
     var st = S[key], dd = st.draft[d] || (st.draft[d] = { v: {}, sign: '' });
     if (val === '' || val === undefined) delete dd.v[rid]; else dd.v[rid] = val;
@@ -10044,8 +10096,8 @@ if (typeof renderAll !== 'undefined') {
     return false;
   }
   function saveSheet(key) {
-    var st = S[key], sel = st.sel, days = Object.keys(st.dirty);
-    if (!days.length) { alert('Koi naya change nahi hai.'); return; }
+    var st = S[key], sel = st.sel, days = Object.keys(st.dirty), hasCf = !!document.querySelector('#' + key + ' .cf-block');
+    if (!days.length && !hasCf) { alert('Koi naya change nahi hai.'); return; }
     if (!sel.tpl) { alert('Check sheet chuno.'); return; }
     if (!saveGuard(key)) return;
     var existing = {}; dayRecs(key, sel).forEach(function (r) { existing[r.day] = r; });
@@ -10060,18 +10112,31 @@ if (typeof renderAll !== 'undefined') {
       if (i >= 0) arr[i] = rec; else arr.push(rec);
       cnt++;
     });
+    if (dayRecs(key, sel).length || arr.some(function (r) { return r && r.tpl === sel.tpl && r.month === sel.month; })) {
+      var mid = metaId(key, sel), ma = A('dcMeta'), mi = ma.findIndex(function (r) { return r && r.id === mid; });
+      if (mi >= 0) { ma[mi].at = now; ma[mi].by = who(); } else ma.push({ id: mid, mod: key, tpl: sel.tpl, machineNo: sel.no, shift: sel.shift, month: sel.month, by: who(), at: now });
+      persist('dcMeta');
+    }
     persist(key);
     loadDraft(key); renderGrid(key);
     alert('Sheet save ho gayi (' + cnt + ' din ka record).');
   }
-  function delSheet(key, tpl, no, shift) {
+  function delSheetById(key, id) {
+    var q = parseMetaId(id); if (!q || q.key !== key) return;
     if (!delGuard(key)) return;
-    var sel = { tpl: tpl, no: no, shift: shift, month: S[key].sel.month }, n = dayRecs(key, sel).length;
-    if (!n || !confirm(tpl + ' ' + no + ' – ' + ymLbl(sel.month) + ' ki poori sheet (' + n + ' din) delete karni hai?')) return;
-    data[key] = A(key).filter(function (r) { return !(r && r.tpl === tpl && String(r.machineNo || '') === no && String(r.shift || '') === shift && r.month === sel.month); });
-    persist(key);
-    var cur = S[key].sel; if (cur.tpl === tpl && cur.no === no && cur.shift === shift) loadDraft(key);
+    var sel = { tpl: q.tpl, no: q.no, shift: q.shift, month: q.month }, n = dayRecs(key, sel).length;
+    if (!n || !confirm(q.tpl + ' ' + q.no + ' – ' + ymLbl(q.month) + ' ki poori sheet (' + n + ' din) delete karni hai?')) return;
+    data[key] = A(key).filter(function (r) { return !(r && r.tpl === q.tpl && String(r.machineNo || '') === q.no && String(r.shift || '') === q.shift && r.month === q.month); });
+    data.dcMeta = A('dcMeta').filter(function (r) { return !(r && r.id === id); });
+    persist(key); persist('dcMeta');
+    var cur = S[key].sel; if (cur.tpl === q.tpl && cur.no === q.no && cur.shift === q.shift && cur.month === q.month) loadDraft(key);
     renderGrid(key);
+  }
+  function openSheet(key, id) {
+    var q = parseMetaId(id); if (!q || q.key !== key) return;
+    if (isDirty(key) && !confirm('Unsaved changes chhod kar dusri sheet kholni hai?')) return;
+    S[key].sel = { tpl: q.tpl, no: q.no, shift: q.shift, month: q.month };
+    loadDraft(key); writeSel(key); renderGrid(key); loadMetaToForm(key); window.scrollTo(0, 0);
   }
   function allOk(key) {
     var st = S[key], t = tplBy(key, st.sel.tpl), d = +($('dc_' + key + '_allday') || {}).value;
@@ -10085,6 +10150,7 @@ if (typeof renderAll !== 'undefined') {
     var n = dim(sel.month), showM = cfg.method && !t.noMethod, h = '';
     h += '<table class="hd"><tr><td rowspan="2" style="width:90px"><img src="' + APP_LOGO + '" style="height:44px"></td><td class="tt" colspan="3">' + E(cfg.title) + '</td></tr>' +
       '<tr><td><b>' + E(cfg.head) + '</b></td><td><b>' + (key === 'dsm' ? 'FURNACE: ' : 'MACHINE NAME: ') + E(t.name) + '</b></td><td><b>' + E(cfg.noLabel) + ' :- ' + E(sel.no) + (cfg.hasShift ? ' &nbsp; SHIFT: ' + E(sel.shift) : '') + ' &nbsp; MONTH :- ' + E(ymLbl(sel.month)) + '</b></td></tr></table>';
+    var cl = cfLine(key, (metaRec(key, sel) || {}).cf); if (cl) h += '<div style="margin:3px 0;font-size:10px">' + cl + '</div>';
     h += '<table class="g"><thead><tr><th rowspan="2">Sr. No</th><th rowspan="2" class="l">' + (key === 'dsm' ? 'INSTRUMENT NAME' : 'CHECK POINTS') + '</th><th rowspan="2" class="l">' + E(t.colS || (key === 'dsm' ? 'SPECIFICATION' : 'STANDARDS')) + '</th>' + (showM ? '<th rowspan="2" class="l">METHOD</th>' : '') + '<th colspan="' + n + '">DATE</th></tr><tr>';
     for (var d = 1; d <= n; d++) h += '<th class="dd">' + d + '</th>';
     h += '</tr></thead><tbody>';
@@ -10113,6 +10179,7 @@ if (typeof renderAll !== 'undefined') {
     w.document.close();
   }
 
+  var SAVEFN = { ptm: 'dcSavePtm', dsm: 'dcSaveDsm' }, PRINTFN = { ptm: 'dcPrintPtm', dsm: 'dcPrintDsm' };
   function gridPanel(key) {
     var cfg = CFG[key], m = MODS.filter(function (x) { return x.key === key; })[0];
     return '<div class="card"><div class="head">Milestone Gears Ltd. UNIT-7</div><div class="head2">' + E(cfg.title) + '</div>' +
@@ -10121,11 +10188,11 @@ if (typeof renderAll !== 'undefined') {
       '<div class="field"><label>' + E(cfg.noLabel) + '</label><input id="dc_' + key + '_no" list="dc_machlist" data-a="sel" placeholder="e.g. 01"></div>' +
       (cfg.hasShift ? '<div class="field"><label>Shift</label><input id="dc_' + key + '_shift" list="dc_shiftlist" data-a="sel" placeholder="A / B / C"></div>' : '') +
       '<div class="field"><label>Month</label><input type="month" id="dc_' + key + '_month" data-a="sel"></div>' +
-      '<div class="actions wide"><button class="primary" data-a="save">Save Sheet</button><button class="secondary" data-a="print">Print Sheet</button>' +
-      (key === 'ptm' ? '<span style="margin-left:8px;font-size:11px">Sab ✓ for day: <input type="number" min="1" max="31" id="dc_ptm_allday" style="width:56px"> <button class="secondary tiny" data-a="allok">Apply</button></span>' : '') +
+      '<div class="actions wide"><button type="button" class="primary" onclick="' + SAVEFN[key] + '()">Save Sheet</button><button type="button" class="secondary" onclick="' + PRINTFN[key] + '()">🖨️ Print Sheet</button>' +
+      (key === 'ptm' ? '<span style="margin-left:8px;font-size:11px">Sab ✓ for day: <input type="number" min="1" max="31" id="dc_ptm_allday" style="width:56px"> <button type="button" class="secondary tiny" onclick="dcAllOkPtm()">Apply</button></span>' : '') +
       '</div></div></div>' +
       '<div class="card"><div id="dc_' + key + '_sum"></div><div id="dc_' + key + '_grid"></div></div>' +
-      '<div class="card" id="dc_' + key + '_list"></div>' + editorShell(key);
+      '<div class="card"><div class="head2" style="margin-top:0" id="dc_' + key + '_listhead"></div><div class="tablewrap"><table class="tbl"><thead><tr><th>Check Sheet</th><th>' + E(cfg.noLabel) + '</th>' + (cfg.hasShift ? '<th>Shift</th>' : '') + '<th>Days filled</th><th>Last day</th><th>Problem points</th><th>Action</th></tr></thead><tbody id="dc_' + key + '_listbody"></tbody></table></div></div>' + editorShell(key);
   }
 
   /* ====================== SQF De-sooting PM ====================== */
@@ -10142,7 +10209,7 @@ if (typeof renderAll !== 'undefined') {
       '<div class="field"><label>End Time</label><input type="time" id="dsoot_end"></div>' +
       '<div class="field"><label>Checked By</label><input id="dsoot_checked"></div>' +
       '<div class="field"><label>Verified By</label><input id="dsoot_verified" readonly placeholder="Auto: login user" style="background:#eef3f4"></div>' +
-      '<div class="actions wide"><button class="primary" data-a="save" id="dsoot_savebtn">Save De-sooting Record</button><button class="secondary" data-a="clear">Clear</button><button class="secondary" data-a="printcur">Print Current</button></div></div></div>' +
+      '<div class="actions wide"><button type="button" class="primary" id="dsoot_savebtn" onclick="saveDsoot()">Save De-sooting Record</button><button type="button" class="secondary" onclick="clearDsoot()">Clear</button><button type="button" class="secondary" onclick="dcPrintDsoot()">🖨️ Print Sheet</button></div></div></div>' +
       '<datalist id="dsoot_obslist"><option value="Found OK"><option value="Not OK"><option value="Cleaning OK"><option value="Done"></datalist>' +
       '<div class="card"><div class="tablewrap"><table class="tbl"><thead><tr><th>S.No.</th><th>Freq.</th><th class="l">Activity (Electrical + Mechanical)</th><th>Standard</th><th>Observation</th><th>Work Done</th><th>Remark</th></tr></thead><tbody id="dsoot_rows"></tbody></table></div><div id="dsoot_sum" style="margin-top:6px"></div></div>' +
       '<div class="card"><div class="head2" style="margin-top:0">Saved De-sooting Records</div><div class="toolbar"><label style="font-size:11px;font-weight:700">Month: <select id="dsoot_month" data-a="month" style="padding:4px;border-radius:5px;font-size:12px"></select></label></div><div id="dsoot_cover"></div>' +
@@ -10178,9 +10245,10 @@ if (typeof renderAll !== 'undefined') {
     $('dsoot_cover').innerHTML = cov;
     $('dsoot_list').innerHTML = rows.length ? rows.map(function (r) {
       return '<tr><td>' + E(fmtD(r.date)) + '</td><td>' + E(r.machineNo) + '</td><td>' + E(r.start) + '</td><td>' + E(r.end) + '</td><td>' + E(r.checkedBy) + '</td><td>' + E(r.verifiedBy) + '</td><td>' + (r.notOk ? '<b style="color:#b91c1c">' + r.notOk + '</b>' : '0') + '</td>' +
-        '<td><button class="secondary tiny" data-a="redit" data-id="' + E(r.id) + '">Edit</button> <button class="secondary tiny" data-a="print" data-id="' + E(r.id) + '">Print</button> <button class="secondary tiny" data-a="del" data-id="' + E(r.id) + '" style="color:#b91c1c">Delete</button></td></tr>';
+        '<td style="white-space:nowrap"><button type="button" class="secondary tiny" onclick="editDsoot(\'' + js(r.id) + '\')">Edit</button> <button type="button" class="secondary tiny" onclick="dcPrintDsootRec(\'' + js(r.id) + '\')">Print</button> <button type="button" class="secondary tiny" onclick="deleteDsoot(\'' + js(r.id) + '\')" style="color:#b91c1c">Delete</button></td></tr>';
     }).join('') : '<tr><td colspan="8" style="text-align:center;color:#7b8a94">Koi record nahi.</td></tr>';
   }
+  function dsListNow() { if (typeof window.dcRenderDsoot === 'function') window.dcRenderDsoot(); else dsRenderList(); }
   function dsClear() {
     DS.editId = null; DS.rows = dsNewRows();
     $('dsoot_id').value = ''; $('dsoot_date').value = today(); $('dsoot_start').value = ''; $('dsoot_end').value = ''; $('dsoot_checked').value = ''; $('dsoot_verified').value = who();
@@ -10200,8 +10268,10 @@ if (typeof renderAll !== 'undefined') {
       id: i >= 0 ? arr[i].id : 'dsoot-' + uid(), machineNo: mc, date: date, start: $('dsoot_start').value, end: $('dsoot_end').value, checkedBy: $('dsoot_checked').value.trim(), verifiedBy: who() || $('dsoot_verified').value,
       doc: (t && t.doc) || DOC_DSOOT, notOk: nk, rows: DS.rows.map(function (r) { return { id: r.id, p: r.p, f: r.f, s: r.s, m: r.m, obs: r.obs, work: r.work, rem: r.rem }; }), by: who(), at: new Date().toISOString()
     };
+    if (i >= 0 && arr[i] && arr[i].cf) rec.cf = arr[i].cf;
     if (i >= 0) arr[i] = rec; else arr.push(rec);
-    persist('dsoot'); dsClear(); dsRenderList();
+    if (i >= 0 && arr[i] !== rec && arr[i].cf) rec.cf = arr[i].cf;
+    persist('dsoot'); dsClear(); dsListNow();
     alert('De-sooting record save ho gaya.' + (nk ? '\nNot OK points: ' + nk + ' – Maintenance Request / Breakdown register me entry karo.' : ''));
   }
   function dsEdit(id) {
@@ -10215,14 +10285,15 @@ if (typeof renderAll !== 'undefined') {
     if (!delGuard('dsoot')) return;
     var r = A('dsoot').filter(function (x) { return x && x.id === id; })[0]; if (!r || !confirm(r.machineNo + ' – ' + fmtD(r.date) + ' ka de-sooting record delete karna hai?')) return;
     data.dsoot = A('dsoot').filter(function (x) { return x && x.id !== id; }); persist('dsoot');
-    if (DS.editId === id) dsClear(); dsRenderList();
+    if (DS.editId === id) dsClear(); dsListNow();
   }
   function dsPrintRec(r) {
+    var cl = cfLine('dsoot', r.cf);
     var h = '<table class="big"><tr><td colspan="8" style="font-size:16px;font-weight:800">MILESTONE GEARS LTD.</td></tr><tr><td colspan="4" style="font-weight:800;font-size:14px">Preventive Maintenance Check Sheet</td><td colspan="2">Start Time: ' + E(r.start) + '</td><td colspan="2">End Time: ' + E(r.end) + '</td></tr>' +
       '<tr><td colspan="3" class="l"><b>M/C NAME:- SQF</b></td><td colspan="3" class="l"><b>M/C. No.:- ' + E(r.machineNo) + '</b></td><td colspan="2" class="l"><b>Done Date:- ' + E(fmtD(r.date)) + '</b></td></tr>' +
       '<tr><th>S.No.</th><th>Freq.</th><th class="l">Activity (Electrical + Mechanical)</th><th>Standard</th><th>Method</th><th>Observation</th><th>Work Done</th><th>Remark</th></tr>' +
       (r.rows || []).map(function (x, i) { return '<tr><td>' + (i + 1) + '</td><td>' + E(x.f) + '</td><td class="l">' + E(x.p) + '</td><td>' + E(x.s) + '</td><td>' + E(x.m) + '</td><td>' + E(x.obs) + '</td><td>' + E(x.work) + '</td><td>' + E(x.rem) + '</td></tr>'; }).join('') +
-      '<tr><td colspan="3" class="l" style="height:42px"><b>CHECKED BY-</b> ' + E(r.checkedBy) + '</td><td colspan="5" class="l"><b>VERIFIED BY-</b> ' + E(r.verifiedBy) + '</td></tr></table><div class="ft">' + E(r.doc || DOC_DSOOT) + '</div>';
+      (cl ? '<tr><td colspan="8" class="l">' + cl + '</td></tr>' : '') + '<tr><td colspan="3" class="l" style="height:42px"><b>CHECKED BY-</b> ' + E(r.checkedBy) + '</td><td colspan="5" class="l"><b>VERIFIED BY-</b> ' + E(r.verifiedBy) + '</td></tr></table><div class="ft">' + E(r.doc || DOC_DSOOT) + '</div>';
     printWin('SQF De-sooting PM', h, false);
   }
   function dsPrintCur() {
@@ -10274,7 +10345,7 @@ if (typeof renderAll !== 'undefined') {
     else if (a === 'eddn' && i < t.rows.length - 1) { var y = t.rows[i]; t.rows[i] = t.rows[i + 1]; t.rows[i + 1] = y; edRender(key); }
     else if (a === 'edrm') { t.rows.splice(i, 1); edRender(key); }
     else if (a === 'edadd') { t.rows.push({ id: nextRowId(t), p: '', s: '', m: '', t: key === 'dsm' ? 'num' : key === 'dsoot' ? 'obs' : 'tick', f: key === 'dsoot' ? 'MONTHLY (DURING DE-SOOTING)' : undefined }); edRender(key); }
-    else if (a === 'ednew') { var n = prompt('Naye check sheet / machine ka naam likho:'); if (!n || !n.trim()) return; n = n.trim(); if (tplBy(key, n)) { alert('Is naam ka template pehle se hai.'); return; } edLoad(key, n, true); edRender(key); }
+    else if (a === 'ednew') { var n = prompt('Naye check sheet / machine ka naam likho:'); if (!n || !n.trim()) return; n = n.trim().replace(/[|]/g, '-'); if (tplBy(key, n)) { alert('Is naam ka template pehle se hai.'); return; } edLoad(key, n, true); edRender(key); }
     else if (a === 'edsave') {
       if (!editGuard(key)) return;
       var nm2 = (t.name || '').trim(); if (!nm2) { alert('Name bharo.'); return; }
@@ -10308,20 +10379,11 @@ if (typeof renderAll !== 'undefined') {
       var el = ev.target.closest('[data-a]'); if (!el || !p.contains(el)) return;
       var a = el.getAttribute('data-a');
       if (['edup', 'eddn', 'edrm', 'edadd', 'ednew', 'edsave', 'eddel'].indexOf(a) >= 0) return edAction(key, el, 'click');
-      if (key === 'dsoot') {
-        if (a === 'save') dsSave(); else if (a === 'clear') dsClear(); else if (a === 'printcur') dsPrintCur();
-        else if (a === 'redit') dsEdit(el.getAttribute('data-id')); else if (a === 'del') dsDel(el.getAttribute('data-id'));
-        else if (a === 'print') { var r = A('dsoot').filter(function (x) { return x && x.id === el.getAttribute('data-id'); })[0]; if (r) dsPrintRec(r); }
-        return;
-      }
+      if (key === 'dsoot') return;
       if (a === 'tick') {
         var d = +el.getAttribute('data-d'), rid = el.getAttribute('data-r'); if (futureBlock(key, d)) return;
         var cur = ((S[key].draft[d] || {}).v || {})[rid]; setCell(key, d, rid, cur === 'ok' ? 'ng' : cur === 'ng' ? '' : 'ok'); renderGrid(key);
-      } else if (a === 'save') saveSheet(key);
-      else if (a === 'print') printSheet(key);
-      else if (a === 'allok') allOk(key);
-      else if (a === 'open') { S[key].sel = { tpl: el.getAttribute('data-t'), no: el.getAttribute('data-n'), shift: el.getAttribute('data-s'), month: S[key].sel.month }; if (isDirty(key) && !confirm('Unsaved changes chhod kar dusri sheet kholni hai?')) return; loadDraft(key); writeSel(key); renderGrid(key); window.scrollTo(0, 0); }
-      else if (a === 'del') delSheet(key, el.getAttribute('data-t'), el.getAttribute('data-n'), el.getAttribute('data-s'));
+      }
     });
     var inputHandler = function (ev) {
       var el = ev.target.closest('[data-a]'); if (!el || !p.contains(el)) return;
@@ -10351,7 +10413,7 @@ if (typeof renderAll !== 'undefined') {
       var el = ev.target.closest('[data-a]'); if (!el) return;
       var a = el.getAttribute('data-a');
       if (a === 'sel' && key !== 'dsoot') return onSel(key);
-      if (a === 'month' && key === 'dsoot') return dsRenderList();
+      if (a === 'month' && key === 'dsoot') return dsListNow();
       if (a === 'edsel' || a === 'ednomethod') return edAction(key, el, 'change');
       if (a === 'edf' && el.tagName === 'SELECT') return edAction(key, el, 'change');
       inputHandler(ev);
@@ -10388,7 +10450,7 @@ if (typeof renderAll !== 'undefined') {
       if (!isDirty(key)) loadDraft(key);
       renderGrid(key);
     });
-    if ($('dsoot_rows')) { dsRenderList(); if (!DS.editId && !DS.rows.length) { DS.rows = dsNewRows(); dsRenderRows(); } }
+    if ($('dsoot_rows')) { dsListNow(); if (!DS.editId && !DS.rows.length) { DS.rows = dsNewRows(); dsRenderRows(); } }
     ['ptm', 'dsm', 'dsoot'].forEach(function (k) { var w = $('dc_' + k + '_edwrap'); if (w && w.open && !ED[k]) edRender(k); });
   }
   /* editor ko tab khulte hi bharo */
@@ -10420,6 +10482,28 @@ if (typeof renderAll !== 'undefined') {
     return rep;
   };
 
+  /* ---------- global functions (Field Manager / Print Format / Excel / Filters / Reports inhe naam se pehchante hain) ---------- */
+  window.dcSavePtm = function () { if (S.ptm) saveSheet('ptm'); };
+  window.dcSaveDsm = function () { if (S.dsm) saveSheet('dsm'); };
+  window.dcPrintPtm = function () { if (S.ptm) printSheet('ptm'); };
+  window.dcPrintDsm = function () { if (S.dsm) printSheet('dsm'); };
+  window.dcOpenPtm = function (id) { openSheet('ptm', id); };
+  window.dcOpenDsm = function (id) { openSheet('dsm', id); };
+  window.deleteDcPtm = function (id) { delSheetById('ptm', id); };
+  window.deleteDcDsm = function (id) { delSheetById('dsm', id); };
+  window.dcAllOkPtm = function () { if (S.ptm) allOk('ptm'); };
+  window.dcRenderPtm = function () { renderList('ptm'); };
+  window.dcRenderDsm = function () { renderList('dsm'); };
+  window.saveDsoot = dsSave; window.editDsoot = dsEdit; window.clearDsoot = dsClear; window.deleteDsoot = dsDel;
+  window.dcPrintDsoot = dsPrintCur;
+  window.dcPrintDsootRec = function (id) { var r = A('dsoot').filter(function (x) { return x && x.id === id; })[0]; if (r) dsPrintRec(r); };
+  window.dcRenderDsoot = dsRenderList;
+  window.dcSheetRows = function (key) { return S[key] ? sheetRows(key) : []; };
+  window.dcRegRow = function (key, r) {
+    var st = dayStats(key, r);
+    return key === 'ptm' ? [fmtD(r.date), r.tpl, r.machineNo || '', st.ok, st.ng, r.sign || ''] : [fmtD(r.date), r.tpl, r.machineNo || '', r.shift || '', st.filled, st.oor, st.ng, r.sign || ''];
+  };
+
   /* ---------- init ---------- */
   if (typeof renderAll === 'function' && !renderAll.__dc) {
     var _ra = renderAll;
@@ -10437,6 +10521,7 @@ if (typeof renderAll !== 'undefined') {
     });
     dsClear();
     try { renderAllDC(); } catch (e) { console.warn('dc init', e); }
+    ['ptm', 'dsm'].forEach(function (k) { loadMetaToForm(k); });
   }
   init(0);
 })();
@@ -10446,7 +10531,7 @@ if (typeof renderAll !== 'undefined') {
 /* ===== EXCEL EXPORT: har module ka print format .xlsx me (koi external library nahi, offline bhi chalta hai) ===== */
 (function(){
 'use strict';
-var XL_PRINT_RE=/^\s*(printReadingLog|printBreakdownMonth|printMTTRReport|printSpareParts|printCriticalSpares|printThermocouplePlan|printCalibrationPlan|printMRMonth|printAirCompressor|printUtilityMaster|printUtilityHistory|printPMYearlyCalendar|printPMPlan|printMachineMaster|printMeetingLog|printPurchaseRegister|pwPrint|hqPrint[A-Za-z]*|printHistoryCurrent|printPM)\s*\(/;
+var XL_PRINT_RE=/^\s*(printReadingLog|printBreakdownMonth|printMTTRReport|printSpareParts|printCriticalSpares|printThermocouplePlan|printCalibrationPlan|printMRMonth|printAirCompressor|printUtilityMaster|printUtilityHistory|printPMYearlyCalendar|printPMPlan|printMachineMaster|printMeetingLog|printPurchaseRegister|pwPrint|hqPrint[A-Za-z]*|dcPrint(?:Ptm|Dsm|Dsoot)|printHistoryCurrent|printPM)\s*\(/;
 var XL_CONT={printBreakdownMonth:'breakdownPrintPages',printMTTRReport:'mttrPrintPage',printMRMonth:'mrMonthPrintPage',printHistoryCurrent:'printHistory'};
 var SKIP_TAG=/^(STYLE|SCRIPT|SVG|IMG|HEAD|TITLE|NOSCRIPT|CANVAS|LINK|META|BUTTON|INPUT|SELECT|TEXTAREA)$/;
 var BLOCK_Q='div,p,h1,h2,h3,h4,h5,h6,section,ul,ol,table,li,header,footer,form';
@@ -10713,6 +10798,18 @@ var CFG=[
   list:function(){return utilityItems()},
   swap:function(p){var full=data.utility,items=utilityItems();data.utility=full.filter(function(x){return items.indexOf(x)<0||p(x)});return function(){data.utility=full}},
   fields:[{id:'cat',label:'Category',get:function(r){return r.category}},{id:'make',label:'Make',get:function(r){return r.make}},{id:'loc',label:'Location',get:function(r){return r.location}},{id:'status',label:'Status',get:function(r){return r.status}}]}
+,{key:'dsoot',panel:'dsoot',tbody:'dsoot_list',render:'dcRenderDsoot',print:[],search:true,
+  list:function(){return data.dsoot||[]},
+  recOf:function(tr,list){var b=tr.querySelector('button[onclick]'),m=b&&/editDsoot\('([^']*)'\)/.exec(b.getAttribute('onclick')||'');if(!m)return null;for(var i=0;i<list.length;i++){if(list[i]&&list[i].id===m[1])return list[i]}return null},
+  fields:[{id:'machine',label:'M/C No.',get:function(r){return r.machineNo}},{id:'checked',label:'Checked By',get:function(r){return r.checkedBy}},{id:'verified',label:'Verified By',get:function(r){return r.verifiedBy}}]}
+ ,{key:'ptmsheet',panel:'ptm',tbody:'dc_ptm_listbody',render:'dcRenderPtm',print:[],
+  list:function(){return window.dcSheetRows?dcSheetRows('ptm'):[]},
+  recOf:function(tr,list){var b=tr.querySelector('button[onclick]'),m=b&&/dcOpenPtm\('([^']*)'\)/.exec(b.getAttribute('onclick')||'');if(!m)return null;for(var i=0;i<list.length;i++){if(list[i]&&list[i].id===m[1])return list[i]}return null},
+  fields:[{id:'tpl',label:'Check Sheet',get:function(r){return r.tpl}},{id:'no',label:'Machine No.',get:function(r){return r.no}}]}
+ ,{key:'dsmsheet',panel:'dsm',tbody:'dc_dsm_listbody',render:'dcRenderDsm',print:[],
+  list:function(){return window.dcSheetRows?dcSheetRows('dsm'):[]},
+  recOf:function(tr,list){var b=tr.querySelector('button[onclick]'),m=b&&/dcOpenDsm\('([^']*)'\)/.exec(b.getAttribute('onclick')||'');if(!m)return null;for(var i=0;i<list.length;i++){if(list[i]&&list[i].id===m[1])return list[i]}return null},
+  fields:[{id:'tpl',label:'Check Sheet',get:function(r){return r.tpl}},{id:'no',label:'Furnace / M/C No.',get:function(r){return r.no}},{id:'shift',label:'Shift',get:function(r){return r.shift}}]}
 ];
 function el(id){return document.getElementById(id)}
 function listOf(c){try{if(c.list)return c.list()||[];}catch(e){return []}return (typeof data!=='undefined'&&data[c.key])||[]}
@@ -11407,7 +11504,8 @@ html body main.wrap .dashboard-footer span{color:#4a5a69!important}
     { k: 'oxyMV', n: 'Oxy Probe MV Check', g: 'HT Quality' }, { k: 'oxyImp', n: 'O2 Probe Impedance', g: 'HT Quality' },
     { k: 'oxyRep', n: 'Oxy Probe Replacement', g: 'HT Quality' },
     { k: 'tus', n: 'TUS Survey', g: 'HT Quality' }, { k: 'furnChk', n: 'Furnace Leak/Quench/Atmosphere', g: 'HT Quality' }, { k: 'contingency', n: 'Contingency Plan', g: 'HT Quality' },
-    { k: 'amc', n: 'AMC & Service Contracts', g: 'AMC & Service', master: 1 }, { k: 'amcLog', n: 'AMC Service Visit Log', g: 'AMC & Service' }
+    { k: 'amc', n: 'AMC & Service Contracts', g: 'AMC & Service', master: 1 }, { k: 'amcLog', n: 'AMC Service Visit Log', g: 'AMC & Service' },
+    { k: 'ptm', n: 'Predictive Maintenance Check Sheet', g: 'Daily & Predictive Checks' }, { k: 'dsm', n: 'Daily Shiftwise Maintenance Check', g: 'Daily & Predictive Checks' }, { k: 'dsoot', n: 'SQF De-sooting PM', g: 'Daily & Predictive Checks' }
   ];
   var COLS = {
     bd: ['date', 'machineNumber', 'reason', 'type', 'section', 'from', 'to', 'hours', 'action', 'spare', 'qty', 'attended', 'status'],
@@ -11535,6 +11633,21 @@ html body main.wrap .dashboard-footer span{color:#4a5a69!important}
     h: ['Date', 'Checklist', 'Machine No.', 'Start', 'End', 'Checked By', 'Verified By'], sum: [],
     sort: function (a, b) { return String(b.date || '').localeCompare(String(a.date || '')); },
     v: function (r) { return [fd(r.date), r.template, r.machineNo, r.start, r.end, r.checkedBy, r.verifiedBy]; }
+  };
+  REG.ptm = {
+    h: ['Date', 'Check Sheet', 'Machine No.', 'Points OK (✓)', 'Points Not OK (✗)', 'Operator'], sum: [],
+    sort: function (a, b) { return String(b.date || '').localeCompare(String(a.date || '')); },
+    v: function (r) { return window.dcRegRow ? window.dcRegRow('ptm', r) : []; }
+  };
+  REG.dsm = {
+    h: ['Date', 'Check Sheet', 'Furnace / M/C No.', 'Shift', 'Readings filled', 'Out of limit', 'Not OK (✗)', 'Operator'], sum: [],
+    sort: function (a, b) { return String(b.date || '').localeCompare(String(a.date || '')); },
+    v: function (r) { return window.dcRegRow ? window.dcRegRow('dsm', r) : []; }
+  };
+  REG.dsoot = {
+    h: ['Date', 'M/C No.', 'Start', 'End', 'Checked By', 'Verified By', 'Not OK points'], sum: [],
+    sort: function (a, b) { return String(b.date || '').localeCompare(String(a.date || '')); },
+    v: function (r) { return [fd(r.date), r.machineNo, r.start, r.end, r.checkedBy, r.verifiedBy, r.notOk || 0]; }
   };
   REG.meeting = {
     h: ['Date & Time', 'Topic / Agenda', 'Discussion Notes', 'Action Points', 'Assigned To', 'Target Date', 'Status'], sum: [],
@@ -12799,7 +12912,10 @@ setInterval(sync,2500);
     { k: 'contingency', n: 'Contingency Plan (FMT-HT-45)', g: 'HT Quality (CQI-9)', fn: ['hqPrintContingency'], d: 'hqPrintContingency()' },
     { k: 'amcContracts', n: 'AMC & Service Register', g: 'AMC & Service', fn: ['hqPrintAmcContracts'], d: 'hqPrintAmcContracts()' },
     { k: 'amcLog', n: 'AMC Service Visit Log', g: 'AMC & Service', fn: ['hqPrintAmcLog'], d: 'hqPrintAmcLog()' },
-    { k: 'amcPlan', n: 'AMC Service Plan', g: 'AMC & Service', fn: ['hqPrintAmcPlan'], d: 'hqPrintAmcPlan()' }
+    { k: 'amcPlan', n: 'AMC Service Plan', g: 'AMC & Service', fn: ['hqPrintAmcPlan'], d: 'hqPrintAmcPlan()' },
+    { k: 'ptm', n: 'Predictive Maintenance Check Sheet (FMT-MNT-10)', g: 'Daily & Predictive Checks', fn: ['dcPrintPtm'], d: 'dcPrintPtm()' },
+    { k: 'dsm', n: 'Daily Shift wise Maintenance Check Sheet (FMT-HT-96)', g: 'Daily & Predictive Checks', fn: ['dcPrintDsm'], d: 'dcPrintDsm()' },
+    { k: 'dsoot', n: 'SQF De-sooting PM Check Sheet (FMT-MNT-04)', g: 'Daily & Predictive Checks', fn: ['dcPrintDsoot', 'dcPrintDsootRec'], d: 'dcPrintDsoot()' }
   ];
   var BYK = {}; CAT.forEach(function (c) { BYK[c.k] = c; });
   var PAGE_SIZES = ['A3', 'A4', 'A5', 'Letter', 'Legal'];
@@ -13457,6 +13573,9 @@ setInterval(sync,2500);
     ['oxyMV', 'Oxy Probe MV Check (FR-HT-40)', 'oxyMV'], ['oxyImp', 'O2 Probe Impedance (FR-HT-41)', 'oxyImp'],
     ['oxyRep', 'Oxy Probe Replacement (FMT-HT-71)', 'oxyRep'], ['tus', 'TUS Survey (FR-HT-43)', 'tus'], ['furnChk', 'Furnace Leak/Quench/Atmosphere (FR-HT-44)', 'furnChk'], ['contingency', 'Contingency Plan (FMT-HT-45)', 'contingency'], ['amc', 'AMC & Service Contracts', 'amc'],
     ['amcLog', 'AMC Service Visit Log', 'amcLog'], ['meeting', 'Meeting Discussion Log', 'meetingLog'],
+    ['ptm', 'Predictive Check Sheet (FMT-MNT-10)', 'ptm', { perm: 'ptm', arr: function () { return (data.dcMeta || []).filter(function (r) { return r && r.mod === 'ptm'; }); }, persistKey: 'dcMeta', saveRe: /^\s*dcSavePtm\s*\(/, editRe: /^\s*dcOpenPtm\s*\(/, clearRe: /^\s*dcNoClearPtm\s*\(/, tbody: 'dc_ptm_listbody', prefix: 'dc_ptm_' }],
+    ['dsm', 'Daily Shiftwise Check (FMT-HT-96)', 'dsm', { perm: 'dsm', arr: function () { return (data.dcMeta || []).filter(function (r) { return r && r.mod === 'dsm'; }); }, persistKey: 'dcMeta', saveRe: /^\s*dcSaveDsm\s*\(/, editRe: /^\s*dcOpenDsm\s*\(/, clearRe: /^\s*dcNoClearDsm\s*\(/, tbody: 'dc_dsm_listbody', prefix: 'dc_dsm_' }],
+    ['dsoot', 'SQF De-sooting PM (FMT-MNT-04)', 'dsoot', { perm: 'dsoot', persistKey: 'dsoot', saveRe: /^\s*saveDsoot\s*\(/, editRe: /^\s*editDsoot\s*\(/, clearRe: /^\s*clearDsoot\s*\(/, tbody: 'dsoot_list', prefix: 'dsoot_' }],
     ['utilityItem', 'Utility - Items List', 'maintUtility', { perm: 'utility', arr: T('item'), persistKey: 'utility', saveRe: /^\s*saveUtilityItem\s*\(/, editRe: /^\s*editUtilityItem\s*\(/, clearRe: /^\s*clearUtilityItemForm\s*\(/, tbody: 'muItemBody', prefix: 'mu_item_' }],
     ['utilityLog', 'Utility - Maintenance / Usage Log', 'maintUtility', { perm: 'utility', arr: T('log'), persistKey: 'utility', saveRe: /^\s*saveUtilityLog\s*\(/, editRe: /^\s*editUtilityLog\s*\(/, clearRe: /^\s*clearUtilityLogForm\s*\(/, tbody: 'muLogBody', prefix: 'mu_log_' }],
     ['pm', 'PM Check Sheet (saved records)', 'pm', { persistFn: function () { if (typeof persistPMWithEvidence === 'function') persistPMWithEvidence(); else persist('pm'); }, saveRe: /^\s*savePM\s*\(/, editRe: /^\s*loadPMRecord\s*\(/, clearRe: /^\s*clearPM\s*\(/, tbody: 'pmHistoryBody', prefix: 'pm_', noPrint: true }],
@@ -15690,7 +15809,7 @@ function can(key,act){try{var s=ses();if(!s)return true;if(s.role==='Admin')retu
  if(!p)return false;return act==='delete'?!!p.delete:!!p.save}catch(e){return true}}
 var FN={deleteSparePart:'spares',deleteCriticalSpare:'critical',deleteUtilityLog:'utility',deleteUtilityItem:'utility',deleteThermocouple:'tc',
  deletePurchaseRecord:'sparePurchase',deletePMCheckpoint:'pmMaster',deletePMChecklist:'pmMaster',deleteMeetingRecord:'meeting',
- deleteMTTRYearRecord:'bd',deleteCalibration:'cal',deleteBreakdown:'bd',deleteAirCompressor:'airCompressor'};
+ deleteMTTRYearRecord:'bd',deleteCalibration:'cal',deleteBreakdown:'bd',deleteAirCompressor:'airCompressor',deleteDcPtm:'ptm',deleteDcDsm:'dsm',deleteDsoot:'dsoot'};
 function keyOf(on){var m=String(on||'').match(/^\s*(?:MMS\.)?([A-Za-z_]+)\(\s*(?:\\?['"]([A-Za-z]+)\\?['"])?/);if(!m)return null;
  if(FN[m[1]])return FN[m[1]];if(/^(delRow|pwDel|hqDel)$/.test(m[1])&&m[2])return m[2];return null}
 function apply(){try{if(!ses())return;
