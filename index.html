@@ -130,7 +130,7 @@
  window.__mmsStore={active:function(){return active},flush:flush,size:function(){var t=0;mem.forEach(function(v,k){t+=k.length+v.length});return t},keys:function(){return Array.from(mem.entries()).map(function(e){return [e[0],e[1].length]})}};
 })();
 </script>
-<script>window.APP_VERSION='120-cleanup-wiring';</script>
+<script>window.APP_VERSION='121-sync-fix';</script>
 <script>if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js?v='+encodeURIComponent(window.APP_VERSION||'0')).then(function(r){try{r.update()}catch(e){}}).catch(function(e){console.warn('SW',e)})})}</script>
 <title>Milestone Gears Ltd. Unit-7 | Maintenance & Utility Daily Log</title>
 <style>
@@ -5103,6 +5103,8 @@ function gsApplyPmMapRows(){
  localStorage.setItem(PM_MACHINE_CHECKLIST_KEY,JSON.stringify(PM_MACHINE_CHECKLIST_MAP));
 }
 function gsRebuildPmRows(){gsRebuildPmPlanRows();gsRebuildPmCheckRows();gsRebuildPmMapRows()}
+const GS_NEWMODS=['ptm','dsm','dsoot','dcTpl','dcMeta'];   // Predictive / Daily / De-sooting check sheets + templates + sheet info (Code.gs ALLOWED_MODULES me hone chahiye)
+function gsNewHold(){if(localStorage.getItem('htp_gs_new_ok')==='1')return false;const r=Number(localStorage.getItem('htp_gs_new_retry')||0);return !!r&&Date.now()-r<600000}
 let gsBusy=false,gsTimer=null;
 function gsCfg(){
  // Hamesha index.html wala URL (GS_DEFAULT_URL). Purana saved URL ignore + hata diya jata hai, warna purane deployment par chala jata tha.
@@ -5678,7 +5680,7 @@ async function gsPost(cfg,payload,ackOnly){
   catch(e){console.warn('Google Sheet report queue failed',e);return {ok:true,rows:[],maxSrv:since};}
  }
  const changes=payload&&payload.changes||[];
- const wanted={},isAdm=!!(session()&&session().role==='Admin');changes.forEach(function(c){if(c.module==='audit'&&!isAdm)return;wanted[c.module+'|'+c.sid]=Number(c.ts||0)});
+ const wanted={},isAdm=!!(session()&&session().role==='Admin');changes.forEach(function(c){if(c.module==='audit'&&!isAdm)return;if(GS_NEWMODS.indexOf(c.module)>=0)return;wanted[c.module+'|'+c.sid]=Number(c.ts||0)});   // naye check-sheet modules ka ack nahi roka jata (purana Code.gs unhe ignore karta hai -> sync atak jata tha)
  const hasAll=function(rows){return Object.keys(wanted).every(function(k){return (rows||[]).some(function(r){return r.module+'|'+r.sid===k&&Number(r.ts||0)>=wanted[k]})})};
  if(changes.length){
   // 1) baseline  2) POST  3) sirf naye rows (baseline ke baad) poll karke ack - poora data baar-baar download nahi hota
@@ -5710,6 +5712,21 @@ async function gsPost(cfg,payload,ackOnly){
   await new Promise(function(r){setTimeout(r,900)});
  }
  throw lastErr||new Error('Google Sheet read timeout');
+}
+async function gsNewCheck(cfg,changes){
+ try{
+  if(localStorage.getItem('htp_gs_new_ok')==='1'){window.__gsNewWarn=false;return}
+  if(!changes.some(function(c){return GS_NEWMODS.indexOf(c.module)>=0}))return;
+  let ok=false;
+  for(let t=0;t<3&&!ok;t++){
+   if(t)await new Promise(function(r){setTimeout(r,2500)});
+   try{const o=await gsJsonpPull(cfg,0,20000,'&offset=0&limit=5&mods='+encodeURIComponent(GS_NEWMODS.join(',')));ok=!!(o&&(o.rows||[]).some(function(r){return GS_NEWMODS.indexOf(r.module)>=0}))}catch(e){}
+  }
+  if(ok){localStorage.setItem('htp_gs_new_ok','1');localStorage.removeItem('htp_gs_new_retry');window.__gsNewWarn=false;return}
+  // Server (Code.gs) ko naye modules nahi pata: base saaf karo taaki Code.gs update hote hi sab dobara upload ho jaye
+  const mm=gsMeta();GS_NEWMODS.forEach(function(m){if(mm.base)delete mm.base[m]});localStorage.setItem(GS_META_KEY,JSON.stringify(mm));
+  localStorage.setItem('htp_gs_new_retry',String(Date.now()));window.__gsNewWarn=true;
+ }catch(e){console.warn('gsNewCheck',e)}
 }
 async function gsReconcileNew(cfg){
  const meta=gsMeta(),ob=meta.base||{};
@@ -5809,6 +5826,7 @@ async function gsSync(auto){
  if(!session())return;
  const cfg=gsCfg();
  if(!cfg.url||!cfg.token){if(!auto)alert('Please log in first.');return}
+ if(!auto)localStorage.removeItem('htp_gs_new_retry');   // Sync Now: naye modules ki koshish turant
  if(gsBusy){window.__gsAgain=true;return}
  if(auto&&typeof edit!=='undefined'&&Object.keys(edit).some(function(k){return edit[k]!==null&&edit[k]!==undefined}))return;
  gsBusy=true;gsStatus('⏳ Syncing…');
@@ -5841,6 +5859,7 @@ async function gsSync(auto){
   // 1) find local changes (new / edited / deleted records)
   GS_ALL.forEach(function(mod){
    const list=gsList(mod),used=new Set(),oldBase=meta.base[mod]||{},nb={};
+   if(GS_NEWMODS.indexOf(mod)>=0&&gsNewHold()){newBase[mod]=Object.assign({},oldBase);return}   // server in modules ko abhi nahi jaanta: 10 min me ek baar hi dobara koshish
    if(mod==='users'&&!(session()&&session().role==='Admin')){newBase[mod]=Object.assign({},oldBase);return}   // users/roles sirf Admin badal sakta hai
    list.forEach(function(r){
     if(!r||typeof r!=='object')return;
@@ -5908,6 +5927,7 @@ async function gsSync(auto){
   changed.forEach(gsPersist);
   const since2=out.maxSrv||meta.since;
   localStorage.setItem(GS_META_KEY,JSON.stringify({since:since2,base:newBase,pend:gsAffToJson(aff),lastOk:new Date().toISOString(),repAt:meta.repAt||0}));
+   await gsNewCheck(cfg,changes);
   if(changed.has('users')){try{populatePermUserSelect()}catch(e){}const cs=session();if(cs&&!users().some(function(x){return x.u===cs.u})){alert('Your account was removed by Admin. Please login again.');logout()}}
   if(changed.size){try{hydratePMEvidence()}catch(e){}try{mmsQuiet(renderAll)}catch(e){console.warn('renderAll after sync',e)}gsRebaseline(applied)}
   // Report tabs (print format) bhaari hote hain: records turant sync hote hain, par reports kam se kam
@@ -5922,7 +5942,7 @@ async function gsSync(auto){
   }
   if(dd.length)gsSchedule(1500);
   const t=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-  gsStatus('☁ Synced '+t+' (↑'+changes.length+' ↓'+changed.size+')'+repNote);
+  gsStatus('☁ Synced '+t+' (↑'+changes.length+' ↓'+changed.size+')'+repNote+(window.__gsNewWarn?' · ⚠ Code.gs update karo (naye Daily/Predictive modules server par nahi ja rahe)':''));
  }catch(e){
   console.error('Sheet sync failed',e);
   gsStatus('⚠ Sync failed: '+(e&&e.message||e),true);
