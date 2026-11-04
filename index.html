@@ -4477,7 +4477,7 @@ function mmRemoveMachine(){
 <button id="mmsLogoutBtn" onclick="MMS.logout()">⎋ Logout</button>
 <button id="mmsSyncBtn" onclick="MMS.gsSync(false)" style="display:none;position:fixed;left:10px;bottom:10px;z-index:9998;padding:6px 10px;border:1px solid #bbb;border-radius:8px;font-size:11px;cursor:pointer;background:#f3f3f3;max-width:70vw">🔄 Sync</button>
 <div id="mmsUpgradePanel"><div class="mms-card"><button class="mms-close" onclick="MMS.closeTools()">✕</button><h2>Maintenance System Tools</h2><div class="sub">Backup, Excel export, validation, audit, financial year and user management. Existing modules are not replaced.</div><div class="mms-grid">
-<div class="mms-box"><h3>🔐 User & Roles</h3><div id="mmsRoleInfo"></div><button onclick="MMS.logout()">Logout</button><button onclick="MMS.changePassword()">Change Password</button><button onclick="MMS.setPin()">Set / Change PIN</button><button onclick="MMS.manageUsers()">Manage Users</button></div>
+<div class="mms-box"><h3>🔐 User & Roles</h3><div id="mmsRoleInfo"></div><button onclick="MMS.logout()">Logout</button><button onclick="MMS.changePassword()">Change Password</button><button onclick="MMS.setPin()">Set / Change PIN</button><button onclick="MMS.manageUsers()">Manage Users</button><button onclick="MMS.empImport()">👥 Import Employees</button></div>
 <div class="mms-box" style="grid-column:1/-1"><h3>🧩 Module Access Control</h3><div class="sub">Choose a user, then set exactly which modules they can Save/Update, Edit and Delete in. Works for Admin, Technician, Operator, and any custom designation (Engineer, Supervisor, etc.). Admin always has full access.</div>
 <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px">
 <select id="mmsPermUser" onchange="MMS.loadUserPerms()"></select>
@@ -4509,7 +4509,7 @@ function mmRemoveMachine(){
 <div class="mms-box"><h3>☁ Offline → Google Sheet</h3><div id="mmsSyncStatus"></div><button onclick="MMS.queueSync()">Prepare Sync Queue</button><button onclick="MMS.clearSyncQueue()">Clear Queue</button><div class="sub">Keeps offline data intact. Google Apps Script/API connection can be configured later.</div></div>
 <div class="mms-box"><h3>📈 Dashboard Alerts / KPIs</h3><div id="mmsKPIs"></div><button onclick="MMS.refreshKPIs()">Refresh KPIs</button></div>
 </div></div></div>
-<div id="mmsLogin" class="mms-login"><div class="mms-login-card"><h2>Maintenance Management System</h2><p style="font-size:12px;color:#666">Sign in to continue. <span style="opacity:.6">(build 06Oct-c)</span></p><input id="mmsLoginUser" placeholder="Username" autocomplete="username"><input id="mmsLoginPass" type="password" placeholder="Password" autocomplete="current-password"><button onclick="MMS.login()">Login</button><div id="mmsLoginMsg" style="font-size:11px;color:#b00;margin-top:8px"></div></div></div>
+<div id="mmsLogin" class="mms-login"><div class="mms-login-card"><h2>Maintenance Management System</h2><p style="font-size:12px;color:#666">Sign in to continue. <span style="opacity:.6">(build 06Oct-c)</span></p><input id="mmsLoginUser" placeholder="Username (apna naam)" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false"><input id="mmsLoginPass" type="password" placeholder="Password (pehli baar: Emp. Code)" autocomplete="current-password"><button onclick="MMS.login()">Login</button><div id="mmsLoginMsg" style="font-size:11px;color:#b00;margin-top:8px"></div></div></div>
 <script type="text/mms-defer" id="mmsUpgradeScript">
 (function(){
 'use strict';
@@ -4944,7 +4944,7 @@ async function setPin(){
  }catch(e){alert('Could not connect to the server. Check your internet connection.')}
 }
 async function login(){
- const lm=document.getElementById('mmsLoginMsg'),u=document.getElementById('mmsLoginUser').value.trim(),p=document.getElementById('mmsLoginPass').value;
+ const lm=document.getElementById('mmsLoginMsg'),u=mmsResolveUser(document.getElementById('mmsLoginUser').value),p=document.getElementById('mmsLoginPass').value;
  if(!u||!p){lm.textContent='Username aur password daalo.';return}
  lm.textContent='Server se check ho raha hai…';
  let r;const dev=mmsDeviceId();
@@ -5116,6 +5116,182 @@ async function changePassword(){
  try{const r=await mmsSrvCall('changePw',{old:op,pw:np});if(!r.ok)return alert(r.error||'Password change failed.');mmsSrvSet(r.token,r.exp,s.u);audit('PASSWORD','system','Password changed');alert('Password changed.')}
  catch(e){alert('Could not connect to the server. Check your internet connection and try again.')}
 }
+/* ===== EMPLOYEE LIST (Unit-VII) -> Users + naam dropdown =====
+   User ID = Employee naam | Password (pehli baar) = Emp. Code | pehle login par naya password banana padta hai (server rule).
+   Employee ki detail (code / dept / designation) user record ke andar `emp` me rehti hai, isliye users list ke saath sync hoti hai. */
+const MMS_EMP_SEED=[[1, "Mr. ANAND BHATT", "7100020", "Production", "Head Of Department"], [2, "Mr. KAPIL RAJ", "4100985", "Production", "In-Charge (HT PRD)"], [3, "RAHUL RAI", "7100030", "MET. LAB", "In-Charge (MET. LAB)"], [4, "Rajan Babber", "", "Maintenance", "Group Head Maintenance"], [5, "Pankaj Sharma", "", "Maintenance", "Head Of Department Electrical"], [6, "Mr. SURINDER", "7100026", "Maintenance", "Supervisor"], [7, "DALIP KUMAR", "4201421", "Maintenance", "Assistant Engineer Electrical"], [8, "MANJEET KUMAR", "4100635", "Maintenance", "Welder"], [9, "NAMAN KUMAR", "7100029", "Maintenance", "Electrician"], [10, "SAMEER", "7100037", "Maintenance", "Electrician"], [11, "INDERJEET", "7100040", "Maintenance", "Mechanical Engineer"], [12, "PANKAJ", "7100024", "MET. LAB", "Sr. Engineer"], [13, "CHETAN", "7100023", "MET. LAB", "Jr. Engineer"], [14, "ANKIT", "7100025", "MET. LAB", "Jr. Engineer"], [15, "AJEET KUMAR", "7100035", "MET. LAB", "Lab Inspector"], [16, "NIRAJ", "", "MET. LAB", "Lab Inspector"], [17, "SUJEET KUMAR", "7100013", "Production", "Supervisor"], [18, "AMRENDRA YADAV", "7100027", "Production", "Supervisor"], [19, "MURARI SINGH", "7100028", "Production", "Supervisor"], [20, "YAMAN", "7100015", "Production", "Sr. Operator"], [21, "VIVEK", "7100016", "Production", "Sr. Operator"], [22, "ADARSH", "", "SAP", "SAP"], [23, "TARUN", "", "SAP", "SAP"], [24, "RAVINDRA", "", "Quality", "Quality Inspector"], [25, "RAKESH", "", "Quality", "Quality Inspector"], [26, "SURINDER", "", "Production", "Operator"], [27, "AJAY", "", "Production", "Operator"], [28, "ARUN", "", "Production", "Operator"], [29, "KRISHNA", "", "Production", "Operator"]];
+function empTitle(s){return String(s||'').toLowerCase().replace(/\b([a-z])/g,function(m){return m.toUpperCase()})}
+function empCleanName(raw){return empTitle(String(raw||'').replace(/^\s*(mr|mrs|ms|miss|shri|sh)\.?\s+/i,'').replace(/\s+/g,' ').trim())}
+function mmsResolveUser(v){
+ v=String(v||'').replace(/\s+/g,' ').trim();
+ try{const k=v.toLowerCase(),m=users().filter(function(x){return String(x.u).toLowerCase().replace(/\s+/g,' ')===k});if(m.length===1)return m[0].u}catch(e){}
+ return v;
+}
+function empRoleFor(e){
+ const d=String(e.dept||'').toLowerCase(),g=String(e.desig||'').toLowerCase();
+ if(d==='maintenance')return /head|supervis|engineer/.test(g)?'Supervisor':'Technician';
+ return 'Operator';   // baaki sab: sirf Maintenance Request (Admin baad me Module Access Control se badha sakta hai)
+}
+function empBuildRows(){
+ const rows=MMS_EMP_SEED.map(function(a){return {sno:a[0],name:empCleanName(a[1]),code:String(a[2]||'').trim(),dept:a[3],desig:a[4]}});
+ const cnt={},used={};
+ rows.forEach(function(r){const k=r.name.toLowerCase();cnt[k]=(cnt[k]||0)+1});
+ rows.forEach(function(r){
+  let id=r.name;
+  if(cnt[r.name.toLowerCase()]>1)id=r.name+' '+empTitle(String(r.dept).replace(/\./g,'').trim());   // same naam: department jod do
+  while(used[id.toLowerCase()])id+=' '+r.sno;
+  used[id.toLowerCase()]=1;r.userId=id;r.role=empRoleFor(r);
+ });
+ return rows;
+}
+const EMP_FIELDS=['mr_req_by','mr_recv_by','mr_maint_sign','mr_prod_sign','mr_hmaint_sign','mr_hprod_sign','mr_history_by','bd_attended','mh_attended_by','mu_log_person','pc_sign','pf_sign','pm_checked_by','dsoot_checked','dsoot_verified'];
+function empUsers(){try{return users().filter(function(u){return u&&u.emp})}catch(e){return []}}
+function empRefreshList(){
+ let dl=document.getElementById('empNameList');if(!dl){dl=document.createElement('datalist');dl.id='empNameList';document.body.appendChild(dl)}
+ dl.innerHTML=empUsers().map(function(u){return '<option value="'+esc2(u.u)+'" label="'+esc2([u.emp.code,u.emp.dept,u.emp.desig].filter(Boolean).join(' | '))+'"></option>'}).join('');
+}
+document.addEventListener('focusin',function(e){
+ const t=e.target;if(!t||!t.id||EMP_FIELDS.indexOf(t.id)<0)return;
+ if(t.getAttribute('list')!=='empNameList'){t.setAttribute('list','empNameList');t.setAttribute('autocomplete','off')}
+ empRefreshList();
+});
+document.addEventListener('change',function(e){      // Maintenance Request: naam chunte hi Employee Code bhar jaye
+ const t=e.target;if(!t||t.id!=='mr_recv_by')return;
+ const v=String(t.value||'').trim().toLowerCase();if(!v)return;
+ const m=empUsers().find(function(u){return String(u.u).toLowerCase()===v||String(u.emp.name||'').toLowerCase()===v});
+ const c=document.getElementById('mr_recv_code');if(m&&m.emp.code&&c)c.value=m.emp.code;
+});
+function openEmpImport(){
+ if(!requireRole(['Admin']))return;
+ const old=document.getElementById('empImpBox');if(old)old.remove();
+ const exist={};users().forEach(function(u){exist[String(u.u).toLowerCase()]=1});
+ const rows=empBuildRows();
+ const roles=['Operator','Technician','Supervisor'];
+ const box=document.createElement('div');box.id='empImpBox';
+ box.style.cssText='position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,.55);z-index:100000;overflow:auto;padding:8px';
+ const inp='style="width:100%;min-width:110px;padding:4px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px"';
+ box.innerHTML='<div style="background:#fff;border-radius:12px;max-width:1000px;margin:0 auto;padding:12px;font-size:12px">'+
+  '<div style="font-size:15px;font-weight:800;margin-bottom:6px">👥 Import Employees → App Users</div>'+
+  '<div style="color:#475569;margin-bottom:8px">User ID = Employee naam, Password = Emp. Code. Har employee ko <b>pehle login par naya password</b> banana padega. Jin ka Emp. Code khali hai unka password yahin khud likho (kam se kam 6 characters). Role / ID yahin badal sakte ho.</div>'+
+  '<div style="overflow:auto;max-height:58vh"><table style="border-collapse:collapse;width:100%"><thead><tr style="background:#f1f5f9;text-align:left"><th>✔</th><th>#</th><th>User ID (login naam)</th><th>Password (Emp. Code)</th><th>Role</th><th>Department</th><th>Designation</th><th>Status</th></tr></thead><tbody>'+
+  rows.map(function(r,i){
+   const has=!!exist[r.userId.toLowerCase()];
+   return '<tr data-i="'+i+'" style="border-top:1px solid #e2e8f0"><td><input type="checkbox" class="ei-on" '+(has?'disabled':'checked')+'></td><td>'+r.sno+'</td>'+
+    '<td><input class="ei-id" '+inp+' value="'+esc2(r.userId)+'" '+(has?'disabled':'')+'></td>'+
+    '<td><input class="ei-pw" '+inp+' value="'+esc2(r.code)+'" placeholder="password likho" '+(has?'disabled':'')+(r.code?'':' style="width:100%;min-width:110px;padding:4px;border:2px solid #dc2626;border-radius:6px;font-size:12px"')+'></td>'+
+    '<td><select class="ei-role" '+(has?'disabled':'')+' style="padding:4px;border-radius:6px">'+roles.map(function(x){return '<option'+(x===r.role?' selected':'')+'>'+x+'</option>'}).join('')+'</select></td>'+
+    '<td>'+esc2(r.dept)+'</td><td>'+esc2(r.desig)+'</td><td class="ei-st">'+(has?'✓ Already added':'')+'</td></tr>';
+  }).join('')+'</tbody></table></div>'+
+  '<div id="empImpMsg" style="margin:8px 0;font-weight:700;color:#0f766e"></div>'+
+  '<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="primary" id="empImpGo" onclick="empRunImport()">Import Selected</button><button class="secondary" onclick="document.getElementById(\'empImpBox\').remove()">Close</button></div></div>';
+ document.body.appendChild(box);
+}
+async function empRunImport(){
+ const rows=empBuildRows(),trs=[].slice.call(document.querySelectorAll('#empImpBox tbody tr')),sel=[],seen={};
+ const lower={};users().forEach(function(u){lower[String(u.u).toLowerCase()]=1});
+ for(let k=0;k<trs.length;k++){
+  const tr=trs[k];if(!tr.querySelector('.ei-on').checked||tr.querySelector('.ei-on').disabled)continue;
+  const id=tr.querySelector('.ei-id').value.replace(/\s+/g,' ').trim(),pw=tr.querySelector('.ei-pw').value.trim(),role=tr.querySelector('.ei-role').value,r=rows[Number(tr.dataset.i)];
+  if(!id||id.length>60||id.indexOf('|')>=0)return alert('User ID galat hai: "'+id+'"');
+  if(pw.length<6)return alert(id+': password (Emp. Code) kam se kam 6 characters ka chahiye. Khali wale me khud password likho, ya us row ka tick hata do.');
+  if(seen[id.toLowerCase()])return alert('Duplicate User ID: '+id);
+  if(lower[id.toLowerCase()])return alert('User ID pehle se maujood hai: '+id);
+  seen[id.toLowerCase()]=1;sel.push({tr:tr,id:id,pw:pw,role:role,emp:{name:r.name,code:r.code,dept:r.dept,desig:r.desig}});
+ }
+ if(!sel.length)return alert('Import ke liye koi employee select nahi hai.');
+ if(!confirm(sel.length+' employee(s) ke user ban jayenge (Password = Emp. Code, pehle login par badalna padega).\n\nAage badhein? (Admin PIN / password poocha jayega)'))return;
+ const msg=document.getElementById('empImpMsg'),go=document.getElementById('empImpGo');go.disabled=true;
+ let ok=0,fail=[];
+ for(let k=0;k<sel.length;k++){
+  const x=sel[k],st=x.tr.querySelector('.ei-st');msg.textContent='Ho raha hai '+(k+1)+' / '+sel.length+' …  '+x.id;st.textContent='⏳';
+  let r;try{r=await mmsSrvSensitive('userSet',{u:x.id,role:x.role,pw:x.pw})}catch(e){r={ok:false,error:'Server tak nahi pahunch paaye'}}
+  if(r&&r.ok){
+   const us=users();if(!us.some(function(u){return u.u===x.id}))us.push({u:x.id,id:'usr-'+x.id,role:x.role,perms:mmsDefaultPermsForRole(x.role),emp:x.emp});
+   localStorage.setItem(USERS_KEY,JSON.stringify(us));ok++;st.textContent='✓ Added';
+  }else{
+   const er=(r&&r.error)||'error';st.textContent='✗ '+er;fail.push(x.id+': '+er);
+   if(er==='Cancel kiya gaya.')break;
+  }
+ }
+ go.disabled=false;
+ try{audit('USER_ADD','system','Employee import: '+ok+' user(s) added')}catch(e){}
+ try{populatePermUserSelect()}catch(e){}try{empRefreshList()}catch(e){}try{gsSchedule(1500)}catch(e){}
+ msg.textContent='Ho gaya: '+ok+' add hue'+(fail.length?', '+fail.length+' fail':'')+'.';
+ if(fail.length)alert('Kuch employees add nahi hue:\n\n'+fail.slice(0,10).join('\n')+(fail.length>10?'\n...+'+(fail.length-10)+' aur':''));
+}
+/* ===== EMPLOYEE LIST TAB (sidebar: MASTER DATA > Employee List) =====
+   Emp. Code pehle login ka password hai, isliye wo sirf Admin ko dikhta hai. */
+function empAllRows(){
+ const rows=empBuildRows(),us=users(),used={};
+ const out=rows.map(function(r){
+  const u=us.find(function(x){return String(x.u).toLowerCase()===r.userId.toLowerCase()})||us.find(function(x){return x.emp&&String(x.emp.name||'').toLowerCase()===r.name.toLowerCase()&&String(x.emp.dept||'')===r.dept});
+  if(u)used[u.u]=1;
+  const e=(u&&u.emp)||{};
+  return {sno:r.sno,name:r.userId,code:(e.code!==undefined?e.code:r.code),dept:e.dept||r.dept,desig:e.desig||r.desig,role:u?u.role:'',login:!!u};
+ });
+ let n=out.length;
+ us.forEach(function(u){if(u.emp&&!used[u.u])out.push({sno:++n,name:u.u,code:u.emp.code||'',dept:u.emp.dept||'',desig:u.emp.desig||'',role:u.role,login:true})});
+ return out;
+}
+function empFiltered(){
+ const isAdmin=!!(session()&&session().role==='Admin');
+ const q=((document.getElementById('emp_search')||{}).value||'').toLowerCase(),dep=(document.getElementById('emp_dept')||{}).value||'';
+ return empAllRows().filter(function(r){
+  if(dep&&r.dept!==dep)return false;
+  if(!q)return true;
+  return [r.name,isAdmin?r.code:'',r.dept,r.desig,r.role].join(' ').toLowerCase().indexOf(q)>=0;
+ });
+}
+function empRenderList(){
+ const body=document.getElementById('empListBody');if(!body)return;
+ const isAdmin=!!(session()&&session().role==='Admin');
+ const all=empAllRows(),deps=[];all.forEach(function(r){if(r.dept&&deps.indexOf(r.dept)<0)deps.push(r.dept)});
+ const sel=document.getElementById('emp_dept');
+ if(sel&&sel.options.length!==deps.length+1){const cur=sel.value;sel.innerHTML='<option value="">All Departments</option>'+deps.map(function(d){return '<option>'+esc2(d)+'</option>'}).join('');sel.value=cur}
+ const th=document.getElementById('emp_th_code');if(th)th.style.display=isAdmin?'':'none';
+ const ab=document.getElementById('emp_admin_btn');if(ab)ab.style.display=isAdmin?'':'none';
+ const rows=empFiltered();
+ body.innerHTML=rows.map(function(r){
+  return '<tr><td>'+r.sno+'</td><td><b>'+esc2(r.name)+'</b></td>'+(isAdmin?'<td>'+esc2(r.code||'—')+'</td>':'')+'<td>'+esc2(r.dept)+'</td><td>'+esc2(r.desig)+'</td><td>'+(r.login?'✓ '+esc2(r.role):'<span style="color:#94a3b8">Login nahi bana</span>')+'</td></tr>';
+ }).join('')||'<tr><td colspan="'+(isAdmin?6:5)+'">Koi employee nahi mila.</td></tr>';
+ const sm=document.getElementById('empSummary');
+ if(sm){
+  const byD={};all.forEach(function(r){byD[r.dept]=(byD[r.dept]||0)+1});
+  sm.innerHTML='<div class="stat">Total Employees <b>'+all.length+'</b></div><div class="stat">App Login Bana <b>'+all.filter(function(r){return r.login}).length+'</b></div>'+Object.keys(byD).map(function(d){return '<div class="stat">'+esc2(d)+' <b>'+byD[d]+'</b></div>'}).join('');
+ }
+}
+function empPrintList(){
+ const isAdmin=!!(session()&&session().role==='Admin'),rows=empFiltered();
+ const body=rows.map(function(r,i){return '<tr><td>'+(i+1)+'</td><td>'+esc2(r.name)+'</td>'+(isAdmin?'<td>'+esc2(r.code)+'</td>':'')+'<td>'+esc2(r.dept)+'</td><td>'+esc2(r.desig)+'</td></tr>'}).join('');
+ utilityPrintWindow('EMPLOYEE DETAILS IN UNIT - VII','<table><thead><tr><th>Sr. No.</th><th>Name</th>'+(isAdmin?'<th>Emp. Code</th>':'')+'<th>Department</th><th>Designation</th></tr></thead><tbody>'+(body||'<tr><td colspan="5">No records</td></tr>')+'</tbody></table>');
+}
+function empInitTab(){
+ const sc=document.querySelector('.app-sidebar .side-scroll');
+ if(sc&&!document.getElementById('sidebarEmpTab')){
+  let tg=null;sc.querySelectorAll('.nav-group').forEach(function(g){if(!tg&&g.textContent.indexOf('MASTER DATA')>=0)tg=g});
+  if(!tg)tg=sc.querySelector('.nav-group');
+  if(tg){const b=document.createElement('button');b.type='button';b.className='tab';b.id='sidebarEmpTab';b.setAttribute('data-target','empList');b.setAttribute('onclick',"showTab('empList',this)");b.innerHTML='<span>👥</span> Employee List';tg.appendChild(b)}
+ }
+ const mw=document.querySelector('main.wrap');
+ if(mw&&!document.getElementById('empList')){
+  const pn=document.createElement('section');pn.id='empList';pn.className='panel official-module';
+  pn.innerHTML='<div class="card"><div class="head">Milestone Gears Ltd. UNIT-7</div><div class="head2">EMPLOYEE DETAILS IN UNIT - VII</div>'+
+   '<div class="summary" id="empSummary"></div>'+
+   '<div class="toolbar"><input id="emp_search" placeholder="Search name, department, designation..." oninput="empRenderList()"><select id="emp_dept" onchange="empRenderList()"><option value="">All Departments</option></select>'+
+   '<button class="secondary" onclick="empPrintList()">🖨️ Print</button><button class="primary" id="emp_admin_btn" style="display:none" onclick="openEmpImport()">👥 Import Employees → Users</button></div>'+
+   '<div class="tablewrap" style="overflow:auto"><table class="tbl"><thead><tr><th>Sr.No.</th><th>Name (User ID)</th><th id="emp_th_code" style="display:none">Emp. Code</th><th>Department</th><th>Designation</th><th>App Login / Role</th></tr></thead><tbody id="empListBody"></tbody></table></div></div>';
+  mw.appendChild(pn);
+ }
+ empRenderList();
+}
+(function(){
+ function boot(){
+  try{empInitTab()}catch(e){console.warn('emp tab',e)}
+  try{empRefreshList()}catch(e){}
+  if(typeof renderAll==='function'&&!window.__empWrapped){window.__empWrapped=1;const o=renderAll;renderAll=function(){const r=o.apply(this,arguments);try{empRenderList()}catch(e){}return r}}
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){setTimeout(boot,0)});else setTimeout(boot,0);
+})();
 async function manageUsers(){
  if(!requireRole(['Admin']))return;
  let us=users(),txt=us.map(x=>`${x.u} (${x.role})`).join('\n');
@@ -6183,7 +6359,7 @@ window.addEventListener('load',function(){gsSchedule(1500)});
 
 /* Audit Center ke buttons inline onclick se chalte hain, isliye ye functions global (window) par hone zaroori hain */
 Object.assign(window,{mmsOpenAuditCenter,mmsACRender,mmsToggleAuditor,mmsActAdd,mmsActClose,mmsReviewPrint,mmsReviewHtml,mmsRestoreDeleted,mmsOpenActions,mmsApprAllowed,mmsApprRender,mmsApprSave,mmsApprReset});
-window.MMS={reauth:mmsReauthToken,audit:audit,setPin,gsDiag,gsRebuildReports,gsSync,gsConfigure,gsTogglePrimary,gsResetState,login,logout,backup,restore,exportExcel,validate,refreshAudit,exportAudit,addFY,applyFY,queueSync,clearSyncQueue,refreshKPIs,openTools,closeTools,changePassword,manageUsers,populatePermUserSelect,loadUserPerms,selectAllPerms,saveUserRoleLabel,saveUserPerms,deleteUserAccount};
+window.MMS={empImport:openEmpImport,reauth:mmsReauthToken,audit:audit,setPin,gsDiag,gsRebuildReports,gsSync,gsConfigure,gsTogglePrimary,gsResetState,login,logout,backup,restore,exportExcel,validate,refreshAudit,exportAudit,addFY,applyFY,queueSync,clearSyncQueue,refreshKPIs,openTools,closeTools,changePassword,manageUsers,populatePermUserSelect,loadUserPerms,selectAllPerms,saveUserRoleLabel,saveUserPerms,deleteUserAccount};
 window.addEventListener('load',()=>{setBadge();let s=session();if(s){document.getElementById('mmsLogin').classList.add('hidden');}else document.getElementById('mmsLogin').classList.remove('hidden');initFY();refreshKPIs();gsRenderPrimaryUI();});
 })();
 document.addEventListener('DOMContentLoaded',function(){utilityNormalizeData();seedUtilityExcel2024Items();setv('mu_log_date',utilityToday());setv('mu_item_sno',nextUtilitySno());renderMaintUtility();if(typeof initAirCompressor==='function')initAirCompressor();});
