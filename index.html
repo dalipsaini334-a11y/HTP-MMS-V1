@@ -1377,11 +1377,14 @@ main.wrap{margin-left:252px;padding:94px 22px 25px;max-width:none}.sidebar-overl
   <div class="form">
     <input type="hidden" id="mu_item_id">
     <div class="field"><label>Sr. No.</label><input id="mu_item_sno" type="number" min="1"></div>
-    <div class="field"><label>Item Code</label><input id="mu_item_code" placeholder="UTL-001"></div>
+    <div class="field"><label>Item Type</label><select id="mu_item_kind" onchange="utilityKindChanged()"><option>Utility Item</option><option>Machine</option></select></div>
+    <div class="field"><label>Item / Machine Code</label><input id="mu_item_code" placeholder="UTL-001 / MCH-001"></div>
     <div class="field wide"><label>Item Name</label><input id="mu_item_name" placeholder="TUBE LIGHT / FAN / AC"></div>
-    <div class="field"><label>Category</label><select id="mu_item_category"><option>Lighting</option><option>Electrical Utility</option><option>HVAC</option><option>Ventilation</option><option>Office Utility</option><option>Safety Utility</option><option>Other</option></select></div>
+    <div class="field"><label>Category</label><select id="mu_item_category"><option>Lighting</option><option>Electrical Utility</option><option>HVAC</option><option>Ventilation</option><option>Office Utility</option><option>Safety Utility</option><option>Machine / Equipment</option><option>Other</option></select></div>
     <div class="field"><label>Make / Brand</label><input id="mu_item_make"></div>
     <div class="field"><label>Model / Specification</label><input id="mu_item_spec"></div>
+    <div class="field"><label>Serial No. (Machine)</label><input id="mu_item_serial"></div>
+    <div class="field"><label>Installation / Purchase Date</label><input id="mu_item_install" type="date"></div>
     <div class="field"><label>Quantity / Nos.</label><input id="mu_item_qty" type="number" min="0" step="any" value="1"></div>
     <div class="field"><label>Installed / Current Location</label><input id="mu_item_location" placeholder="Production Area / Office / Store"></div>
     <div class="field"><label>Status</label><select id="mu_item_status"><option>Working</option><option>Under Maintenance</option><option>Not Working</option><option>Removed</option></select></div>
@@ -1396,8 +1399,8 @@ main.wrap{margin-left:252px;padding:94px 22px 25px;max-width:none}.sidebar-overl
 
 <div class="card">
   <div class="head2">UTILITY ITEM MASTER</div>
-  <div class="toolbar"><input id="mu_item_search" placeholder="Search item, code, category, location..." oninput="renderUtilityItems()"></div>
-  <div class="tablewrap"><table class="tbl"><thead><tr><th>Sr.No.</th><th>Item Code</th><th>Item Name</th><th>Category</th><th>Make</th><th>Specification</th><th>Qty</th><th>Location</th><th>Status</th><th>Remark</th><th>Action</th></tr></thead><tbody id="muItemBody"></tbody></table></div>
+  <div class="toolbar"><input id="mu_item_search" placeholder="Search item, code, category, location..." oninput="renderUtilityItems()"><select id="mu_item_kind_filter" onchange="renderUtilityItems()"><option value="">All Types</option><option>Utility Item</option><option>Machine</option></select></div>
+  <div class="tablewrap"><table class="tbl"><thead><tr><th>Sr.No.</th><th>Code</th><th>Item Name</th><th>Type</th><th>Category</th><th>Make</th><th>Specification</th><th>Serial No.</th><th>Qty</th><th>Location</th><th>Status</th><th>Remark</th><th>Action</th></tr></thead><tbody id="muItemBody"></tbody></table></div>
 </div>
 
 <div class="card">
@@ -1412,6 +1415,9 @@ main.wrap{margin-left:252px;padding:94px 22px 25px;max-width:none}.sidebar-overl
     <div class="field"><label>Activity</label><select id="mu_log_activity"><option>Installed</option><option>Used / Shifted</option><option>Inspection</option><option>Preventive Maintenance</option><option>Breakdown / Repair</option><option>Replacement</option><option>Removed</option><option>Other</option></select></div>
     <div class="field wide"><label>Problem / Observation</label><input id="mu_log_problem" placeholder="Problem / condition observed"></div>
     <div class="field wide"><label>Action Taken</label><input id="mu_log_action" placeholder="Repair / replacement / cleaning / shifting etc."></div>
+    <div class="field wide"><label>Spare Part Used, If Any (Spare Inventory se Auto-Deduct)</label><div id="muSpareParts"></div><button type="button" class="secondary" onclick="muAddSpareRow()">+ Add Spare</button></div>
+    <div class="field"><label>Repair / Downtime Hours</label><input id="mu_log_hours" type="number" min="0" step="any"></div>
+    <div class="field"><label>Repair Cost (₹)</label><input id="mu_log_cost" type="number" min="0" step="any"></div>
     <div class="field"><label>Attended / Done By</label><input id="mu_log_person"></div>
     <div class="field"><label>Next Maintenance Date</label><input id="mu_log_next" type="date"></div>
     <div class="field wide"><label>Remark</label><input id="mu_log_remark"></div>
@@ -1424,9 +1430,11 @@ main.wrap{margin-left:252px;padding:94px 22px 25px;max-width:none}.sidebar-overl
 </div>
 
 <div class="card">
-  <div class="summary"><div class="stat">Total Utility Items <b id="mu_sum_items">0</b></div><div class="stat">Total Records <b id="mu_sum_logs">0</b></div><div class="stat">Under Maintenance <b id="mu_sum_maint">0</b></div><div class="stat">Not Working <b id="mu_sum_fault">0</b></div></div>
+  <div class="summary"><div class="stat">Total Utility Items <b id="mu_sum_items">0</b></div><div class="stat">Machines <b id="mu_sum_machines">0</b></div><div class="stat">Total Records <b id="mu_sum_logs">0</b></div><div class="stat">Under Maintenance <b id="mu_sum_maint">0</b></div><div class="stat">Not Working <b id="mu_sum_fault">0</b></div></div>
+  <div class="toolbar"><select id="mu_log_filter_item" onchange="renderUtilityLogs()"><option value="">All Items / Machines</option></select><select id="mu_log_filter_kind" onchange="renderUtilityLogs()"><option value="">All Types</option><option>Utility Item</option><option>Machine</option></select><button class="secondary" onclick="clearUtilityLogFilters()">Clear Filter</button></div>
+  <div id="muHistSummary"></div>
   <div class="toolbar"><input id="mu_log_search" placeholder="Search date, item, location, activity, person..." oninput="renderUtilityLogs()"></div>
-  <div class="tablewrap"><table class="tbl"><thead><tr><th>Date</th><th>Item</th><th>Qty</th><th>Location</th><th>Department</th><th>Activity</th><th>Problem / Observation</th><th>Action Taken</th><th>Done By</th><th>Next Date</th><th>Remark</th><th>Action</th></tr></thead><tbody id="muLogBody"></tbody></table></div>
+  <div class="tablewrap"><table class="tbl"><thead><tr><th>Date</th><th>Item</th><th>Qty</th><th>Location</th><th>Department</th><th>Activity</th><th>Problem / Observation</th><th>Action Taken</th><th>Spare Used</th><th>Hours</th><th>Cost (₹)</th><th>Done By</th><th>Next Date</th><th>Remark</th><th>Action</th></tr></thead><tbody id="muLogBody"></tbody></table></div>
 </div>
 </section>
 
@@ -3883,11 +3891,17 @@ function seedUtilityExcel2024Items(){
 }
 
 function nextUtilitySno(){return utilityItems().reduce((m,r)=>Math.max(m,num(r.sno)),0)+1;}
+function muIsMachine(r){return String(r&&r.kind||'').toLowerCase()==='machine';}
+function utilityKindChanged(){if(f('mu_item_kind')==='Machine')setv('mu_item_category','Machine / Equipment');}
 function populateUtilityItemSelect(selected=''){
-  const s=document.getElementById('mu_log_item');if(!s)return;
   const a=utilityItems().sort((x,y)=>num(x.sno)-num(y.sno));
-  s.innerHTML='<option value="">-- Select Utility Item --</option>'+a.map(r=>`<option value="${escAttr(String(r.id))}">${utilityEsc(r.name)}${r.code?' ['+utilityEsc(r.code)+']':''}${r.location?' — '+utilityEsc(r.location):''}</option>`).join('');
-  if(selected)s.value=selected;
+  const opt=r=>`<option value="${escAttr(String(r.id))}">${utilityEsc(r.name)}${r.code?' ['+utilityEsc(r.code)+']':''}${r.location?' — '+utilityEsc(r.location):''}</option>`;
+  const mach=a.filter(muIsMachine),util=a.filter(r=>!muIsMachine(r));
+  const html=(mach.length?'<optgroup label="Machines">'+mach.map(opt).join('')+'</optgroup>':'')+(util.length?'<optgroup label="Utility Items">'+util.map(opt).join('')+'</optgroup>':'');
+  const s=document.getElementById('mu_log_item');
+  if(s){s.innerHTML='<option value="">-- Select Utility Item / Machine --</option>'+html;if(selected)s.value=selected;}
+  const fl=document.getElementById('mu_log_filter_item');
+  if(fl){const cur=fl.value;fl.innerHTML='<option value="">All Items / Machines</option>'+html;if(cur)fl.value=cur;}
 }
 function utilityItemSelected(){
   const id=f('mu_log_item');const r=utilityItems().find(x=>String(x.id)===String(id));
@@ -3896,8 +3910,8 @@ function utilityItemSelected(){
 }
 function clearUtilityItemForm(){
   edit.utilityItem=null;
-  ['mu_item_id','mu_item_code','mu_item_name','mu_item_make','mu_item_spec','mu_item_location','mu_item_remark'].forEach(id=>setv(id,''));
-  setv('mu_item_sno',nextUtilitySno());setv('mu_item_qty','1');setv('mu_item_category','Lighting');setv('mu_item_status','Working');
+  ['mu_item_id','mu_item_code','mu_item_name','mu_item_make','mu_item_spec','mu_item_location','mu_item_remark','mu_item_serial','mu_item_install'].forEach(id=>setv(id,''));
+  setv('mu_item_sno',nextUtilitySno());setv('mu_item_qty','1');setv('mu_item_kind','Utility Item');setv('mu_item_category','Lighting');setv('mu_item_status','Working');
   const b=document.querySelector('#maintUtility .card:first-child .primary');if(b)b.textContent='Save Utility Item';
 }
 function saveUtilityItem(){
@@ -3906,14 +3920,14 @@ function saveUtilityItem(){
   const name=(f('mu_item_name')||'').trim();if(!name)return alert('Item Name is required.');
   const sno=Number(f('mu_item_sno'))||nextUtilitySno();const id=f('mu_item_id')||utilityId('uti');
   let r=data.utility.find(x=>x.type==='item'&&String(x.id)===String(id));
-  const obj={type:'item',id,sno,code:(f('mu_item_code')||'').trim(),name,category:f('mu_item_category')||'Other',make:(f('mu_item_make')||'').trim(),spec:(f('mu_item_spec')||'').trim(),qty:Number(f('mu_item_qty'))||0,location:(f('mu_item_location')||'').trim(),status:f('mu_item_status')||'Working',remark:(f('mu_item_remark')||'').trim()};
+  const obj={type:'item',id,sno,kind:f('mu_item_kind')||'Utility Item',code:(f('mu_item_code')||'').trim(),name,category:f('mu_item_category')||'Other',make:(f('mu_item_make')||'').trim(),spec:(f('mu_item_spec')||'').trim(),serial:(f('mu_item_serial')||'').trim(),installDate:f('mu_item_install')||'',qty:Number(f('mu_item_qty'))||0,location:(f('mu_item_location')||'').trim(),status:f('mu_item_status')||'Working',remark:(f('mu_item_remark')||'').trim()};
   if(r)Object.assign(r,obj);else data.utility.push(obj);
-  persist('utility');clearUtilityItemForm();renderMaintUtility();alert('Utility item saved successfully.');
+  persist('utility');clearUtilityItemForm();renderMaintUtility();alert((obj.kind==='Machine'?'Machine':'Utility item')+' saved successfully.');
 }
 function editUtilityItem(i){if(!mmsGuardEdit('utility'))return;
   const a=utilityItems();const r=a[i];if(!r)return;edit.utilityItem=r.id;
-  setv('mu_item_id',r.id);setv('mu_item_sno',r.sno);setv('mu_item_code',r.code);setv('mu_item_name',r.name);setv('mu_item_category',r.category);setv('mu_item_make',r.make);setv('mu_item_spec',r.spec);setv('mu_item_qty',r.qty);setv('mu_item_location',r.location);setv('mu_item_status',r.status);setv('mu_item_remark',r.remark);
-  const b=document.querySelector('#maintUtility .card:first-child .primary');if(b)b.textContent='Update Utility Item';document.getElementById('maintUtility').scrollIntoView({behavior:'smooth'});
+  setv('mu_item_id',r.id);setv('mu_item_sno',r.sno);setv('mu_item_kind',muIsMachine(r)?'Machine':'Utility Item');setv('mu_item_code',r.code);setv('mu_item_name',r.name);setv('mu_item_category',r.category);setv('mu_item_make',r.make);setv('mu_item_spec',r.spec);setv('mu_item_serial',r.serial);setv('mu_item_install',r.installDate);setv('mu_item_qty',r.qty);setv('mu_item_location',r.location);setv('mu_item_status',r.status);setv('mu_item_remark',r.remark);
+  const b=document.querySelector('#maintUtility .card:first-child .primary');if(b)b.textContent='Update Item';document.getElementById('maintUtility').scrollIntoView({behavior:'smooth'});
 }
 function deleteUtilityItem(i){
  if(!mmsGuardDelete('utility'))return;
@@ -3921,31 +3935,117 @@ function deleteUtilityItem(i){
   data.utility=data.utility.filter(x=>String(x.id)!==String(r.id));persist('utility');renderMaintUtility();clearUtilityItemForm();alert('Utility item deleted successfully.');
 }
 function renderUtilityItems(){
-  const body=document.getElementById('muItemBody');if(!body)return;const q=(f('mu_item_search')||'').toLowerCase();const a=utilityItems().filter(r=>!q||Object.values(r).join(' ').toLowerCase().includes(q)).sort((x,y)=>num(x.sno)-num(y.sno));
-  body.innerHTML=a.map(r=>{const idx=utilityItems().indexOf(r);return `<tr><td>${utilityEsc(r.sno)}</td><td>${utilityEsc(r.code)}</td><td><b>${utilityEsc(r.name)}</b></td><td>${utilityEsc(r.category)}</td><td>${utilityEsc(r.make)}</td><td>${utilityEsc(r.spec)}</td><td>${utilityEsc(r.qty)}</td><td>${utilityEsc(r.location)}</td><td>${utilityEsc(r.status)}</td><td>${utilityEsc(r.remark)}</td><td class="editbar"><button class="secondary" onclick="editUtilityItem(${idx})">Edit</button><button class="danger" onclick="deleteUtilityItem(${idx})">Delete</button></td></tr>`}).join('')||'<tr><td colspan="11">No utility items found.</td></tr>';
+  const body=document.getElementById('muItemBody');if(!body)return;const q=(f('mu_item_search')||'').toLowerCase(),kd=f('mu_item_kind_filter')||'';
+  const a=utilityItems().filter(r=>(!kd||(kd==='Machine')===muIsMachine(r))&&(!q||Object.values(r).join(' ').toLowerCase().includes(q))).sort((x,y)=>num(x.sno)-num(y.sno));
+  body.innerHTML=a.map(r=>{const idx=utilityItems().indexOf(r);return `<tr><td>${utilityEsc(r.sno)}</td><td>${utilityEsc(r.code)}</td><td><b>${utilityEsc(r.name)}</b></td><td>${muIsMachine(r)?'🏭 Machine':'Utility'}</td><td>${utilityEsc(r.category)}</td><td>${utilityEsc(r.make)}</td><td>${utilityEsc(r.spec)}</td><td>${utilityEsc(r.serial)}</td><td>${utilityEsc(r.qty)}</td><td>${utilityEsc(r.location)}</td><td>${utilityEsc(r.status)}</td><td>${utilityEsc(r.remark)}</td><td class="editbar"><button class="secondary" onclick="muShowHistory('${escAttr(String(r.id))}')">History</button><button class="secondary" onclick="editUtilityItem(${idx})">Edit</button><button class="danger" onclick="deleteUtilityItem(${idx})">Delete</button></td></tr>`}).join('')||'<tr><td colspan="13">No utility items found.</td></tr>';
 }
+/* ---- Spare rows for utility / machine records (same Spare Inventory + auto-deduct as Maintenance Request) ---- */
+function muSparesFromForm(){
+  const box=document.getElementById('muSpareParts');if(!box)return [];
+  return [...box.querySelectorAll('.spare-row')].map(row=>{
+    const sel=row.querySelector('.spare-name'),qty=row.querySelector('.spare-qty');
+    const link=sel?.value||'',opt=sel?.selectedOptions?.[0];
+    const kind=link.split(':')[0]||'',id=link.split(':').slice(1).join(':')||'';
+    const rec=kind==='spares'?findById(data.spares,id):kind==='critical'?findById(data.critical,id):null;const un=parseUnlistedSpareLink(link);
+    return {part:rec?(rec.desc+(rec.spec?' - '+rec.spec:'')):un?unlistedSpareLabel(un):(opt?.dataset?.legacy||''),spec:un?.spec||'',make:un?.make||'',remark:un?.remark||'',qty:qty?.value||'',spareLink:link,spareKind:kind,spareId:id};
+  }).filter(x=>x.part||x.qty||x.spareLink);
+}
+function muAddSpareRow(part='',qty='',focus=true,link=''){
+  const box=document.getElementById('muSpareParts');if(!box)return;
+  const row=document.createElement('div');row.className='spare-row';const legacy=part&&!link;
+  row.innerHTML=`<select class="spare-name" title="Select spare used">${mrSpareOptionList(link)}${legacy?`<option value="" data-legacy="${escAttr(part)}" selected>[Legacy] ${esc(part)}</option>`:''}</select><input class="spare-qty" type="text" inputmode="text" placeholder="Qty (e.g. 2, 1 Set)" value="${escAttr(qty)}"><button type="button" class="danger" title="Remove" onclick="this.closest('.spare-row').remove();muEnsureSpareRow()">×</button>`;
+  box.appendChild(row);
+  row.querySelector('.spare-name')?.addEventListener('change',e=>handleMRSpareSelect(e.target));
+  if(focus)row.querySelector('.spare-name')?.focus();
+}
+function muEnsureSpareRow(){const box=document.getElementById('muSpareParts');if(box&&!box.querySelector('.spare-row'))muAddSpareRow('','',false);}
+function muRenderSpares(parts){
+  const box=document.getElementById('muSpareParts');if(!box)return;
+  box.innerHTML='<div class="spare-head"><span>Spare Part Used</span><span>Qty</span><span></span></div>';
+  const arr=Array.isArray(parts)&&parts.length?parts:[{part:'',qty:'',spareLink:''}];
+  arr.forEach(x=>muAddSpareRow(x.part||'',x.qty||'',false,x.spareLink||''));
+}
+function muRefreshSpareSelects(){
+  const box=document.getElementById('muSpareParts');if(!box)return;
+  if(!box.querySelector('.spare-row')){muRenderSpares([]);return;}
+  box.querySelectorAll('.spare-name').forEach(sel=>{
+    const cur=sel.value,oldPart=sel.selectedOptions?.[0]?.dataset?.legacy||'';
+    sel.innerHTML=mrSpareOptionList(cur)+(oldPart&&!cur?`<option value="" data-legacy="${escAttr(oldPart)}" selected>[Legacy] ${esc(oldPart)}</option>`:'');
+    if(cur&&[...sel.options].some(o=>o.value===cur))sel.value=cur;
+  });
+}
+function muSpareText(r){return r.spare||formatSpareParts(r.spareParts)||'';}
 function clearUtilityLogForm(){
-  edit.utilityLog=null;['mu_log_id','mu_log_location','mu_log_department','mu_log_problem','mu_log_action','mu_log_person','mu_log_next','mu_log_remark'].forEach(id=>setv(id,''));setv('mu_log_date',utilityToday());setv('mu_log_qty','1');setv('mu_log_activity','Installed');populateUtilityItemSelect('');
+  edit.utilityLog=null;['mu_log_id','mu_log_location','mu_log_department','mu_log_problem','mu_log_action','mu_log_person','mu_log_next','mu_log_remark','mu_log_hours','mu_log_cost'].forEach(id=>setv(id,''));setv('mu_log_date',utilityToday());setv('mu_log_qty','1');setv('mu_log_activity','Installed');populateUtilityItemSelect('');muRenderSpares([]);
   const b=document.querySelector('#maintUtility .card:nth-of-type(3) .primary');if(b)b.textContent='Save Record';
 }
 function saveUtilityLog(){
  if(!mmsGuardSave('utility'))return;
   utilityNormalizeData();
-  const itemId=f('mu_log_item');if(!itemId)return alert('Please select a Utility Item.');
-  const item=utilityItems().find(x=>String(x.id)===String(itemId));if(!item)return alert('Selected Utility Item was not found.');
+  const itemId=f('mu_log_item');if(!itemId)return alert('Please select a Utility Item / Machine.');
+  const item=utilityItems().find(x=>String(x.id)===String(itemId));if(!item)return alert('Selected item was not found.');
+  const spareParts=muSparesFromForm();
+  const uc=validateUnlistedSpareRecords(spareParts);if(!uc.ok)return alert(uc.msg);
   const date=f('mu_log_date')||utilityToday();const id=f('mu_log_id')||utilityId('utl');let r=data.utility.find(x=>x.type==='log'&&String(x.id)===String(id));
-  const obj={type:'log',id,date,itemId:String(itemId),itemName:item.name,qty:Number(f('mu_log_qty'))||0,location:(f('mu_log_location')||'').trim(),department:(f('mu_log_department')||'').trim(),activity:f('mu_log_activity')||'Other',problem:(f('mu_log_problem')||'').trim(),action:(f('mu_log_action')||'').trim(),person:(f('mu_log_person')||'').trim(),nextDate:f('mu_log_next')||'',remark:(f('mu_log_remark')||'').trim()};
-  if(r)Object.assign(r,obj);else data.utility.push(obj);persist('utility');clearUtilityLogForm();renderMaintUtility();alert('Utility maintenance record saved successfully.');
+  const prev=r&&Array.isArray(r.spareParts)?r.spareParts:[];
+  if(!mrReconcileSpares(prev,spareParts))return;   // stock check + auto deduct / restore
+  const obj={type:'log',id,date,itemId:String(itemId),itemName:item.name,kind:item.kind||'Utility Item',qty:Number(f('mu_log_qty'))||0,location:(f('mu_log_location')||'').trim(),department:(f('mu_log_department')||'').trim(),activity:f('mu_log_activity')||'Other',problem:(f('mu_log_problem')||'').trim(),action:(f('mu_log_action')||'').trim(),spareParts,spare:formatSpareParts(spareParts),hours:Number(f('mu_log_hours'))||0,cost:Number(f('mu_log_cost'))||0,person:(f('mu_log_person')||'').trim(),nextDate:f('mu_log_next')||'',remark:(f('mu_log_remark')||'').trim()};
+  if(r)Object.assign(r,obj);else data.utility.push(obj);persist('utility');clearUtilityLogForm();renderMaintUtility();alert('Maintenance / repair record saved successfully.'+(spareParts.some(x=>x.spareLink&&!String(x.spareLink).startsWith('unlisted:'))?'\n\nSpare stock auto-updated.':''));
 }
 function editUtilityLog(i){if(!mmsGuardEdit('utility'))return;
-  const a=utilityLogs();const r=a[i];if(!r)return;edit.utilityLog=r.id;setv('mu_log_id',r.id);setv('mu_log_date',r.date);populateUtilityItemSelect(r.itemId);setv('mu_log_qty',r.qty);setv('mu_log_location',r.location);setv('mu_log_department',r.department);setv('mu_log_activity',r.activity);setv('mu_log_problem',r.problem);setv('mu_log_action',r.action);setv('mu_log_person',r.person);setv('mu_log_next',r.nextDate);setv('mu_log_remark',r.remark);
+  const a=utilityLogs();const r=a[i];if(!r)return;edit.utilityLog=r.id;setv('mu_log_id',r.id);setv('mu_log_date',r.date);populateUtilityItemSelect(r.itemId);setv('mu_log_qty',r.qty);setv('mu_log_location',r.location);setv('mu_log_department',r.department);setv('mu_log_activity',r.activity);setv('mu_log_problem',r.problem);setv('mu_log_action',r.action);muRenderSpares(Array.isArray(r.spareParts)?r.spareParts:[]);setv('mu_log_hours',r.hours||'');setv('mu_log_cost',r.cost||'');setv('mu_log_person',r.person);setv('mu_log_next',r.nextDate);setv('mu_log_remark',r.remark);
   const b=document.querySelector('#maintUtility .card:nth-of-type(3) .primary');if(b)b.textContent='Update Record';document.getElementById('maintUtility').scrollIntoView({behavior:'smooth'});
 }
 function deleteUtilityLog(i){
- if(!mmsGuardDelete('utility'))return;const a=utilityLogs();const r=a[i];if(!r)return;if(!confirm('Delete this maintenance/usage record?'))return;data.utility=data.utility.filter(x=>String(x.id)!==String(r.id));persist('utility');renderMaintUtility();}
+ if(!mmsGuardDelete('utility'))return;const a=utilityLogs();const r=a[i];if(!r)return;
+ const sp=Array.isArray(r.spareParts)?r.spareParts:[];const hasSp=sp.some(x=>x.spareLink&&!String(x.spareLink).startsWith('unlisted:'));
+ if(!confirm('Delete this maintenance/usage record?'+(hasSp?'\n\nUsed spare quantity will be added back to Spare Inventory.':'')))return;
+ if(hasSp&&!mrReconcileSpares(sp,[]))return;
+ data.utility=data.utility.filter(x=>String(x.id)!==String(r.id));persist('utility');renderMaintUtility();}
+function clearUtilityLogFilters(){['mu_log_filter_item','mu_log_filter_kind','mu_log_search'].forEach(id=>setv(id,''));renderUtilityLogs();}
+function muShowHistory(id){
+  setv('mu_log_filter_kind','');setv('mu_log_search','');setv('mu_log_filter_item',id);renderUtilityLogs();
+  document.getElementById('muHistSummary')?.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function muFilteredLogs(){
+  const q=(f('mu_log_search')||'').toLowerCase(),it=f('mu_log_filter_item')||'',kd=f('mu_log_filter_kind')||'';
+  const items=utilityItems();
+  return utilityLogs().filter(r=>{
+    if(it&&String(r.itemId)!==String(it))return false;
+    if(kd){const item=items.find(x=>String(x.id)===String(r.itemId));const isM=item?muIsMachine(item):muIsMachine(r);if((kd==='Machine')!==isM)return false;}
+    if(!q)return true;
+    return [r.date,r.itemName||utilityItemName(r.itemId),r.location,r.department,r.activity,r.problem,r.action,muSpareText(r),r.person,r.remark].join(' ').toLowerCase().includes(q);
+  }).sort((x,y)=>(y.date||'').localeCompare(x.date||''));
+}
+function muSpareUsage(logs){
+  const m={};
+  logs.forEach(r=>(Array.isArray(r.spareParts)?r.spareParts:[]).forEach(x=>{
+    if(!x.part&&!x.qty)return;const k=x.spareLink||x.part;
+    const q=parseFloat(String(x.qty).replace(/[^0-9.]/g,''))||0;
+    const o=m[k]||(m[k]={part:x.part||'',qty:0,times:0,last:''});
+    o.qty+=q;o.times++;if((r.date||'')>o.last)o.last=r.date||'';
+  }));
+  return Object.values(m).sort((a,b)=>b.qty-a.qty);
+}
+const MU_REPAIR_ACT=['Breakdown / Repair','Replacement'];
+function muSummaryData(logs){
+  const rep=logs.filter(r=>MU_REPAIR_ACT.includes(r.activity));
+  return {records:logs.length,repairs:rep.length,hours:logs.reduce((a,r)=>a+num(r.hours),0),cost:logs.reduce((a,r)=>a+num(r.cost),0),lastRepair:rep.reduce((m,r)=>(r.date||'')>m?(r.date||''):m,''),spares:muSpareUsage(logs)};
+}
+function renderUtilityHistSummary(logs){
+  const box=document.getElementById('muHistSummary');if(!box)return;
+  const d=muSummaryData(logs),itemId=f('mu_log_filter_item');
+  const item=itemId?utilityItems().find(x=>String(x.id)===String(itemId)):null;
+  let h='';
+  if(item)h+=`<div style="margin:8px 0;font-size:12px"><b>${utilityEsc(item.name)}</b>${item.code?' ['+utilityEsc(item.code)+']':''}${item.serial?' | Sr.No.: '+utilityEsc(item.serial):''}${item.make?' | Make: '+utilityEsc(item.make):''}${item.location?' | '+utilityEsc(item.location):''}${item.installDate?' | Installed: '+utilityEsc(fmtDate(item.installDate)):''}</div>`;
+  h+=`<div class="summary"><div class="stat">Records <b>${d.records}</b></div><div class="stat">Repairs / Replacements <b>${d.repairs}</b></div><div class="stat">Total Hours <b>${d.hours.toFixed(1)}</b></div><div class="stat">Total Cost ₹ <b>${d.cost.toFixed(0)}</b></div><div class="stat">Last Repair <b>${d.lastRepair?utilityEsc(fmtDate(d.lastRepair)):'-'}</b></div></div>`;
+  if(d.spares.length)h+=`<div class="tablewrap" style="max-height:220px;overflow:auto;margin:8px 0"><table class="tbl"><thead><tr><th>Spare Part Used (Total)</th><th>Total Qty</th><th>Times Used</th><th>Last Used</th></tr></thead><tbody>${d.spares.map(x=>`<tr><td>${utilityEsc(x.part)}</td><td>${x.qty||'-'}</td><td>${x.times}</td><td>${utilityEsc(fmtDate(x.last))}</td></tr>`).join('')}</tbody></table></div>`;
+  box.innerHTML=h;
+}
 function renderUtilityLogs(){
-  const body=document.getElementById('muLogBody');if(!body)return;const q=(f('mu_log_search')||'').toLowerCase();const a=utilityLogs().filter(r=>!q||Object.values(r).join(' ').toLowerCase().includes(q)).sort((x,y)=>(y.date||'').localeCompare(x.date||''));
-  body.innerHTML=a.map(r=>{const idx=utilityLogs().indexOf(r);return `<tr><td>${utilityEsc(fmtDate(r.date))}</td><td><b>${utilityEsc(r.itemName||utilityItemName(r.itemId))}</b></td><td>${utilityEsc(r.qty)}</td><td>${utilityEsc(r.location)}</td><td>${utilityEsc(r.department)}</td><td>${utilityEsc(r.activity)}</td><td>${utilityEsc(r.problem)}</td><td>${utilityEsc(r.action)}</td><td>${utilityEsc(r.person)}</td><td>${utilityEsc(fmtDate(r.nextDate))}</td><td>${utilityEsc(r.remark)}</td><td class="editbar"><button class="secondary" onclick="editUtilityLog(${idx})">Edit</button><button class="danger" onclick="deleteUtilityLog(${idx})">Delete</button></td></tr>`}).join('')||'<tr><td colspan="12">No utility records found.</td></tr>';
+  const body=document.getElementById('muLogBody');if(!body)return;const a=muFilteredLogs();
+  renderUtilityHistSummary(a);
+  body.innerHTML=a.map(r=>{const idx=utilityLogs().indexOf(r);return `<tr><td>${utilityEsc(fmtDate(r.date))}</td><td><b>${utilityEsc(r.itemName||utilityItemName(r.itemId))}</b></td><td>${utilityEsc(r.qty)}</td><td>${utilityEsc(r.location)}</td><td>${utilityEsc(r.department)}</td><td>${utilityEsc(r.activity)}</td><td>${utilityEsc(r.problem)}</td><td>${utilityEsc(r.action)}</td><td>${utilityEsc(muSpareText(r))}</td><td>${r.hours?utilityEsc(r.hours):''}</td><td>${r.cost?utilityEsc(r.cost):''}</td><td>${utilityEsc(r.person)}</td><td>${utilityEsc(fmtDate(r.nextDate))}</td><td>${utilityEsc(r.remark)}</td><td class="editbar"><button class="secondary" onclick="editUtilityLog(${idx})">Edit</button><button class="danger" onclick="deleteUtilityLog(${idx})">Delete</button></td></tr>`}).join('')||'<tr><td colspan="15">No utility records found.</td></tr>';
 }
 
 function airCompressorNormalize(){
@@ -4070,10 +4170,11 @@ function printAirCompressor(){
 function renderMaintUtility(){
   if(!document.getElementById('maintUtility'))return;
   utilityNormalizeData();
-  populateUtilityItemSelect(f('mu_log_item'));renderUtilityItems();renderUtilityLogs();
+  populateUtilityItemSelect(f('mu_log_item'));renderUtilityItems();renderUtilityLogs();muRefreshSpareSelects();
   const items=utilityItems(),logs=utilityLogs();
   const muSummary={
     mu_sum_items:items.length,
+    mu_sum_machines:items.filter(muIsMachine).length,
     mu_sum_logs:logs.length,
     mu_sum_maint:items.filter(x=>utilityStatusIs(x,'Under Maintenance')).length,
     mu_sum_fault:items.filter(x=>utilityStatusIs(x,'Not Working')).length
@@ -4085,10 +4186,15 @@ function renderMaintUtility(){
   try{persist('utility');}catch(e){console.warn('Utility summary save warning:',e);}
 }
 function printUtilityMaster(){
-  const a=utilityItems();let body=a.map((r,i)=>`<tr><td>${i+1}</td><td>${utilityEsc(r.code)}</td><td>${utilityEsc(r.name)}</td><td>${utilityEsc(r.category)}</td><td>${utilityEsc(r.make)}</td><td>${utilityEsc(r.spec)}</td><td>${utilityEsc(r.qty)}</td><td>${utilityEsc(r.location)}</td><td>${utilityEsc(r.status)}</td><td>${utilityEsc(r.remark)}</td></tr>`).join('');utilityPrintWindow('Maint & Utility Item Master','<table><thead><tr><th>Sr.No.</th><th>Item Code</th><th>Item Name</th><th>Category</th><th>Make</th><th>Specification</th><th>Qty</th><th>Location</th><th>Status</th><th>Remark</th></tr></thead><tbody>'+ (body||'<tr><td colspan="10">No records</td></tr>')+'</tbody></table>');
+  const kd=f('mu_item_kind_filter')||'';const a=utilityItems().filter(r=>!kd||(kd==='Machine')===muIsMachine(r));let body=a.map((r,i)=>`<tr><td>${i+1}</td><td>${utilityEsc(r.code)}</td><td>${utilityEsc(r.name)}</td><td>${muIsMachine(r)?'Machine':'Utility'}</td><td>${utilityEsc(r.category)}</td><td>${utilityEsc(r.make)}</td><td>${utilityEsc(r.spec)}</td><td>${utilityEsc(r.serial)}</td><td>${utilityEsc(r.qty)}</td><td>${utilityEsc(r.location)}</td><td>${utilityEsc(r.status)}</td><td>${utilityEsc(r.remark)}</td></tr>`).join('');utilityPrintWindow('Maint & Utility Item Master','<table><thead><tr><th>Sr.No.</th><th>Code</th><th>Item Name</th><th>Type</th><th>Category</th><th>Make</th><th>Specification</th><th>Serial No.</th><th>Qty</th><th>Location</th><th>Status</th><th>Remark</th></tr></thead><tbody>'+ (body||'<tr><td colspan="12">No records</td></tr>')+'</tbody></table>');
 }
 function printUtilityHistory(){
-  const a=utilityLogs().sort((x,y)=>(y.date||'').localeCompare(x.date||''));let body=a.map((r,i)=>`<tr><td>${i+1}</td><td>${utilityEsc(fmtDate(r.date))}</td><td>${utilityEsc(r.itemName||utilityItemName(r.itemId))}</td><td>${utilityEsc(r.qty)}</td><td>${utilityEsc(r.location)}</td><td>${utilityEsc(r.department)}</td><td>${utilityEsc(r.activity)}</td><td>${utilityEsc(r.problem)}</td><td>${utilityEsc(r.action)}</td><td>${utilityEsc(r.person)}</td><td>${utilityEsc(fmtDate(r.nextDate))}</td><td>${utilityEsc(r.remark)}</td></tr>`).join('');utilityPrintWindow('Maint & Utility Usage / Maintenance History','<table><thead><tr><th>Sr.No.</th><th>Date</th><th>Item</th><th>Qty</th><th>Location</th><th>Department</th><th>Activity</th><th>Problem / Observation</th><th>Action Taken</th><th>Done By</th><th>Next Date</th><th>Remark</th></tr></thead><tbody>'+ (body||'<tr><td colspan="12">No records</td></tr>')+'</tbody></table>');
+  const a=muFilteredLogs(),d=muSummaryData(a);const itemId=f('mu_log_filter_item');const item=itemId?utilityItems().find(x=>String(x.id)===String(itemId)):null;
+  let body=a.map((r,i)=>`<tr><td>${i+1}</td><td>${utilityEsc(fmtDate(r.date))}</td><td>${utilityEsc(r.itemName||utilityItemName(r.itemId))}</td><td>${utilityEsc(r.location)}</td><td>${utilityEsc(r.activity)}</td><td>${utilityEsc(r.problem)}</td><td>${utilityEsc(r.action)}</td><td>${utilityEsc(muSpareText(r))}</td><td>${r.hours?utilityEsc(r.hours):''}</td><td>${r.cost?utilityEsc(r.cost):''}</td><td>${utilityEsc(r.person)}</td><td>${utilityEsc(fmtDate(r.nextDate))}</td><td>${utilityEsc(r.remark)}</td></tr>`).join('');
+  const head=item?`<div style="margin:6px 0;font-size:11px"><b>${utilityEsc(item.name)}</b>${item.code?' ['+utilityEsc(item.code)+']':''}${item.serial?' | Sr.No.: '+utilityEsc(item.serial):''}${item.make?' | Make: '+utilityEsc(item.make):''}${item.location?' | '+utilityEsc(item.location):''}</div>`:'';
+  const tot=`<div style="margin:6px 0;font-size:11px"><b>Records:</b> ${d.records} &nbsp; <b>Repairs/Replacements:</b> ${d.repairs} &nbsp; <b>Total Hours:</b> ${d.hours.toFixed(1)} &nbsp; <b>Total Cost:</b> ₹${d.cost.toFixed(0)}</div>`;
+  const sp=d.spares.length?`<div style="margin-top:10px;font-weight:700">Spare Parts Used - Summary</div><table><thead><tr><th>Spare Part</th><th>Total Qty</th><th>Times Used</th><th>Last Used</th></tr></thead><tbody>${d.spares.map(x=>`<tr><td>${utilityEsc(x.part)}</td><td>${x.qty||'-'}</td><td>${x.times}</td><td>${utilityEsc(fmtDate(x.last))}</td></tr>`).join('')}</tbody></table>`:'';
+  utilityPrintWindow('Maint & Utility Repair / Maintenance History',head+tot+'<table><thead><tr><th>Sr.No.</th><th>Date</th><th>Item</th><th>Location</th><th>Activity</th><th>Problem / Observation</th><th>Action Taken</th><th>Spare Used</th><th>Hours</th><th>Cost (₹)</th><th>Done By</th><th>Next Date</th><th>Remark</th></tr></thead><tbody>'+ (body||'<tr><td colspan="13">No records</td></tr>')+'</tbody></table>'+sp);
 }
 function utilityPrintWindow(title,content){
   const w=window.open('','_blank','width=1400,height=900');if(!w)return alert('Please allow pop-ups to print.');w.document.write(`<!doctype html><html><head><title>${title}</title><style>@page{size:A4 landscape;margin:8mm}body{font-family:Arial,sans-serif;font-size:9px;color:#111}.title{text-align:center;font-size:16px;font-weight:800}.sub{text-align:center;font-size:12px;font-weight:700;margin:5px 0 10px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #111;padding:4px;vertical-align:top}th{background:#eee;text-align:center}td{text-align:left}</style></head><body><div class="title">Milestone Gears Ltd. UNIT-7</div><div class="sub">${title}</div>${content}<script>window.onload=()=>window.print()<\/script></body></html>`);w.document.close();
