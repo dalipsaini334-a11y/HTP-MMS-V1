@@ -5128,9 +5128,10 @@ function mmsResolveUser(v){
  return v;
 }
 function empRoleFor(e){
- const d=String(e.dept||'').toLowerCase(),g=String(e.desig||'').toLowerCase();
- if(d==='maintenance')return /head|supervis|engineer/.test(g)?'Supervisor':'Technician';
- return 'Operator';   // baaki sab: sirf Maintenance Request (Admin baad me Module Access Control se badha sakta hai)
+ const g=String(e.desig||'').toLowerCase();
+ if(/head|in-?charge|supervis|engineer|manager/.test(g))return 'Supervisor';   // HOD / In-Charge / Supervisor / Engineer (kisi bhi department ke)
+ if(/welder|electrician|fitter|technician|mechanic/.test(g))return 'Technician';
+ return 'Operator';   // Operator, Inspector, SAP, Quality: sirf Maintenance Request etc. (Admin baad me Module Access Control se badha sakta hai)
 }
 function empBuildRows(){
  const rows=MMS_EMP_SEED.map(function(a){return {sno:a[0],name:empCleanName(a[1]),code:String(a[2]||'').trim(),dept:a[3],desig:a[4]}});
@@ -5140,7 +5141,7 @@ function empBuildRows(){
   let id=r.name;
   if(cnt[r.name.toLowerCase()]>1)id=r.name+' '+empTitle(String(r.dept).replace(/\./g,'').trim());   // same naam: department jod do
   while(used[id.toLowerCase()])id+=' '+r.sno;
-  used[id.toLowerCase()]=1;r.userId=id;r.role=empRoleFor(r);
+  used[id.toLowerCase()]=1;r.userId=id;r.access=empRoleFor(r);r.role=String(r.desig||'').trim()||r.access;
  });
  return rows;
 }
@@ -5172,14 +5173,15 @@ function openEmpImport(){
  const inp='style="width:100%;min-width:110px;padding:4px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px"';
  box.innerHTML='<div style="background:#fff;border-radius:12px;max-width:1000px;margin:0 auto;padding:12px;font-size:12px">'+
   '<div style="font-size:15px;font-weight:800;margin-bottom:6px">👥 Import Employees → App Users</div>'+
-  '<div style="color:#475569;margin-bottom:8px">User ID = Employee naam, Password = Emp. Code. Har employee ko <b>pehle login par naya password</b> banana padega. Jin ka Emp. Code khali hai unka password yahin khud likho (kam se kam 6 characters). Role / ID yahin badal sakte ho.</div>'+
-  '<div style="overflow:auto;max-height:58vh"><table style="border-collapse:collapse;width:100%"><thead><tr style="background:#f1f5f9;text-align:left"><th>✔</th><th>#</th><th>User ID (login naam)</th><th>Password (Emp. Code)</th><th>Role</th><th>Department</th><th>Designation</th><th>Status</th></tr></thead><tbody>'+
+  '<div style="color:#475569;margin-bottom:8px">User ID = Employee naam, Password = Emp. Code. Har employee ko <b>pehle login par naya password</b> banana padega. Jin ka Emp. Code khali hai unka password yahin khud likho (kam se kam 6 characters). <b>Role = designation</b> (jaise Mechanical Engineer, Welder) aur <b>Access Level</b> (Operator / Technician / Supervisor) se module access milta hai. Role / ID yahin badal sakte ho.</div>'+
+  '<div style="overflow:auto;max-height:58vh"><table style="border-collapse:collapse;width:100%"><thead><tr style="background:#f1f5f9;text-align:left"><th>✔</th><th>#</th><th>User ID (login naam)</th><th>Password (Emp. Code)</th><th>Role (Designation)</th><th>Access Level</th><th>Department</th><th>Designation</th><th>Status</th></tr></thead><tbody>'+
   rows.map(function(r,i){
    const has=!!exist[r.userId.toLowerCase()];
    return '<tr data-i="'+i+'" style="border-top:1px solid #e2e8f0"><td><input type="checkbox" class="ei-on" '+(has?'disabled':'checked')+'></td><td>'+r.sno+'</td>'+
     '<td><input class="ei-id" '+inp+' value="'+esc2(r.userId)+'" '+(has?'disabled':'')+'></td>'+
     '<td><input class="ei-pw" '+inp+' value="'+esc2(r.code)+'" placeholder="password likho" '+(has?'disabled':'')+(r.code?'':' style="width:100%;min-width:110px;padding:4px;border:2px solid #dc2626;border-radius:6px;font-size:12px"')+'></td>'+
-    '<td><select class="ei-role" '+(has?'disabled':'')+' style="padding:4px;border-radius:6px">'+roles.map(function(x){return '<option'+(x===r.role?' selected':'')+'>'+x+'</option>'}).join('')+'</select></td>'+
+    '<td><input class="ei-role" '+inp+' value="'+esc2(r.role)+'" '+(has?'disabled':'')+'></td>'+
+    '<td><select class="ei-acc" '+(has?'disabled':'')+' style="padding:4px;border-radius:6px">'+roles.map(function(x){return '<option'+(x===r.access?' selected':'')+'>'+x+'</option>'}).join('')+'</select></td>'+
     '<td>'+esc2(r.dept)+'</td><td>'+esc2(r.desig)+'</td><td class="ei-st">'+(has?'✓ Already added':'')+'</td></tr>';
   }).join('')+'</tbody></table></div>'+
   '<div id="empImpMsg" style="margin:8px 0;font-weight:700;color:#0f766e"></div>'+
@@ -5191,12 +5193,13 @@ async function empRunImport(){
  const lower={};users().forEach(function(u){lower[String(u.u).toLowerCase()]=1});
  for(let k=0;k<trs.length;k++){
   const tr=trs[k];if(!tr.querySelector('.ei-on').checked||tr.querySelector('.ei-on').disabled)continue;
-  const id=tr.querySelector('.ei-id').value.replace(/\s+/g,' ').trim(),pw=tr.querySelector('.ei-pw').value.trim(),role=tr.querySelector('.ei-role').value,r=rows[Number(tr.dataset.i)];
+  const id=tr.querySelector('.ei-id').value.replace(/\s+/g,' ').trim(),pw=tr.querySelector('.ei-pw').value.trim(),role=tr.querySelector('.ei-role').value.replace(/\s+/g,' ').trim(),acc=tr.querySelector('.ei-acc').value,r=rows[Number(tr.dataset.i)];
   if(!id||id.length>60||id.indexOf('|')>=0)return alert('User ID galat hai: "'+id+'"');
   if(pw.length<6)return alert(id+': password (Emp. Code) kam se kam 6 characters ka chahiye. Khali wale me khud password likho, ya us row ka tick hata do.');
+  if(!role||role.length>60||role.indexOf('|')>=0)return alert(id+': Role (designation) galat hai.');
   if(seen[id.toLowerCase()])return alert('Duplicate User ID: '+id);
   if(lower[id.toLowerCase()])return alert('User ID pehle se maujood hai: '+id);
-  seen[id.toLowerCase()]=1;sel.push({tr:tr,id:id,pw:pw,role:role,emp:{name:r.name,code:r.code,dept:r.dept,desig:r.desig}});
+  seen[id.toLowerCase()]=1;sel.push({tr:tr,id:id,pw:pw,role:role,acc:acc,emp:{name:r.name,code:r.code,dept:r.dept,desig:r.desig}});
  }
  if(!sel.length)return alert('Import ke liye koi employee select nahi hai.');
  if(!confirm(sel.length+' employee(s) ke user ban jayenge (Password = Emp. Code, pehle login par badalna padega).\n\nAage badhein? (Admin PIN / password poocha jayega)'))return;
@@ -5206,7 +5209,7 @@ async function empRunImport(){
   const x=sel[k],st=x.tr.querySelector('.ei-st');msg.textContent='Ho raha hai '+(k+1)+' / '+sel.length+' …  '+x.id;st.textContent='⏳';
   let r;try{r=await mmsSrvSensitive('userSet',{u:x.id,role:x.role,pw:x.pw})}catch(e){r={ok:false,error:'Server tak nahi pahunch paaye'}}
   if(r&&r.ok){
-   const us=users();if(!us.some(function(u){return u.u===x.id}))us.push({u:x.id,id:'usr-'+x.id,role:x.role,perms:mmsDefaultPermsForRole(x.role),emp:x.emp});
+   const us=users();if(!us.some(function(u){return u.u===x.id}))us.push({u:x.id,id:'usr-'+x.id,role:x.role,perms:mmsDefaultPermsForRole(x.acc),emp:x.emp});
    localStorage.setItem(USERS_KEY,JSON.stringify(us));ok++;st.textContent='✓ Added';
   }else{
    const er=(r&&r.error)||'error';st.textContent='✗ '+er;fail.push(x.id+': '+er);
