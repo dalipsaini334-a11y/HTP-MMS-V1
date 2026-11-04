@@ -6358,7 +6358,7 @@ window.addEventListener('online',function(){gsSchedule(500)});
 window.addEventListener('load',function(){gsSchedule(1500)});
 
 /* Audit Center ke buttons inline onclick se chalte hain, isliye ye functions global (window) par hone zaroori hain */
-Object.assign(window,{mmsOpenAuditCenter,mmsACRender,mmsToggleAuditor,mmsActAdd,mmsActClose,mmsReviewPrint,mmsReviewHtml,mmsRestoreDeleted,mmsOpenActions,mmsApprAllowed,mmsApprRender,mmsApprSave,mmsApprReset});
+Object.assign(window,{mmsOpenAuditCenter,mmsACRender,mmsToggleAuditor,mmsActAdd,mmsActClose,mmsReviewPrint,mmsReviewHtml,mmsRestoreDeleted,mmsOpenActions,mmsApprAllowed,mmsApprRender,mmsApprSave,mmsApprReset,openEmpImport,empRunImport,empRenderList,empPrintList});
 window.MMS={empImport:openEmpImport,reauth:mmsReauthToken,audit:audit,setPin,gsDiag,gsRebuildReports,gsSync,gsConfigure,gsTogglePrimary,gsResetState,login,logout,backup,restore,exportExcel,validate,refreshAudit,exportAudit,addFY,applyFY,queueSync,clearSyncQueue,refreshKPIs,openTools,closeTools,changePassword,manageUsers,populatePermUserSelect,loadUserPerms,selectAllPerms,saveUserRoleLabel,saveUserPerms,deleteUserAccount};
 window.addEventListener('load',()=>{setBadge();let s=session();if(s){document.getElementById('mmsLogin').classList.add('hidden');}else document.getElementById('mmsLogin').classList.remove('hidden');initFY();refreshKPIs();gsRenderPrimaryUI();});
 })();
