@@ -6512,7 +6512,7 @@ async function gsSync(auto){
     (applied[row.module]=applied[row.module]||new Set()).add(row.sid);
    }
   });
-  if(reverted)window.__gsRej=(window.__gsRej||0)+reverted;
+  window.__gsRej=reverted;   // sirf is sync me roke gaye changes (pichli baar ke nahi) - agla sync saaf ho to badge hat jata hai
   if(reverted&&!window.__gsRevAlert){window.__gsRevAlert=1;setTimeout(function(){window.__gsRevAlert=0},20000);setTimeout(function(){alert(reverted+' change(s) were rejected by the server (no permission for that action, or approval rule) and have been reverted on this device. Please contact Admin if this looks wrong.')},300)}
   const dd=gsDedupe();dd.forEach(function(m){changed.add(m)});
   changed.forEach(gsPersist);
@@ -6533,6 +6533,7 @@ async function gsSync(auto){
   }
   if(dd.length)gsSchedule(1500);
   const t=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  if(!reverted)window.__gsDirty=false;
   gsStatus('☁ Synced '+t+' (↑'+changes.length+' ↓'+changed.size+')'+repNote+(window.__gsNewWarn?' · ⚠ Code.gs update karo (naye Daily/Predictive modules server par nahi ja rahe)':''));
  }catch(e){
   console.error('Sheet sync failed',e);
