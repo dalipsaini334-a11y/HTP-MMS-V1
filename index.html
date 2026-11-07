@@ -1660,7 +1660,8 @@ function loadEditableMachineMaster() {
                 grade: m.grade || '',
                 make: m.make || '',
                 costCenter: m.costCenter || '',
-                origNo: m.origNo || undefined
+                origNo: m.origNo || undefined,
+                _sid: m._sid || undefined
             })).filter(m => m.machineNumber);
             
             // Agar valid machines milti hain toh hi list update hogi
@@ -5704,7 +5705,7 @@ function gsCfg(){
 }
 function gsMeta(){try{const m=JSON.parse(localStorage.getItem(GS_META_KEY)||'null');if(m&&m.base)return m}catch(e){}return {since:0,base:{}}}
 function gsHash(str){let h1=0xdeadbeef,h2=0x41c6ce57;for(let i=0,ch;i<str.length;i++){ch=str.charCodeAt(i);h1=Math.imul(h1^ch,2654435761);h2=Math.imul(h2^ch,1597334677)}h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return (4294967296*(2097151&h2)+(h1>>>0)).toString(36)}
-function gsClean(r){return JSON.stringify(r,function(k,v){if(k==='evidence')return undefined;if((k==='h'||k==='s'||k==='p')&&this&&typeof this.u==='string'&&this.role!==undefined)return undefined;return v})}
+function gsClean(r){return JSON.stringify(r,function(k,v){if(k==='evidence')return undefined;if(k==='sno'&&this&&this.machineNumber!==undefined&&this.costCenter!==undefined&&this.machineName!==undefined)return undefined;/* Machine Master ka S.No. har load par dobara ginta hai - sync ke liye change nahi */if((k==='h'||k==='s'||k==='p')&&this&&typeof this.u==='string'&&this.role!==undefined)return undefined;return v})}
 /* ===== Sheet report tabs: one tab per module (and per month), same columns as the print formats ===== */
 const GS_MONTHLY=['pf','pc','dg','mr','bd','mh','airCompressor','utility','pm','pmPlan','meeting'];
 const GS_MASTERS=['mttr','spares','critical','tc','cal','machineMaster','utility', 'audit','meeting','sparePurchase','powerCost','hpsebBill','satReport','satTemp','oxyMV','oxyImp','oxyRep','amc','amcLog','tus','furnChk','contingency','ptm','dsm','dsoot','dcTpl','dcMeta','printFmt','acAct','acDel','acEdit','apprCfg','docCtl']; 
@@ -6043,7 +6044,7 @@ function gsPristine(r){
 }
 function gsSidOf(r){return r._sid||((r.id!==undefined&&r.id!==null&&r.id!=='')?'i:'+r.id:null)}
 function gsPersist(mod){
-    if(mod==='machineMaster')saveEditableMachineMaster();
+    if(mod==='machineMaster'){MACHINE_MASTER.forEach(function(m,i){if(m&&typeof m==='object')m.sno=i+1});saveEditableMachineMaster()}
     else if(mod==='users')localStorage.setItem(USERS_KEY,JSON.stringify(gsUsersArr));
     else if(mod==='audit'){
       // Remote devices ke entries ab sahi (newest-first) order me merge hote hain, aur sync ke dauran bani local entries lost nahi hoti
@@ -6104,6 +6105,7 @@ async function gsFirstPull(cfg,mods,merge){
    seenSid[row.sid]=1;
    if(row.deleted){nb[row.sid]={h:'',ts:row.ts,del:1};return}
    let rec;try{rec=JSON.parse(row.json)}catch(e){return}
+   if(mod==='machineMaster'&&rec&&typeof rec==='object'&&!rec._sid)rec._sid=row.sid;   // server wali pehchaan yaad rakho
    live.push(rec);nb[row.sid]={h:gsHash(gsClean(rec)),ts:row.ts,m:gsRecMonth(mod,rec)||''};
   });
   const list=gsList(mod);
@@ -6319,6 +6321,38 @@ async function gsNewCheck(cfg,changes){
   localStorage.setItem('htp_gs_new_retry',String(Date.now()));window.__gsNewWarn=true;
  }catch(e){console.warn('gsNewCheck',e)}
 }
+
+/* Machine Master ek baar: local records ko server ki pehchaan (_sid) se jodo, taaki purane / naye sid ka 'delete + dobara add' na ho. Kuch delete nahi karta. */
+async function gsMmMigrate(cfg){
+ if(localStorage.getItem('htp_mms_mm_sid_v1')==='1')return;
+ try{
+  const out=await gsPullPaged(cfg,0,['machineMaster']);
+  const srvByKey={};
+  (out.rows||[]).forEach(function(row){
+   if(row.module!=='machineMaster'||row.deleted)return;
+   let rec;try{rec=JSON.parse(row.json)}catch(e){return}
+   if(!rec||typeof rec!=='object')return;
+   const k=gsNk(rec.machineNumber);if(!k)return;
+   const cur=srvByKey[k];if(!cur||Number(row.ts)>Number(cur.ts))srvByKey[k]={sid:row.sid,ts:row.ts,rec:rec};
+  });
+  if(!Object.keys(srvByKey).length){localStorage.setItem('htp_mms_mm_sid_v1','1');return}
+  const meta=gsMeta(),oldB=(meta.base&&meta.base.machineMaster)||{},nb={};
+  Object.keys(oldB).forEach(function(sid){if(oldB[sid]&&oldB[sid].del)nb[sid]=oldB[sid]});     // purane tombstone jaise the waise
+  const list=gsList('machineMaster'),isAdm=!!(session()&&session().role==='Admin');
+  list.forEach(function(r){
+   if(!r||typeof r!=='object')return;
+   const srv=srvByKey[gsNk(r.machineNumber)];if(!srv)return;      // server par nahi: normal sync naya record bhejega
+   r._sid=srv.sid;
+   const sr=Object.assign({},srv.rec,{_sid:srv.sid});
+   if(!isAdm){const sno=r.sno;Object.keys(r).forEach(function(k){delete r[k]});Object.assign(r,sr,{sno:sno})}   // Admin nahi: server ka content hi sahi (wo wahan likh nahi sakta)
+   nb[srv.sid]={h:gsHash(gsClean(sr)),ts:srv.ts,m:''};            // server ka hash base me: local alag ho to sirf 'edit' jayega, delete kabhi nahi
+  });
+  meta.base=meta.base||{};meta.base.machineMaster=nb;
+  localStorage.setItem(GS_META_KEY,JSON.stringify(meta));
+  gsPersist('machineMaster');
+  localStorage.setItem('htp_mms_mm_sid_v1','1');
+ }catch(e){console.warn('gsMmMigrate',e)}
+}
 async function gsReconcileNew(cfg){
  const meta=gsMeta(),ob=meta.base||{};
  // Audit entries (har save/login par naya record) ko reconcile ki zarurat nahi - pehle inki wajah se HAR save par
@@ -6437,6 +6471,7 @@ async function gsSync(auto){
    localStorage.setItem(GS_MIGRATION_KEY,'1');
   }}
   await gsReconcileNew(cfg);
+  await gsMmMigrate(cfg);
   if(localStorage.getItem(GS_MIGRATION_KEY)!=='1'){await gsRebaseDevice(cfg);localStorage.setItem(GS_MIGRATION_KEY,'1')}
   // SAFETY NET: kisi module ki local list poori khali ho par pichle sync me usme kaafi records the
   // (storage clear / write fail) - server par delete mat bhejo, server se wapas le aao.
@@ -6467,9 +6502,13 @@ async function gsSync(auto){
     if(!b||b.h!==h){changes.push({module:mod,sid:sid,ts:now,deleted:0,json:js});nb[sid]={h:h,ts:now,m:mk||''};gsAff(aff,mod,mk);if(b&&b.m&&b.m!==mk)gsAff(aff,mod,b.m)}
     else nb[sid]=b;
    });
+   const mmGone=mod==='machineMaster'?Object.keys(oldBase).filter(function(sid){return !used.has(sid)&&!oldBase[sid].del}).length:0;
+   const mmHold=mmGone>3;   // Machine Master ke 3 se zyada records ek saath 'gayab' = sync ki galti, delete mat bhejo
+   if(mmHold){window.__gsMmHold=mmGone;console.warn('Machine Master: '+mmGone+' deletes roke gaye (safety)')}
    Object.keys(oldBase).forEach(function(sid){
     if(used.has(sid))return;
     if(oldBase[sid].del){nb[sid]=oldBase[sid];return}
+    if(mmHold){nb[sid]=oldBase[sid];return}
     if(mod==='audit'&&!(session()&&session().role==='Admin'))return;   // purani audit entry local trim: server par delete nahi bhejte
     if(mod==='users'&&sid==='i:usr-admin'){nb[sid]=oldBase[sid];return}
     changes.push({module:mod,sid:sid,ts:now,deleted:1,json:''});nb[sid]={h:'',ts:now,del:1};gsAff(aff,mod,oldBase[sid].m);
@@ -6505,6 +6544,7 @@ async function gsSync(auto){
     nb[row.sid]={h:'',ts:row.ts,del:1};changed.add(row.module);
    }else{
     let rec;try{rec=JSON.parse(row.json)}catch(e){return}
+    if(row.module==='machineMaster'&&rec&&typeof rec==='object'&&!rec._sid)rec._sid=row.sid;
     if(idx>=0)gsAff(aff,row.module,gsRecMonth(row.module,list[idx]));
     if(idx>=0)list[idx]=rec;else list.push(rec);
     const rmk=gsRecMonth(row.module,rec);gsAff(aff,row.module,rmk);
@@ -12434,50 +12474,47 @@ html body main.wrap .dashboard-footer span{color:#4a5a69!important}
   }
 
   /* ---------- CSS (screen + print + Excel) ---------- */
-  var CSS = '.rp{font-family:Arial,Helvetica,sans-serif;color:#0b1f4a;max-width:1100px;margin:0 auto;-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
-    '.rp-head{background-color:#123c62;background-image:linear-gradient(135deg,#0b2545,#123c62 60%,#1d5b8e);color:#fff;border-radius:14px;padding:16px 18px;margin-bottom:12px}' +
-    '.rp-co{font-size:13px;font-weight:700;color:#9fc0e0;letter-spacing:.4px}.rp-title{font-size:21px;font-weight:800;margin:4px 0;color:#fff}.rp-sub{font-size:12px;color:#d6e6f5}' +
-    '.rp-logo{height:38px;width:auto;float:right;margin-left:10px;background:#fff;border-radius:8px;padding:3px}' +
-    '.rp-kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:0 0 12px}' +
-    '.rp-kpi{background-color:#0e2238;background-image:linear-gradient(160deg,#18385c,#0e2238);border:1px solid #2a4a6b;border-radius:12px;padding:10px 12px}' +
-    '.rp-kpi span{display:block;font-size:11px;color:#9fc0e0;font-weight:700;text-transform:uppercase;letter-spacing:.3px}.rp-kpi b{display:block;font-size:24px;color:#7dd3fc;margin-top:3px}' +
-    '.rp-h{background-color:#123c62;color:#fff;font-size:14px;font-weight:800;padding:8px 12px;border-radius:10px 10px 0 0;margin:14px 0 0}' +
-    '.rp-note{font-size:12px;color:#44474f;margin:4px 2px 8px}' +
-    '.rp table{width:100%;border-collapse:collapse;font-size:12px;margin:0}' +
-    '.rp table th{background-color:#123c62!important;background-image:none!important;color:#fff!important;border:1px solid #2a4a6b!important;padding:6px 7px;text-align:left;font-size:11.5px}' +
-    '.rp table td{background-color:#112b45!important;background-image:none!important;color:#e6f0fa!important;border:1px solid #2a4a6b!important;padding:6px 7px;vertical-align:top}' +
-    '.rp table tbody tr:nth-child(even) td{background-color:#16365a!important}.rp td.n,.rp th.n{text-align:right}.rp table td.b{font-weight:700;color:#7dd3fc!important}' +
-    '.rp table tfoot td{background-color:#0b2545!important;color:#fff!important;font-weight:800}' +
-    '.rp-tw{overflow-x:auto;border:1.5px solid #123c62;border-radius:0 0 10px 10px;background-color:#0e2238}' +
-    '.rp-foot{text-align:center;font-size:11px;color:#5b6577;margin-top:12px;border-top:2px solid #123c62;padding-top:8px;letter-spacing:.2px}.rp-foot b{color:#123c62}' +
-    '.rp-head{border-left:6px solid #38bdf8;box-shadow:0 3px 10px rgba(11,37,69,.25)}.rp-title{letter-spacing:.3px;text-transform:uppercase}' +
-    '.rp-meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;margin-top:12px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.18);border-radius:8px;overflow:hidden;clear:both}' +
-    '.rp-meta div{background:rgba(8,28,52,.55);padding:6px 9px}.rp-meta span{display:block;font-size:9px;font-weight:700;color:#9fc0e0;text-transform:uppercase;letter-spacing:.6px}.rp-meta b{display:block;font-size:11.5px;color:#fff;margin-top:1px;word-break:break-word}' +
-    '.rp-kpi{border-top:3px solid #38bdf8;box-shadow:0 2px 6px rgba(11,37,69,.22)}.rp-kpi b{font-size:22px;line-height:1.15}' +
-    '.rp-h{border-left:5px solid #38bdf8;text-transform:uppercase;letter-spacing:.5px;font-size:12.5px}' +
-    '.rp-box{border-left:5px solid #38bdf8;border-radius:0 0 10px 10px}.rp-box li::marker{color:#38bdf8}' +
-    '.rp table tbody tr:hover td{background-color:#1d4470!important}' +
-    '.rp-sign div{min-height:46px;border-top:1.5px solid #0b2545;margin-top:0}.rp-sign small{display:block;font-weight:400;color:#6b7280;margin-top:2px}' +
-    '.rp-conf{text-align:center;font-size:9.5px;color:#7a8394;margin-top:4px}' +
-    '.rp-meta1{font-size:10.5px;color:#9fc0e0;margin-top:2px}' +
-    '.rp-c .rp-head{padding:8px 12px;margin-bottom:6px;border-radius:10px}.rp-c .rp-co{font-size:10px}.rp-c .rp-title{font-size:15px;margin:1px 0}.rp-c .rp-sub{font-size:11px}.rp-c .rp-logo{height:28px}' +
-    '.rp-c .rp-kpis{grid-template-columns:repeat(auto-fill,minmax(105px,1fr));gap:5px;margin:0 0 6px}.rp-c .rp-kpi{padding:4px 8px;border-radius:8px}.rp-c .rp-kpi span{font-size:8.5px}.rp-c .rp-kpi b{font-size:15px;margin-top:1px}' +
-    '.rp-c .rp-h{margin:8px 0 0;padding:4px 10px;font-size:11px}.rp-c .rp-box{padding:6px 12px 6px 6px;font-size:11.5px;line-height:1.45}' +
-    '.rp-c table,.rp-c table th,.rp-c table td{font-size:10.5px}.rp-c table th,.rp-c table td{padding:3px 5px}' +
-    '.rp-c .rp-sign{margin-top:14px;gap:16px}.rp-c .rp-sign div{min-height:26px}.rp-c .rp-foot{margin-top:6px;padding-top:4px}' +
-    '.rp-box{background-color:#0e2238;color:#e6f0fa;border:1.5px solid #123c62;border-radius:0 0 10px 10px;padding:10px 14px 10px 8px;font-size:12.5px;line-height:1.65}.rp-box ul{margin:0;padding-left:22px}.rp-box li{margin:2px 0}' +
-    '.rp-sign{display:flex;gap:22px;margin-top:30px}.rp-sign div{flex:1;border-top:1.5px solid #123c62;padding-top:6px;font-size:11px;font-weight:700;color:#44474f;text-align:center}' +
-    '.rp table td{overflow-wrap:break-word;word-break:normal}' +
+  var CSS = '.rp{font-family:Arial,Helvetica,sans-serif;color:#000;background:#fff;max-width:1100px;margin:0 auto;font-size:12px;line-height:1.4;-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
+    '.rp-head{position:relative;background:#fff;color:#000;border:1.5px solid #000;border-radius:0;padding:10px 14px;margin:0 0 8px;text-align:center}' +
+    '.rp-co{font-size:13px;font-weight:700;color:#000;letter-spacing:.3px}.rp-title{font-size:16px;font-weight:700;margin:5px 0 2px;color:#000;text-transform:uppercase;letter-spacing:.4px}.rp-sub{font-size:11.5px;color:#222}' +
+    '.rp-logo{position:absolute;left:12px;top:8px;height:40px;width:auto;background:#fff;border:0;padding:0}' +
+    '.rp-meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0;margin:0 0 8px;border:1px solid #000;border-radius:0;background:#fff;overflow:hidden;clear:both;text-align:left}' +
+    '.rp-meta div{background:#fff;padding:4px 8px;border-right:1px solid #999}.rp-meta span{display:block;font-size:9px;font-weight:700;color:#444;text-transform:uppercase;letter-spacing:.4px}.rp-meta b{display:block;font-size:11.5px;color:#000;margin-top:1px;word-break:break-word}' +
+    '.rp-meta1{font-size:10.5px;color:#333;margin-top:3px}' +
+    '.rp-kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(135px,1fr));gap:0;margin:0 0 10px;border-top:1px solid #000;border-left:1px solid #000}' +
+    '.rp-kpi{background:#fff;border:0;border-right:1px solid #000;border-bottom:1px solid #000;border-radius:0;padding:5px 8px;box-shadow:none}' +
+    '.rp-kpi span{display:block;font-size:9.5px;color:#444;font-weight:700;text-transform:uppercase;letter-spacing:.3px}.rp-kpi b{display:block;font-size:15px;color:#000;margin-top:2px;line-height:1.2}' +
+    '.rp-h{background:none;color:#000;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:0 0 3px;margin:14px 0 5px;border:0;border-bottom:1.5px solid #000;border-radius:0}' +
+    '.rp-note{font-size:11.5px;color:#222;margin:4px 2px 8px}' +
+    '.rp-tw{overflow-x:auto;border:0;background:#fff;border-radius:0}' +
+    '.rp table{width:100%;border-collapse:collapse;font-size:11.5px;margin:0}' +
+    '.rp table th{background-color:#e8e8e8!important;background-image:none!important;color:#000!important;border:1px solid #000!important;padding:5px 6px;text-align:left;font-size:11px;font-weight:700}' +
+    '.rp table td{background-color:#fff!important;background-image:none!important;color:#000!important;border:1px solid #666!important;padding:4px 6px;vertical-align:top;overflow-wrap:break-word}' +
+    '.rp table tbody tr:nth-child(even) td{background-color:#f6f6f6!important}.rp td.n,.rp th.n{text-align:right}.rp table td.b{font-weight:700;color:#000!important}' +
+    '.rp table tfoot td{background-color:#e8e8e8!important;color:#000!important;font-weight:700}' +
+    '.rp-box{background:#fff;color:#000;border:1px solid #666;border-radius:0;padding:8px 12px 8px 8px;font-size:12px;line-height:1.55}.rp-box ul{margin:0;padding-left:22px}.rp-box li{margin:2px 0}' +
+    '.rp-sign{display:flex;gap:24px;margin-top:34px}.rp-sign div{flex:1;border-top:1px solid #000;padding-top:5px;font-size:11px;font-weight:700;color:#000;text-align:center;min-height:30px}.rp-sign small{display:block;font-weight:400;color:#444;margin-top:2px;font-size:10px}' +
+    '.rp-foot{text-align:center;font-size:10px;color:#444;margin-top:12px;border-top:1px solid #000;padding-top:5px}.rp-foot b{color:#000}.rp-conf{display:none}' +
+    '.rp-c .rp-head{padding:7px 10px;margin-bottom:6px}.rp-c .rp-co{font-size:11px}.rp-c .rp-title{font-size:13.5px;margin:2px 0}.rp-c .rp-sub{font-size:10.5px}.rp-c .rp-logo{height:30px}' +
+    '.rp-c .rp-kpis{grid-template-columns:repeat(auto-fill,minmax(110px,1fr));margin:0 0 6px}.rp-c .rp-kpi{padding:3px 6px}.rp-c .rp-kpi span{font-size:8.5px}.rp-c .rp-kpi b{font-size:13px}' +
+    '.rp-c .rp-h{margin:8px 0 4px;font-size:11px}.rp-c table,.rp-c table th,.rp-c table td{font-size:10.5px}.rp-c table th,.rp-c table td{padding:3px 5px}' +
+    '.rp-c .rp-sign{margin-top:22px;gap:16px}.rp-c .rp-foot{margin-top:6px}' +
     '.rp table.rp-dt{table-layout:fixed;min-width:860px}.rp table.rp-dt td,.rp table.rp-dt th{overflow-wrap:anywhere;word-break:break-word}' +
-    '@media print{@page{size:A4 landscape;margin:8mm}body{margin:0}.rp-tw{overflow:visible}.rp table{font-size:10px}.rp th,.rp td{padding:4px 5px}.rp-h{page-break-after:avoid}.rp tr{page-break-inside:avoid}}';
+    '@media(max-width:700px){.rp-logo{position:static;display:block;margin:0 auto 6px}}' +
+    '@media print{@page{size:A4 landscape;margin:10mm}body{margin:0;background:#fff}.rp-tw{overflow:visible}.rp table{font-size:10px}.rp th,.rp td{padding:3px 5px}.rp-h{page-break-after:avoid}.rp tr{page-break-inside:avoid}.rp thead{display:table-header-group}.rp tfoot{display:table-footer-group}}';
 
   var WIDE_CSS = '.rp table.rp-dt.w1 th,.rp table.rp-dt.w1 td{font-size:10px!important;padding:5px 4px!important}.rp table.rp-dt.w2 th,.rp table.rp-dt.w2 td{font-size:9px!important;padding:4px 3px!important}.rp table.rp-dt.w3 th,.rp table.rp-dt.w3 td{font-size:8px!important;padding:3px 2px!important}.rp table.rp-dt.w2{min-width:1300px}.rp table.rp-dt.w3{min-width:1700px}';
   CSS += WIDE_CSS;
   var PX = 'html body main.wrap section.panel #rptOut .rp table';
-  var PANEL_CSS = PX + ' th{background-color:#123c62!important;background-image:none!important;color:#fff!important;border:1px solid #2a4a6b!important}' +
-    PX + ' td{background-color:#112b45!important;background-image:none!important;color:#e6f0fa!important;border:1px solid #2a4a6b!important}' +
-    PX + ' tbody tr:nth-child(even) td{background-color:#16365a!important}' + PX + ' td.b{color:#7dd3fc!important}' +
-    PX + ' tfoot td{background-color:#0b2545!important;color:#fff!important}';
+  var PANEL_CSS = 'html body main.wrap section.panel #rptOut .rp{background:#fff!important;color:#000!important;padding:14px;border-radius:4px;box-shadow:0 1px 6px rgba(0,0,0,.25)}' +
+    'html body main.wrap section.panel #rptOut .rp *{text-shadow:none!important}' +
+    PX + ' th{background-color:#e8e8e8!important;background-image:none!important;color:#000!important;border:1px solid #000!important}' +
+    PX + ' td{background-color:#fff!important;background-image:none!important;color:#000!important;border:1px solid #666!important}' +
+    PX + ' tbody tr:nth-child(even) td{background-color:#f6f6f6!important}' + PX + ' td.b{color:#000!important}' +
+    PX + ' tfoot td{background-color:#e8e8e8!important;color:#000!important}' +
+    'html body main.wrap section.panel #rptOut .rp .rp-head,html body main.wrap section.panel #rptOut .rp .rp-kpi,html body main.wrap section.panel #rptOut .rp .rp-box,html body main.wrap section.panel #rptOut .rp .rp-meta div{background:#fff!important;background-image:none!important;color:#000!important}' +
+    'html body main.wrap section.panel #rptOut .rp .rp-title,html body main.wrap section.panel #rptOut .rp .rp-co,html body main.wrap section.panel #rptOut .rp .rp-kpi b,html body main.wrap section.panel #rptOut .rp .rp-h,html body main.wrap section.panel #rptOut .rp .rp-meta b{color:#000!important;background:none!important}' +
+    'html body main.wrap section.panel #rptOut .rp .rp-sub,html body main.wrap section.panel #rptOut .rp .rp-kpi span,html body main.wrap section.panel #rptOut .rp .rp-meta span,html body main.wrap section.panel #rptOut .rp .rp-note,html body main.wrap section.panel #rptOut .rp .rp-foot{color:#333!important}';
   function logo() { try { return typeof APP_LOGO !== 'undefined' && APP_LOGO ? '<img class="rp-logo" src="' + APP_LOGO + '" alt="">' : ''; } catch (e) { return ''; } }
   function kpi(l, v) { return '<div class="rp-kpi"><span>' + esc(l) + '</span><b>' + esc(v) + '</b></div>'; }
   function head(title, sub, withLogo) {
@@ -12492,7 +12529,7 @@ html body main.wrap .dashboard-footer span{color:#4a5a69!important}
       var no = 'MMS/U7/' + P.type.toUpperCase() + '/' + ds + '/' + (sc === '*' ? 'ALL' : String(sc).toUpperCase().slice(0, 6));
       var who = ''; try { var ss = JSON.parse(localStorage.getItem('htp_mms_session_v1') || 'null'); who = ss && ss.u ? ss.u : ''; } catch (e) { }
       var c = function (l, v) { return '<div><span>' + l + '</span><b>' + esc(v) + '</b></div>'; };
-      return '<div class="rp-meta">' + c('Report No.', no) + c('Report Type', typeText(P) + ' Report') + c('Scope', mm ? mm.n : 'Overall App (All Modules)') + c('Period', perText(P)) + c('Generated On', stamp()) + c('Generated By', who || 'MMS User') + c('Source', 'HTP MMS — System Generated') + '</div>';
+      return '<div class="rp-meta">' + c('Report No.', no) + c('Period', perText(P)) + c('Generated On', stamp()) + c('Generated By', who || 'MMS User') + '</div>';
     } catch (e) { return ''; }
   }
   function stamp() { var d = new Date(); return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) + ' ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }); }
@@ -12627,8 +12664,7 @@ html body main.wrap .dashboard-footer span{color:#4a5a69!important}
   }
   function obsBox(lines) { return '<div class="rp-h">Summary &amp; observations</div><div class="rp-box"><ul>' + lines.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul></div>'; }
   function signBlock() { return '<div class="rp-sign"><div>Prepared by<small>Maintenance Team &nbsp;|&nbsp; Sign &amp; Date</small></div><div>Checked by<small>Maintenance Head &nbsp;|&nbsp; Sign &amp; Date</small></div><div>Approved by<small>Plant Head / Management &nbsp;|&nbsp; Sign &amp; Date</small></div></div>'; }
-  function footBlock() { try { if (getP().type === 'd') return '<div class="rp-foot"><b>Milestone Gears Ltd. UNIT-7</b> • HTP MMS • System-generated report</div>'; } catch (e) { }
-    return '<div class="rp-foot"><b>Milestone Gears Ltd. UNIT-7</b> • Maintenance Management System (HTP MMS)<br>This is a system-generated report from live MMS records — Generated ' + esc(stamp()) + '</div><div class="rp-conf">Internal / Confidential — for management review only</div>'; }
+  function footBlock() { return '<div class="rp-foot"><b>Milestone Gears Ltd. UNIT-7</b> \u2022 Maintenance Management System \u2022 System generated report \u2022 ' + esc(stamp()) + '</div>'; }
 
   /* ---------- ek module ki report (detailed) ---------- */
 
@@ -12753,19 +12789,14 @@ html body main.wrap .dashboard-footer span{color:#4a5a69!important}
     var h = head(m.n + ' — ' + typeText(P) + ' Report', (r.snap ? 'Register snapshot (current status)' : periodText(P)) + '  •  Generated ' + stamp(), withLogo);
     var k = kpi(r.snap ? 'Total records' : 'Records in period', n);
     sm.forEach(function (s) { k += kpi('Total ' + pretty(s.k), fmt(s.s)); });
-    if (n && A.hk && m.k !== 'bd') { var sh = sm.filter(function (q) { return q.k === A.hk; })[0]; if (sh) k += kpi('Avg ' + pretty(A.hk) + ' / record', fmt(sh.s / n)); }
     if (m.k === 'bd' && n) k += kpi('MTTR (hrs / breakdown)', fmt(sumKey(r.rows, 'hours') / n));
-    if (A.max && n > 1) k += kpi('Highest ' + pretty(A.hk), fmt(A.max.v));
     if (A.open != null) k += kpi('Open / pending', A.open);
-    if (A.tat != null) k += kpi('Avg turnaround (days)', fmt(A.tat));
-    if (A.busy) k += kpi('Busiest day', dayLbl(A.busy.k) + ' (' + A.busy.n + ')');
     if (A.low) k += kpi('Low-stock items', A.low.length);
     h += '<div class="rp-kpis">' + k + '</div>';
-    if (!n) return (P.type === 'd' ? '<div class="rp-c">' : '') + h + '<div class="rp-note">Is period me koi record nahi mila' + (r.all ? ' (module me total ' + r.all + ' records hain, doosre mahino/saalon ke).' : '.') + '</div>' + (P.type === 'd' ? '</div>' : '');
     var dly = P.type === 'd';
-    h += obsBox(obs(A, m, P)) + ((withLogo && !dly) ? moduleTrend(m, A, P) : '') + periodTable(m, A, P) + cmpTable(A, P) + yearlyExtra(m, A, P);
-    if (!dly) A.groups.forEach(function (g) { h += groupTable(g, A.hk, n); });
-    h += lowTable(A);
+    if (!n) return (dly ? '<div class="rp-c">' : '') + h + '<div class="rp-note">Is period me koi record nahi mila' + (r.all ? ' (module me total ' + r.all + ' records hain, doosre mahino/saalon ke).' : '.') + '</div>' + (dly ? '</div>' : '');
+    // office report: sirf month-wise table (yearly), low-stock aur poora register (details)
+    h += periodTable(m, A, P) + lowTable(A);
     h += (regOf(m) ? regTables(m, regOf(m), r.rows) : detailTables(m, r.rows, cols, sm)) + (m.k === 'pm' ? pmDetail(r.rows) : '');
     h += signBlock() + footBlock();
     return dly ? '<div class="rp-c">' + h + '</div>' : h;
@@ -12826,41 +12857,27 @@ html body main.wrap .dashboard-footer span{color:#4a5a69!important}
     var h = head('Overall App — ' + typeText(P) + ' Report', periodText(P) + '  •  Generated ' + stamp(), withLogo);
     h += '<div class="rp-kpis">' + kpi('Total entries in period', tot) + kpi('Breakdowns', bdRows.length) + kpi('Breakdown hours', fmt(bdHrs)) +
       kpi('MTTR (hrs / breakdown)', bdRows.length ? fmt(bdHrs / bdRows.length) : '0') + kpi('Maintenance requests', D.cnt('mr')) + kpi('Open requests', D.mrOpen) + kpi('PM check sheets', D.cnt('pm')) +
-      kpi('Machine history', D.cnt('mh')) + kpi('Spare purchases', D.cnt('sparePurchase')) + kpi('Purchases pending', D.spPend) + kpi('Purchase value', fmt(D.spCost)) + kpi('Air compressor KWH', fmt(D.kwh)) + kpi('Low-stock spares', D.low) + '</div>';
-    var lines = [tot + ' entries recorded across modules in ' + perText(P) + '.'];
-    if (bdRows.length) lines.push(bdRows.length + ' breakdown(s), total ' + fmt(bdHrs) + ' hrs, MTTR ' + fmt(bdHrs / bdRows.length) + ' hrs' + (D.machines[0] ? '; most affected machine: ' + D.machines[0].k + ' (' + D.machines[0].n + ' BD, ' + fmt(D.machines[0].h) + ' hrs)' : '') + '.');
-    if (D.cnt('mr')) lines.push(D.cnt('mr') + ' maintenance request(s), ' + D.mrOpen + ' still open.');
-    if (D.cnt('sparePurchase')) lines.push(D.cnt('sparePurchase') + ' spare purchase record(s), ' + D.spPend + ' pending, value ' + fmt(D.spCost) + '.');
-    var busyD = Object.keys(D.days).sort(function (a, b) { return D.days[b] - D.days[a]; })[0];
-    if (P.type !== 'd' && busyD) lines.push('Busiest day: ' + pad2(busyD) + (P.type === 'm' ? ' ' + MONF[P.m - 1].slice(0, 3) : '') + ' (' + D.days[busyD] + ' entries).');
-    if (D.low) lines.push(D.low + ' spare item(s) are below minimum stock.');
-    h += obsBox(lines);
+      kpi('Purchases pending', D.spPend) + kpi('Low-stock spares', D.low) + '</div>';
     var dly = P.type === 'd';
-    if (withLogo && !dly) h += overallTrend(D, P);
-    var shown = dly ? rows.filter(function (x) { return x.r.rows.length > 0 && !x.r.snap; }) : rows, hid = rows.length - shown.length;
-    h += '<div class="rp-h">' + (dly ? 'Aaj ki entries — module-wise' : 'Module-wise summary') + '</div><div class="rp-tw"><table><thead><tr><th>#</th><th>Module</th><th>Group</th><th class="n">Records</th><th class="n">Share %</th><th>Basis</th></tr></thead><tbody>' +
+    var shown = rows.filter(function (x) { return x.r.rows.length > 0 && !x.r.snap; }), hid = rows.length - shown.length;
+    h += '<div class="rp-h">' + (dly ? 'Aaj ki entries — module-wise' : 'Module-wise summary (entries in period)') + '</div><div class="rp-tw"><table><thead><tr><th>#</th><th>Module</th><th class="n">Records</th></tr></thead><tbody>' +
       shown.map(function (x, i) {
         var n = x.r.rows.length, pn = x.p ? x.p.rows.length : null;
-        return '<tr><td class="b">' + (i + 1) + '</td><td>' + esc(x.m.n) + '</td><td>' + esc(x.m.g) + '</td><td class="n b">' + n + '</td><td class="n">' + (x.r.snap ? '–' : pct(n, tot) + '%') + '</td><td>' + (x.r.snap ? 'Register total (snapshot)' : (P.type === 'd' ? 'Entries this day' : (P.type === 'm' ? 'Entries this month' : 'Entries this FY'))) + '</td></tr>';
+        return '<tr><td class="b">' + (i + 1) + '</td><td>' + esc(x.m.n) + (x.r.snap ? ' <small>(register total)</small>' : '') + '</td><td class="n b">' + n + '</td></tr>';
       }).join('') +
-      (dly && !shown.length ? '<tr><td colspan="6">Is din kisi module me koi entry nahi hui.</td></tr>' : '') +
-      '</tbody><tfoot><tr><td></td><td>Total (period entries)</td><td></td><td class="n">' + tot + '</td><td class="n">100%</td><td></td></tr></tfoot></table></div>' + (dly && hid ? '<div class="rp-note">' + hid + ' module(s) me is din koi entry nahi (register snapshots aur khaali modules chhupaye gaye).</div>' : '');
+      (!shown.length ? '<tr><td colspan="3">Is period me kisi module me koi entry nahi hui.</td></tr>' : '') +
+      '</tbody><tfoot><tr><td></td><td>Total (period entries)</td><td class="n">' + tot + '</td></tr></tfoot></table></div>' + '';
     if (P.type === 'y') {
       h += '<div class="rp-h">Month-wise entries (FY ' + fyLabel(P.y) + ')</div><div class="rp-tw"><table><thead><tr><th>Module</th>' + FYORDER.map(function (mo) { return thN(MON[mo - 1].toUpperCase()); }).join('') + thN('TOTAL') + '</tr></thead><tbody>' +
         rows.filter(function (x) { return !x.r.snap && x.r.rows.length; }).map(function (x) {
           return '<tr><td>' + esc(x.m.n) + '</td>' + FYORDER.map(function (mo) { var y = mo >= 4 ? P.y : P.y + 1; return '<td class="n">' + (((D.months[x.m.k] || {})[y * 100 + mo]) || 0) + '</td>'; }).join('') + '<td class="n b">' + x.r.rows.length + '</td></tr>';
         }).join('') + '</tbody></table></div>';
     }
-    if (P.type === 'y') h += moduleOverview(P) + overallYearly(D, P);
     if (bdRows.length && !dly) {
       h += '<div class="rp-h">Breakdown — machine-wise</div><div class="rp-tw"><table><thead><tr><th>Machine</th>' + thN('Breakdowns') + thN('Hours') + thN('MTTR (hrs)') + '</tr></thead><tbody>' +
-        D.machines.slice().sort(function (a, b) { return b.h - a.h; }).slice(0, 15).map(function (x) { return '<tr><td>' + esc(x.k) + '</td><td class="n">' + x.n + '</td><td class="n">' + fmt(x.h) + '</td><td class="n b">' + fmt(x.h / x.n) + '</td></tr>'; }).join('') + '</tbody></table></div>';
-      ['type', 'section'].forEach(function (key) { var g = groupBy(bdRows, key, 'hours'); if (g.length) h += groupTable({ k: key, g: g }, 'hours', bdRows.length, 'Breakdown — ' + (key === 'type' ? 'type-wise (E = Electrical / M = Mechanical)' : 'department / section-wise')); });
+        D.machines.slice().sort(function (a, b) { return b.h - a.h; }).slice(0, 10).map(function (x) { return '<tr><td>' + esc(x.k) + '</td><td class="n">' + x.n + '</td><td class="n">' + fmt(x.h) + '</td><td class="n b">' + fmt(x.h / x.n) + '</td></tr>'; }).join('') + '</tbody></table></div>';
     }
-    var sg = groupBy(D.mr, 'status', null); if (!dly && sg.length) h += groupTable({ k: 'status', g: sg }, null, D.mr.length, 'Maintenance requests — status-wise');
-    var pg = groupBy(D.sp, 'status', 'cost'); if (!dly && pg.length) h += groupTable({ k: 'status', g: pg }, 'cost', D.sp.length, 'Spare purchase — status-wise (stage / value)');
-    var pmg = groupBy(D.pm, 'machineNo', null); if (!dly && pmg.length) h += groupTable({ k: 'machineNo', g: pmg }, null, D.pm.length, 'PM check sheets — machine-wise');
-    h += '<div class="rp-note">Kisi ek module ki poori detail chahiye to upar "Report for" me us module ko chuno.</div>' + signBlock() + footBlock();
+    h += signBlock() + footBlock();
     return dly ? '<div class="rp-c">' + h + '</div>' : h;
   }
 
@@ -13348,6 +13365,7 @@ var PILL_B=/^(not ok|notok|overdue.*|expired|cancel(l)?ed|rejected|critical|empt
 var PILL_I=/^(in progress|ongoing|running|processing|service only)$/i;
 function pillClass(t){t=String(t||'').replace(/\s+/g,' ').trim();if(!t||t.length>26)return '';if(PILL_G.test(t))return 'good';if(PILL_B.test(t))return 'bad';if(PILL_W.test(t))return 'warn';if(PILL_I.test(t))return 'info';return ''}
 function pillify(t){
+ if(t.closest&&t.closest('#rptOut'))return;   // office report me status plain text
  var hr=t.querySelectorAll('thead tr');if(hr.length!==1)return;
  var ths=hr[0].children,idx=[];
  for(var i=0;i<ths.length;i++)if(/status|state|condition|result/i.test(ths[i].textContent))idx.push(i);
@@ -13366,7 +13384,7 @@ function pillify(t){
 /* ---------- phone par tables -> cards ---------- */
 var cardMode=true,decT=0;
 function analyse(t){
- if(t.classList.contains('pm-yearly-table')||t.classList.contains('pm-calendar')||t.classList.contains('amc-plan')||t.closest('#mmsUpgradePanel'))return null;
+ if(t.classList.contains('pm-yearly-table')||t.classList.contains('pm-calendar')||t.classList.contains('amc-plan')||t.closest('#mmsUpgradePanel')||t.closest('#rptOut'))return null;
  var hr=t.querySelectorAll('thead tr');if(hr.length!==1)return null;
  var ths=hr[0].children;if(ths.length<5||ths.length>=24)return null;
  if(hr[0].querySelector('[colspan],[rowspan],input,select,textarea'))return null;
