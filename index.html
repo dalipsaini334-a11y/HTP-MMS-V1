@@ -6363,6 +6363,8 @@ async function gsFirstPull(cfg,mods,merge){
    if(extra.length)live=live.concat(extra);
   }
   list.splice.apply(list,[0,list.length].concat(live));
+  // Machine Master: server par same machineNumber ke 2 records ho to ek hi dikhao (smallest sid rakho) - naye device par 56 dikhne se bachata hai
+  if(mod==='machineMaster'){const seenK={};for(let i=0;i<list.length;i++){const k=gsNk(list[i]&&list[i].machineNumber);if(!k)continue;if(seenK[k]!==undefined){const x=list[seenK[k]];if((gsSidOf(list[i])||'~')<(gsSidOf(x)||'~')){gsMmDupAdd([gsSidOf(x)]);list[seenK[k]]=list[i]}else gsMmDupAdd([gsSidOf(list[i])]);list.splice(i,1);i--}else seenK[k]=i}}
   base[mod]=nb;replaced=true;
   try{gsPersist(mod)}catch(pe){(window.__gsPersistFail=window.__gsPersistFail||[]).push((GS_TAB[mod]||mod))}
  });
@@ -6375,6 +6377,9 @@ async function gsFirstPull(cfg,mods,merge){
 }
 // Exact-duplicate master records: sabhi devices par same (smallest sid) record bachta hai.
 function gsNk(v){return String(v==null?'':v).trim().toLowerCase().replace(/\s+/g,' ')}
+// Machine Master ke duplicate sids (server par pade extra rows): Admin ke next sync me inhe server se delete kiya jayega
+function gsMmDupGet(){try{const a=JSON.parse(localStorage.getItem('htp_mm_dupsids')||'[]'),o={};a.forEach(function(x){o[x]=1});return o}catch(e){return {}}}
+function gsMmDupAdd(sids){try{const o=gsMmDupGet();sids.forEach(function(x){if(x&&x!=='~')o[x]=1});localStorage.setItem('htp_mm_dupsids',JSON.stringify(Object.keys(o)))}catch(e){}}
 const GS_DEDUPE_KEY={
  machineMaster:function(r){return gsNk(r.machineNumber)},
  spares:function(r){return [r.desc,r.spec,r.make,r.code,r.loc].map(gsNk).join('|')},
@@ -6397,7 +6402,7 @@ function gsDedupe(){
   Object.keys(groups).forEach(function(k){
    const g=groups[k];if(g.length<2)return;
    g.sort(function(a,b){return a.sid<b.sid?-1:(a.sid>b.sid?1:a.i-b.i)});
-   g.slice(1).forEach(function(x){drop.push(x.i)});
+   g.slice(1).forEach(function(x){drop.push(x.i);if(mod==='machineMaster')gsMmDupAdd([x.sid])});
   });
   if(drop.length){
    drop.sort(function(a,b){return b-a}).forEach(function(i){list.splice(i,1)});
@@ -6712,8 +6717,10 @@ async function gsSync(auto){
    // Naye device ki default (seed) lists server ke data ke upar na aayein: pehle khali karo, server se lo,
    // aur agar server par us module ka kuch hai hi nahi to defaults wapas rakh do.
    const seedStash={};['spares','critical','tc','cal'].forEach(function(k){const l=data[k];if(Array.isArray(l)&&l.length&&l.every(mmsIsSeedRec)){seedStash[k]=l.slice();l.splice(0,l.length)}});
+   // Naye device ki built-in (sid-less) Machine Master bhi server ke upar na chadhe: pehle khali, server se lo, server par kuch na ho to wapas
+   let mmStash=null;if(MACHINE_MASTER.length&&MACHINE_MASTER.every(function(r){return r&&typeof r==='object'&&!r._sid})){mmStash=MACHINE_MASTER.slice();MACHINE_MASTER.splice(0,MACHINE_MASTER.length)}
    try{await gsFirstPull(cfg,gsIsPrimary()?GS_MASTERS:GS_ALL.filter(function(m){return m!=='users'}));}
-   finally{Object.keys(seedStash).forEach(function(k){if(!data[k].length)data[k].push.apply(data[k],seedStash[k])})}
+   finally{if(mmStash&&!MACHINE_MASTER.length)MACHINE_MASTER.push.apply(MACHINE_MASTER,mmStash);Object.keys(seedStash).forEach(function(k){if(!data[k].length)data[k].push.apply(data[k],seedStash[k])})}
    localStorage.setItem(GS_MIGRATION_KEY,'1');
   }}
   await gsReconcileNew(cfg);
@@ -6731,12 +6738,14 @@ async function gsSync(auto){
   // 1) find local changes (new / edited / deleted records)
   GS_ALL.forEach(function(mod){
    const list=gsList(mod),used=new Set(),oldBase=meta.base[mod]||{},nb={};
+   const mmDupLocal=[],mmDupSet=(mod==='machineMaster'&&session()&&session().role==='Admin')?gsMmDupGet():{};
    if(GS_NEWMODS.indexOf(mod)>=0&&gsNewHold()){newBase[mod]=Object.assign({},oldBase);return}   // server in modules ko abhi nahi jaanta: 10 min me ek baar hi dobara koshish
    if(mod==='users'&&!(session()&&session().role==='Admin')){newBase[mod]=Object.assign({},oldBase);return}   // users/roles sirf Admin badal sakta hai
    list.forEach(function(r){
     if(!r||typeof r!=='object')return;
     if(mod==='users'&&gsPristine(r)&&!oldBase[gsSidOf(r)])return;
     let sid=gsSidOf(r);
+    if(mod==='machineMaster'&&sid&&used.has(sid)){mmDupLocal.push(r);return}   // same machine dobara: '+' wali nayi copy server par nahi banegi
     if(!sid||used.has(sid)){
      sid=sid||('h'+gsHash(gsClean(r)));
      while(used.has(sid))sid+='+';
@@ -6748,13 +6757,14 @@ async function gsSync(auto){
     if(!b||b.h!==h){changes.push({module:mod,sid:sid,ts:now,deleted:0,json:js});nb[sid]={h:h,ts:now,m:mk||''};gsAff(aff,mod,mk);if(b&&b.m&&b.m!==mk)gsAff(aff,mod,b.m)}
     else nb[sid]=b;
    });
-   const mmGone=mod==='machineMaster'?Object.keys(oldBase).filter(function(sid){return !used.has(sid)&&!oldBase[sid].del}).length:0;
+   if(mmDupLocal.length){mmDupLocal.forEach(function(r){const i=list.indexOf(r);if(i>=0)list.splice(i,1)});assigned.add(mod)}
+   const mmGone=mod==='machineMaster'?Object.keys(oldBase).filter(function(sid){return !used.has(sid)&&!oldBase[sid].del&&!mmDupSet[sid]}).length:0;
    const mmHold=mmGone>3;   // Machine Master ke 3 se zyada records ek saath 'gayab' = sync ki galti, delete mat bhejo
    if(mmHold){window.__gsMmHold=mmGone;console.warn('Machine Master: '+mmGone+' deletes roke gaye (safety)')}
    Object.keys(oldBase).forEach(function(sid){
     if(used.has(sid))return;
     if(oldBase[sid].del){nb[sid]=oldBase[sid];return}
-    if(mmHold){nb[sid]=oldBase[sid];return}
+    if(mmHold&&!mmDupSet[sid]){nb[sid]=oldBase[sid];return}
     if(mod==='audit'&&!(session()&&session().role==='Admin'))return;   // purani audit entry local trim: server par delete nahi bhejte
     if(mod==='users'&&sid==='i:usr-admin'){nb[sid]=oldBase[sid];return}
     changes.push({module:mod,sid:sid,ts:now,deleted:1,json:''});nb[sid]={h:'',ts:now,del:1};gsAff(aff,mod,oldBase[sid].m);
