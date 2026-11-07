@@ -725,7 +725,7 @@ main.wrap{margin-left:252px;padding:94px 22px 25px;max-width:none}.sidebar-overl
       <div class="field utility-field prodOnly"><label>Energy Meter — KWH</label><input id="pf_kwh" type="number" step="0.1" placeholder="Enter meter reading"></div>
       <div class="field utility-field prodOnly"><label>Energy Meter — KVAH</label><input id="pf_kvah" type="number" step="0.1" placeholder="Enter meter reading"></div>
       <div class="field utility-field prodOnly"><label>Record Status / Remark</label><input id="pf_status" placeholder="Auto: OK / NOT OK" readonly></div>
-      <div class="field utility-field prodOnly"><label>Recorded / Verified By</label><input id="pf_sign" placeholder="Name / Sign."></div>
+      <div class="field utility-field prodOnly"><label>Verified By (auto)</label><input id="pf_sign" readonly placeholder="Login ka naam auto aayega"></div>
     </div>
     <div class="utility-actions">
       <button class="primary" onclick="savePF()" id="pfSave">✓ Save Reading</button>
@@ -744,7 +744,7 @@ main.wrap{margin-left:252px;padding:94px 22px 25px;max-width:none}.sidebar-overl
       </div>
     </div>
     <div class="tablewrap"><table class="tbl"><thead><tr>
-      <th>Date</th><th>Time</th><th>KWH</th><th>KVAH</th><th>KWH Diff.</th><th>KVAH Diff.</th><th>P.F.</th><th>Status</th><th>Sign.</th><th>Action</th>
+      <th>Date</th><th>Time</th><th>KWH</th><th>KVAH</th><th>KWH Diff.</th><th>KVAH Diff.</th><th>P.F.</th><th>Status</th><th>Verified By</th><th>Action</th>
     </tr></thead><tbody id="pfBody"></tbody></table></div>
     <div id="pfMonthlySummary" class="utility-monthly-summary"></div>
   </div>
@@ -786,7 +786,7 @@ main.wrap{margin-left:252px;padding:94px 22px 25px;max-width:none}.sidebar-overl
       <div class="field utility-field"><label>Power Restored To <button type="button" class="secondary" style="padding:1px 7px;font-size:10px;margin-left:6px" onclick="setv('pc_to',getLiveTimeString());pcSyncBtn()">Now</button></label><input id="pc_to" type="time" oninput="pcSyncBtn()"></div>
       <div class="field utility-field"><label>DG 01 Consumed</label><input id="pc_c1" type="number" step="0.01" oninput="pcStockCalc()"></div>
       <div class="field utility-field"><label>DG 02 Consumed</label><input id="pc_c2" type="number" step="0.01" oninput="pcStockCalc()"></div>
-      <div class="field utility-field"><label>Recorded / Verified By</label><input id="pc_sign" placeholder="Name / Sign."></div>
+      <div class="field utility-field"><label>Verified By (auto)</label><input id="pc_sign" readonly placeholder="Login ka naam auto aayega"></div>
     </div>
     <div id="pcStockBox" style="margin:10px 14px"></div>
     <div class="utility-actions">
@@ -806,7 +806,7 @@ main.wrap{margin-left:252px;padding:94px 22px 25px;max-width:none}.sidebar-overl
       </div>
     </div>
     <div class="tablewrap"><table class="tbl"><thead><tr>
-      <th>Date</th><th>Time</th><th>DG 01</th><th>DG 02</th><th>Drum</th><th>Total Stock</th><th>Add Stock</th><th>From</th><th>To</th><th>Total Cut</th><th>DG 01 Cons.</th><th>DG 02 Cons.</th><th>Total Cons.</th><th>Closing Stock</th><th>Sign.</th><th>Action</th>
+      <th>Date</th><th>Time</th><th>DG 01</th><th>DG 02</th><th>Drum</th><th>Total Stock</th><th>Add Stock</th><th>From</th><th>To</th><th>Total Cut</th><th>DG 01 Cons.</th><th>DG 02 Cons.</th><th>Total Cons.</th><th>Closing Stock</th><th>Verified By</th><th>Action</th>
     </tr></thead><tbody id="pcBody"></tbody></table></div>
     <div id="pcMonthlySummary" class="utility-monthly-summary"></div>
   </div>
@@ -862,6 +862,7 @@ main.wrap{margin-left:252px;padding:94px 22px 25px;max-width:none}.sidebar-overl
       <div class="field utility-field"><label>Reading Time <b>*</b></label><input id="dg_time" type="time" value="06:30" required></div>
       <div class="field utility-field"><label>DG Status <b>*</b></label><select id="dg_status" required><option value="">-- Select --</option><option>Running</option><option>Standby</option><option>Maintenance</option><option>Fault</option></select></div>
       <div class="field utility-field"><label>Remark</label><input id="dg_remark" placeholder="Fuel issue / maintenance / normal operation / other remark"></div>
+      <div class="field utility-field"><label>Verified By (auto)</label><input id="dg_verified" readonly placeholder="Login ka naam auto aayega"></div>
     </div>
     <div class="utility-actions">
       <button class="primary" onclick="saveDG()">✓ Save DG Reading</button>
@@ -880,7 +881,7 @@ main.wrap{margin-left:252px;padding:94px 22px 25px;max-width:none}.sidebar-overl
       </div>
     </div>
     <div class="tablewrap"><table class="tbl"><thead><tr>
-      <th>Date</th><th>Time</th><th>DG1 Running Hour</th><th>DG1 KWH</th><th>DG1 KVAH</th><th>DG1 ΔKWH</th><th>DG1 ΔKVAH</th><th>DG1 P.F.</th><th>DG1 Fuel (L)</th><th>DG1 Battery (V)</th><th>DG1 Coolant (°C)</th><th>DG2 Running Hour</th><th>DG2 KWH</th><th>DG2 KVAH</th><th>DG2 ΔKWH</th><th>DG2 ΔKVAH</th><th>DG2 P.F.</th><th>DG2 Fuel (L)</th><th>DG2 Battery (V)</th><th>DG2 Coolant (°C)</th><th>Status</th><th>Remark</th><th>Action</th>
+      <th>Date</th><th>Time</th><th>DG1 Running Hour</th><th>DG1 KWH</th><th>DG1 KVAH</th><th>DG1 ΔKWH</th><th>DG1 ΔKVAH</th><th>DG1 P.F.</th><th>DG1 Fuel (L)</th><th>DG1 Battery (V)</th><th>DG1 Coolant (°C)</th><th>DG2 Running Hour</th><th>DG2 KWH</th><th>DG2 KVAH</th><th>DG2 ΔKWH</th><th>DG2 ΔKVAH</th><th>DG2 P.F.</th><th>DG2 Fuel (L)</th><th>DG2 Battery (V)</th><th>DG2 Coolant (°C)</th><th>Status</th><th>Remark</th><th>Verified By</th><th>Action</th>
     </tr></thead><tbody id="dgBody"></tbody></table></div>
     <div id="dgMonthlySummary" class="utility-monthly-summary"></div>
   </div>
@@ -1347,6 +1348,7 @@ main.wrap{margin-left:252px;padding:94px 22px 25px;max-width:none}.sidebar-overl
       <div class="field"><label>KWH Meter Reading</label><input id="ac_kwh" type="number" step="0.1"></div>
       <div class="field"><label>Run Hour Reading</label><input id="ac_run" type="number" step="0.1"></div>
       <div class="field"><label>Load Hour Reading</label><input id="ac_load" type="number" step="0.1"></div>
+      <div class="field"><label>Verified By (auto)</label><input id="ac_verified" readonly placeholder="Login ka naam auto aayega"></div>
       <div class="actions wide">
         <button class="primary" onclick="saveAirCompressor()">Save Reading</button>
         <button class="secondary" onclick="clearAirCompressor()">Clear</button>
@@ -1362,7 +1364,7 @@ main.wrap{margin-left:252px;padding:94px 22px 25px;max-width:none}.sidebar-overl
       <select id="ac_month" onchange="renderAirCompressor()" style="padding:5px;border:1px solid #c8d0d5;border-radius:6px"></select>
     </div>
     <div class="tablewrap"><table class="tbl"><thead><tr>
-      <th>Date</th><th>Machine No.</th><th>KWH</th><th>Unit Consumption/Day</th><th>Unit Consumption/Hour</th><th>Run Hour Reading</th><th>Load Hour Reading</th><th>Total Run Hour</th><th>Total Load Hour</th><th>Action</th>
+      <th>Date</th><th>Machine No.</th><th>KWH</th><th>Unit Consumption/Day</th><th>Unit Consumption/Hour</th><th>Run Hour Reading</th><th>Load Hour Reading</th><th>Total Run Hour</th><th>Total Load Hour</th><th>Verified By</th><th>Action</th>
     </tr></thead><tbody id="acBody"></tbody></table></div>
   </div>
 </div>
@@ -2851,7 +2853,7 @@ function savePF() {
         kwh: num(f('pf_kwh')),
         kvah: num(f('pf_kvah')),
         status: f('pf_status'),
-        sign: f('pf_sign')
+        sign: mmsVerNeed(f('pf_sign'))
     };
     
     if (!row.date) return alert('Date required'); 
@@ -2879,20 +2881,7 @@ function savePF() {
     
     alert(wasEdit ? 'Reading updated successfully.' : 'Reading saved successfully.');
     
-    if (confirm('Do you want to share the Daily Power Factor Report (' + fmtDate(row.date) + ') on WhatsApp?')) {
-        if (typeof window.rptShareDaily === 'function') { try { window.rptShareDaily('pf', row.date); return; } catch (e) { console.warn('rptShareDaily', e); } }
-        let msg = `⚡ *DAILY POWER FACTOR REPORT*\n` +
-                  `🏢 Unit-7 | Milestone Gears Ltd.\n` +
-                  `📅 Date: ${fmtDate(row.date)} | ⏰ Time: ${row.time}\n\n` +
-                  `📊 *Meter Readings:*\n` +
-                  `• KWH: ${row.kwh}\n` +
-                  `• KVAH: ${row.kvah}\n\n` +
-                  `📈 *Daily Consumption:*\n` +
-                  `• KWH Diff: ${dkwh}\n` +
-                  `• KVAH Diff: ${dkvah}\n\n` +
-                  `✅ *POWER FACTOR: ${pfVal}* (${row.status})`;
-        window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
-    }
+    /* WhatsApp card: save ke baad apne-aap (mmsCard) */
 }
 
 function clearPF(){
@@ -3122,7 +3111,7 @@ function savePC() {
         to: f('pc_to'),
         c1: num(f('pc_c1')),
         c2: num(f('pc_c2')),
-        sign: f('pc_sign'),
+        sign: mmsVerNeed(f('pc_sign')),
         updatedAt: new Date().toISOString()
     };
 
@@ -3141,9 +3130,9 @@ function savePC() {
     renderDashboard();
 
     if (isStartOnly) {
-        if (confirm('Power Cut saved (From ' + r.from + ').\n\nSend the Power Cut report (image) on WhatsApp?')) pcShareReport(r,pcMsgStart(r));
+        alert('Power Cut saved (From ' + r.from + ').');
     } else if (isRestoreNow) {
-        if (confirm('Power Restored saved. Duration: ' + pcFmtDur(r.from, r.to) + ' hrs.\n\nSend the Power Restored report (image) on WhatsApp?')) pcShareReport(r,pcMsgRestored(r));
+        alert('Power Restored saved. Duration: ' + pcFmtDur(r.from, r.to) + ' hrs.');
     } else {
         alert('Power Cut entry updated successfully.');
     }
@@ -3193,7 +3182,7 @@ renderDG = function() {
         let d = new Date((r.date || '') + 'T00:00:00'), targetD = new Date(label + ' 1');
         if (!isNaN(d) && !isNaN(targetD) && d.getFullYear() === targetD.getFullYear() && d.getMonth() === targetD.getMonth()) {
             let i = data.dg.indexOf(r);
-            tableRows.push(`<tr><td>${fmtDate(r.date)}</td><td>${esc(r.time)}</td><td>${esc(r.dg1hr || '')}</td><td class="num">${r.dg1kwh ?? ''}</td><td class="num">${r.dg1kvah ?? ''}</td><td class="num">${d1k}</td><td class="num">${d1v}</td><td>${pf1}${pf1 !== '' ? ' — ' + dgPfStatus(pf1) : ''}</td><td class="num">${r.dg1fuel ?? ''}</td><td class="num">${r.dg1batt ?? ''}</td><td class="num">${r.dg1coolant ?? ''}</td><td>${esc(r.dg2hr || '')}</td><td class="num">${r.dg2kwh ?? ''}</td><td class="num">${r.dg2kvah ?? ''}</td><td class="num">${d2k}</td><td class="num">${d2v}</td><td>${pf2}${pf2 !== '' ? ' — ' + dgPfStatus(pf2) : ''}</td><td class="num">${r.dg2fuel ?? ''}</td><td class="num">${r.dg2batt ?? ''}</td><td class="num">${r.dg2coolant ?? ''}</td><td>${esc(r.status || '')}</td><td>${esc(r.remark || '')}</td><td><div class="editbar"><button class="secondary" onclick="editDG(${i})">Edit</button><button class="danger" onclick="delRow('dg', ${i})">Delete</button></div></td></tr>`);
+            tableRows.push(`<tr><td>${fmtDate(r.date)}</td><td>${esc(r.time)}</td><td>${esc(r.dg1hr || '')}</td><td class="num">${r.dg1kwh ?? ''}</td><td class="num">${r.dg1kvah ?? ''}</td><td class="num">${d1k}</td><td class="num">${d1v}</td><td>${pf1}${pf1 !== '' ? ' — ' + dgPfStatus(pf1) : ''}</td><td class="num">${r.dg1fuel ?? ''}</td><td class="num">${r.dg1batt ?? ''}</td><td class="num">${r.dg1coolant ?? ''}</td><td>${esc(r.dg2hr || '')}</td><td class="num">${r.dg2kwh ?? ''}</td><td class="num">${r.dg2kvah ?? ''}</td><td class="num">${d2k}</td><td class="num">${d2v}</td><td>${pf2}${pf2 !== '' ? ' — ' + dgPfStatus(pf2) : ''}</td><td class="num">${r.dg2fuel ?? ''}</td><td class="num">${r.dg2batt ?? ''}</td><td class="num">${r.dg2coolant ?? ''}</td><td>${esc(r.status || '')}</td><td>${esc(r.remark || '')}</td><td>${esc(r.verifiedBy || '')}</td><td><div class="editbar"><button class="secondary" onclick="editDG(${i})">Edit</button><button class="danger" onclick="delRow('dg', ${i})">Delete</button></div></td></tr>`);
         }
     });
     
@@ -3238,6 +3227,236 @@ renderDG = function() {
     }
 };
 
+/* ===== WHATSAPP CARD (har module ka save-card + MR step card) ===== */
+(function(){
+ var W=420;
+ function E(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+ function nz(v){return v!==undefined&&v!==null&&String(v).trim()!==''}
+ function fd(s){try{return s?fmtDate(s):''}catch(e){return s||''}}
+ function me(){try{return (window.mmsPersonName&&window.mmsPersonName(false))||''}catch(e){return ''}}
+ var CSS='.mc{width:'+W+'px;background:#fff;font-family:"Segoe UI",Arial,sans-serif;color:#0f172a;overflow:hidden}.mc *{box-sizing:border-box}'+
+ '.mc .co{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:3px solid var(--ac);background:#fff}.mc .co img{height:40px}.mc .co .n{font-weight:800;font-size:13px;color:#0b2545;line-height:1.15}.mc .co .n small{display:block;font-weight:600;color:#64748b;font-size:10.5px}.mc .co .d{margin-left:auto;text-align:right;font-size:10px;color:#64748b;line-height:1.3}.mc .co .d b{color:#0b2545;font-size:11px}'+
+ '.mc .h{padding:12px 14px;color:#fff;display:flex;align-items:center;gap:11px;background:var(--bg)}.mc .ic{width:40px;height:40px;border-radius:11px;background:rgba(255,255,255,.2);text-align:center;line-height:40px;font-size:21px;flex:none}.mc .t{font-weight:800;font-size:15.5px;letter-spacing:.3px}.mc .s{font-size:11px;opacity:.92;margin-top:2px}.mc .pill{margin-left:auto;background:#fff;border-radius:20px;padding:4px 11px;font-size:11px;font-weight:800;text-align:center}'+
+ '.mc .b{padding:10px 14px}.mc .sec{font-size:10px;font-weight:800;letter-spacing:.8px;color:#64748b;margin:8px 0 3px;text-transform:uppercase}.mc .row{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px dashed #dbe3ee;font-size:12.5px}.mc .row:last-child{border:0}.mc .row span{color:#64748b;flex:none}.mc .row b{color:#0f172a;text-align:right;word-break:break-word}'+
+ '.mc .big{display:flex;gap:7px;margin:4px 0}.mc .big div{flex:1;background:#f1f5f9;border-radius:12px;padding:8px 4px;text-align:center}.mc .big small{display:block;color:#64748b;font-size:9.5px;font-weight:800}.mc .big b{font-size:18px;color:#0b2545}'+
+ '.mc .sig{display:flex;gap:8px;margin-top:8px}.mc .sig div{flex:1;border:1px solid #e2e8f0;border-radius:10px;padding:6px 8px;font-size:10px;color:#64748b}.mc .sig b{display:block;color:#0f172a;font-size:12px;margin-top:2px}'+
+ '.mc .f{background:#0b2545;color:#cbd5e1;padding:8px 14px;font-size:10px;display:flex;justify-content:space-between}.mc .g{color:#15803d!important}.mc .r{color:#dc2626!important}.mc .o{color:#b45309!important}'+
+ '.mc .steps{display:flex;margin:6px 0 8px}.mc .st{flex:1;text-align:center;font-size:9.5px;color:#94a3b8;font-weight:700;position:relative}.mc .st:not(:last-child):after{content:"";position:absolute;top:10px;left:58%;width:84%;height:2px;background:#e2e8f0}.mc .st.d:not(:last-child):after{background:#16a34a}.mc .st i{display:block;position:relative;z-index:1;width:22px;height:22px;border-radius:50%;background:#e2e8f0;margin:0 auto 3px;line-height:22px;font-style:normal;color:#fff;font-size:12px}.mc .st.d{color:#15803d}.mc .st.d i{background:#16a34a}.mc .st.n{color:#b45309}.mc .st.n i{background:#f59e0b}.mc .st.x{color:#dc2626}.mc .st.x i{background:#dc2626}'+
+ '.mc .tl{border-left:2px solid #e2e8f0;margin:4px 0 0 8px;padding-left:12px;font-size:11.5px}.mc .tl div{position:relative;margin-bottom:6px;color:#334155}.mc .tl div:before{content:"";position:absolute;left:-18px;top:3px;width:8px;height:8px;border-radius:50%;background:#16a34a}.mc .tl div.n:before{background:#f59e0b}.mc .tl small{color:#64748b;display:block;font-size:10px}';
+ function html(sp){
+  var c=sp.c||['#0b2545','#13579b'],logo='';try{logo=window.APP_LOGO||(typeof APP_LOGO!=='undefined'?APP_LOGO:'')}catch(e){}
+  var h='<div class="mc" style="--ac:'+c[1]+';--bg:linear-gradient(135deg,'+c[0]+','+c[1]+')">'+
+   '<div class="co">'+(logo?'<img src="'+logo+'" alt=""/>':'')+'<div class="n">MILESTONE GEARS LTD.<small>Unit-7 • HT Plant Maintenance</small></div><div class="d">'+E(sp.tag1||'Report')+'<br/><b>'+E(sp.tag2||'')+'</b></div></div>'+
+   '<div class="h"><div class="ic">'+(sp.icon||'⚙️')+'</div><div><div class="t">'+E(sp.title)+'</div><div class="s">'+E(sp.sub||'')+'</div></div>'+(sp.chip?'<div class="pill" style="color:'+(sp.chipC||'#0b2545')+'">'+E(sp.chip)+'</div>':'')+'</div><div class="b">';
+  if(sp.steps){h+='<div class="steps">'+sp.steps.map(function(s,i){return '<div class="st '+s.k+'"><i>'+(s.k==='d'?'✓':s.k==='x'?'✕':(i+1))+'</i>'+E(s.l)+'</div>'}).join('')+'</div>'}
+  if(sp.big&&sp.big.length)h+='<div class="big">'+sp.big.map(function(b){return '<div><small>'+E(b.l)+'</small><b class="'+(b.c||'')+'">'+E(b.v)+'</b></div>'}).join('')+'</div>';
+  (sp.sections||[]).forEach(function(s){var rows=(s.rows||[]).filter(function(r){return nz(r[1])});if(!rows.length)return;
+   h+=(s.t?'<div class="sec">'+E(s.t)+'</div>':'')+rows.map(function(r){return '<div class="row"><span>'+E(r[0])+'</span><b class="'+(r[2]||'')+'">'+E(r[1])+'</b></div>'}).join('')});
+  if(sp.tl&&sp.tl.length)h+='<div class="sec">Timeline</div><div class="tl">'+sp.tl.map(function(t){return '<div class="'+(t.n?'n':'')+'">'+E(t.a)+(t.b?'<small>'+E(t.b)+'</small>':'')+'</div>'}).join('')+'</div>';
+  if(sp.sig&&sp.sig.length)h+='<div class="sig">'+sp.sig.map(function(s){return '<div>'+E(s[0])+'<b>'+E(s[1]||'-')+'</b></div>'}).join('')+'</div>';
+  h+='</div><div class="f"><span>HTP MMS • Auto generated</span><span>'+E(sp.foot||new Date().toLocaleString('en-GB').replace(',',''))+'</span></div></div>';
+  return h;
+ }
+ function render(sp){
+  return new Promise(function(res,rej){
+   try{
+    var body=html(sp),host=document.createElement('div');host.style.cssText='position:fixed;left:-9999px;top:0;width:'+W+'px';host.innerHTML='<style>'+CSS+'</style>'+body;document.body.appendChild(host);
+    var H=Math.ceil(host.querySelector('.mc').getBoundingClientRect().height)+2;host.remove();
+    var svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'"><foreignObject x="0" y="0" width="'+W+'" height="'+H+'"><div xmlns="http://www.w3.org/1999/xhtml"><style>'+CSS+'</style>'+body+'</div></foreignObject></svg>';
+    var img=new Image();img.onload=function(){try{var S=2,cv=document.createElement('canvas');cv.width=W*S;cv.height=H*S;var cx=cv.getContext('2d');cx.fillStyle='#fff';cx.fillRect(0,0,cv.width,cv.height);cx.drawImage(img,0,0,cv.width,cv.height);cv.toBlob(function(b){b?res(b):rej(new Error('toBlob'))},'image/png')}catch(e){rej(e)}};
+    img.onerror=function(){console.warn('card svg load failed');rej(new Error('svg load'))};img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+   }catch(e){rej(e)}
+  });
+ }
+ function toText(sp){
+  var t='*'+sp.title+'*'+(sp.chip?' — '+sp.chip:'')+'\n🏢 Unit-7 | Milestone Gears Ltd.\n'+(sp.sub||'')+'\n';
+  (sp.big||[]).forEach(function(b){t+='• '+b.l+': '+b.v+'\n'});
+  (sp.sections||[]).forEach(function(s){(s.rows||[]).forEach(function(r){if(nz(r[1]))t+='• '+r[0]+': '+r[1]+'\n'})});
+  (sp.sig||[]).forEach(function(s){if(nz(s[1]))t+='👤 '+s[0]+': '+s[1]+'\n'});
+  return t;
+ }
+ function fname(sp){return ('HTP_'+(sp.title||'card')+'_'+(sp.tag2||'')).replace(/[^A-Za-z0-9_\-]+/g,'_').slice(0,70)+'.png'}
+ function dl(blob,name){var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){a.remove()},500)}
+ window.mmsCardShowSpec=function(sp){
+  var old=document.getElementById('mmsCardBox');if(old)old.remove();
+  var box=document.createElement('div');box.id='mmsCardBox';box.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:100001;overflow:auto;padding:10px;display:flex;align-items:flex-start;justify-content:center';
+  box.innerHTML='<div style="background:#fff;border-radius:14px;padding:10px;max-width:460px;width:100%;margin:auto"><div id="mmsCardImg" style="text-align:center;font-size:13px;color:#475569;padding:30px 0">⏳ Card ban raha hai…</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button id="mmsCardWa" class="primary" style="background:#128c4a;border-color:#25d366;color:#fff;flex:1" disabled>📤 WhatsApp par bhejo</button><button id="mmsCardDl" class="secondary" disabled>⬇ Image</button><button class="secondary" id="mmsCardX">Band karo</button></div></div>';
+  document.body.appendChild(box);
+  document.getElementById('mmsCardX').onclick=function(){box.remove()};
+  render(sp).then(function(blob){
+   var url=URL.createObjectURL(blob),name=fname(sp),file=null;try{file=new File([blob],name,{type:'image/png'})}catch(e){}
+   document.getElementById('mmsCardImg').innerHTML='<img src="'+url+'" style="width:100%;border-radius:10px;border:1px solid #e2e8f0">';
+   var wa=document.getElementById('mmsCardWa'),d=document.getElementById('mmsCardDl');wa.disabled=false;d.disabled=false;
+   d.onclick=function(){dl(blob,name)};
+   wa.onclick=function(){
+    var txt=sp.title+' — '+(sp.sub||'');
+    if(file&&navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){navigator.share({files:[file],title:sp.title,text:txt}).catch(function(e){if(e&&e.name==='AbortError')return;dl(blob,name);window.open('https://wa.me/?text='+encodeURIComponent(toText(sp)),'_blank')});return}
+    dl(blob,name);setTimeout(function(){window.open('https://wa.me/?text='+encodeURIComponent(toText(sp)),'_blank');alert('Card image download ho gayi. WhatsApp me Attach (📎) → Gallery / Photos se wo image chun kar bhejo.')},600);
+   };
+  }).catch(function(e){
+   var bx=document.getElementById('mmsCardImg');if(bx)bx.innerHTML='Card image nahi ban payi. <button class="primary" id="mmsCardTxt">Text message bhejo</button>';
+   var tb=document.getElementById('mmsCardTxt');if(tb)tb.onclick=function(){window.open('https://wa.me/?text='+encodeURIComponent(toText(sp)),'_blank')};
+  });
+ };
+ /* ---------- module-wise card banane wale ---------- */
+ var CFG={pf:['POWER FACTOR','⚡',['#0b2545','#13579b']],pc:['POWER CUT','🔌',['#7f1d1d','#dc2626']],dg:['DG DAILY READING','🛢️',['#134e4a','#0d9488']],airCompressor:['AIR COMPRESSOR KWH','💨',['#164e63','#0891b2']],
+  bd:['BREAKDOWN','🚨',['#7f1d1d','#ef4444']],pm:['PM CHECK SHEET','🧰',['#4c1d95','#7c3aed']],tc:['THERMOCOUPLE PLAN','🌡️',['#7c2d12','#ea580c']],cal:['CALIBRATION','📏',['#312e81','#4f46e5']],
+  utility:['MAINTENANCE / REPAIR LOG','🔧',['#374151','#6b7280']],mh:['MACHINE HISTORY CARD','📒',['#3f3f46','#71717a']],dsoot:['DAILY CHECK SHEET','✅',['#14532d','#16a34a']],spares:['SPARE PART','🔩',['#78350f','#d97706']],critical:['CRITICAL SPARE','⭐',['#831843','#db2777']]};
+ function srt(a){return a.slice().sort(function(x,y){return ((x.date||'')+(x.time||'')).localeCompare((y.date||'')+(y.time||''))})}
+ function num0(v){var n=Number(v);return isFinite(n)?n:0}
+ var B={};
+ B.pf=function(r){var a=srt(data.pf||[]),i=a.indexOf(r);if(i<0)i=a.findIndex(function(x){return x.date===r.date&&x.time===r.time});var p=i>0?a[i-1]:null;
+  var kd=p?num0(r.kwh)-num0(p.kwh):null,vd=p?num0(r.kvah)-num0(p.kvah):null,pf=(kd!==null&&vd)?kd/vd:null,lim=0.9;try{lim=PFOK('pf')}catch(e){}
+  var ym=(r.date||'').slice(0,7),sk=0,sv=0,dl=0,pp=null;a.forEach(function(x){if(pp&&(x.date||'').slice(0,7)===ym&&(x.date||'')<=(r.date||'')){var k=num0(x.kwh)-num0(pp.kwh),v=num0(x.kvah)-num0(pp.kvah);sk+=k;sv+=v;if(v&&k/v<lim)dl++}pp=x});
+  var ok=pf!==null&&pf>=lim;
+  return{chip:pf===null?'':(ok?'✔ OK':'✖ NOT OK'),chipC:ok?'#15803d':'#dc2626',sub:'Reading time '+(r.time||'')+' hrs',
+   big:[{l:'KWH DIFF',v:kd===null?'-':kd.toFixed(1)},{l:'KVAH DIFF',v:vd===null?'-':vd.toFixed(1)},{l:'P.F.',v:pf===null?'-':pf.toFixed(3),c:ok?'g':'r'}],
+   sections:[{t:'Meter Readings',rows:[['KWH (today)',r.kwh],['KWH (previous)',p?p.kwh:''],['KVAH (today)',r.kvah],['KVAH (previous)',p?p.kvah:'']]},{t:'Month Summary',rows:[['Total KWH / KVAH',sv?sk.toFixed(1)+' / '+sv.toFixed(1):''],['Monthly P.F. (till date)',sv?(sk/sv).toFixed(3):'',sv&&sk/sv>=lim?'g':'r'],['Days below limit',sv?String(dl):'']]}],sig:[['Verified By',r.sign]]}};
+ B.pc=function(r){var dur='';try{dur=timeDuration(r.from,r.to)}catch(e){}var rest=!!r.to,clo='';try{clo=pcClosing(r).toFixed(2)}catch(e){}
+  return{chip:rest?'✔ RESTORED':'🔴 POWER CUT',chipC:rest?'#15803d':'#dc2626',sub:rest?'Power restored report':'Power cut - restoration pending',
+   big:[{l:'FROM',v:r.from||'-'},{l:'TO',v:r.to||'Pending',c:rest?'':'r'},{l:'DURATION',v:rest&&dur?dur+' h':'-'}],
+   sections:[{t:'DG / Diesel Stock',rows:[['DG-01',r.dg1],['DG-02',r.dg2],['Diesel Drum',r.drum],['Total Stock',r.stock],['Diesel Added',r.add]]},{t:'Consumption',rows:[['DG-01 Count',r.c1],['DG-02 Count',r.c2],['Closing Stock',rest?clo:'']]}],sig:[['Verified By',r.sign]]}};
+ B.dg=function(r){var a=srt(data.dg||[]),i=a.indexOf(r);var p=i>0?a[i-1]:null;function d(k){return p&&r[k]!==''&&p[k]!==''&&r[k]!=null&&p[k]!=null?(num0(r[k])-num0(p[k])).toFixed(2):''}
+  return{chip:r.status||'',chipC:'#0f766e',sub:'Reading time '+(r.time||'')+' hrs',
+   big:[{l:'DG1 ΔKWH',v:d('dg1kwh')||'-'},{l:'DG2 ΔKWH',v:d('dg2kwh')||'-'},{l:'STATUS',v:r.status||'-'}],
+   sections:[{t:'DG - 1',rows:[['Running Hour',r.dg1hr],['KWH',r.dg1kwh],['KVAH',r.dg1kvah],['Fuel (L)',r.dg1fuel],['Battery (V)',r.dg1batt||''],['Coolant (°C)',r.dg1coolant||'']]},{t:'DG - 2',rows:[['Running Hour',r.dg2hr],['KWH',r.dg2kwh],['KVAH',r.dg2kvah],['Fuel (L)',r.dg2fuel],['Battery (V)',r.dg2batt||''],['Coolant (°C)',r.dg2coolant||'']]},{t:'',rows:[['Remark',r.remark]]}],sig:[['Verified By',r.verifiedBy]]}};
+ B.airCompressor=function(r){var rows=[];try{rows=airCompressorCalcRows(data.airCompressor||[])}catch(e){}var x=rows.find(function(z){return String(z.id)===String(r.id)})||r;function q(v){return v===''||v==null||!isFinite(Number(v))?'-':Number(v).toFixed(2)}
+  return{chip:'',sub:(r.machine||'')+' • '+fd(r.date),big:[{l:'UNIT / DAY',v:q(x.kwhDay)},{l:'UNIT / HOUR',v:q(x.kwhHour)},{l:'RUN HOUR',v:q(x.totalRun)}],
+   sections:[{t:'Readings',rows:[['Machine No.',r.machine],['KWH Meter',r.kwh],['Run Hour Reading',r.runHour],['Load Hour Reading',r.loadHour],['Total Load Hour',x.totalLoad===''||x.totalLoad==null?'':q(x.totalLoad)]]}],sig:[['Verified By',r.verifiedBy]]}};
+ B.bd=function(r){var h=num0(r.hours);return{chip:r.status||'',chipC:/closed|done|ok/i.test(r.status||'')?'#15803d':'#b45309',sub:fd(r.date)+' • '+(r.from||'')+' - '+(r.to||''),
+  big:[{l:'DOWNTIME',v:h.toFixed(2)+' h',c:h>2?'r':''},{l:'TYPE',v:r.type||'-'},{l:'SECTION',v:r.section||'-'}],
+  sections:[{t:'Breakdown',rows:[['Machine',r.machine],['Reason',r.reason],['Action Taken',r.action],['Spare Used',r.spare&&!/^none$/i.test(r.spare)?r.spare+(r.qty?' × '+r.qty:''):''],['Root Cause (RCA)',r.rca],['Prevention',r.prevAction]]}],sig:[['Attended By',r.attended]]}};
+ B.pm=function(r){var e=r.entries||[],ok=e.filter(function(x){return x.workDone==='OK'}).length,nk=e.filter(function(x){return x.workDone==='Not OK'}).length,na=e.filter(function(x){return x.workDone==='N/A'}).length;
+  return{chip:nk?'⚠ '+nk+' NOT OK':'✔ ALL OK',chipC:nk?'#dc2626':'#15803d',sub:(r.template||'')+' • '+fd(r.date),
+  big:[{l:'OK',v:String(ok),c:'g'},{l:'NOT OK',v:String(nk),c:nk?'r':''},{l:'N/A',v:String(na)}],
+  sections:[{t:'Check Sheet',rows:[['Machine No.',r.machineNo],['Checklist',r.template],['Start - End',(r.start||'')+(r.end?' - '+r.end:'')],['Action',r.action],['Verification',r.verifiedBy?'Verified':'Verify pending',r.verifiedBy?'g':'o']]}],sig:[['Checked By',r.checkedBy],['Verified By',r.verifiedBy]]}};
+ B.tc=function(r){return{chip:r.status||'',chipC:'#b45309',sub:'Furnace '+(r.furnace||'')+(r.loc?' • '+r.loc:''),big:[{l:'TYPE',v:r.type||'-'},{l:'FREQUENCY',v:r.freq||'-'},{l:'DUE',v:r.due||'-'}],
+  sections:[{t:'Thermocouple',rows:[['Furnace No.',r.furnace],['Location',r.loc],['Serial / ID',r.srid],['Installed',r.inst],['Replacement Due',r.due],['Cert. No.',r.certNo],['Cal. Lab',r.calLab]]}],sig:[]}};
+ B.cal=function(r){return{chip:'',sub:(r.name||'')+(r.idno?' • '+r.idno:''),big:[{l:'CALIBRATED',v:fd(r.date)||'-'},{l:'DUE DATE',v:fd(r.duedate)||'-'},{l:'FREQ',v:r.freq||'-'}],
+  sections:[{t:'Instrument',rows:[['Name',r.name],['Make',r.make],['ID No.',r.idno],['Range',r.range],['Least Count',r.lc],['Location',r.location],['Certificate No.',r.certNo],['Lab',r.lab],['NABL',r.nabl]]}],sig:[]}};
+ B.utility=function(r){return{chip:r.activity||'',chipC:'#374151',sub:fd(r.date)+' • '+(r.itemName||''),big:[{l:'HOURS',v:String(r.hours||0)},{l:'QTY',v:String(r.qty||0)},{l:'COST',v:r.cost?String(r.cost):'-'}],
+  sections:[{t:'Record',rows:[['Item / Machine',r.itemName],['Type',r.kind],['Location',r.location],['Department',r.department],['Problem',r.problem],['Action Taken',r.action],['Spare Used',r.spare]]}],sig:[['Done By',r.person]]}};
+ B.mh=function(r){return{chip:'',sub:fd(r.date)+' • '+(r.machineNo||''),big:[{l:'BD HOURS',v:r.bdHours||'-'},{l:'COST',v:r.cost||'-'},{l:'YEAR',v:r.year||'-'}],
+  sections:[{t:'History Entry',rows:[['Machine',r.machine],['Make',r.make],['Reason',r.reason],['Action',r.action],['Spares',r.spares]]}],sig:[['Attended By',r.attendedBy]]}};
+ B.dsoot=function(r){var nk=num0(r.notOk);return{chip:nk?'⚠ '+nk+' NOT OK':'✔ ALL OK',chipC:nk?'#dc2626':'#15803d',sub:(r.machineNo||'')+' • '+fd(r.date),big:[{l:'POINTS',v:String((r.rows||[]).length)},{l:'NOT OK',v:String(nk),c:nk?'r':'g'},{l:'TIME',v:(r.start||'')+(r.end?'-'+r.end:'')||'-'}],
+  sections:[{t:'Check',rows:[['M/C No.',r.machineNo],['Done Date',fd(r.date)],['Document',r.doc]]}],sig:[['Checked By',r.checkedBy],['Verified By',r.verifiedBy]]}};
+ B.spares=function(r){return{chip:'',sub:fd(r.date||'')||'',big:[],sections:[{t:'Spare',rows:[['Item Code',r.code],['Description',r.desc],['Specification',r.spec],['Available',(r.availableQty!=null&&r.availableQty!==''?r.availableQty:r.qty)],['Min / Max',(r.min||'')+' / '+(r.max||'')],['Location',r.location]]}],sig:[]}};
+ B.critical=B.spares;
+ window.mmsCardSpec=function(key,r,isNew){var c=CFG[key]||[key,'📋',['#0b2545','#13579b']],b=B[key]?B[key](r):{sections:[],sig:[]};
+  var by=me();return Object.assign({title:c[0],icon:c[1],c:c[2],tag1:isNew?'New entry':'Updated',tag2:fd(r.date)||new Date().toLocaleDateString('en-GB'),foot:(by?'Saved by '+by+' • ':'')+new Date().toLocaleString('en-GB').replace(',','')},b)};
+ window.mmsCardShowRec=function(key,r,isNew){try{window.mmsCardShowSpec(window.mmsCardSpec(key,r,isNew))}catch(e){console.warn('card',e)}};
+ /* ---------- save functions ko wrap karo: record badle to card dikhao ---------- */
+ var MAP=[['savePF','pf'],['savePC','pc'],['saveDG','dg'],['saveAirCompressor','airCompressor'],['saveBreakdown','bd'],['savePM','pm'],['saveThermocouple','tc'],['saveCalibration','cal'],['saveUtilityLog','utility'],['saveHistoryManual','mh'],['saveDsoot','dsoot'],['saveSparePart','spares'],['saveCriticalSpare','critical']];
+ function rid(r){return r&&r.id!=null?'i'+r.id:'k'+(r&&r.date||'')+'|'+(r&&r.time||'')+'|'+(r&&r.machineNo||'')+'|'+(r&&r.from||'')}
+ function snap(key){var m={},a=[];try{a=(data[key]||[]).filter(function(r){return key!=='utility'||r.type==='log'})}catch(e){}a.forEach(function(r){try{m[rid(r)]=JSON.stringify(r)}catch(e){}});return m}
+ function changed(key,before){var a=[];try{a=(data[key]||[]).filter(function(r){return key!=='utility'||r.type==='log'})}catch(e){}var hit=null,isNew=false;a.forEach(function(r){var k=rid(r),j;try{j=JSON.stringify(r)}catch(e){return}if(before[k]!==j){hit=r;isNew=before[k]===undefined}});return hit?{r:hit,isNew:isNew}:null}
+ function wrap(fn,key){var o=window[fn];if(typeof o!=='function'||o.__card)return;
+  var w=function(){var s=snap(key),res=o.apply(this,arguments);var go=function(){try{var c=changed(key,s);if(c)setTimeout(function(){window.mmsCardShowRec(key,c.r,c.isNew)},300)}catch(e){console.warn(e)}};
+   if(res&&typeof res.then==='function')res.then(go);else go();return res};
+  w.__card=1;window[fn]=w}
+ function wrapAll(){MAP.forEach(function(m){wrap(m[0],m[1])});try{wrapExtra()}catch(e){console.warn(e)}}
+ window.mmsCardWrapAll=wrapAll;
+ /* ===== EXTRA MODULE CARDS + DAILY REPORT CARD (Option B) ===== */
+ CFG.sparePurchase=['SPARE PART PURCHASE','🛒',['#78350f','#d97706']];
+ CFG.meeting=['MEETING DISCUSSION','🗣️',['#334155','#64748b']];
+ CFG.powerCost=['POWER COST (UNIT 7)','💰',['#14532d','#16a34a']];
+ CFG.hpsebBill=['HPSEBL BILL (UNIT 7)','🧾',['#1e3a8a','#2563eb']];
+ var HQN={satReport:['SAT REPORT (CQI-9)','🌡️',['#7c2d12','#ea580c']],satTemp:['SAT TEMP VERIFICATION','📈',['#9a3412','#f97316']],oxyMV:['OXY PROBE MV CHECK','🧪',['#164e63','#0891b2']],oxyImp:['O2 PROBE IMPEDANCE','🔬',['#155e75','#06b6d4']],oxyRep:['OXY PROBE REPLACEMENT','🔁',['#0f766e','#14b8a6']],amc:['AMC & SERVICE CONTRACT','📑',['#3730a3','#6366f1']],amcLog:['AMC SERVICE VISIT','🛠️',['#4338ca','#818cf8']],tus:['TUS SURVEY','📊',['#7f1d1d','#dc2626']],furnChk:['FURNACE LEAK / QUENCH CHECK','🔥',['#991b1b','#ef4444']],contingency:['CONTINGENCY PLAN','🚧',['#374151','#6b7280']]};
+ Object.keys(HQN).forEach(function(k){CFG[k]=HQN[k]});
+ function plain(v){return String(v==null?'':v).replace(/<[^>]*>/g,'').replace(/\*/g,'').replace(/&amp;/g,'&').trim()}
+ function genSections(fields,r,skip,max){
+  var secs=[],cur={t:'Details',rows:[]},n=0;secs.push(cur);
+  (fields||[]).forEach(function(fl){
+   if(!fl||!fl.k||skip[fl.k]||fl.t==='image'||fl.t==='file')return;
+   if(fl.sec){cur={t:plain(fl.sec).slice(0,48),rows:[]};secs.push(cur)}
+   var v=r[fl.k];if(v===undefined||v===null||v===''||typeof v==='object')return;
+   if(typeof v==='boolean')v=v?'Yes':'No';
+   v=String(v);if(fl.t==='date')v=fd(v);if(v.length>120)v=v.slice(0,117)+'...';
+   if(n>=(max||18))return;n++;cur.rows.push([plain(fl.l||fl.k),v]);
+  });
+  return secs.filter(function(x){return x.rows.length});
+ }
+ function chipOf(st){st=String(st||'');return{chip:st,chipC:/not ok|fail|expired|overdue|reject/i.test(st)?'#dc2626':(/ok|pass|done|complete|valid|received/i.test(st)?'#15803d':'#b45309')}}
+ function hqB(key){return function(r){
+  var c=(typeof HQ_CFG!=='undefined'&&HQ_CFG[key])||{fields:[]},dk=(typeof HQ_DATEKEY!=='undefined'&&HQ_DATEKEY[key])||'date',ch=chipOf(r.status||r.result||r.passFail||'');
+  var sub=plain(r.furnace||r.fc||r.equipment||r.machineNo||'');
+  return Object.assign({sub:sub,tag2:fd(r[dk])||fd(r.date)||new Date().toLocaleDateString('en-GB'),sections:genSections(c.fields,r,{},18),sig:[['Prepared By',r.preparedUser||r.by||''],['Approved By',r.approvedBy||r.verifiedBy||'']]},ch)}}
+ Object.keys(HQN).forEach(function(k){B[k]=hqB(k)});
+ function pwB(key){return function(r){
+  var c=(typeof PW!=='undefined'&&PW[key])||{F:[]},m='';try{m=new Date((r.date||'').slice(0,7)+'-01T00:00:00').toLocaleDateString('en-GB',{month:'short',year:'numeric'})}catch(e){}
+  return{tag2:m,sub:'Month: '+m,chip:'',sections:genSections((c.F||[]).map(function(x){return {k:x.k,l:x.l,t:x.t}}),r,{date:1},18),sig:[]}}}
+ B.powerCost=pwB('powerCost');B.hpsebBill=pwB('hpsebBill');
+ B.meeting=function(r){var ch=chipOf(r.status);function cut(v){v=String(v||'');return v.length>200?v.slice(0,197)+'...':v}
+  return Object.assign({sub:fd(r.date)+(r.time?' • '+r.time:''),sections:[{t:'Discussion',rows:[['Topic',cut(r.topic)],['Notes',cut(r.notes)],['Action',cut(r.action)],['Assigned To',r.assigned],['Target Date',fd(r.target)]]}],sig:[]},ch)};
+ B.sparePurchase=function(r){var L=['Planned','PR Raised','PO Created','Sent to Vendor','Received'],i=L.indexOf(r.status||'Planned');if(i<0)i=0;
+  var steps=['Planned','PR','PO','Sent','Received'].map(function(l,x){return{l:l,k:(r.status==='Received'||x<=i)?'d':(x===i+1?'n':'')}});
+  var ch=chipOf(r.status||'Planned');if(!/received/i.test(r.status||''))ch.chipC='#b45309';
+  return Object.assign({sub:'Sr. '+(r.sno||'')+' • '+(r.urgency||'Normal'),steps:steps,big:[{l:'QTY',v:String(r.qty||'-')},{l:'URGENCY',v:r.urgency||'Normal',c:/urgent|breakdown/i.test(r.urgency||'')?'r':''},{l:'STAGE',v:(r.status||'Planned')}],
+   sections:[{t:'Part',rows:[['Description',r.desc],['Specification',r.spec],['Required By',fd(r.reqDate)],['Source',r.source],['Reference',r.refInfo]]},
+    {t:'Purchase',rows:[['PR No.',r.prNo],['PR Date',fd(r.prDate)],['PO No.',r.po],['PO Date',fd(r.poDate)],['Vendor',r.vendor],['PO Sent On',fd(r.sentDate)],['Expected Date',fd(r.expDate)],['Received On',fd(r.recDate)],['Received Qty',r.recQty?String(r.recQty):''],['Cost',r.cost?String(r.cost):''],['Challan',r.challan]]}],sig:[]},ch)};
+ function wrapKey(fn,keyOf){var o=window[fn];if(typeof o!=='function'||o.__card)return;
+  var w=function(){var k=null;try{k=keyOf.apply(this,arguments)}catch(e){}if(!k)return o.apply(this,arguments);
+   var s=snap(k),res=o.apply(this,arguments);var go=function(){try{var c=changed(k,s);if(c)setTimeout(function(){window.mmsCardShowRec(k,c.r,c.isNew)},300)}catch(e){console.warn(e)}};
+   if(res&&typeof res.then==='function')res.then(go);else go();return res};
+  w.__card=1;window[fn]=w}
+ function wrapExtra(){
+  wrapKey('hqSave',function(k){return HQN[k]?k:null});
+  wrapKey('pwSave',function(m){return (m==='powerCost'||m==='hpsebBill')?m:null});
+  wrapKey('savePurchaseRecord',function(){return 'sparePurchase'});
+  wrapKey('saveMeetingRecord',function(){return 'meeting'});
+ }
+ /* ---------- DAILY REPORT CARD (Option B) ---------- */
+ function ldate(x){var d=x instanceof Date?x:new Date(x);if(isNaN(d))return '';return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+ function onDay(a,D,k){return (Array.isArray(a)?a:[]).filter(function(r){return r&&String(r[k||'date']||'').slice(0,10)===D})}
+ window.mmsDailyCard=function(D){
+  D=D||ldate(new Date());
+  var d=window.data||data,out={};
+  var pfs=srt(onDay(d.pf,D)),pf=pfs.length?B.pf(pfs[pfs.length-1]):null,pfv=pf?pf.big[2].v:'-',pfBad=pf&&/NOT/.test(pf.chip||'');
+  var pcs=srt(onDay(d.pc,D)),dgs=srt(onDay(d.dg,D)),dgb=dgs.length?B.dg(dgs[dgs.length-1]):null;
+  var bds=onDay(d.bd,D),bdh=0;bds.forEach(function(r){bdh+=num0(r.hours)});
+  var mr=Array.isArray(d.mr)?d.mr:[],PEND=['Open','In Progress','Waiting for Spare'];
+  var mNew=mr.filter(function(r){return r&&r.pdate===D}).length;
+  var mClosed=mr.filter(function(r){return r&&r.status==='Closed'&&((r.verifiedAt&&ldate(r.verifiedAt)===D)||(!r.verifiedAt&&r.hdate===D))}).length;
+  var mOpen=mr.filter(function(r){return r&&PEND.indexOf(r.status||'Open')>=0});
+  var now=Date.now(),mOver=mOpen.filter(function(r){var t=new Date((r.pdate||'')+'T'+(r.ptime||'00:00')).getTime();return isFinite(t)&&(now-t)/36e5>=24}).length;
+  var pms=onDay(d.pm,D),pmNg=0;pms.forEach(function(r){(r.entries||[]).forEach(function(e){if(e&&e.workDone==='Not OK')pmNg++})});
+  var ds=onDay(d.dsoot,D).length,pt=onDay(d.ptm,D).length,dm=onDay(d.dsm,D).length,ut=onDay(d.utility,D).filter(function(r){return r.type==='log'}).length;
+  var low=(Array.isArray(d.spares)?d.spares:[]).filter(function(r){var a=Number(r.availableQty!=null&&r.availableQty!==''?r.availableQty:r.qty),m=Number(r.min);return isFinite(a)&&isFinite(m)&&m>0&&a<m}).length;
+  var pend=(Array.isArray(d.sparePurchase)?d.sparePurchase:[]).filter(function(r){return r&&r.status&&r.status!=='Received'&&r.status!=='Cancelled'}).length;
+  var pcRows=pcs.slice(0,3).map(function(r,i){var du='';try{du=r.to?timeDuration(r.from,r.to):''}catch(e){}return ['Power cut '+(pcs.length>1?(i+1):''),(r.from||'')+' - '+(r.to||'restoration pending')+(du?' ('+du+' h)':''),r.to?'':'r']});
+  var cl='';for(var i=pcs.length-1;i>=0;i--){if(pcs[i].to){try{cl=pcClosing(pcs[i]).toFixed(2)+' L'}catch(e){}break}}
+  var wd='';try{wd=new Date(D+'T00:00:00').toLocaleDateString('en-GB',{weekday:'long'})}catch(e){}
+  var spec={title:'DAILY REPORT',icon:'📅',c:['#0b2545','#13579b'],tag1:'Daily report',tag2:fd(D),sub:wd+' • all modules',
+   big:[{l:'P.F.',v:pfv,c:pf?(pfBad?'r':'g'):''},{l:'POWER CUT',v:String(pcs.length),c:pcs.length?'o':'g'},{l:'BREAKDOWN',v:String(bds.length),c:bds.length?'r':'g'}],
+   sections:[
+    {t:'Power and Utility',rows:[['P.F. (kWh / kVAh)',pf?pfv+(pfBad?' NOT OK':' OK'):'Pending',pf?(pfBad?'r':'g'):'o']].concat(pcRows.length?pcRows:[['Power cut','None','g']]).concat([
+      ['DG-01 / DG-02 kWh',dgb?dgb.big[0].v+' / '+dgb.big[1].v:'Pending',dgb?'':'o'],['Diesel closing stock',cl],
+      ['Air compressor kWh',onDay(d.airCompressor,D).length?'Done':'Pending',onDay(d.airCompressor,D).length?'g':'o']])},
+    {t:'Maintenance',rows:[['Breakdowns',bds.length?bds.length+' • '+bdh.toFixed(2)+' h downtime':'None',bds.length?'r':'g'],['Requests: new / closed',mNew+' / '+mClosed],['Requests still open',mOpen.length+(mOver?' ('+mOver+' over 24 h)':''),mOver?'r':(mOpen.length?'o':'g')],
+      ['PM check sheets',pms.length?pms.length+(pmNg?' ('+pmNg+' not OK)':' (all OK)'):'0',pmNg?'r':''],['De-soot / Predictive / Shiftwise',ds+' / '+pt+' / '+dm],['Maint & utility logs',String(ut)]]},
+    {t:'Spares',rows:[['Below minimum stock',String(low),low?'r':'g'],['Purchase pending',String(pend),pend?'o':'g']]}],
+   sig:[['Prepared By',me()]],foot:new Date().toLocaleString('en-GB').replace(',','')};
+  window.mmsCardShowSpec(spec);
+ };
+ window.rptDailyCard=function(){var pe=document.getElementById('rptPeriod'),dy=document.getElementById('rptDay');
+  var D=(pe&&pe.value==='d'&&dy&&dy.value)?dy.value:ldate(new Date());window.mmsDailyCard(D)};
+
+ [0,1500,4000,9000,15000,30000].forEach(function(t){setTimeout(wrapAll,t)});
+})();
+
+function mmsVerNeed(cur){const c=String(cur||'').trim();if(c)return c;try{return String((window.mmsPersonName&&window.mmsPersonName())||'').trim()}catch(e){return ''}}
+(function(){
+ function editing(id){try{if(id==='pf_sign')return edit.pf!==null&&edit.pf!==undefined;if(id==='pc_sign')return edit.pc!==null&&edit.pc!==undefined;if(id==='dg_verified')return edit.dg!==null&&edit.dg!==undefined;if(id==='ac_verified')return !!(document.getElementById('ac_id')||{}).value}catch(e){}return false}
+ function tick(){
+  let n='';try{n=(window.mmsPersonName&&window.mmsPersonName(false))||''}catch(e){}
+  ['pf_sign','pc_sign','dg_verified','ac_verified'].forEach(function(id){
+   const el=document.getElementById(id);if(!el)return;el.readOnly=true;
+   if(editing(id)&&el.value)return;
+   if(!el.value||el.value===el.dataset.auto){el.value=n;el.dataset.auto=n}
+  });
+ }
+ setInterval(tick,1200);setTimeout(tick,300);
+})();
 function saveDG(){
  if(!mmsGuardSave('dg'))return;
   const old=edit.dg!==null?data.dg[edit.dg]:null;
@@ -3251,8 +3470,10 @@ function saveDG(){
     dg2fuel:num(f('dg2_fuel')),
     dg2batt:num(f('dg2_batt')),dg2coolant:num(f('dg2_coolant')),
     status:f('dg_status'),remark:f('dg_remark'),
+    verifiedBy:mmsVerNeed(f('dg_verified')),
     updatedAt:new Date().toISOString()
   };
+  if(!r.verifiedBy)return alert('Verified By ka naam zaroori hai.');
   if(!r.date||!r.dg1hr||f('dg1_kwh')===''||f('dg1_kvah')===''||f('dg1_fuel')===''||
      !r.dg2hr||f('dg2_kwh')===''||f('dg2_kvah')===''||f('dg2_fuel')===''||!r.status){
     return alert('Please enter Date, both DG readings, Fuel readings and DG Status.');
@@ -3269,15 +3490,15 @@ function saveDG(){
   alert(wasEdit?'DG Reading updated successfully.':'DG Reading saved successfully.');
 }
 
-function editDG(i){if(!mmsGuardEdit('dg'))return;let r=data.dg[i];edit.dg=i;Object.entries({dg_date:r.date,dg_time:r.time,dg1_hr:r.dg1hr,dg1_kwh:r.dg1kwh,dg1_kvah:r.dg1kvah,dg1_fuel:r.dg1fuel,dg1_batt:r.dg1batt??'',dg1_coolant:r.dg1coolant??'',dg2_hr:r.dg2hr,dg2_kwh:r.dg2kwh,dg2_kvah:r.dg2kvah,dg2_fuel:r.dg2fuel,dg2_batt:r.dg2batt??'',dg2_coolant:r.dg2coolant??'',dg_status:r.status,dg_remark:r.remark||''}).forEach(([k,v])=>setv(k,v));window.scrollTo({top:0,behavior:'smooth'})}
-function clearDG(){['dg_date','dg1_hr','dg1_kwh','dg1_kvah','dg1_fuel','dg1_batt','dg1_coolant','dg2_hr','dg2_kwh','dg2_kvah','dg2_fuel','dg2_batt','dg2_coolant','dg_remark'].forEach(id=>setv(id,''));setv('dg_time','06:30');setv('dg_status','');edit.dg=null}
+function editDG(i){if(!mmsGuardEdit('dg'))return;let r=data.dg[i];edit.dg=i;Object.entries({dg_date:r.date,dg_time:r.time,dg1_hr:r.dg1hr,dg1_kwh:r.dg1kwh,dg1_kvah:r.dg1kvah,dg1_fuel:r.dg1fuel,dg1_batt:r.dg1batt??'',dg1_coolant:r.dg1coolant??'',dg2_hr:r.dg2hr,dg2_kwh:r.dg2kwh,dg2_kvah:r.dg2kvah,dg2_fuel:r.dg2fuel,dg2_batt:r.dg2batt??'',dg2_coolant:r.dg2coolant??'',dg_status:r.status,dg_remark:r.remark||'',dg_verified:r.verifiedBy||''}).forEach(([k,v])=>setv(k,v));window.scrollTo({top:0,behavior:'smooth'})}
+function clearDG(){['dg_verified','dg_date','dg1_hr','dg1_kwh','dg1_kvah','dg1_fuel','dg1_batt','dg1_coolant','dg2_hr','dg2_kwh','dg2_kvah','dg2_fuel','dg2_batt','dg2_coolant','dg_remark'].forEach(id=>setv(id,''));setv('dg_time','06:30');setv('dg_status','');edit.dg=null}
 
 
 function readingLogConfigs(){
  return {
-  pf:{title:'POWER FACTOR',monthId:'pf_month',cols:['Date','Time','KWH','KVAH','KWH (Diff)','KVAH (Diff)','P.F.','Status','Sign.'],getData:(label)=>{let c=pfMonthlyCalc(label);return {rows:c.rows.map(x=>[fmtDate(x.r.date),x.r.time,x.r.kwh,x.r.kvah,x.kd,x.vd,x.pf,x.pf===''?'':(Number(x.pf)>=PFOK('pf')?'OK':'NOT OK'),x.r.sign]),summary:[['MONTHLY TOTAL KWH',c.totalKwh.toFixed(1)],['MONTHLY TOTAL KVAH',c.totalKvah.toFixed(1)],['MONTHLY PF',c.totalKvah?c.pf.toFixed(3):'—']]};}},
-  pc:{title:'POWER CUT DETAIL',monthId:'pc_month',cols:['Date','Time','DG1 Stock','DG2 Stock','Drum Stock','Total Stock','Add Stock','From','To','Duration','Count 1','Count 2','Total Count','Closing Stock','Sign.'],getData:(label)=>{let targetD=new Date(label+' 1'),rows=[...data.pc].sort((x,y)=>(x.date+x.time).localeCompare(y.date+y.time)).filter(r=>{let d=new Date((r.date||'')+'T00:00:00');return !isNaN(d)&&!isNaN(targetD)&&d.getFullYear()===targetD.getFullYear()&&d.getMonth()===targetD.getMonth()});let mins=0,c1=0,c2=0;rows.forEach(r=>{let dur=timeDuration(r.from,r.to);if(dur){let p=dur.split(':').map(Number);mins+=p[0]*60+p[1];}c1+=num(r.c1);c2+=num(r.c2);});return {rows:rows.map(r=>[fmtDate(r.date),r.time,r.dg1||'',r.dg2||'',r.drum||'',r.stock||'',r.add||'',r.from||'',r.to||'',timeDuration(r.from,r.to),r.c1||'',r.c2||'',(r.c1+r.c2).toFixed(2),pcClosing(r).toFixed(2),r.sign]),summary:[['TOTAL POWER CUT',String(Math.floor(mins/60)).padStart(2,'0')+':'+String(mins%60).padStart(2,'0')+' HRS'],['DG-01 TOTAL CONSUMPTION',c1.toFixed(2)],['DG-02 TOTAL CONSUMPTION',c2.toFixed(2)],['TOTAL DG CONSUMPTION',(c1+c2).toFixed(2)],['DIESEL ADDED',rows.reduce((a,r)=>a+num(r.add),0).toFixed(2)],['CLOSING DIESEL STOCK',rows.length?pcClosing(rows[rows.length-1]).toFixed(2):'0.00']]};}},
-  dg:{title:'DG DAILY READING',monthId:'dg_month',cols:['Date','Time','DG1 Running Hour','DG1 KWH','DG1 KVAH','DG1 Fuel','DG1 Battery (V)','DG1 Coolant (°C)','DG2 Running Hour','DG2 KWH','DG2 KVAH','DG2 Fuel','DG2 Battery (V)','DG2 Coolant (°C)','Status','Remark'],getData:(label)=>{let targetD=new Date(label+' 1');let a=[...data.dg].sort((x,y)=>((x.date||'')+(x.time||'')).localeCompare((y.date||'')+(y.time||'')));let prev1=null, prev2=null, rows=[], m1k=0, m1v=0, m1hr=0, m2k=0, m2v=0, m2hr=0;a.forEach((r, idx)=>{let prev = a[idx - 1];let d1k = prev && r.dg1kwh !== '' && prev.dg1kwh !== '' ? (num(r.dg1kwh) - num(prev.dg1kwh)).toFixed(2) : '';let d1v = prev && r.dg1kvah !== '' && prev.dg1kvah !== '' ? (num(r.dg1kvah) - num(prev.dg1kvah)).toFixed(2) : '';let d2k = prev && r.dg2kwh !== '' && prev.dg2kwh !== '' ? (num(r.dg2kwh) - num(prev.dg2kwh)).toFixed(2) : '';let d2v = prev && r.dg2kvah !== '' && prev.dg2kvah !== '' ? (num(r.dg2kvah) - num(prev.dg2kvah)).toFixed(2) : '';let d = new Date((r.date || '') + 'T00:00:00');if(!isNaN(d) && !isNaN(targetD) && d.getFullYear() === targetD.getFullYear() && d.getMonth() === targetD.getMonth()){if(d1k !== '' && num(d1k) >= 0 && num(d1v) >= 0){ m1k += num(d1k); m1v += num(d1v); }if(prev && r.dg1hr !== '' && prev.dg1hr !== ''){ let dh1 = (pwHr(r.dg1hr) - pwHr(prev.dg1hr)) || 0; if(dh1 >= 0) m1hr += dh1; }if(d2k !== '' && num(d2k) >= 0 && num(d2v) >= 0){ m2k += num(d2k); m2v += num(d2v); }if(prev && r.dg2hr !== '' && prev.dg2hr !== ''){ let dh2 = (pwHr(r.dg2hr) - pwHr(prev.dg2hr)) || 0; if(dh2 >= 0) m2hr += dh2; }rows.push([fmtDate(r.date), r.time, r.dg1hr || '', r.dg1kwh || '', r.dg1kvah || '', r.dg1fuel || '', r.dg1batt ?? '', r.dg1coolant ?? '', r.dg2hr || '', r.dg2kwh || '', r.dg2kvah || '', r.dg2fuel || '', r.dg2batt ?? '', r.dg2coolant ?? '', r.status || '', r.remark || '']);}
+  pf:{title:'POWER FACTOR',monthId:'pf_month',cols:['Date','Time','KWH','KVAH','KWH (Diff)','KVAH (Diff)','P.F.','Status','Verified By'],getData:(label)=>{let c=pfMonthlyCalc(label);return {rows:c.rows.map(x=>[fmtDate(x.r.date),x.r.time,x.r.kwh,x.r.kvah,x.kd,x.vd,x.pf,x.pf===''?'':(Number(x.pf)>=PFOK('pf')?'OK':'NOT OK'),x.r.sign]),summary:[['MONTHLY TOTAL KWH',c.totalKwh.toFixed(1)],['MONTHLY TOTAL KVAH',c.totalKvah.toFixed(1)],['MONTHLY PF',c.totalKvah?c.pf.toFixed(3):'—']]};}},
+  pc:{title:'POWER CUT DETAIL',monthId:'pc_month',cols:['Date','Time','DG1 Stock','DG2 Stock','Drum Stock','Total Stock','Add Stock','From','To','Duration','Count 1','Count 2','Total Count','Closing Stock','Verified By'],getData:(label)=>{let targetD=new Date(label+' 1'),rows=[...data.pc].sort((x,y)=>(x.date+x.time).localeCompare(y.date+y.time)).filter(r=>{let d=new Date((r.date||'')+'T00:00:00');return !isNaN(d)&&!isNaN(targetD)&&d.getFullYear()===targetD.getFullYear()&&d.getMonth()===targetD.getMonth()});let mins=0,c1=0,c2=0;rows.forEach(r=>{let dur=timeDuration(r.from,r.to);if(dur){let p=dur.split(':').map(Number);mins+=p[0]*60+p[1];}c1+=num(r.c1);c2+=num(r.c2);});return {rows:rows.map(r=>[fmtDate(r.date),r.time,r.dg1||'',r.dg2||'',r.drum||'',r.stock||'',r.add||'',r.from||'',r.to||'',timeDuration(r.from,r.to),r.c1||'',r.c2||'',(r.c1+r.c2).toFixed(2),pcClosing(r).toFixed(2),r.sign]),summary:[['TOTAL POWER CUT',String(Math.floor(mins/60)).padStart(2,'0')+':'+String(mins%60).padStart(2,'0')+' HRS'],['DG-01 TOTAL CONSUMPTION',c1.toFixed(2)],['DG-02 TOTAL CONSUMPTION',c2.toFixed(2)],['TOTAL DG CONSUMPTION',(c1+c2).toFixed(2)],['DIESEL ADDED',rows.reduce((a,r)=>a+num(r.add),0).toFixed(2)],['CLOSING DIESEL STOCK',rows.length?pcClosing(rows[rows.length-1]).toFixed(2):'0.00']]};}},
+  dg:{title:'DG DAILY READING',monthId:'dg_month',cols:['Date','Time','DG1 Running Hour','DG1 KWH','DG1 KVAH','DG1 Fuel','DG1 Battery (V)','DG1 Coolant (°C)','DG2 Running Hour','DG2 KWH','DG2 KVAH','DG2 Fuel','DG2 Battery (V)','DG2 Coolant (°C)','Status','Remark','Verified By'],getData:(label)=>{let targetD=new Date(label+' 1');let a=[...data.dg].sort((x,y)=>((x.date||'')+(x.time||'')).localeCompare((y.date||'')+(y.time||'')));let prev1=null, prev2=null, rows=[], m1k=0, m1v=0, m1hr=0, m2k=0, m2v=0, m2hr=0;a.forEach((r, idx)=>{let prev = a[idx - 1];let d1k = prev && r.dg1kwh !== '' && prev.dg1kwh !== '' ? (num(r.dg1kwh) - num(prev.dg1kwh)).toFixed(2) : '';let d1v = prev && r.dg1kvah !== '' && prev.dg1kvah !== '' ? (num(r.dg1kvah) - num(prev.dg1kvah)).toFixed(2) : '';let d2k = prev && r.dg2kwh !== '' && prev.dg2kwh !== '' ? (num(r.dg2kwh) - num(prev.dg2kwh)).toFixed(2) : '';let d2v = prev && r.dg2kvah !== '' && prev.dg2kvah !== '' ? (num(r.dg2kvah) - num(prev.dg2kvah)).toFixed(2) : '';let d = new Date((r.date || '') + 'T00:00:00');if(!isNaN(d) && !isNaN(targetD) && d.getFullYear() === targetD.getFullYear() && d.getMonth() === targetD.getMonth()){if(d1k !== '' && num(d1k) >= 0 && num(d1v) >= 0){ m1k += num(d1k); m1v += num(d1v); }if(prev && r.dg1hr !== '' && prev.dg1hr !== ''){ let dh1 = (pwHr(r.dg1hr) - pwHr(prev.dg1hr)) || 0; if(dh1 >= 0) m1hr += dh1; }if(d2k !== '' && num(d2k) >= 0 && num(d2v) >= 0){ m2k += num(d2k); m2v += num(d2v); }if(prev && r.dg2hr !== '' && prev.dg2hr !== ''){ let dh2 = (pwHr(r.dg2hr) - pwHr(prev.dg2hr)) || 0; if(dh2 >= 0) m2hr += dh2; }rows.push([fmtDate(r.date), r.time, r.dg1hr || '', r.dg1kwh || '', r.dg1kvah || '', r.dg1fuel || '', r.dg1batt ?? '', r.dg1coolant ?? '', r.dg2hr || '', r.dg2kwh || '', r.dg2kvah || '', r.dg2fuel || '', r.dg2batt ?? '', r.dg2coolant ?? '', r.status || '', r.remark || '', r.verifiedBy || '']);}
   });
  return {rows,summary:[['DG-01 TOTAL KWH', m1k.toFixed(2)],['DG-01 TOTAL KVAH', m1v.toFixed(2)],['DG-01 RUNNING HOURS', m1hr.toFixed(2)],['DG-01 MONTHLY PF', m1v ? (m1k / m1v).toFixed(3) : '—'],['DG-02 TOTAL KWH', m2k.toFixed(2)],['DG-02 TOTAL KVAH', m2v.toFixed(2)],['DG-02 RUNNING HOURS', m2hr.toFixed(2)],['DG-02 MONTHLY PF', m2v ? (m2k / m2v).toFixed(3) : '—']]};}
     }};}
@@ -4132,8 +4353,8 @@ function renderAirCompressor(){
   body.innerHTML=rows.map(r=>{
     const rid=String(r.id).replace(/[\\']/g,'');
     const fmt=v=>v===''||v==null?'':(typeof v==='number'?v.toFixed(2):utilityEsc(v));
-    return `<tr><td>${utilityEsc(fmtDate(r.date))}</td><td>${utilityEsc(r.machine)}</td><td>${fmt(r.kwh)}</td><td>${fmt(r.kwhDay)}</td><td>${fmt(r.kwhHour)}</td><td>${fmt(r.runHour)}</td><td>${fmt(r.loadHour)}</td><td>${fmt(r.totalRun)}</td><td>${fmt(r.totalLoad)}</td><td class="editbar"><button class="secondary" onclick="editAirCompressor('${rid}')">Edit</button><button class="danger" onclick="deleteAirCompressor('${rid}')">Delete</button></td></tr>`;
-  }).join('')||'<tr><td colspan="10">No compressor records found.</td></tr>';
+    return `<tr><td>${utilityEsc(fmtDate(r.date))}</td><td>${utilityEsc(r.machine)}</td><td>${fmt(r.kwh)}</td><td>${fmt(r.kwhDay)}</td><td>${fmt(r.kwhHour)}</td><td>${fmt(r.runHour)}</td><td>${fmt(r.loadHour)}</td><td>${fmt(r.totalRun)}</td><td>${fmt(r.totalLoad)}</td><td>${utilityEsc(r.verifiedBy||'')}</td><td class="editbar"><button class="secondary" onclick="editAirCompressor('${rid}')">Edit</button><button class="danger" onclick="deleteAirCompressor('${rid}')">Delete</button></td></tr>`;
+  }).join('')||'<tr><td colspan="11">No compressor records found.</td></tr>';
   // Summary cards must always reflect ONLY the currently selected month.
   // Keep the previous-reading lookup across the full dataset so the first
   // reading of a selected month can still calculate its difference from the
@@ -4156,7 +4377,8 @@ function saveAirCompressor(){
   const id=f('ac_id')||('ac-'+Date.now());
   const monthLabel=new Date(date+'T00:00:00').toLocaleString('en-US',{month:'short',year:'2-digit'}).replace(' ',' ').toLowerCase();
   let r=data.airCompressor.find(x=>String(x.id)===String(id));
-  const obj={type:'reading',id,date,machine,kwh:f('ac_kwh')===''?'':Number(f('ac_kwh')),runHour:f('ac_run')===''?'':Number(f('ac_run')),loadHour:f('ac_load')===''?'':Number(f('ac_load')),sheet:monthLabel,sourceRef:''};
+  const obj={type:'reading',id,date,machine,kwh:f('ac_kwh')===''?'':Number(f('ac_kwh')),runHour:f('ac_run')===''?'':Number(f('ac_run')),loadHour:f('ac_load')===''?'':Number(f('ac_load')),sheet:monthLabel,sourceRef:'',verifiedBy:mmsVerNeed((r&&r.verifiedBy)||f('ac_verified'))};
+  if(!obj.verifiedBy)return alert('Verified By ka naam zaroori hai.');
   if(r)Object.assign(r,obj);else data.airCompressor.push(obj);
   persist('airCompressor');clearAirCompressor();initAirCompressor();alert('Air Compressor reading saved successfully.');
 }
@@ -4167,7 +4389,7 @@ function acIndexOf(ref){
 }
 function editAirCompressor(ref){if(!mmsGuardEdit('airCompressor'))return;
   const i=acIndexOf(ref);const r=data.airCompressor[i];if(!r)return alert('Record not found.');
-  setv('ac_id',r.id);setv('ac_date',r.date);setv('ac_machine',r.machine);setv('ac_kwh',r.kwh);setv('ac_run',r.runHour);setv('ac_load',r.loadHour);
+  setv('ac_id',r.id);setv('ac_date',r.date);setv('ac_machine',r.machine);setv('ac_kwh',r.kwh);setv('ac_run',r.runHour);setv('ac_load',r.loadHour);setv('ac_verified',r.verifiedBy||'');
   document.getElementById('airCompressor').scrollIntoView({behavior:'smooth'});
 }
 function deleteAirCompressor(ref){
@@ -4177,16 +4399,16 @@ function deleteAirCompressor(ref){
   data.airCompressor.splice(i,1);persist('airCompressor');renderAirCompressor();
 }
 function clearAirCompressor(){
-  ['ac_id','ac_kwh','ac_run','ac_load'].forEach(id=>setv(id,''));
+  ['ac_id','ac_verified','ac_kwh','ac_run','ac_load'].forEach(id=>setv(id,''));
   setv('ac_date',utilityToday());setv('ac_machine','COMPAIR 01');
 }
 function printAirCompressor(){
   const month=f('ac_month')||'';
   const rows=airCompressorCalcRows((data.airCompressor||[]).filter(r=>!month||r.sheet===month));
   const e=v=>String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  const body=rows.map(r=>`<tr><td>${e(fmtDate(r.date))}</td><td>${e(r.machine)}</td><td>${e(r.kwh)}</td><td>${e(r.kwhDay===''?'':Number(r.kwhDay).toFixed(2))}</td><td>${e(r.kwhHour===''?'':Number(r.kwhHour).toFixed(2))}</td><td>${e(r.runHour)}</td><td>${e(r.loadHour)}</td><td>${e(r.totalRun===''?'':Number(r.totalRun).toFixed(2))}</td><td>${e(r.totalLoad===''?'':Number(r.totalLoad).toFixed(2))}</td></tr>`).join('');
+  const body=rows.map(r=>`<tr><td>${e(fmtDate(r.date))}</td><td>${e(r.machine)}</td><td>${e(r.kwh)}</td><td>${e(r.kwhDay===''?'':Number(r.kwhDay).toFixed(2))}</td><td>${e(r.kwhHour===''?'':Number(r.kwhHour).toFixed(2))}</td><td>${e(r.runHour)}</td><td>${e(r.loadHour)}</td><td>${e(r.totalRun===''?'':Number(r.totalRun).toFixed(2))}</td><td>${e(r.totalLoad===''?'':Number(r.totalLoad).toFixed(2))}</td><td>${e(r.verifiedBy||'')}</td></tr>`).join('');
   const w=window.open('','_blank','width=1400,height=900');if(!w)return alert('Please allow pop-ups to print.');
-  w.document.write(`<!doctype html><html><head><title>Air Compressor KWH Register - ${e(month)}</title><style>@page{size:A4 landscape;margin:7mm}body{font-family:Arial;font-size:9px}.title{text-align:center;font-size:17px;font-weight:bold}.sub{text-align:center;font-size:12px;font-weight:bold;margin:4px 0 10px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #000;padding:4px;text-align:center}th{background:#eee}</style></head><body><div class="title">Milestone Gears Ltd. UNIT-7</div><div class="sub">AIR COMPRESSOR KWH CHECK SHEET — ${e(month)}</div><table><thead><tr><th>DATE</th><th>MACHINE NO.</th><th>KWH</th><th>UNIT CONSUMPTION PER DAY</th><th>UNIT CONSUMPTION PER HOUR</th><th>RUN HOUR READING</th><th>LOAD HOUR READING</th><th>TOTAL RUN HOUR</th><th>TOTAL LOAD HOUR</th></tr></thead><tbody>${body||'<tr><td colspan="9">No records</td></tr>'}</tbody></table><script>window.onload=()=>window.print()<\/script></body></html>`);
+  w.document.write(`<!doctype html><html><head><title>Air Compressor KWH Register - ${e(month)}</title><style>@page{size:A4 landscape;margin:7mm}body{font-family:Arial;font-size:9px}.title{text-align:center;font-size:17px;font-weight:bold}.sub{text-align:center;font-size:12px;font-weight:bold;margin:4px 0 10px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #000;padding:4px;text-align:center}th{background:#eee}</style></head><body><div class="title">Milestone Gears Ltd. UNIT-7</div><div class="sub">AIR COMPRESSOR KWH CHECK SHEET — ${e(month)}</div><table><thead><tr><th>DATE</th><th>MACHINE NO.</th><th>KWH</th><th>UNIT CONSUMPTION PER DAY</th><th>UNIT CONSUMPTION PER HOUR</th><th>RUN HOUR READING</th><th>LOAD HOUR READING</th><th>TOTAL RUN HOUR</th><th>TOTAL LOAD HOUR</th><th>VERIFIED BY</th></tr></thead><tbody>${body||'<tr><td colspan="10">No records</td></tr>'}</tbody></table><script>window.onload=()=>window.print()<\/script></body></html>`);
   w.document.close();
 }
 
@@ -4500,7 +4722,7 @@ function mmRemoveMachine(){
 <button id="mmsLogoutBtn" onclick="MMS.logout()">⎋ Logout</button>
 <button id="mmsSyncBtn" onclick="MMS.gsSync(false)" style="display:none;position:fixed;left:10px;bottom:10px;z-index:9998;padding:6px 10px;border:1px solid #bbb;border-radius:8px;font-size:11px;cursor:pointer;background:#f3f3f3;max-width:70vw">🔄 Sync</button>
 <div id="mmsUpgradePanel"><div class="mms-card"><button class="mms-close" onclick="MMS.closeTools()">✕</button><h2>Maintenance System Tools</h2><div class="sub">Users, data, sync aur audit - upar ke tab se chuno.</div><div class="mms-grid">
-<div class="mms-box"><h3>🔐 User & Roles</h3><div id="mmsRoleInfo"></div><button onclick="MMS.logout()">Logout</button><button onclick="MMS.changePassword()">Change Password</button><button onclick="MMS.setPin()">Set / Change PIN</button><button onclick="MMS.manageUsers()">Manage Users</button><button onclick="MMS.empImport()">👥 Import Employees</button></div>
+<div class="mms-box"><h3>🔐 User & Roles</h3><div id="mmsRoleInfo"></div><button onclick="MMS.logout()">Logout</button><button onclick="MMS.changePassword()">Change Password</button><button onclick="MMS.setPin()">Set / Change PIN</button><button onclick="MMS.manageUsers()">Manage Users</button><button onclick="MMS.empImport()">👥 Import Employees</button><button id="mmsDesigBtn" style="display:none" onclick="openDesigUsers()">🎭 Designation Users</button></div>
 <div class="mms-box" style="grid-column:1/-1"><h3>🧩 Module Access Control</h3><div class="sub">Choose a user, then set exactly which modules they can Save/Update, Edit and Delete in. Works for Admin, Technician, Operator, and any custom designation (Engineer, Supervisor, etc.). Admin always has full access.</div>
 <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px">
 <select id="mmsPermUser" onchange="MMS.loadUserPerms()"></select>
@@ -4520,7 +4742,7 @@ function mmRemoveMachine(){
 <button style="margin-top:8px" onclick="MMS.saveUserPerms()">💾 Save Module Access</button>
 </div>
 <div class="mms-box" style="grid-column:1/-1"><h3>✅ Approval Access (Role × Module)</h3><div class="sub">Which role can approve / verify which module. Only roles with a tick see the "Pending Approvals" popup and the Approve / Verify button (the server also checks this for SAT, TUS, TC and MR; the PM Check Sheet is checked in the app only). Admin hamesha allowed hai. Koi bhi record apne preparer / technician se approve nahi hota - ye rule alag se hamesha lagta hai.</div>
-<div id="mmsApprMatrix" style="overflow:auto;margin:8px 0"></div>
+<div id="mmsApprMatrix" style="overflow:auto;margin:8px 0"></div><div style="margin:8px 0"><button onclick="mmsAccSummary()">📋 Kaun kya kar sakta hai (Checked / Verified)</button></div><div id="mmsAccSum" style="overflow:auto;margin:8px 0"></div>
 <button onclick="mmsApprSave()">💾 Save Approval Access</button> <button onclick="mmsApprReset()" style="background:#fdecea;color:#c0392b;border-color:#e6b3ad">↺ Reset (everyone with edit access)</button>
 </div>
 <div class="mms-box"><h3>💾 Backup / Restore</h3><button onclick="MMS.backup()">Download Complete Backup</button><button onclick="MMS.restore()">Restore Backup</button><div class="sub">Includes module data, machine master, PM checklists and settings.</div></div>
@@ -4839,6 +5061,20 @@ function mmsApprAllowed(mod){const s=session();if(!s)return false;if(s.role==='A
   // pehle us user ki apni (alag) setting, nahi to uske role ki setting
   if(c.users&&Array.isArray(c.users[s.u]))return c.users[s.u].indexOf(mod)>=0;
   const l=apprRoleList(c,s.role);return Array.isArray(l)&&l.indexOf(mod)>=0}
+function mmsAccSummary(){
+ const el=document.getElementById('mmsAccSum');if(!el)return;
+ const c=apprCfgRec(),us=users().slice().sort(function(a,b){return (a.role==='Admin'?0:1)-(b.role==='Admin'?0:1)||String(a.role).localeCompare(String(b.role))||String(a.u).localeCompare(String(b.u))});
+ const th='style="border:1px solid #ccc;padding:4px 6px;background:#f1f5f9;text-align:center;font-size:11px"',td='style="border:1px solid #ddd;padding:4px 6px;text-align:center;font-size:12px"',tl='style="border:1px solid #ddd;padding:4px 6px;text-align:left;font-size:12px"';
+ function apprOk(u,mod){if(u.role==='Admin')return true;if(!c)return true;if(c.users&&Array.isArray(c.users[u.u]))return c.users[u.u].indexOf(mod)>=0;const l=apprRoleList(c,u.role);return Array.isArray(l)&&l.indexOf(mod)>=0}
+ function cell(u,m){
+  const pm=(u.perms&&u.perms[m[0]])||{},adm=u.role==='Admin';
+  const chk=adm||!!pm.save,ver=adm||(apprOk(u,m[0])&&(m[0]==='mr'?!!pm.save:!!(pm.edit||pm.save)));
+  return '<td '+td+'><span style="color:'+(chk?'#166534':'#b91c1c')+'">'+(chk?'✔':'✘')+'</span> / <span style="color:'+(ver?'#166534':'#b91c1c')+'">'+(ver?'✔':'✘')+'</span></td>';
+ }
+ el.innerHTML='<div style="font-size:12px;margin-bottom:4px"><b>Har cell: Checked By (save) / Verified By (approve)</b> &nbsp; ✔ = kar sakta hai, ✘ = nahi. '+(c?'Approval Access saved hai.':'Approval Access abhi save nahi hua - isliye verify sirf module access par nirbhar hai.')+'</div>'+
+  '<table style="border-collapse:collapse"><thead><tr><th '+th+'>User</th><th '+th+'>Role</th>'+APPR_MODS.map(function(m){return '<th '+th+'>'+m[1]+'</th>'}).join('')+'</tr></thead><tbody>'+
+  us.map(function(u){return '<tr><td '+tl+'><b>'+esc2(u.u)+'</b></td><td '+tl+'>'+esc2(u.role)+'</td>'+APPR_MODS.map(function(m){return cell(u,m)}).join('')+'</tr>'}).join('')+'</tbody></table>';
+}
 function mmsApprRoles(){const set=new Set(['Technician','Operator','Supervisor']);try{users().forEach(u=>{if(u&&u.role&&u.role!=='Admin')set.add(String(u.role))})}catch(e){}
   const c=apprCfgRec();if(c)Object.keys(c.rules).forEach(k=>{if(k!=='Admin')set.add(k)});return Array.from(set)}
 function mmsApprRender(){const el=document.getElementById('mmsApprMatrix');if(!el)return;const c=apprCfgRec(),roles=mmsApprRoles();
@@ -4933,7 +5169,7 @@ function mmsACRender(t){const m=document.getElementById('mmsAC');if(!m)return;wi
 /* Controlled-copy footer on every print window */
 (function(){const o=window.open;window.open=function(){const w=o.apply(window,arguments);try{if(w&&w.document){const dw=w.document.write.bind(w.document);w.document.write=function(h){if(typeof h==='string'&&h.indexOf('window.print')>-1&&h.indexOf('</body>')>-1){const s=session()||{};h=h.replace('</body>',function(){return '<style>@page{@bottom-right{content:"Page " counter(page) " of " counter(pages);font:8px Arial;color:#444}}</style><div style="position:fixed;bottom:0;left:0;right:0;font:8px Arial;color:#444;text-align:center;border-top:1px solid #999;background:#fff;padding:1px">CONTROLLED COPY &bull; Printed on '+new Date().toLocaleString('en-GB')+' by '+(s.u||'-')+'</div></body>';});}return dw(h);};}}catch(e){}return w;};})();
 
-function setBadge(){{let sb=document.getElementById('mmsSyncBtn');if(sb)sb.style.display=session()?'block':'none'}let s=session(),b=document.getElementById('mmsUserBadge'),i=document.getElementById('mmsRoleInfo');if(b)b.textContent=s?`👤 ${s.u} • ${s.role}`:'';if(i)i.innerHTML=s?`<b>Logged in:</b> ${esc2(s.u)} (${esc2(s.role)})`:'Not logged in';let btn=document.getElementById('mmsUpgradeBtn');if(btn)btn.classList.toggle('mms-show',!!s&&s.role==='Admin');let lo=document.getElementById('mmsLogoutBtn');if(lo)lo.classList.toggle('mms-show',!!s);if((!s||s.role!=='Admin')){let p=document.getElementById('mmsUpgradePanel');if(p)p.classList.remove('open')}}
+function setBadge(){{let sb=document.getElementById('mmsSyncBtn');try{const db=document.getElementById('mmsDesigBtn');if(db)db.style.display=(session()&&session().role==='Admin')?'':'none'}catch(e){}if(sb)sb.style.display=session()?'block':'none'}let s=session(),b=document.getElementById('mmsUserBadge'),i=document.getElementById('mmsRoleInfo');if(b)b.textContent=s?`👤 ${s.u} • ${s.role}`:'';if(i)i.innerHTML=s?`<b>Logged in:</b> ${esc2(s.u)} (${esc2(s.role)})`:'Not logged in';let btn=document.getElementById('mmsUpgradeBtn');if(btn)btn.classList.toggle('mms-show',!!s&&s.role==='Admin');let lo=document.getElementById('mmsLogoutBtn');if(lo)lo.classList.toggle('mms-show',!!s);if((!s||s.role!=='Admin')){let p=document.getElementById('mmsUpgradePanel');if(p)p.classList.remove('open')}}
 function esc2(x){return String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function requireRole(roles){let s=session();if(!s||!roles.includes(s.role)){alert('This action requires: '+roles.join(' / '));return false}return true}
 // Naye device par login: agar user local list me nahi mila (ya password purana hai) to Google Sheet se users la kar dobara check karo -
@@ -5248,7 +5484,7 @@ function openEmpImport(){
  const exist={};users().forEach(function(u){exist[String(u.u).toLowerCase()]=1});
  const rows=empBuildRows();
  const ovD=empOvr();rows.forEach(function(r){if(ovD[r.sno]&&ovD[r.sno].deleted)exist[r.userId.toLowerCase()]=1});
- const roles=['Operator','Technician','Supervisor'];
+ const roles=empAccessRoles();
  const box=document.createElement('div');box.id='empImpBox';
  box.style.cssText='position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,.55);z-index:100000;overflow:auto;padding:8px';
  const inp='style="width:100%;min-width:110px;padding:4px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px"';
@@ -5290,7 +5526,7 @@ async function empRunImport(){
   const x=sel[k],st=x.tr.querySelector('.ei-st');msg.textContent='Ho raha hai '+(k+1)+' / '+sel.length+' …  '+x.id;st.textContent='⏳';
   let r;try{r=await mmsSrvSensitive('userSet',{u:x.id,role:x.role,pw:x.pw})}catch(e){r={ok:false,error:'Server tak nahi pahunch paaye'}}
   if(r&&r.ok){
-   const us=users();if(!us.some(function(u){return u.u===x.id}))us.push({u:x.id,id:'usr-'+x.id,role:x.role,perms:mmsDefaultPermsForRole(x.acc),emp:x.emp});
+   const us=users();if(!us.some(function(u){return u.u===x.id}))us.push({u:x.id,id:'usr-'+x.id,role:x.role,perms:empAccPerms(x.acc),emp:x.emp});
    localStorage.setItem(USERS_KEY,JSON.stringify(us));ok++;st.textContent='✓ Added';
   }else{
    const er=(r&&r.error)||'error';st.textContent='✗ '+er;fail.push(x.id+': '+er);
@@ -5364,7 +5600,7 @@ async function empEdit(name){
  const u=isNew?null:users().find(function(x){return x.u===r.name});
  const seed=isNew?null:empBuildRows().find(function(x){return x.userId===r.name});
  const old=document.getElementById('empEditBox');if(old)old.remove();
- const acc=empRoleFor({desig:r.desig}),roles=['Operator','Technician','Supervisor'];
+ const acc=empRoleFor({desig:r.desig}),roles=empAccessRoles();
  const inp='style="width:100%;padding:7px;border:1px solid #cbd5e1;border-radius:6px;font-size:14px;box-sizing:border-box"';
  const lab='style="display:block;margin:8px 0 2px;font-weight:700;font-size:12px"';
  const isAdminUser=!!(u&&u.role==='Admin');
@@ -5401,7 +5637,7 @@ async function empEditSave(r,u,seed,isNew){
   const us=users(),x=us.find(function(z){return z.u===u.u});if(!x)return alert('User nahi mila.');
   x.emp=Object.assign({},x.emp||{},{code:code,dept:dept,desig:desig});
   const role=g('ee_role');if(x.role!=='Admin'&&role)x.role=role;
-  const rc=document.getElementById('ee_resetacc');if(rc&&rc.checked)x.perms=mmsDefaultPermsForRole(acc);
+  const rc=document.getElementById('ee_resetacc');if(rc&&rc.checked)x.perms=empAccPerms(acc);
   localStorage.setItem(USERS_KEY,JSON.stringify(us));
   try{audit('USER_ROLE','system','Employee edit: '+x.u+' -> '+x.role)}catch(e){}
  }else{
@@ -5414,7 +5650,7 @@ async function empEditSave(r,u,seed,isNew){
    let res;try{res=await mmsSrvSensitive('userSet',{u:name,role:role,pw:pw})}catch(e){res={ok:false,error:'Server tak nahi pahunch paaye'}}
    go.disabled=false;
    if(!(res&&res.ok)){msg.style.color='#dc2626';msg.textContent='✗ '+((res&&res.error)||'error');return}
-   const us=users();if(!us.some(function(z){return z.u===name}))us.push({u:name,id:'usr-'+name,role:role,perms:mmsDefaultPermsForRole(acc),emp:{name:(seed&&seed.name)||name,code:code,dept:dept,desig:desig}});
+   const us=users();if(!us.some(function(z){return z.u===name}))us.push({u:name,id:'usr-'+name,role:role,perms:empAccPerms(acc),emp:{name:(seed&&seed.name)||name,code:code,dept:dept,desig:desig}});
    localStorage.setItem(USERS_KEY,JSON.stringify(us));
    try{audit('USER_ADD','system','Employee login added: '+name)}catch(e){}
   }
@@ -5424,6 +5660,16 @@ async function empEditSave(r,u,seed,isNew){
  empRenderList();
 }
 
+function empAccessRoles(){
+ const base=['Operator','Technician','Supervisor'],seen={Operator:1,Technician:1,Supervisor:1},out=base.slice();
+ try{empBuildRows().forEach(function(r){const d=String(r.desig||'').replace(/\s+/g,' ').trim(),k=d.toLowerCase();if(d&&!seen[k]&&k!=='admin'){seen[k]=1;out.push(d)}})}catch(e){}
+ users().forEach(function(u){const d=String(u.role||'').trim(),k=d.toLowerCase();if(d&&!seen[k]&&k!=='admin'){seen[k]=1;out.push(d)}});
+ return out;
+}
+function empAccPerms(acc){
+ const u=users().find(function(z){return z.role===acc&&z.perms&&z.role!=='Admin'});
+ return u?JSON.parse(JSON.stringify(u.perms)):mmsDefaultPermsForRole(acc);
+}
 function empDesigList(){
  const seen={},out=[];
  empBuildRows().forEach(function(r){const d=String(r.desig||'').trim(),k=d.toLowerCase();if(d&&!seen[k]){seen[k]=1;out.push({desig:d,access:empRoleFor({desig:d}),count:0})}});
@@ -5434,7 +5680,7 @@ function openDesigUsers(){
  if(!requireRole(['Admin']))return;
  const old=document.getElementById('desigBox');if(old)old.remove();
  const exist={};users().forEach(function(u){exist[String(u.u).toLowerCase()]=1});
- const list=empDesigList(),roles=['Operator','Technician','Supervisor'];
+ const list=empDesigList(),roles=empAccessRoles();
  const inp='style="width:100%;min-width:130px;padding:4px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;box-sizing:border-box"';
  const box=document.createElement('div');box.id='desigBox';
  box.style.cssText='position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,.55);z-index:100000;overflow:auto;padding:8px';
@@ -5474,7 +5720,7 @@ async function empRunDesigUsers(){
   const x=sel[k],st=x.tr.querySelector('.dg-st');msg.textContent='Ho raha hai '+(k+1)+' / '+sel.length+' …  '+x.id;st.textContent='⏳';
   let r;try{r=await mmsSrvSensitive('userSet',{u:x.id,role:x.id,pw:pw})}catch(e){r={ok:false,error:'Server tak nahi pahunch paaye'}}
   if(r&&r.ok){
-   const us=users();if(!us.some(function(u){return u.u===x.id}))us.push({u:x.id,id:'usr-'+x.id,role:x.id,shared:true,perms:mmsDefaultPermsForRole(x.acc)});
+   const us=users();if(!us.some(function(u){return u.u===x.id}))us.push({u:x.id,id:'usr-'+x.id,role:x.id,shared:true,perms:empAccPerms(x.acc)});
    localStorage.setItem(USERS_KEY,JSON.stringify(us));ok++;st.textContent='✓ Added';
   }else{
    const er=(r&&r.error)||'error';st.textContent='✗ '+er;fail.push(x.id+': '+er);
@@ -6649,7 +6895,7 @@ window.addEventListener('online',function(){gsSchedule(500)});
 window.addEventListener('load',function(){gsSchedule(1500)});
 
 /* Audit Center ke buttons inline onclick se chalte hain, isliye ye functions global (window) par hone zaroori hain */
-Object.assign(window,{mmsOpenAuditCenter,mmsACRender,mmsToggleAuditor,mmsActAdd,mmsActClose,mmsReviewPrint,mmsReviewHtml,mmsRestoreDeleted,mmsOpenActions,mmsApprAllowed,mmsApprRender,mmsApprSave,mmsApprReset,openEmpImport,empRunImport,empRenderList,empPrintList,empEdit,empEditSave,empDelete,empRestoreDeleted,openDesigUsers,empRunDesigUsers});
+Object.assign(window,{mmsOpenAuditCenter,mmsACRender,mmsToggleAuditor,mmsActAdd,mmsActClose,mmsReviewPrint,mmsReviewHtml,mmsRestoreDeleted,mmsOpenActions,mmsApprAllowed,mmsAccSummary,mmsApprRender,mmsApprSave,mmsApprReset,openEmpImport,empRunImport,empRenderList,empPrintList,empEdit,empEditSave,empDelete,empRestoreDeleted,openDesigUsers,empRunDesigUsers});
 window.MMS={fillLoginIds:mmsFillLoginIds,empImport:openEmpImport,reauth:mmsReauthToken,audit:audit,setPin,gsDiag,gsRebuildReports,gsSync,gsConfigure,gsTogglePrimary,gsResetState,login,logout,backup,restore,exportExcel,validate,refreshAudit,exportAudit,addFY,applyFY,queueSync,clearSyncQueue,refreshKPIs,openTools,closeTools,changePassword,manageUsers,populatePermUserSelect,loadUserPerms,selectAllPerms,saveUserRoleLabel,saveUserPerms,deleteUserAccount};
 window.addEventListener('load',()=>{setBadge();let s=session();if(s){document.getElementById('mmsLogin').classList.add('hidden');}else document.getElementById('mmsLogin').classList.remove('hidden');initFY();refreshKPIs();gsRenderPrimaryUI();});
 })();
@@ -10720,6 +10966,24 @@ if (typeof renderAll !== 'undefined') {
     if (ds > today()) { alert('Aage ki date (' + fmtD(ds) + ') me entry nahi ho sakti.'); return true; }
     return false;
   }
+  function mmsSheetCardHook(key, sel, days, tpl) {
+    try {
+      var ok = 0, ng = 0, oor = 0, n = 0, nums = [];
+      (days || []).forEach(function (d) {
+        var id = key + '|' + sel.tpl + '|' + sel.no + '|' + sel.shift + '|' + sel.month + '|' + pad(d);
+        var r = A(key).filter(function (x) { return x && x.id === id; })[0]; if (!r) return;
+        n++; nums.push(+d); var s = dayStats(key, r); ok += s.ok; ng += s.ng; oor += s.oor;
+      });
+      if (!n) return; nums.sort(function (a, b) { return a - b; });
+      var bad = ng + oor, isP = key === 'ptm';
+      window.mmsCardShowSpec({ title: isP ? 'PREDICTIVE CHECK SHEET' : 'DAILY SHIFTWISE CHECK', icon: isP ? '🔍' : '🗓️', c: isP ? ['#4c1d95', '#7c3aed'] : ['#134e4a', '#0d9488'],
+        tag1: isP ? 'FMT-MNT-10' : 'FMT-HT-96', tag2: fmtD(sel.month + '-' + pad(nums[nums.length - 1])), sub: (sel.no || '') + (sel.shift ? ' • Shift ' + sel.shift : ''),
+        chip: bad ? '⚠ ' + bad + ' NOT OK' : '✔ ALL OK', chipC: bad ? '#dc2626' : '#15803d',
+        big: [{ l: 'DAYS SAVED', v: String(n) }, { l: 'OK', v: String(ok), c: 'g' }, { l: 'NOT OK', v: String(bad), c: bad ? 'r' : 'g' }],
+        sections: [{ t: 'Check Sheet', rows: [['Sheet', (tpl && tpl.name) || sel.tpl], [isP ? 'Machine No.' : 'Furnace', sel.no], ['Shift', sel.shift], ['Month', ymLbl(sel.month)], ['Days saved', nums.join(', ')]] }],
+        sig: [['Checked By', who()]] });
+    } catch (e) { console.warn('sheet card', e); }
+  }
   function saveSheet(key) {
     var st = S[key], sel = st.sel, days = Object.keys(st.dirty), hasCf = !!document.querySelector('#' + key + ' .cf-block');
     if (!days.length && !hasCf) { alert('Koi naya change nahi hai.'); return; }
@@ -10744,7 +11008,7 @@ if (typeof renderAll !== 'undefined') {
     }
     persist(key);
     loadDraft(key); renderGrid(key);
-    alert('Sheet save ho gayi (' + cnt + ' din ka record).');
+    alert('Sheet save ho gayi (' + cnt + ' din ka record).'); setTimeout(function () { mmsSheetCardHook(key, sel, days, tplBy(key, sel.tpl)); }, 300);
   }
   function delSheetById(key, id) {
     var q = parseMetaId(id); if (!q || q.key !== key) return;
@@ -12186,7 +12450,7 @@ html body main.wrap .dashboard-footer span{color:#4a5a69!important}
 
   var REG = {};
   REG.pf = {
-    h: ['Date', 'Time', 'KWH', 'KVAH', 'KWH Diff.', 'KVAH Diff.', 'P.F.', 'Status', 'Sign.'],
+    h: ['Date', 'Time', 'KWH', 'KVAH', 'KWH Diff.', 'KVAH Diff.', 'P.F.', 'Status', 'Verified By'],
     sum: ['kwhDiff', 'kvahDiff'], sumH: { 'KWH Diff.': 'kwhDiff', 'KVAH Diff.': 'kvahDiff' },
     enrich: function (a) {
       var prev = null, out = [];
@@ -12200,13 +12464,13 @@ html body main.wrap .dashboard-footer span{color:#4a5a69!important}
     v: function (r) { return [fd(r.date), r.time, r.kwh, r.kvah, r.kdT, r.vdT, r.pfT, r.pfT === '' ? '' : (Number(r.pfT) >= PFOK('pf') ? 'OK' : 'NOT OK'), r.sign]; }
   };
   REG.pc = {
-    h: ['Date', 'Time', 'DG 01', 'DG 02', 'Stock', 'Add Stock', 'From', 'To', 'Total Cut', 'DG 01 Cons.', 'DG 02 Cons.', 'Total Cons.', 'Sign.'],
+    h: ['Date', 'Time', 'DG 01', 'DG 02', 'Stock', 'Add Stock', 'From', 'To', 'Total Cut', 'DG 01 Cons.', 'DG 02 Cons.', 'Total Cons.', 'Verified By'],
     sum: ['c1', 'c2'], sumH: { 'DG 01 Cons.': 'c1', 'DG 02 Cons.': 'c2' },
     v: function (r) { return [fd(r.date), r.time, r.dg1 || '', r.dg2 || '', r.stock || '', r.add || '', r.from || '', r.to || '', S(function () { return timeDuration(r.from, r.to); }), r.c1 || '', r.c2 || '', (gn(r.c1) + gn(r.c2)).toFixed(2), r.sign]; }
   };
   REG.dg = {
     h: ['Date', 'Time', 'DG1 Running Hour', 'DG1 KWH', 'DG1 KVAH', 'DG1 ΔKWH', 'DG1 ΔKVAH', 'DG1 P.F.', 'DG1 Fuel (L)', 'DG1 Battery (V)', 'DG1 Coolant (°C)',
-      'DG2 Running Hour', 'DG2 KWH', 'DG2 KVAH', 'DG2 ΔKWH', 'DG2 ΔKVAH', 'DG2 P.F.', 'DG2 Fuel (L)', 'DG2 Battery (V)', 'DG2 Coolant (°C)', 'Status', 'Remark'],
+      'DG2 Running Hour', 'DG2 KWH', 'DG2 KVAH', 'DG2 ΔKWH', 'DG2 ΔKVAH', 'DG2 P.F.', 'DG2 Fuel (L)', 'DG2 Battery (V)', 'DG2 Coolant (°C)', 'Status', 'Remark', 'Verified By'],
     sum: ['dg1dKwh', 'dg1dKvah', 'dg2dKwh', 'dg2dKvah'],
     sumH: { 'DG1 ΔKWH': 'dg1dKwh', 'DG1 ΔKVAH': 'dg1dKvah', 'DG2 ΔKWH': 'dg2dKwh', 'DG2 ΔKVAH': 'dg2dKvah' },
     enrich: function (a) {
@@ -12223,16 +12487,16 @@ html body main.wrap .dashboard-footer span{color:#4a5a69!important}
     v: function (r) {
       var st = function (p) { return p + (p !== '' ? ' — ' + S(function () { return dgPfStatus(p); }) : ''); };
       return [fd(r.date), r.time, r.dg1hr, r.dg1kwh, r.dg1kvah, r.d1kT, r.d1vT, st(r.pf1T), r.dg1fuel, r.dg1batt, r.dg1coolant,
-        r.dg2hr, r.dg2kwh, r.dg2kvah, r.d2kT, r.d2vT, st(r.pf2T), r.dg2fuel, r.dg2batt, r.dg2coolant, r.status, r.remark];
+        r.dg2hr, r.dg2kwh, r.dg2kvah, r.d2kT, r.d2vT, st(r.pf2T), r.dg2fuel, r.dg2batt, r.dg2coolant, r.status, r.remark, r.verifiedBy || ''];
     }
   };
   REG.airCompressor = {
-    h: ['Date', 'Machine No.', 'KWH', 'Unit Consumption/Day', 'Unit Consumption/Hour', 'Run Hour Reading', 'Load Hour Reading', 'Total Run Hour', 'Total Load Hour'],
+    h: ['Date', 'Machine No.', 'KWH', 'Unit Consumption/Day', 'Unit Consumption/Hour', 'Run Hour Reading', 'Load Hour Reading', 'Total Run Hour', 'Total Load Hour', 'Verified By'],
     sum: ['kwhDay', 'totalRun', 'totalLoad'], sumH: { 'Unit Consumption/Day': 'kwhDay', 'Total Run Hour': 'totalRun', 'Total Load Hour': 'totalLoad' },
     enrich: function (a) { airCompressorNormalize(); return airCompressorCalcRows(a); },
     v: function (r) {
       var q = function (v) { return v === '' || v == null ? '' : (typeof v === 'number' ? v.toFixed(2) : v); };
-      return [fd(r.date), r.machine, q(r.kwh), q(r.kwhDay), q(r.kwhHour), q(r.runHour), q(r.loadHour), q(r.totalRun), q(r.totalLoad)];
+      return [fd(r.date), r.machine, q(r.kwh), q(r.kwhDay), q(r.kwhHour), q(r.runHour), q(r.loadHour), q(r.totalRun), q(r.totalLoad), r.verifiedBy || ''];
     }
   };
   REG.bd = {
@@ -13112,7 +13376,7 @@ html body main.wrap .dashboard-footer span{color:#4a5a69!important}
       '<div class="field" id="rptMonthWrap"><label>Month</label><input type="month" id="rptMonth" value="' + mv + '" onchange="rptGenerate()"></div>' +
       '<div class="field" id="rptFyWrap" style="display:none"><label>Financial year</label><select id="rptFy" onchange="rptGenerate()"></select></div></div>' +
       '<div class="rpt-btns"><button type="button" class="primary" onclick="rptGenerate()">📊 Generate Report</button><button type="button" class="secondary" onclick="rptPrint()">🖨️ Print / PDF</button><button type="button" class="secondary" onclick="rptExcel()">📥 Excel</button></div>' +
-      '<div class=\"rpt-share\"><h4>📤 Share report</h4><div class=\"rpt-btns\"><button type=\"button\" class=\"primary\" style=\"background:#128c4a!important;border-color:#25d366!important;color:#fff!important\" onclick=\"rptImgShare()\">🟢 WhatsApp (Image)</button><button type=\"button\" class=\"secondary\" onclick=\"rptPdfShare(\'mail\')\">✉️ Email (PDF)</button><button type=\"button\" class=\"secondary\" onclick=\"rptPdfDownload()\">⬇️ Download PDF</button><button type=\"button\" class=\"secondary\" onclick=\"rptImgDownload()\">🖼️ Download Image</button></div><div id=\"rptPdfMsg\" class=\"note\" style=\"margin-top:8px\"></div><div class=\"note\" style=\"margin-top:8px\">WhatsApp button report ko page-wise JPEG image bana kar share-sheet kholta hai (image seedha WhatsApp me jati hai, PDF nahi). Email button PDF attach karta hai.</div></div></div>' +
+      '<div class=\"rpt-share\"><h4>📤 Share report</h4><div class=\"rpt-btns\"><button type=\"button\" class=\"primary\" style=\"background:#128c4a!important;border-color:#25d366!important;color:#fff!important\" onclick=\"rptImgShare()\">🟢 WhatsApp (Image)</button><button type=\"button\" class=\"primary\" style=\"background:#128c4a!important;border-color:#25d366!important;color:#fff!important\" onclick=\"rptDailyCard()\">🟢 Daily Card (WhatsApp)</button><button type=\"button\" class=\"secondary\" onclick=\"rptPdfShare(\'mail\')\">✉️ Email (PDF)</button><button type=\"button\" class=\"secondary\" onclick=\"rptPdfDownload()\">⬇️ Download PDF</button><button type=\"button\" class=\"secondary\" onclick=\"rptImgDownload()\">🖼️ Download Image</button></div><div id=\"rptPdfMsg\" class=\"note\" style=\"margin-top:8px\"></div><div class=\"note\" style=\"margin-top:8px\">WhatsApp button report ko page-wise JPEG image bana kar share-sheet kholta hai (image seedha WhatsApp me jati hai, PDF nahi). Email button PDF attach karta hai.</div></div></div>' +
       '<div id="rptOut"></div>';
     main.appendChild(s);
     var g = document.createElement('div'); g.className = 'nav-group'; g.id = 'reportsNavGroup';
@@ -14827,8 +15091,41 @@ setInterval(sync,2500);
     return m + '\n📌 *STATUS: ' + S + '*';
   }
   window.mrMessage = function (r, ev) { return msg(r, ev); };
-  function share(r, ev) { window.open('https://wa.me/?text=' + encodeURIComponent(msg(r, ev)), '_blank'); }
-  function offer(r, ev, label) { if (confirm(label + ' report - send on WhatsApp?')) share(r, ev); }
+  function mrCardSpec(r, ev) {
+    ev = ev || evOf(r); var T = times(r), P = priOf(r), lg = Array.isArray(r.log) ? r.log : [];
+    var K = { new: [['d', 'Raised'], ['', 'Accepted'], ['', 'Work Done'], ['', 'Verify'], ['', 'Closed']],
+      accepted: [['d', 'Raised'], ['d', 'Accepted'], ['n', 'Work Done'], ['', 'Verify'], ['', 'Closed']],
+      resumed: [['d', 'Raised'], ['d', 'Accepted'], ['n', 'Work Done'], ['', 'Verify'], ['', 'Closed']],
+      waiting: [['d', 'Raised'], ['d', 'Accepted'], ['n', 'Waiting Spare'], ['', 'Verify'], ['', 'Closed']],
+      workdone: [['d', 'Raised'], ['d', 'Accepted'], ['d', 'Work Done'], ['n', 'Verify'], ['', 'Closed']],
+      closed: [['d', 'Raised'], ['d', 'Accepted'], ['d', 'Work Done'], ['d', 'Verified'], ['d', 'Closed']],
+      reopened: [['d', 'Raised'], ['n', 'Reopened'], ['', 'Work Done'], ['', 'Verify'], ['', 'Closed']],
+      cancelled: [['d', 'Raised'], ['x', 'Cancelled']] }[ev] || [];
+    var CHIP = { new: ['OPEN', '#b45309'], accepted: ['IN PROGRESS', '#b45309'], resumed: ['IN PROGRESS', '#b45309'], waiting: ['WAITING SPARE', '#b45309'], workdone: ['VERIFY PENDING', '#b45309'], closed: ['✔ CLOSED', '#15803d'], reopened: ['REOPENED', '#dc2626'], cancelled: ['CANCELLED', '#475569'] }[ev] || ['', '#b45309'];
+    var NEXT = { new: 'Waiting: Maintenance to accept', accepted: 'Waiting: Work completion', resumed: 'Waiting: Work completion', waiting: 'Waiting: Spare arrival', workdone: 'Waiting: Production Verify & Close', reopened: 'Waiting: Maintenance to restart' }[ev] || '';
+    var col = ev === 'closed' ? ['#14532d', '#16a34a'] : (ev === 'cancelled' ? ['#334155', '#64748b'] : (P === 'Breakdown' ? ['#7f1d1d', '#dc2626'] : ['#7c2d12', '#ea580c']));
+    var started = r.mdate ? fmtDate(r.mdate) + (r.mtime ? ' ' + r.mtime : '') : '', sp = '';
+    try { sp = (typeof formatSpareParts === 'function' && typeof legacySpareParts === 'function') ? formatSpareParts(legacySpareParts(r)) : ''; } catch (e) { }
+    var dn = (ev === 'workdone' || ev === 'closed'), mt = (ev !== 'new' && ev !== 'cancelled');
+    var tl = lg.slice(-5).map(function (x) { var d = new Date(x.t); return { a: (x.st || '') + (x.by ? ' – ' + x.by : ''), b: isNaN(d) ? '' : d.toLocaleString('en-GB').replace(',', '') }; });
+    if (NEXT) tl.push({ a: NEXT, n: 1 });
+    var dt = (ev === 'new' && r.pdate) ? r.pdate : nowD();
+    return {
+      title: 'MAINTENANCE REQUEST', icon: '🛠️', c: col, tag1: 'Sr. No.', tag2: '#' + (r.sr || ''), chip: CHIP[0], chipC: CHIP[1],
+      sub: { new: 'Request raised', accepted: 'Accepted • work started', resumed: 'Work resumed', waiting: 'Waiting for spare', workdone: 'Work done • verification pending', closed: 'Request closed', reopened: 'Request reopened', cancelled: 'Request cancelled' }[ev] || '',
+      steps: K.map(function (s) { return { k: s[0], l: s[1] }; }),
+      big: dn ? [{ l: 'RESPONSE', v: hm(T.resp) + ' h' }, { l: 'FIX TIME', v: hm(T.fix) + ' h' }, { l: 'DOWNTIME', v: hm(T.total) + ' h', c: 'r' }] : null,
+      sections: [
+        { t: 'Request', rows: [['M/C No. / Name', (r.machineNo || '') + (r.machine ? ' • ' + r.machine : '')], ['Section', r.section], ['Problem', (r.problem || '').slice(0, 160)], ['Priority', PRI_TXT[P] || P, P === 'Breakdown' ? 'r' : (P === 'Urgent' ? 'o' : '')], ['Requested By', r.reqBy], ['Raised On', r.pdate ? fmtDate(r.pdate) + (r.ptime ? ' ' + r.ptime : '') : '']] },
+        { t: 'Maintenance', rows: mt ? [['Received By', r.recvBy], ['Work Started', started], ['Response Time', ev === 'accepted' ? hm(T.resp) + ' h' : ''], ['Spare / Reason', ev === 'waiting' ? r.waitReason : ''], ['Action Taken', dn ? r.action : ''], ['Spare Used', dn ? sp : '']] : [] },
+        { t: ev === 'reopened' ? 'Reopen Reason' : (ev === 'cancelled' ? 'Cancel Reason' : ''), rows: [[ev === 'reopened' ? 'Reason' : 'Reason', ev === 'reopened' ? r.reopenReason : (ev === 'cancelled' ? r.cancelReason : '')]] }
+      ],
+      tl: tl, sig: ev === 'closed' ? [['Verified By', r.verifiedBy]] : null,
+      foot: fmtDate(dt) + ' ' + nowT()
+    };
+  }
+  function share(r, ev) { ev = ev || evOf(r); try { window.mmsCardShowSpec(mrCardSpec(r, ev)); } catch (e) { console.warn(e); window.open('https://wa.me/?text=' + encodeURIComponent(msg(r, ev)), '_blank'); } }
+  function offer(r, ev, label) { share(r, ev); }
   window.sendCurrentWhatsApp = function () {
     var r = edit.mr !== null ? data.mr[edit.mr] : { sr: f('mr_sr'), machine: f('mr_machine'), machineNo: f('mr_machine_no'), section: f('mr_section'), reqBy: f('mr_req_by'), pdate: f('mr_pdate'), ptime: f('mr_ptime'), problem: f('mr_problem'), status: ST.OPEN, priority: f('mr_priority') };
     share(r, evOf(r));
@@ -14869,10 +15166,7 @@ setInterval(sync,2500);
       }
       persist('mr'); edit.mr = null; clearMR(); renderMR(); renderDashboard(); populateMaintenanceRequests();
       alert('Maintenance Request saved successfully. Sr. No. ' + saved.sr + (saved.priority === 'Breakdown' ? '\n\n🔴 BREAKDOWN priority - inform Maintenance immediately.' : ''));
-      if (confirm('Do you want to share the Daily Maintenance Request Report (' + fmtDate(saved.pdate || saved.mdate || saved.hdate) + ') on WhatsApp?')) {
-        var sd = saved.pdate || saved.mdate || saved.hdate;
-        if (typeof window.rptShareDaily === 'function' && sd) { try { window.rptShareDaily('mr', sd); } catch (e) { sendWhatsAppFor(saved); } } else sendWhatsAppFor(saved);
-      }
+      share(saved, 'new');
       return;
     }
 
