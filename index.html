@@ -6586,6 +6586,47 @@ async function gsNewCheck(cfg,changes){
  }catch(e){console.warn('gsNewCheck',e)}
 }
 
+/* Bahut din (25+) baad sync karne wala phone: pehle server se match karo. Jo record is phone ne pehle sync kiya tha, is phone par badla nahi hai,
+   aur ab server par nahi hai (delete ho gaya / Sheet se purge ho gaya) use local se hata do - warna wo wapas server par chadh sakta tha.
+   Jo record is phone par badla ya naya hai wo kabhi nahi hatta. */
+const GS_STALE_DAYS=25;
+async function gsStaleClean(cfg){
+ try{
+  const m0=gsMeta(),last=m0.lastOk?Date.parse(m0.lastOk):0;
+  if(!m0.since||!last||Date.now()-last<GS_STALE_DAYS*86400000)return;
+  const skip=['users','audit','acDel','acEdit','pmPlan','pmCheck','pmMap'];
+  const mods=GS_ALL.filter(function(k){return skip.indexOf(k)<0&&(GS_NEWMODS.indexOf(k)<0||localStorage.getItem('htp_gs_new_ok')==='1')});
+  gsStatus('⏳ Bahut din baad sync: pehle server se match kar raha hu…');
+  const out=await gsPullPaged(cfg,0,mods);
+  const rows=out.rows||[];
+  if(!rows.length)return;
+  const live={},has={};
+  rows.forEach(function(r){has[r.module]=1;if(!r.deleted)(live[r.module]=live[r.module]||{})[r.sid]=1});
+  const meta=gsMeta(),removed={};let total=0;
+  mods.forEach(function(mod){
+   if(!has[mod])return;                                  // server par is module ka kuch nahi dikha: kuch mat hatao
+   const b=(meta.base||{})[mod];if(!b)return;
+   const sv=live[mod]||{},list=gsList(mod),zomb=[];
+   list.forEach(function(r){
+    if(!r||typeof r!=='object')return;
+    const sid=gsSidOf(r);
+    if(!sid||sv[sid]||!b[sid]||b[sid].del)return;
+    if(gsHash(gsClean(r))!==b[sid].h)return;             // is phone par badla hua record: mat hatao
+    zomb.push(r);
+   });
+   if(!zomb.length)return;
+   if(zomb.length>5&&zomb.length>list.length*0.5)return;  // aadhe se zyada: pull adhoora ho sakta hai, chhod do
+   zomb.forEach(function(r){const sid=gsSidOf(r),i=list.indexOf(r);if(i>=0)list.splice(i,1);b[sid]={h:'',ts:b[sid].ts,del:1}});
+   removed[mod]=zomb.length;total+=zomb.length;
+  });
+  if(!total)return;
+  Object.keys(removed).forEach(function(mod){try{gsPersist(mod)}catch(e){}});
+  localStorage.setItem(GS_META_KEY,JSON.stringify(meta));
+  try{audit('STALE_CLEAN','system',total+' purane record (server se hat chuke) is device se hataye: '+Object.keys(removed).map(function(k){return k+' x'+removed[k]}).join(', '))}catch(e){}
+  try{mmsQuiet(renderAll)}catch(e){}
+  setTimeout(function(){alert(total+' purane record jo server se pehle hi hat chuke the, is phone se bhi hata diye gaye.')},400);
+ }catch(e){console.warn('gsStaleClean',e)}
+}
 /* Machine Master ek baar: local records ko server ki pehchaan (_sid) se jodo, taaki purane / naye sid ka 'delete + dobara add' na ho. Kuch delete nahi karta. */
 async function gsMmMigrate(cfg){
  if(localStorage.getItem('htp_mms_mm_sid_v1')==='1')return;
@@ -6738,6 +6779,7 @@ async function gsSync(auto){
   }}
   await gsReconcileNew(cfg);
   await gsMmMigrate(cfg);
+  await gsStaleClean(cfg);
   if(localStorage.getItem(GS_MIGRATION_KEY)!=='1'){await gsRebaseDevice(cfg);localStorage.setItem(GS_MIGRATION_KEY,'1')}
   // SAFETY NET: kisi module ki local list poori khali ho par pichle sync me usme kaafi records the
   // (storage clear / write fail) - server par delete mat bhejo, server se wapas le aao.
