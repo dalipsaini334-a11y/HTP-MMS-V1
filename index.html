@@ -5004,7 +5004,7 @@ if(typeof origPersist==='function'&&!window.__mmsPersistWrapped){
     window.persist=function(k){
         let before=null;
         try{before=localStorage.getItem(KEY[k])}catch(e){}
-        if(!AC_MODS[k]){try{mmsPreSave(k,before)}catch(e){console.warn('audit pre-save',e)}}
+        if(!AC_MODS[k]){try{const pre=mmsPreSave(k,before);if(pre&&pre.blocked)return}catch(e){console.warn('audit pre-save',e)}}
         origPersist(k);
         let after=null;
         try{after=localStorage.getItem(KEY[k])}catch(e){}
@@ -5042,7 +5042,20 @@ function mmsPreSave(k,beforeStr){
       const tcApprEdited=Array.isArray(o.history)&&o.history.some(h=>{if(!h||!String(h.appr||'').trim())return false;const kk=h.at||h.date,n=(Array.isArray(r.history)?r.history:[]).find(x=>x&&(x.at||x.date)===kk);return !n||JSON.stringify(n)!==JSON.stringify(h)});
       chg.push({id,fields:ch.slice(0,12),afterApproval:!!String(o.verifiedBy||o.approvedBy||'').trim()||tcApprEdited});}});
   const del=[];pm.forEach((o,id)=>{if(!cur.has(id))del.push(o)});
-  if(del.length){let why=prompt('Deleting '+del.length+' record(s) from "'+k+'". Reason (needed for audit):','')||'';mmsArchive(k,del,why.trim()||'Reason not entered',s);}
+  if(del.length){
+    // Reason ke bina koi delete nahi: pehle se li hui reason (confirm ke waqt) ya yahin puchho; khali/Cancel = delete rad
+    let why='';const pw=window.__mmsDelWhy;
+    if(pw&&pw.why&&Date.now()-pw.at<180000){why=pw.why;window.__mmsDelWhy=null}
+    else{why=String(window.prompt('Deleting '+del.length+' record(s) from "'+k+'". Reason likhna zaroori hai (bina reason delete nahi hoga):','')||'').trim()}
+    if(!why){
+      del.forEach(function(o){let pi=prev.findIndex(function(x){return x&&String(x.id)===String(o.id)});if(pi<0||pi>arr.length)pi=arr.length;arr.splice(pi,0,o)});
+      window.__mmsBlockedAt=Date.now();
+      try{window.alert('Reason likhe bina record nahi mitta - record wapas rakh diya gaya')}catch(e){}
+      try{mmsQuiet(renderAll)}catch(e){}
+      return {blocked:true};
+    }
+    mmsArchive(k,del,why,s);
+  }
   if(chg.length)mmsEditLog(k,chg,s);
 }
 function mmsArchive(k,recs,why,s){const L=mmsLS(MMS_DEL_KEY);recs.forEach(r=>L.unshift({at:new Date().toISOString(),user:s.u,module:k,reason:why,record:r}));acSave(MMS_DEL_KEY,L);}
@@ -16642,18 +16655,30 @@ var _al=window.alert;
 function toast(m,bad){var box=$('#up1-toasts');if(!box){box=document.createElement('div');box.id='up1-toasts';document.body.appendChild(box)}
  var t=document.createElement('div');t.className='up1-toast'+(bad?' err':'');t.textContent=m;box.appendChild(t);setTimeout(function(){try{t.remove()}catch(e){}},bad?5200:2600)}
 window.alert=function(m){m=String(m==null?'':m);
+ if(window.__mmsBlockedAt&&Date.now()-window.__mmsBlockedAt<2500&&/delet|remov|hata/i.test(m))return;
  if(m.length>200||m.split('\n').length>3||/reload|refresh|restart/i.test(m))return _al.call(window,m);
  var bad=/(please|required|enter|invalid|error|cannot|can't|not allowed|only |failed|zaroori|alag|chahiye|must|already|denied|requires|need)/i.test(m)&&!/successfully|saved|deleted|done/i.test(m);
  toast(m,bad)};
 /* 2) Delete reason: prompt() ki jagah sundar dialog (record turant archive hota hai, reason baad me jud jata hai) */
 var _pr=window.prompt;
 window.prompt=function(m,d){var x=String(m||'').match(/^Deleting (\d+) record\(s\) from "([^"]+)"/);
- if(x){setTimeout(function(){askReason(x[2],+x[1])},0);return ''}return _pr.call(window,m,d)};
+ return _pr.call(window,m,d)};
 function askReason(mod,n){var ov=document.createElement('div');ov.className='up1-ov';
  ov.innerHTML='<div class="up1-box"><h3>🗑 '+n+' record delete ho raha hai</h3><div style="font-size:12px;color:#475569">Module: <b>'+mod+'</b> — audit ke liye reason likho.</div><textarea placeholder="Reason (jaise: galat entry / duplicate)"></textarea><div class="up1-row"><button class="sec">Skip</button><button>Save reason</button></div></div>';
  document.body.appendChild(ov);var ta=$('textarea',ov),b=$$('button',ov);setTimeout(function(){ta.focus()},50);
  b[0].onclick=function(){ov.remove()};
  b[1].onclick=function(){var why=ta.value.trim();if(why){try{var now=Date.now();(data.acDel||[]).forEach(function(e){if(e&&e.module===mod&&e.reason==='Reason not entered'&&now-Date.parse(e.at)<30000)e.reason=why});persist('acDel')}catch(e){}}ov.remove()}}
+/* 2b) Har 'Delete/Remove ...?' confirm ke baad reason zaroori: reason nahi to delete shuru hi nahi hota (stock restore wagairah bhi nahi chalta) */
+var _cf=window.confirm;
+window.confirm=function(m){var ok=_cf.call(window,m);if(!ok)return false;
+ var t=String(m==null?'':m);
+ if(!/^\s*(delete|remove)\b/i.test(t)||/reason|REPLACE/i.test(t)||!ses())return ok;
+ var why=String(window.prompt('Delete ka reason likho (zaroori hai - bina reason delete nahi hoga):','')||'').trim();
+ window.__mmsLastUser=Date.now();
+ if(!why){toast('Reason likhe bina delete nahi hota - kuch delete nahi hua',true);return false}
+ window.__mmsDelWhy={why:why,at:Date.now()};
+ try{window.MMS.audit('DELETE_REASON','system',t.split('\n')[0].slice(0,120)+' | Reason: '+why)}catch(e){}
+ return true};
 /* 3) Dashboard: Aaj ka kaam / Due list (sirf padhta hai) */
 function goTab(id){var b=$$('.app-sidebar .tab').filter(function(x){return (x.getAttribute('onclick')||'').indexOf("'"+id+"'")>=0})[0];if(b)b.click();else try{showTab(id)}catch(e){}}
 function dueCard(){var d=$('#dashboard');if(!d||!ses())return;var c=$('#up1-due');if(!c){c=document.createElement('div');c.id='up1-due';var f=d.firstElementChild;f&&f.nextSibling?d.insertBefore(c,f.nextSibling):d.appendChild(c)}
@@ -17666,5 +17691,35 @@ if(typeof _gs==='function')window.gsStatus=function(msg,bad){try{if(!bad&&/Synce
 })();
 </script>
 
+<style id="bd-table-fix">
+/* Daily Breakdown Register: 17 columns ki fix chaudai, sticky header, side scroll */
+html body main.wrap section#bd .breakdown-report-wrap{overflow:auto!important;-webkit-overflow-scrolling:touch;max-height:75vh;border:1px solid #c9d4e1;border-radius:10px;background:#fff}
+html body main.wrap section#bd table.report-table:not(.aam-cv){table-layout:auto!important;width:max-content!important;min-width:100%!important;border-collapse:separate!important;border-spacing:0!important}
+html body main.wrap section#bd table.report-table:not(.aam-cv) th{white-space:normal!important;word-break:normal!important;font-size:11px!important;line-height:1.25!important;padding:9px 8px!important;text-align:center!important;vertical-align:middle!important;position:sticky;top:0;z-index:2;background:#e9f0f7!important;color:#0b1f4a!important;border-right:1px solid #c9d4e1!important;border-bottom:2px solid #6f86a0!important}
+html body main.wrap section#bd table.report-table:not(.aam-cv) td{white-space:normal!important;word-break:normal!important;overflow-wrap:anywhere;font-size:12.5px!important;line-height:1.35!important;padding:8px!important;vertical-align:top!important;text-align:left;border-right:1px solid #d3dce7!important;border-bottom:1px solid #c9d4e1!important}
+html body main.wrap section#bd table.report-table:not(.aam-cv) td:nth-child(1),html body main.wrap section#bd table.report-table:not(.aam-cv) td:nth-child(5),html body main.wrap section#bd table.report-table:not(.aam-cv) td:nth-child(7),html body main.wrap section#bd table.report-table:not(.aam-cv) td:nth-child(8),html body main.wrap section#bd table.report-table:not(.aam-cv) td:nth-child(9),html body main.wrap section#bd table.report-table:not(.aam-cv) td:nth-child(14),html body main.wrap section#bd table.report-table:not(.aam-cv) td:nth-child(16){text-align:center}
+html body main.wrap section#bd table.report-table:not(.aam-cv) td:nth-child(2),html body main.wrap section#bd table.report-table:not(.aam-cv) td:nth-child(17){white-space:nowrap!important}
+html body main.wrap section#bd table.report-table:not(.aam-cv) td:nth-child(17) button{margin:0 2px 3px 0;padding:5px 9px;font-size:12px}
+html body main.wrap section#bd table.report-table:not(.aam-cv) tbody tr:nth-child(even) td{background:#f5f8fb!important}
+html body main.wrap section#bd table.report-table:not(.aam-cv) tbody tr:hover td{background:#eaf3fb!important}
+html body main.wrap section#bd table.report-table:not(.aam-cv) th:nth-child(1){min-width:46px}
+html body main.wrap section#bd table.report-table:not(.aam-cv) th:nth-child(2){min-width:92px}
+html body main.wrap section#bd table.report-table:not(.aam-cv) th:nth-child(3){min-width:170px}
+html body main.wrap section#bd table.report-table:not(.aam-cv) th:nth-child(4){min-width:200px}
+html body main.wrap section#bd table.report-table:not(.aam-cv) th:nth-child(5){min-width:70px}
+html body main.wrap section#bd table.report-table:not(.aam-cv) th:nth-child(6){min-width:100px}
+html body main.wrap section#bd table.report-table:not(.aam-cv) th:nth-child(7){min-width:66px}
+html body main.wrap section#bd table.report-table:not(.aam-cv) th:nth-child(8){min-width:66px}
+html body main.wrap section#bd table.report-table:not(.aam-cv) th:nth-child(9){min-width:84px}
+html body main.wrap section#bd table.report-table:not(.aam-cv) th:nth-child(10){min-width:200px}
+html body main.wrap section#bd table.report-table:not(.aam-cv) th:nth-child(11){min-width:170px}
+html body main.wrap section#bd table.report-table:not(.aam-cv) th:nth-child(12){min-width:170px}
+html body main.wrap section#bd table.report-table:not(.aam-cv) th:nth-child(13){min-width:150px}
+html body main.wrap section#bd table.report-table:not(.aam-cv) th:nth-child(14){min-width:56px}
+html body main.wrap section#bd table.report-table:not(.aam-cv) th:nth-child(15){min-width:120px}
+html body main.wrap section#bd table.report-table:not(.aam-cv) th:nth-child(16){min-width:80px}
+html body main.wrap section#bd table.report-table:not(.aam-cv) th:nth-child(17){min-width:150px}
+@media print{html body main.wrap section#bd .breakdown-report-wrap{max-height:none!important;overflow:visible!important;border:0}html body main.wrap section#bd table.report-table{width:100%!important;table-layout:fixed!important}html body main.wrap section#bd table.report-table th{position:static!important}}
+</style>
 </body>
 </html>
