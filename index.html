@@ -18033,7 +18033,7 @@ function mountTools(){
   if(sec==='mm')h+='<button type="button" class="secondary" data-t="labels">🏷 Barcode Labels</button><button type="button" class="secondary" data-t="scan">📷 Scan Machine</button>';
   d.innerHTML=h;d.onclick=function(e){var t=e.target.getAttribute&&e.target.getAttribute('data-t');if(!t)return;
    if(t==='csv')exportCsv(sec);else if(t==='ledger')ledger();else if(t==='labels')labels();
-   else if(t==='scan')scan(function(txt){var i=document.getElementById('mm_search');if(i){i.value=txt;i.dispatchEvent(new Event('input',{bubbles:true}))}})};
+   else if(t==='scan')scan(function(txt){if(window.v155MachineView&&window.v155MachineView(txt))return;var i=document.getElementById('mm_search');if(i){i.value=txt;i.dispatchEvent(new Event('input',{bubbles:true}))}})};
   s.insertBefore(d,s.firstChild);
  });
 }
@@ -18136,7 +18136,7 @@ function auditPack(){
 /* ---------- search overlay: empty query => modules / recent / favourites + scan button ---------- */
 function patchSearch(){
  var o=$('#v153S');if(!o||o.__v154)return;o.__v154=1;
- var inp=$('#v153SIn');if(inp&&!$('#v154ScanB',o)){var b=document.createElement('button');b.id='v154ScanB';b.type='button';b.className='secondary';b.textContent='📷 Barcode scan';b.style.margin='6px 0';b.onclick=function(){scan(function(t){inp.value=t;inp.dispatchEvent(new Event('input',{bubbles:true}))})};inp.insertAdjacentElement('afterend',b)}
+ var inp=$('#v153SIn');if(inp&&!$('#v154ScanB',o)){var b=document.createElement('button');b.id='v154ScanB';b.type='button';b.className='secondary';b.textContent='📷 Barcode scan';b.style.margin='6px 0';b.onclick=function(){scan(function(t){if(window.v155MachineView&&window.v155MachineView(t))return;inp.value=t;inp.dispatchEvent(new Event('input',{bubbles:true}))})};inp.insertAdjacentElement('afterend',b)}
  o.addEventListener('click',function(e){var t=e.target;
   if(t.getAttribute&&t.getAttribute('data-star')){e.stopPropagation();toggleFav(t.getAttribute('data-star'));fill();return}
   var g=t.closest&&t.closest('[data-go]');if(g&&!g.hasAttribute('data-h')){o.classList.remove('open');goMod(g.getAttribute('data-go'))}},true);
@@ -18160,6 +18160,105 @@ setTimeout(function(){snap();wrapAfter('persist',function(k){diffAudit(k)});boot
 setInterval(boot,2500);
 })();
 
+</script>
+
+<script>
+/* ===== v155 ADDITIVE LAYER: Machine Quick View after barcode scan =====
+   Scan karne par ab sirf Machine Master list nahi, us machine ka poora card khulta hai:
+   master details + open MR + breakdown + history + PM + critical spares, aur har module ka filtered shortcut. */
+(function(){
+'use strict';
+function $(s,r){return (r||document).querySelector(s)}
+function E(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function N(s){return String(s==null?'':s).trim().toUpperCase()}
+function D(v){try{return typeof fmtDate==='function'?fmtDate(v):(v||'')}catch(e){return v||''}}
+function arr(x){return Array.isArray(x)?x:[]}
+function visible(id){var b=document.querySelector('.app-sidebar .tab[data-target="'+id+'"]');return !!b&&b.style.display!=='none'&&!b.hidden&&getComputedStyle(b).display!=='none'}
+function findMachine(txt){
+ var t=N(txt),L=arr(typeof MACHINE_MASTER!=='undefined'?MACHINE_MASTER:[]);if(!t)return null;
+ var m=L.filter(function(x){return N(x.machineNumber)===t});if(m.length)return m[0];
+ m=L.filter(function(x){var n=N(x.machineNumber);return n&&(t.indexOf(n)>=0||n.indexOf(t)>=0)});
+ return m.length===1?m[0]:null;
+}
+function rx(no){return new RegExp('(^|[^A-Z0-9])'+no.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'([^A-Z0-9]|$)')}
+function pick(list,no,fields){var re=rx(no);return arr(list).filter(function(r){if(!r||typeof r!=='object')return false;
+ for(var i=0;i<fields.length;i++){if(re.test(N(r[fields[i]])))return true}return false})}
+function byDate(a,k){return a.slice().sort(function(x,y){return String(y[k]||'').localeCompare(String(x[k]||''))})}
+function goFiltered(id,box,q){
+ var b=document.querySelector('.app-sidebar .tab[data-target="'+id+'"]');
+ try{showTab(id,b)}catch(e){}
+ if(box)setTimeout(function(){var i=document.getElementById(box);if(i){i.value=q;i.dispatchEvent(new Event('input',{bubbles:true}))}},250);
+}
+function newRec(id,no){
+ var b=document.querySelector('.app-sidebar .tab[data-target="'+id+'"]');
+ try{showTab(id,b)}catch(e){}
+ setTimeout(function(){try{
+  var sel=document.getElementById(id==='mr'?'mr_machine_no':'bd_machine');if(!sel)return;
+  sel.value=no;
+  if(sel.value!==no){alert('Machine "'+no+'" form ki list me nahi mila.');return}
+  if(id==='mr'&&typeof selectMachine==='function')selectMachine(no);
+  if(id==='bd'&&typeof breakdownMachineChanged==='function')breakdownMachineChanged();
+  sel.scrollIntoView({block:'center'});
+ }catch(e){console.warn('v155 newRec',e)}},350);
+}
+var st=document.createElement('style');
+st.textContent='#v155M{position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:100006;display:flex;align-items:flex-start;justify-content:center;padding:40px 8px 8px}'+
+'#v155M .bx{background:#fff;width:min(760px,100%);max-height:calc(100vh - 56px);overflow:auto;border-radius:16px;padding:14px;font-family:Arial,sans-serif;box-shadow:0 18px 60px rgba(0,0,0,.4)}'+
+'#v155M h2{margin:0;font-size:18px;color:#0f172a}#v155M .sub{font-size:12px;color:#475569;margin:2px 0 8px}'+
+'#v155M .kp{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin:8px 0}'+
+'#v155M .k{border:1px solid #dbe4ea;border-radius:12px;padding:8px;text-align:center;background:#f8fafc}#v155M .k b{display:block;font-size:20px}#v155M .k span{font-size:11px;color:#475569}'+
+'#v155M .k.bad b{color:#b91c1c}'+
+'#v155M h4{margin:12px 0 4px;font-size:12px;color:#0e7490;text-transform:uppercase}'+
+'#v155M table{border-collapse:collapse;width:100%;font-size:12px}#v155M th,#v155M td{border:1px solid #dbe4ea;padding:4px 6px;text-align:left}#v155M th{background:#e2e8f0}'+
+'#v155M .em{font-size:12px;color:#64748b;padding:4px 0}'+
+'#v155M .ac{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 2px}#v155M .ac button{padding:8px 12px;border:0;border-radius:9px;background:#0e7490;color:#fff;font:700 12px Arial;cursor:pointer}#v155M .ac button.x{background:#dc2626}#v155M .ac button.g{background:#475569}';
+document.head.appendChild(st);
+function tbl(head,rows){return rows.length?'<table><tr>'+head.map(function(h){return '<th>'+h+'</th>'}).join('')+'</tr>'+rows.join('')+'</table>':'<div class="em">Koi record nahi.</div>'}
+function show(m){
+ var no=String(m.machineNumber||'').trim(),NO=N(no);
+ var mr=byDate(pick(data.mr,NO,['machineNo','machine']),'pdate'),
+     openMr=mr.filter(function(r){return r.status!=='Closed'}),
+     bd=byDate(pick(data.bd,NO,['machineNumber','machine']),'date'),
+     mh=byDate(pick(data.mh,NO,['machineNo','machine']),'date'),
+     pm=byDate(pick(data.pm,NO,['machineNo']),'date'),
+     cs=pick(data.critical,NO,['machine','machineNo','machineNumber']);
+ var bdHrs=0;bd.forEach(function(r){var h=parseFloat(r.hours);if(!isNaN(h))bdHrs+=h});
+ var vis={mr:visible('mr'),bd:visible('bd'),mh:visible('mh'),pm:visible('pm'),cs:visible('criticalSpares'),mm:visible('mm')};
+ var h='<h2>'+E(no)+' — '+E(m.machineName||'')+'</h2><div class="sub">'+[m.department||m.section,m.make,m.grade].filter(Boolean).map(E).join(' • ')+'</div>';
+ h+='<div class="kp">'+
+  (vis.mr?'<div class="k'+(openMr.length?' bad':'')+'"><b>'+openMr.length+'</b><span>Open MR</span></div>':'')+
+  (vis.bd?'<div class="k"><b>'+bd.length+'</b><span>Breakdown ('+(Math.round(bdHrs*10)/10)+' hrs)</span></div>':'')+
+  (vis.mh?'<div class="k"><b>'+mh.length+'</b><span>History entries</span></div>':'')+
+  (vis.pm?'<div class="k"><b>'+(pm[0]?E(D(pm[0].date)):'—')+'</b><span>Last PM</span></div>':'')+'</div>';
+ if(vis.mr){h+='<h4>Open Maintenance Requests</h4>'+tbl(['Sr','Date','Problem','Status'],openMr.slice(0,5).map(function(r){return '<tr><td>'+E(r.sr)+'</td><td>'+E(D(r.pdate))+'</td><td>'+E(String(r.problem||'').slice(0,80))+'</td><td>'+E(r.status)+'</td></tr>'}))}
+ if(vis.bd){h+='<h4>Latest Breakdowns</h4>'+tbl(['Date','Reason','Hours'],bd.slice(0,5).map(function(r){return '<tr><td>'+E(D(r.date))+'</td><td>'+E(String(r.reason||'').slice(0,80))+'</td><td>'+E(r.hours||'')+'</td></tr>'}))}
+ if(vis.mh){h+='<h4>Machine History (latest)</h4>'+tbl(['Date','Reason','Action'],mh.slice(0,5).map(function(r){return '<tr><td>'+E(D(r.date))+'</td><td>'+E(String(r.reason||'').slice(0,60))+'</td><td>'+E(String(r.action||'').slice(0,60))+'</td></tr>'}))}
+ if(vis.mr){var su=[];mr.forEach(function(r){arr(r.spareParts).forEach(function(p){if(p&&p.part)su.push('<tr><td>'+E(D(r.mdate||r.pdate))+'</td><td>'+E(p.part)+'</td><td>'+E(p.qty)+'</td><td>'+E(r.sr)+'</td></tr>')})});
+  if(su.length)h+='<h4>Spares used (MR se, latest)</h4>'+tbl(['Date','Spare','Qty','MR Sr'],su.slice(0,8))}
+ if(vis.cs&&cs.length){h+='<h4>Critical Spares</h4>'+tbl(['Code','Description','Available','Min'],cs.slice(0,8).map(function(r){return '<tr><td>'+E(r.code)+'</td><td>'+E(r.desc)+'</td><td>'+E(r.avail!=null?r.avail:r.available)+'</td><td>'+E(r.min)+'</td></tr>'}))}
+ h+='<div class="ac">'+
+  (vis.mm?'<button type="button" data-g="mm">Master list</button>':'')+
+  (vis.mr?'<button type="button" data-g="mr">MR</button>':'')+
+  (vis.bd?'<button type="button" data-g="bd">Breakdown</button>':'')+
+  (vis.mh?'<button type="button" data-g="mh">History</button>':'')+
+  (vis.pm?'<button type="button" data-g="pm">PM</button>':'')+
+  (vis.mr?'<button type="button" class="g" data-g="newmr">+ New MR</button>':'')+
+  (vis.bd?'<button type="button" class="g" data-g="newbd">+ New Breakdown</button>':'')+
+  '<button type="button" class="x" data-g="x">Band karo</button></div>';
+ var o=document.getElementById('v155M');if(o)o.remove();
+ o=document.createElement('div');o.id='v155M';o.innerHTML='<div class="bx">'+h+'</div>';
+ o.onclick=function(e){if(e.target===o){o.remove();return}
+  var g=e.target.getAttribute&&e.target.getAttribute('data-g');if(!g)return;o.remove();if(g==='x')return;
+  if(g==='newmr'||g==='newbd'){newRec(g==='newmr'?'mr':'bd',no);return}
+  var box={mm:'mm_search',mr:'mr_search',mh:'mh_search'}[g];goFiltered(g,box,no)};
+ document.body.appendChild(o);
+}
+/* scan ke baad call hota hai: true = machine mila aur card khul gaya, false = purana behaviour chale */
+window.v155MachineView=function(txt){
+ try{var m=findMachine(txt);if(!m)return false;var s=document.getElementById('v153S');if(s)s.classList.remove('open');show(m);return true}
+ catch(e){console.warn('v155 machine view',e);return false}
+};
+})();
 </script>
 </body>
 </html>
