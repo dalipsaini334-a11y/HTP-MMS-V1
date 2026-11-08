@@ -131,7 +131,7 @@
 })();
 </script>
 <script>/* FIX v122: pwHr startup pe hi chahiye (renderDG), isliye sabse pehle define */function pwHr(v){if(v==null||v==='')return NaN;var t=String(v).trim();if(t.indexOf(':')>=0){var p=t.split(':'),h=Number(p[0]),m=Number(p[1]||0);return isFinite(h)&&isFinite(m)?h+m/60:NaN}var n=Number(t);return isFinite(n)?n:NaN}</script>
-<script>window.APP_VERSION='122-pwhr-fix';</script>
+<script>window.APP_VERSION='154-features-v2';</script>
 <script>if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js?v='+encodeURIComponent(window.APP_VERSION||'0')).then(function(r){try{r.update()}catch(e){}}).catch(function(e){console.warn('SW',e)})})}</script>
 <title>Milestone Gears Ltd. Unit-7 | Maintenance & Utility Daily Log</title>
 <style>
@@ -1000,7 +1000,7 @@ main.wrap{margin-left:252px;padding:94px 22px 25px;max-width:none}.sidebar-overl
   <div class="actions wide"><button class="primary" onclick="saveBreakdown()" id="bdSaveBtn">Save Breakdown</button><button class="secondary" onclick="clearBreakdown()">Clear</button></div>
  </div>
 </div>
-<div class="card"><div class="summary"><div class="stat">Month B/D Hours <b id="bd_sum_hours">0</b></div><div class="stat">No. of Breakdown <b id="bd_sum_count">0</b></div></div><div class="breakdown-report-wrap"><table class="report-table"><thead><tr><th>S.no</th><th>Date</th><th>Machine Detail</th><th>Breakdown Reason</th><th>B/D Type<br>(E/M)</th><th>Department/ Section</th><th>From</th><th>To</th><th>Breakdown Hours</th><th>Action Taken</th><th>Root Cause</th><th>Preventive Action</th><th>Spare Parts Used</th><th>Qty</th><th>Attended By</th><th>Status</th><th>Action</th></tr></thead><tbody id="bdBody"></tbody></table></div></div>
+<div class="card"><div class="summary"><div class="stat">Month B/D Hours <b id="bd_sum_hours">0</b></div><div class="stat">No. of Breakdown <b id="bd_sum_count">0</b></div></div><div class="tablewrap breakdown-report-wrap"><table class="tbl bd-tbl"><thead><tr><th>S.no</th><th>Date</th><th>Machine Detail</th><th>Breakdown Reason</th><th>B/D Type<br>(E/M)</th><th>Department/ Section</th><th>From</th><th>To</th><th>Breakdown Hours</th><th>Action Taken</th><th>Root Cause</th><th>Preventive Action</th><th>Spare Parts Used</th><th>Qty</th><th>Attended By</th><th>Status</th><th>Action</th></tr></thead><tbody id="bdBody"></tbody></table></div></div>
 </section>
 
 <section id="mttr" class="panel official-module">
@@ -3343,7 +3343,7 @@ renderDG = function() {
  B.spares=function(r){return{chip:'',sub:fd(r.date||'')||'',big:[],sections:[{t:'Spare',rows:[['Item Code',r.code],['Description',r.desc],['Specification',r.spec],['Available',(r.availableQty!=null&&r.availableQty!==''?r.availableQty:r.qty)],['Min / Max',(r.min||'')+' / '+(r.max||'')],['Location',r.location]]}],sig:[]}};
  B.critical=B.spares;
  window.mmsCardSpec=function(key,r,isNew){var c=CFG[key]||[key,'📋',['#0b2545','#13579b']],b=B[key]?B[key](r):{sections:[],sig:[]};
-  var by=me();return Object.assign({title:c[0],icon:c[1],c:c[2],tag1:isNew?'New entry':'Updated',tag2:fd(r.date)||new Date().toLocaleDateString('en-GB'),foot:(by?'Saved by '+by+' • ':'')+new Date().toLocaleString('en-GB').replace(',','')},b)};
+  var by=me();return Object.assign({title:c[0],icon:c[1],c:c[2],tag1:isNew===null?'Record':(isNew?'New entry':'Updated'),tag2:fd(r.date)||new Date().toLocaleDateString('en-GB'),foot:(by?'Saved by '+by+' • ':'')+new Date().toLocaleString('en-GB').replace(',','')},b)};
  window.mmsCardShowRec=function(key,r,isNew){try{window.mmsCardShowSpec(window.mmsCardSpec(key,r,isNew))}catch(e){console.warn('card',e)}};
  /* ---------- save functions ko wrap karo: record badle to card dikhao ---------- */
  var MAP=[['savePF','pf'],['savePC','pc'],['saveDG','dg'],['saveAirCompressor','airCompressor'],['saveBreakdown','bd'],['savePM','pm'],['saveThermocouple','tc'],['saveCalibration','cal'],['saveUtilityLog','utility'],['saveHistoryManual','mh'],['saveDsoot','dsoot'],['saveSparePart','spares'],['saveCriticalSpare','critical']];
@@ -3441,6 +3441,33 @@ renderDG = function() {
  window.rptDailyCard=function(){var pe=document.getElementById('rptPeriod'),dy=document.getElementById('rptDay');
   var D=(pe&&pe.value==='d'&&dy&&dy.value)?dy.value:ldate(new Date());window.mmsDailyCard(D)};
 
+
+ /* ---------- purane saved record ka card kabhi bhi bhejo: har list ki row me 📤 button ---------- */
+ var ED={editPF:'pf',editPC:'pc',editDG:'dg',editBreakdown:'bd',editHistory:'mh',editThermocouple:'tc',editCalibration:'cal',editSparePart:'spares',editCriticalSpare:'critical',editUtilityLog:'utility',editAirCompressor:'airCompressor',editDsoot:'dsoot',loadPMRecord:'pm',editMR:'mr'};
+ var SEL=Object.keys(ED).map(function(k){return 'button[onclick^="'+k+'("]'}).join(',');
+ window.mmsCardSend=function(key,arg){
+  try{
+   if(key==='mr'){if(window.mmsMrCard)window.mmsMrCard(Number(arg));return}
+   var r=null,num=/^\d+$/.test(String(arg));
+   if(key==='utility')r=utilityLogs()[Number(arg)];
+   else if(key==='airCompressor')r=data.airCompressor[acIndexOf(arg)];
+   else{var a=data[key]||[];r=num&&key!=='dsoot'?a[Number(arg)]:a.find(function(x){return String(x.id)===String(arg)})}
+   if(!r)return alert('Record nahi mila.');
+   window.mmsCardShowRec(key,r,null);
+  }catch(e){console.warn(e);alert('Card nahi ban paya.')}
+ };
+ function addBtns(){
+  document.querySelectorAll(SEL).forEach(function(b){
+   if(b.dataset.wa)return;b.dataset.wa='1';
+   var m=/^(\w+)\(([^)]*)\)/.exec(b.getAttribute('onclick')||'');if(!m)return;
+   var arg=m[2].trim().replace(/^['"]|['"]$/g,'').replace(/\\'/g,"'"),key=ED[m[1]];
+   var w=document.createElement('button');w.type='button';w.className='secondary';w.dataset.wa='1';w.textContent='📤';w.title='WhatsApp par card bhejo';w.style.cssText='margin-left:3px';
+   w.addEventListener('click',function(ev){ev.stopPropagation();window.mmsCardSend(key,arg)});
+   b.parentNode.insertBefore(w,b.nextSibling);
+  });
+ }
+ var tmr=null;try{new MutationObserver(function(){clearTimeout(tmr);tmr=setTimeout(addBtns,250)}).observe(document.body,{childList:true,subtree:true})}catch(e){}
+ setTimeout(addBtns,1500);
  [0,1500,4000,9000,15000,30000].forEach(function(t){setTimeout(wrapAll,t)});
 })();
 
@@ -15191,6 +15218,7 @@ setInterval(sync,2500);
   }
   function share(r, ev) { ev = ev || evOf(r); try { window.mmsCardShowSpec(mrCardSpec(r, ev)); } catch (e) { console.warn(e); window.open('https://wa.me/?text=' + encodeURIComponent(msg(r, ev)), '_blank'); } }
   function offer(r, ev, label) { share(r, ev); }
+  window.mmsMrCard = function (i) { var r = data.mr[i]; if (r) share(r, evOf(r)); };
   window.sendCurrentWhatsApp = function () {
     var r = edit.mr !== null ? data.mr[edit.mr] : { sr: f('mr_sr'), machine: f('mr_machine'), machineNo: f('mr_machine_no'), section: f('mr_section'), reqBy: f('mr_req_by'), pdate: f('mr_pdate'), ptime: f('mr_ptime'), problem: f('mr_problem'), status: ST.OPEN, priority: f('mr_priority') };
     share(r, evOf(r));
@@ -17734,34 +17762,404 @@ if(typeof _gs==='function')window.gsStatus=function(msg,bad){try{if(!bad&&/Synce
 </script>
 
 <style id="bd-table-fix">
-/* Daily Breakdown Register: 17 columns ki fix chaudai, sticky header, side scroll */
-html body main.wrap section#bd .breakdown-report-wrap{overflow:auto!important;-webkit-overflow-scrolling:touch;max-height:75vh;border:1px solid #c9d4e1;border-radius:10px;background:#fff}
-html body main.wrap section#bd table.report-table:not(.aam-cv){table-layout:auto!important;width:max-content!important;min-width:100%!important;border-collapse:separate!important;border-spacing:0!important}
-html body main.wrap section#bd table.report-table:not(.aam-cv) th{white-space:normal!important;word-break:normal!important;font-size:11px!important;line-height:1.25!important;padding:9px 8px!important;text-align:center!important;vertical-align:middle!important;position:sticky;top:0;z-index:2;background:#e9f0f7!important;color:#0b1f4a!important;border-right:1px solid #c9d4e1!important;border-bottom:2px solid #6f86a0!important}
-html body main.wrap section#bd table.report-table:not(.aam-cv) td{white-space:normal!important;word-break:normal!important;overflow-wrap:anywhere;font-size:12.5px!important;line-height:1.35!important;padding:8px!important;vertical-align:top!important;text-align:left;border-right:1px solid #d3dce7!important;border-bottom:1px solid #c9d4e1!important}
-html body main.wrap section#bd table.report-table:not(.aam-cv) td:nth-child(1),html body main.wrap section#bd table.report-table:not(.aam-cv) td:nth-child(5),html body main.wrap section#bd table.report-table:not(.aam-cv) td:nth-child(7),html body main.wrap section#bd table.report-table:not(.aam-cv) td:nth-child(8),html body main.wrap section#bd table.report-table:not(.aam-cv) td:nth-child(9),html body main.wrap section#bd table.report-table:not(.aam-cv) td:nth-child(14),html body main.wrap section#bd table.report-table:not(.aam-cv) td:nth-child(16){text-align:center}
-html body main.wrap section#bd table.report-table:not(.aam-cv) td:nth-child(2),html body main.wrap section#bd table.report-table:not(.aam-cv) td:nth-child(17){white-space:nowrap!important}
-html body main.wrap section#bd table.report-table:not(.aam-cv) td:nth-child(17) button{margin:0 2px 3px 0;padding:5px 9px;font-size:12px}
-html body main.wrap section#bd table.report-table:not(.aam-cv) tbody tr:nth-child(even) td{background:#f5f8fb!important}
-html body main.wrap section#bd table.report-table:not(.aam-cv) tbody tr:hover td{background:#eaf3fb!important}
-html body main.wrap section#bd table.report-table:not(.aam-cv) th:nth-child(1){min-width:46px}
-html body main.wrap section#bd table.report-table:not(.aam-cv) th:nth-child(2){min-width:92px}
-html body main.wrap section#bd table.report-table:not(.aam-cv) th:nth-child(3){min-width:170px}
-html body main.wrap section#bd table.report-table:not(.aam-cv) th:nth-child(4){min-width:200px}
-html body main.wrap section#bd table.report-table:not(.aam-cv) th:nth-child(5){min-width:70px}
-html body main.wrap section#bd table.report-table:not(.aam-cv) th:nth-child(6){min-width:100px}
-html body main.wrap section#bd table.report-table:not(.aam-cv) th:nth-child(7){min-width:66px}
-html body main.wrap section#bd table.report-table:not(.aam-cv) th:nth-child(8){min-width:66px}
-html body main.wrap section#bd table.report-table:not(.aam-cv) th:nth-child(9){min-width:84px}
-html body main.wrap section#bd table.report-table:not(.aam-cv) th:nth-child(10){min-width:200px}
-html body main.wrap section#bd table.report-table:not(.aam-cv) th:nth-child(11){min-width:170px}
-html body main.wrap section#bd table.report-table:not(.aam-cv) th:nth-child(12){min-width:170px}
-html body main.wrap section#bd table.report-table:not(.aam-cv) th:nth-child(13){min-width:150px}
-html body main.wrap section#bd table.report-table:not(.aam-cv) th:nth-child(14){min-width:56px}
-html body main.wrap section#bd table.report-table:not(.aam-cv) th:nth-child(15){min-width:120px}
-html body main.wrap section#bd table.report-table:not(.aam-cv) th:nth-child(16){min-width:80px}
-html body main.wrap section#bd table.report-table:not(.aam-cv) th:nth-child(17){min-width:150px}
-@media print{html body main.wrap section#bd .breakdown-report-wrap{max-height:none!important;overflow:visible!important;border:0}html body main.wrap section#bd table.report-table{width:100%!important;table-layout:fixed!important}html body main.wrap section#bd table.report-table th{position:static!important}}
+/* Daily Breakdown Register: baaki modules (Machine History etc.) jaisa .tbl theme; sirf 17 columns ki chaudai + sticky header */
+html body main.wrap section#bd .breakdown-report-wrap{overflow:auto!important;-webkit-overflow-scrolling:touch;max-height:75vh}
+html body main.wrap section#bd table.bd-tbl{table-layout:auto!important;width:max-content!important;min-width:100%!important}
+html body main.wrap section#bd table.bd-tbl th{white-space:normal!important;line-height:1.25!important;text-align:center!important;vertical-align:middle!important;position:sticky;top:0;z-index:2}
+html body main.wrap section#bd table.bd-tbl td{white-space:normal!important;overflow-wrap:anywhere;line-height:1.35!important;vertical-align:middle!important;text-align:center}
+html body main.wrap section#bd table.bd-tbl td:nth-child(2),html body main.wrap section#bd table.bd-tbl td:nth-child(17){white-space:nowrap!important}
+html body main.wrap section#bd table.bd-tbl td:nth-child(3),html body main.wrap section#bd table.bd-tbl td:nth-child(4),html body main.wrap section#bd table.bd-tbl td:nth-child(10),html body main.wrap section#bd table.bd-tbl td:nth-child(11),html body main.wrap section#bd table.bd-tbl td:nth-child(12),html body main.wrap section#bd table.bd-tbl td:nth-child(13){text-align:left}
+html body main.wrap section#bd table.bd-tbl td:nth-child(17) button{margin:2px;padding:5px 9px;font-size:12px}
+html body main.wrap section#bd table.bd-tbl th:nth-child(1){min-width:46px}
+html body main.wrap section#bd table.bd-tbl th:nth-child(2){min-width:92px}
+html body main.wrap section#bd table.bd-tbl th:nth-child(3){min-width:170px}
+html body main.wrap section#bd table.bd-tbl th:nth-child(4){min-width:200px}
+html body main.wrap section#bd table.bd-tbl th:nth-child(5){min-width:70px}
+html body main.wrap section#bd table.bd-tbl th:nth-child(6){min-width:100px}
+html body main.wrap section#bd table.bd-tbl th:nth-child(7){min-width:66px}
+html body main.wrap section#bd table.bd-tbl th:nth-child(8){min-width:66px}
+html body main.wrap section#bd table.bd-tbl th:nth-child(9){min-width:84px}
+html body main.wrap section#bd table.bd-tbl th:nth-child(10){min-width:200px}
+html body main.wrap section#bd table.bd-tbl th:nth-child(11){min-width:170px}
+html body main.wrap section#bd table.bd-tbl th:nth-child(12){min-width:170px}
+html body main.wrap section#bd table.bd-tbl th:nth-child(13){min-width:150px}
+html body main.wrap section#bd table.bd-tbl th:nth-child(14){min-width:56px}
+html body main.wrap section#bd table.bd-tbl th:nth-child(15){min-width:120px}
+html body main.wrap section#bd table.bd-tbl th:nth-child(16){min-width:80px}
+html body main.wrap section#bd table.bd-tbl th:nth-child(17){min-width:150px}
+@media print{html body main.wrap section#bd .breakdown-report-wrap{max-height:none!important;overflow:visible!important;border:0}html body main.wrap section#bd table.bd-tbl{width:100%!important;table-layout:fixed!important}html body main.wrap section#bd table.bd-tbl th{position:static!important}html body main.wrap section#bd table.bd-tbl th,html body main.wrap section#bd table.bd-tbl td{border:1px solid #000!important;background:#fff!important;color:#000!important;font-size:8px!important;padding:3px!important}}
 </style>
+<script>
+/* ===== v153 ADDITIVE LAYER: Install button, Update toast, Photos (BD/MR), PR->PO aging, Global search ===== */
+(function(){
+'use strict';
+var $=function(s,r){return (r||document).querySelector(s)};
+function E(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function logged(){try{return typeof session==='function'&&!!session()}catch(e){return false}}
+function today(){return new Date().toISOString().slice(0,10)}
+function wrapAfter(name,fn){var o=window[name];if(typeof o!=='function'||o.__v153)return;var w=function(){var r=o.apply(this,arguments);try{fn.apply(this,arguments)}catch(e){console.warn(name,e)}return r};w.__v153=1;window[name]=w}
+
+var st=document.createElement('style');
+st.textContent=
+'#v153Install{position:fixed;left:50%;bottom:12px;transform:translateX(-50%);z-index:9996;display:none;background:#0e7490;color:#fff;border:0;border-radius:999px;padding:10px 16px;font:800 13px Arial;box-shadow:0 6px 22px rgba(0,0,0,.25);cursor:pointer}'+
+'#v153Install i{font-style:normal;margin-left:10px;opacity:.8;padding:0 4px}'+
+'#v153Upd{position:fixed;left:50%;top:80px;transform:translateX(-50%);z-index:100003;background:#1e293b;color:#fff;border-radius:12px;padding:10px 14px;font:600 13px Arial;box-shadow:0 6px 24px rgba(0,0,0,.35);display:flex;gap:12px;align-items:center;max-width:94vw}'+
+'#v153Upd button{background:#22c55e;color:#fff;border:0;border-radius:8px;padding:6px 12px;font-weight:800;cursor:pointer}'+
+'#v153SBtn{position:fixed;right:18px;top:8px;z-index:9997;width:32px;height:32px;border-radius:50%;border:1px solid #cbd5e1;background:#fff;font-size:16px;cursor:pointer;display:none;box-shadow:0 2px 8px rgba(0,0,0,.15)}'+
+'#v153S{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:100002;display:none;align-items:flex-start;justify-content:center;padding:70px 10px 10px}'+
+'#v153S.open{display:flex}#v153S .bx{background:#fff;width:min(720px,100%);max-height:calc(100vh - 90px);overflow:auto;border-radius:14px;padding:14px;box-shadow:0 18px 60px rgba(0,0,0,.35);font-family:Arial,sans-serif}'+
+'#v153S input{width:100%;padding:11px;border:2px solid #0e7490;border-radius:10px;font-size:15px;box-sizing:border-box}'+
+'#v153S h4{margin:12px 0 4px;font-size:12px;color:#0e7490;text-transform:uppercase}'+
+'#v153S .it{padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;margin:4px 0;cursor:pointer;font-size:13px;background:#f8fafc}#v153S .it:hover{background:#e0f2fe}#v153S .mo{font-size:12px;color:#64748b;margin:4px 0;cursor:pointer}'+
+'#purAging{margin:10px 0;border:1px solid #cbd5e1;border-radius:10px;background:#f8fafc;padding:8px 12px}#purAging summary{cursor:pointer;font-weight:800;font-size:13px}#purAging table{border-collapse:collapse;width:100%;margin:8px 0;font-size:12px}#purAging th,#purAging td{border:1px solid #cbd5e1;padding:4px 6px;text-align:center}#purAging .bad{color:#b91c1c;font-weight:800}';
+document.head.appendChild(st);
+
+/* ---------- 1) INSTALL APP BUTTON ---------- */
+var dp=null;
+function standalone(){return (window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true}
+var ios=/iphone|ipad|ipod/i.test(navigator.userAgent)&&!window.MSStream;
+function instBtn(){var b=$('#v153Install');if(!b){b=document.createElement('button');b.id='v153Install';b.type='button';b.innerHTML='📲 Install App <i title="Hatao">✕</i>';
+ b.onclick=function(e){if(e.target.tagName==='I'){try{sessionStorage.setItem('v153NoInst','1')}catch(x){}b.style.display='none';return}
+  if(dp){dp.prompt();dp.userChoice.then(function(){dp=null;b.style.display='none'}).catch(function(){})}
+  else if(ios){alert('iPhone/iPad: Safari me Share (⬆) dabao, phir "Add to Home Screen" chuno.')}};
+ document.body.appendChild(b)}return b}
+function noInst(){try{return sessionStorage.getItem('v153NoInst')==='1'}catch(e){return false}}
+window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();dp=e;if(!standalone()&&!noInst())instBtn().style.display='block'});
+window.addEventListener('appinstalled',function(){dp=null;var b=$('#v153Install');if(b)b.style.display='none'});
+setTimeout(function(){if(ios&&!standalone()&&!noInst())instBtn().style.display='block'},3000);
+
+/* ---------- 2) UPDATE AVAILABLE TOAST ---------- */
+if('serviceWorker' in navigator){
+ var had=!!navigator.serviceWorker.controller;
+ navigator.serviceWorker.addEventListener('controllerchange',function(){
+  if(!had){had=true;return}
+  if($('#v153Upd'))return;
+  var d=document.createElement('div');d.id='v153Upd';
+  d.innerHTML='<span>🔄 App ka naya version aa gaya hai. Chalu kaam save karke Refresh dabao.</span><button type="button">Refresh</button>';
+  d.querySelector('button').onclick=function(){location.reload()};
+  document.body.appendChild(d);
+ });
+}
+
+/* ---------- 4) PR -> PO -> RECEIPT AGING (Spare Part Purchase) ---------- */
+var THR={pr:3,po:2};
+function d2(a,b){var x=Date.parse((a||'')+'T00:00:00'),y=Date.parse((b||'')+'T00:00:00');return(isNaN(x)||isNaN(y))?null:Math.round((y-x)/864e5)}
+function avg(a){a=a.filter(function(v){return v!==null&&v>=0});return a.length?Math.round(a.reduce(function(s,v){return s+v},0)/a.length*10)/10:null}
+function aging(){
+ var tbl=document.getElementById('purBody');if(!tbl)return;
+ var L=Array.isArray(data.sparePurchase)?data.sparePurchase:[],td=today(),prpo=[],porec=[],vend={},open=[];
+ L.forEach(function(r){
+  var po=r.poDate||r.ordDate,s=typeof purStatusOf==='function'?purStatusOf(r):r.status,a=d2(r.prDate,po),b=d2(po,r.recDate),d;
+  if(a!==null&&a>=0)prpo.push(a);
+  if(b!==null&&b>=0){porec.push(b);var v=String(r.vendor||'(vendor nahi likha)').trim(),o=vend[v]||(vend[v]={n:0,d:[],late:0}),l=d2(r.expDate,r.recDate);o.n++;o.d.push(b);if(l!==null&&l>0)o.late++}
+  if(s==='PR Raised'){d=d2(r.prDate,td);if(d!==null&&d>THR.pr)open.push({r:r,t:'PR→PO baaki',d:d})}
+  else if(s==='PO Created'){d=d2(po,td);if(d!==null&&d>THR.po)open.push({r:r,t:'PO→Vendor baaki',d:d})}
+  else if(s==='Sent to Vendor'){d=r.expDate?d2(r.expDate,td):null;if(d!==null&&d>0)open.push({r:r,t:'Maal late (expected date nikal gayi)',d:d})}
+ });
+ var panel=document.getElementById('purAging');
+ if(!panel){var table=tbl.closest('table'),anchor=(table&&table.closest('.tablewrap'))||table;if(!anchor||!anchor.parentNode)return;
+  panel=document.createElement('details');panel.id='purAging';anchor.parentNode.insertBefore(panel,anchor)}
+ var wasOpen=panel.open,A=avg(prpo),B=avg(porec);
+ var vr=Object.keys(vend).map(function(k){var o=vend[k];return{v:k,n:o.n,a:avg(o.d),l:o.late}}).sort(function(x,y){return(y.a||0)-(x.a||0)});
+ panel.innerHTML='<summary>⏱ Aging — PR→PO avg: '+(A===null?'—':A+' din')+' • PO→Receive avg: '+(B===null?'—':B+' din')+' • <span class="'+(open.length?'bad':'')+'">Delayed open: '+open.length+'</span></summary>'+
+  (vr.length?'<b>Vendor-wise (PO → Received)</b><table><tr><th>Vendor</th><th>Orders</th><th>Avg din</th><th>Late (expected se)</th></tr>'+vr.map(function(x){return '<tr><td>'+E(x.v)+'</td><td>'+x.n+'</td><td>'+(x.a===null?'—':x.a)+'</td><td>'+x.l+'</td></tr>'}).join('')+'</table>':'<div class="v154note">Vendor-wise data tab banega jab PO date aur Received date dono bhare hon.</div>')+
+  (open.length?'<b>Delayed open items</b><table><tr><th>Part</th><th>PR No.</th><th>PO No.</th><th>Vendor</th><th>Issue</th><th>Din</th></tr>'+open.sort(function(x,y){return y.d-x.d}).slice(0,25).map(function(x){var r=x.r;return '<tr><td>'+E(r.desc||'')+'</td><td>'+E(r.prNo||'')+'</td><td>'+E(r.po||'')+'</td><td>'+E(r.vendor||'')+'</td><td>'+E(x.t)+'</td><td class="bad">'+x.d+'</td></tr>'}).join('')+'</table>':'')+
+  '<div class="v154note">Limit: PR→PO '+THR.pr+' din, PO→Vendor '+THR.po+' din se zyada ho to "delayed" ginta hai.</div>';
+ panel.open=wasOpen;
+}
+function setupAging(){wrapAfter('renderPurchaseTable',aging);if(document.getElementById('purBody'))try{aging()}catch(e){}}
+
+/* ---------- 5) GLOBAL SEARCH ---------- */
+function gv(r){return r==null?'':String(r)}
+var MODS=[
+ {id:'mr',label:'Maintenance Request',list:function(){return data.mr},box:'mr_search',t:function(r){return 'Sr '+gv(r.sr)+' • '+gv(r.machineNo||r.machine)+' • '+gv(r.problem)}},
+ {id:'bd',label:'Breakdown',list:function(){return data.bd},t:function(r){return gv(r.date)+' • '+gv(r.machineNumber||r.machine)+' • '+gv(r.reason)}},
+ {id:'mh',label:'Machine History',list:function(){return data.mh},box:'mh_search'},
+ {id:'mm',label:'Machine Master',list:function(){return MACHINE_MASTER},box:'mm_search',t:function(r){return gv(r.machineNumber)+' • '+gv(r.machineName)+' • '+gv(r.department||r.section)}},
+ {id:'spares',label:'Spare Parts',list:function(){return data.spares},box:'sp_search',t:function(r){return gv(r.code)+' '+gv(r.desc)+' • '+gv(r.spec)}},
+ {id:'criticalSpares',label:'Critical Spares',list:function(){return data.critical},box:'cs_search',t:function(r){return gv(r.code)+' '+gv(r.desc)+' • '+gv(r.machine)}},
+ {id:'sparePurchase',label:'Spare Part Purchase',list:function(){return data.sparePurchase},box:'pur_search',t:function(r){return gv(r.desc)+' • PR '+gv(r.prNo)+' • PO '+gv(r.po)+' • '+gv(r.status)}},
+ {id:'thermocouple',label:'Thermocouple Plan',list:function(){return data.tc}},
+ {id:'calibration',label:'Calibration',list:function(){return data.cal},box:'cal_search'}
+];
+function flat(r){var o=[];for(var k in r){if(k.charAt(0)==='_'||k==='id')continue;var v=r[k];
+ if(typeof v==='string'){if(v.length<=300)o.push(v)}else if(typeof v==='number')o.push(String(v));
+ else if(v&&typeof v==='object'){try{var j=JSON.stringify(v);if(j.length<600)o.push(j)}catch(e){}}}
+ return o.join(' ').toLowerCase()}
+function title(m,r){if(m.t){var s=m.t(r).replace(/\s+/g,' ').trim();if(s.replace(/[•\s]/g,''))return s}
+ var a=[];for(var k in r){if(k.charAt(0)==='_'||k==='id')continue;var v=r[k];if(typeof v==='string'&&v&&v.length<60)a.push(v);else if(typeof v==='number')a.push(String(v));if(a.length>=4)break}return a.join(' • ')}
+function visible(id){var b=document.querySelector('.app-sidebar .tab[data-target="'+id+'"]');return !!b&&b.style.display!=='none'&&!b.hidden&&getComputedStyle(b).display!=='none'}
+function goTo(m,q,r){
+ var b=document.querySelector('.app-sidebar .tab[data-target="'+m.id+'"]');
+ try{showTab(m.id,b)}catch(e){}
+ setTimeout(function(){
+  try{
+   if(m.box){var i=document.getElementById(m.box);if(i){i.value=q;i.dispatchEvent(new Event('input',{bubbles:true}))}}
+   if(m.id==='bd'&&r&&r.date&&typeof monthLabelFromDate==='function'){var sel=document.getElementById('bd_month'),lb=monthLabelFromDate(new Date(r.date+'T00:00:00'));
+    if(sel){for(var i2=0;i2<sel.options.length;i2++){if(sel.options[i2].value===lb||sel.options[i2].text===lb){sel.value=sel.options[i2].value;renderBreakdown();break}}}}
+  }catch(e){console.warn('search nav',e)}
+ },200);
+}
+function search(q){
+ var out=$('#v153SOut'),ws=q.toLowerCase().split(/\s+/).filter(Boolean);
+ if(!ws.length){out.innerHTML='<div class="v154note" style="margin-top:10px">Machine no., part, PR/PO no., problem, vendor — kuch bhi likho. Sirf wahi modules dikhte hain jinka aapko access hai.</div>';return}
+ var h='',tot=0;window.__v153hits=[];
+ MODS.forEach(function(m){
+  if(!visible(m.id))return;var L;try{L=m.list()}catch(e){return}if(!Array.isArray(L))return;
+  var hits=[];for(var i=0;i<L.length&&hits.length<200;i++){var r=L[i];if(!r||typeof r!=='object')continue;var t=flat(r),ok=true;for(var j=0;j<ws.length;j++){if(t.indexOf(ws[j])<0){ok=false;break}}if(ok)hits.push(r)}
+  if(!hits.length)return;tot+=hits.length;
+  h+='<h4>'+E(m.label)+' ('+hits.length+')</h4>';
+  hits.slice(0,6).forEach(function(r){var n=window.__v153hits.push({m:m,r:r})-1;h+='<div class="it" data-h="'+n+'">'+E(title(m,r))+'</div>'});
+  if(hits.length>6){var n2=window.__v153hits.push({m:m,r:null})-1;h+='<div class="mo" data-h="'+n2+'">+'+(hits.length-6)+' aur — '+E(m.label)+' kholo</div>'}
+ });
+ out.innerHTML=h||'<div class="v154note" style="margin-top:10px">Kuch nahi mila.</div>';
+}
+function openSearch(){
+ if(!logged())return;var o=$('#v153S');
+ if(!o){o=document.createElement('div');o.id='v153S';o.innerHTML='<div class="bx"><input id="v153SIn" placeholder="🔍 Search: machine, part, PR/PO, problem, vendor…" autocomplete="off"><div id="v153SOut"></div></div>';
+  o.onclick=function(e){if(e.target===o)o.classList.remove('open');var it=e.target.closest&&e.target.closest('[data-h]');if(it){var h=window.__v153hits[+it.getAttribute('data-h')];if(h){o.classList.remove('open');goTo(h.m,$('#v153SIn').value.trim(),h.r)}}};
+  document.body.appendChild(o);var t;$('#v153SIn').oninput=function(){var v=this.value;clearTimeout(t);t=setTimeout(function(){search(v)},150)}}
+ o.classList.add('open');var i=$('#v153SIn');i.focus();search(i.value);
+}
+function sbtn(){var b=$('#v153SBtn');if(!b){b=document.createElement('button');b.id='v153SBtn';b.type='button';b.textContent='🔍';b.title='Search (Ctrl+K)';b.onclick=openSearch;document.body.appendChild(b)}b.style.display=logged()?'block':'none'}
+document.addEventListener('keydown',function(e){
+ if((e.ctrlKey||e.metaKey)&&(e.key==='k'||e.key==='K')){e.preventDefault();openSearch()}
+ else if(e.key==='Escape'){var o=$('#v153S');if(o)o.classList.remove('open')}
+});
+
+/* ---------- boot ---------- */
+var tries=0;
+function boot(){
+ try{sbtn()}catch(e){}
+ try{if(!boot.a){setupAging();boot.a=true}}catch(e){console.warn('v153 aging',e)}
+ tries++;
+}
+setTimeout(boot,800);
+setInterval(function(){try{sbtn()}catch(e){}},1500);
+})();
+
+/* ===== v154 ADDITIVE LAYER 2: Recent/Favourites, Dark mode, Barcode labels+scan, per-register CSV,
+   Repeat-breakdown / Power+DG trends on dashboard, Stock ledger, Audit old->new, Furnace audit pack ===== */
+(function(){
+'use strict';
+var $=function(s,r){return (r||document).querySelector(s)};
+function E(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function logged(){try{return typeof session==='function'&&!!session()}catch(e){return false}}
+function td(){return new Date().toISOString().slice(0,10)}
+function wrapAfter(name,fn){var o=window[name];if(typeof o!=='function'||o.__v154)return;var w=function(){var r=o.apply(this,arguments);try{fn.apply(this,arguments)}catch(e){console.warn(name,e)}return r};w.__v154=1;window[name]=w}
+function lsGet(k,d){try{var v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch(e){return d}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+
+var st=document.createElement('style');
+st.textContent=
+'html.v154dark{filter:invert(1) hue-rotate(180deg);background:#fff}html.v154dark img,html.v154dark video,html.v154dark canvas{filter:invert(1) hue-rotate(180deg)}@media print{html.v154dark{filter:none}html.v154dark img{filter:none}}'+
+'#v154Dk{position:fixed;right:58px;top:8px;z-index:9997;width:32px;height:32px;border-radius:50%;border:1px solid #cbd5e1;background:#fff;font-size:15px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.15)}'+
+'#v154Dash{display:grid;gap:12px;margin:12px 0}.v154c{background:#fff;border:1px solid #dbe4ea;border-radius:14px;padding:12px 14px}.v154c h3{margin:0 0 6px;font-size:14px}.v154c table{border-collapse:collapse;width:100%;font-size:12px}.v154c th,.v154c td{border:1px solid #dbe4ea;padding:4px 6px;text-align:center}.v154c .bad{color:#b91c1c;font-weight:800}.v154c .warn{color:#b45309;font-weight:800}.v154c .ok{color:#15803d;font-weight:800}'+
+'.v154chip{display:inline-block;margin:3px 4px 3px 0;padding:6px 10px;border-radius:999px;background:#e0f2fe;color:#0c4a6e;font:700 12px Arial;cursor:pointer;border:0}'+
+'.v154tool{text-align:right;margin:4px 0}.v154tool button{margin-left:6px}'+
+'#v154Mod{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:100002;display:flex;align-items:flex-start;justify-content:center;padding:60px 10px 10px}#v154Mod .bx{background:#fff;width:min(820px,100%);max-height:calc(100vh - 80px);overflow:auto;border-radius:14px;padding:14px;font-family:Arial,sans-serif;box-shadow:0 18px 60px rgba(0,0,0,.35)}#v154Mod table{border-collapse:collapse;width:100%;font-size:12px;margin-top:8px}#v154Mod th,#v154Mod td{border:1px solid #cbd5e1;padding:4px 6px;text-align:center}';
+document.head.appendChild(st);
+
+/* ---------- 1) RECENT + FAVOURITE MODULES ---------- */
+var NAVK='htp_v154_nav';
+function nav(){var n=lsGet(NAVK,{r:[],f:[]});if(!n.r)n.r=[];if(!n.f)n.f=[];return n}
+function tabs(){return Array.prototype.slice.call(document.querySelectorAll('.app-sidebar .tab[data-target]')).filter(function(b){return b.getAttribute('data-target')!=='dashboard'&&getComputedStyle(b).display!=='none'})}
+function tabLabel(id){var b=$('.app-sidebar .tab[data-target="'+id+'"]');return b?b.textContent.replace(/\s+/g,' ').trim():id}
+function goMod(id){var b=$('.app-sidebar .tab[data-target="'+id+'"]');try{showTab(id,b)}catch(e){}}
+wrapAfter('showTab',function(id){if(!id||id==='dashboard')return;var n=nav();n.r=[id].concat(n.r.filter(function(x){return x!==id})).slice(0,6);lsSet(NAVK,n)});
+function toggleFav(id){var n=nav(),i=n.f.indexOf(id);if(i>=0)n.f.splice(i,1);else n.f.push(id);lsSet(NAVK,n)}
+window.__v154nav={go:goMod,fav:toggleFav};
+function navHtml(){
+ var n=nav(),h='';
+ if(n.f.length)h+='<h4>⭐ Favourites</h4>'+n.f.map(function(id){return '<span class="v154chip" data-go="'+id+'">'+E(tabLabel(id))+'</span>'}).join('');
+ if(n.r.length)h+='<h4>🕘 Recent</h4>'+n.r.map(function(id){return '<span class="v154chip" data-go="'+id+'">'+E(tabLabel(id))+'</span>'}).join('');
+ h+='<h4>All modules (⭐ = favourite)</h4>'+tabs().map(function(b){var id=b.getAttribute('data-target'),on=n.f.indexOf(id)>=0;return '<div class="it" data-go="'+id+'"><span data-star="'+id+'" style="cursor:pointer;margin-right:8px">'+(on?'★':'☆')+'</span>'+E(b.textContent.replace(/\s+/g,' ').trim())+'</div>'}).join('');
+ return h;
+}
+window.__v154navHtml=navHtml;
+
+/* ---------- 2) DARK MODE ---------- */
+function applyDark(on){document.documentElement.classList.toggle('v154dark',!!on)}
+applyDark(localStorage.getItem('htp_v154_dark')==='1');
+function dk(){var b=$('#v154Dk');if(!b){b=document.createElement('button');b.id='v154Dk';b.type='button';b.title='Dark / Light mode';b.textContent='🌙';b.onclick=function(){var on=!document.documentElement.classList.contains('v154dark');applyDark(on);try{localStorage.setItem('htp_v154_dark',on?'1':'0')}catch(e){}};document.body.appendChild(b)}b.style.display=logged()?'block':'none'}
+
+/* ---------- 3) BARCODE (Code 39) LABELS + SCAN ---------- */
+var C39={'0':'nnnwwnwnn','1':'wnnwnnnnw','2':'nnwwnnnnw','3':'wnwwnnnnn','4':'nnnwwnnnw','5':'wnnwwnnnn','6':'nnwwwnnnn','7':'nnnwnnwnw','8':'wnnwnnwnn','9':'nnwwnnwnn','A':'wnnnnwnnw','B':'nnwnnwnnw','C':'wnwnnwnnn','D':'nnnnwwnnw','E':'wnnnwwnnn','F':'nnwnwwnnn','G':'nnnnnwwnw','H':'wnnnnwwnn','I':'nnwnnwwnn','J':'nnnnwwwnn','K':'wnnnnnnww','L':'nnwnnnnww','M':'wnwnnnnwn','N':'nnnnwnnww','O':'wnnnwnnwn','P':'nnwnwnnwn','Q':'nnnnnnwww','R':'wnnnnnwwn','S':'nnwnnnwwn','T':'nnnnwnwwn','U':'wwnnnnnnw','V':'nwwnnnnnw','W':'wwwnnnnnn','X':'nwnnwnnnw','Y':'wwnnwnnnn','Z':'nwwnwnnnn','-':'nwnnnnwnw','.':'wwnnnnwnn',' ':'nwwnnnwnn','$':'nwnwnwnnn','/':'nwnwnnnwn','+':'nwnnnwnwn','%':'nnnwnwnwn','*':'nwnnwnwnn'};
+function code39(txt){
+ txt=String(txt||'').toUpperCase();if(!txt||/[^0-9A-Z\-\. \$\/\+%]/.test(txt))return '';
+ var s='*'+txt+'*',x=10,h=46,out='';
+ for(var i=0;i<s.length;i++){var p=C39[s.charAt(i)];for(var j=0;j<9;j++){var w=p.charAt(j)==='w'?4:2;if(j%2===0)out+='<rect x="'+x+'" y="0" width="'+w+'" height="'+h+'" fill="#000"/>';x+=w}x+=2}
+ return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+(x+8)+' '+h+'" style="width:100%;height:46px" preserveAspectRatio="none">'+out+'</svg>';
+}
+function labels(){
+ var L=(typeof MACHINE_MASTER!=='undefined'&&Array.isArray(MACHINE_MASTER))?MACHINE_MASTER:[],cells=[],skip=0;
+ L.forEach(function(m){var no=String(m.machineNumber||'').trim(),b=code39(no);if(!b){if(no)skip++;return}
+  cells.push('<div class="l"><b>'+E(no.toUpperCase())+'</b><small>'+E(m.machineName||'')+'</small>'+b+'</div>')});
+ if(!cells.length)return alert('Machine Master me barcode-yogya machine number nahi mila.');
+ var w=window.open('','_blank');if(!w)return alert('Popup block hai - allow karo.');
+ w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Machine Barcode Labels</title><style>@page{size:A4;margin:8mm}body{font-family:Arial;margin:0}.g{display:grid;grid-template-columns:repeat(3,1fr);gap:4mm}.l{border:1px solid #000;padding:3mm;text-align:center;page-break-inside:avoid}.l b{display:block;font-size:15px}.l small{display:block;font-size:9px;min-height:11px;margin-bottom:2mm}.n{font-size:11px;margin:4px 0}</style></head><body><div class="n">Milestone Gears Ltd. UNIT-7 - Machine Barcode Labels (Code 39)'+(skip?' - '+skip+' machine number me allowed-character nahi, skip hue':'')+'</div><div class="g">'+cells.join('')+'</div><script>window.onload=function(){window.print()}<\/script></body></html>');w.document.close();
+}
+var scanStream=null;
+function scan(done){
+ if(!('BarcodeDetector' in window)||!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)return alert('Is browser me scan support nahi hai (Chrome/Android me chalta hai). Barcode ke neeche likha machine number search me likh do.');
+ var o=document.createElement('div');o.style.cssText='position:fixed;inset:0;background:#000;z-index:100005;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font:700 14px Arial';
+ o.innerHTML='<video playsinline muted style="max-width:100%;max-height:70vh"></video><div style="margin:10px">Barcode camera ke saamne rakho…</div><button type="button" style="padding:10px 18px;border:0;border-radius:8px;background:#dc2626;color:#fff;font-weight:800">Band karo</button>';
+ document.body.appendChild(o);var v=$('video',o),stop=false;
+ function end(){stop=true;try{if(scanStream)scanStream.getTracks().forEach(function(t){t.stop()})}catch(e){}scanStream=null;o.remove()}
+ $('button',o).onclick=end;
+ navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}).then(function(s){
+  scanStream=s;v.srcObject=s;v.play();var det=new BarcodeDetector({formats:['code_39','qr_code']});
+  (function loop(){if(stop)return;det.detect(v).then(function(r){if(r&&r.length){var t=r[0].rawValue;end();done(t)}else setTimeout(loop,300)}).catch(function(){setTimeout(loop,500)})})();
+ }).catch(function(){end();alert('Camera allow nahi hua.')});
+}
+window.__v154={labels:labels,scan:scan};
+
+/* ---------- 4) PER-REGISTER EXCEL/CSV BUTTON ---------- */
+var CSVMAP={pf:'pf',pc:'pc',dg:'dg',mr:'mr',mh:'mh',pm:'pm',bd:'bd',spares:'spares',criticalSpares:'critical',thermocouple:'tc',calibration:'cal',airCompressor:'airCompressor',maintUtility:'utility',sparePurchase:'sparePurchase',mm:'*MM'};
+function csvCell(v){if(v==null)return '';if(typeof v==='object'){try{v=JSON.stringify(v)}catch(e){v=''}}v=String(v);return /[",\r\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}
+function exportCsv(sec){
+ if(typeof requireRole==='function'&&!requireRole(['Admin','Technician','Operator','Supervisor']))return;
+ var k=CSVMAP[sec],L=k==='*MM'?MACHINE_MASTER:data[k];if(!Array.isArray(L)||!L.length)return alert('Is register me abhi koi record nahi hai.');
+ var cols=[];L.forEach(function(r){if(r&&typeof r==='object')Object.keys(r).forEach(function(c){if(c.charAt(0)!=='_'&&cols.indexOf(c)<0)cols.push(c)})});
+ var rows=[cols.map(csvCell).join(',')].concat(L.map(function(r){return cols.map(function(c){return csvCell(r&&r[c])}).join(',')}));
+ var a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+rows.join('\r\n')],{type:'text/csv;charset=utf-8;'}));a.download='HTP_'+sec+'_'+td()+'.csv';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},500);
+}
+function mountTools(){
+ Object.keys(CSVMAP).forEach(function(sec){
+  var s=document.getElementById(sec);if(!s||$('.v154tool',s))return;
+  var d=document.createElement('div');d.className='v154tool';
+  var h='<button type="button" class="secondary" data-t="csv">⬇ Excel/CSV</button>';
+  if(sec==='spares')h+='<button type="button" class="secondary" data-t="ledger">📒 Stock Ledger</button>';
+  if(sec==='mm')h+='<button type="button" class="secondary" data-t="labels">🏷 Barcode Labels</button><button type="button" class="secondary" data-t="scan">📷 Scan Machine</button>';
+  d.innerHTML=h;d.onclick=function(e){var t=e.target.getAttribute&&e.target.getAttribute('data-t');if(!t)return;
+   if(t==='csv')exportCsv(sec);else if(t==='ledger')ledger();else if(t==='labels')labels();
+   else if(t==='scan')scan(function(txt){var i=document.getElementById('mm_search');if(i){i.value=txt;i.dispatchEvent(new Event('input',{bubbles:true}))}})};
+  s.insertBefore(d,s.firstChild);
+ });
+}
+
+/* ---------- 5) STOCK LEDGER (Spare Parts) ---------- */
+function modal(html){var m=$('#v154Mod');if(m)m.remove();m=document.createElement('div');m.id='v154Mod';m.innerHTML='<div class="bx"><div style="text-align:right"><button type="button" class="danger" onclick="document.getElementById(\'v154Mod\').remove()">✕ Close</button></div>'+html+'</div>';m.onclick=function(e){if(e.target===m)m.remove()};document.body.appendChild(m);return m}
+function ledgerRows(sp){
+ var id='spares:'+sp.id,mv=[];
+ (data.bd||[]).forEach(function(r){if(r.spareLink===id){var q=Number(r.qty)||1;mv.push({d:r.date||'',t:'Issue',ref:'Breakdown '+(r.machineNumber||r.machine||''),q:-q})}});
+ (data.mr||[]).forEach(function(r){var P=Array.isArray(r.spareParts)?r.spareParts:[];P.forEach(function(p){if((p.link||p.spareLink||'')===id){mv.push({d:r.mdate||r.pdate||'',t:'Issue',ref:'MR Sr '+(r.sr||'')+' '+(r.machineNo||''),q:-(Number(p.qty)||1)})}})});
+ (data.sparePurchase||[]).forEach(function(r){if(r.status==='Received'&&r.desc===sp.desc&&String(r.spec||'')===String(sp.spec||''))mv.push({d:r.recDate||'',t:'Receipt',ref:'PO '+(r.po||'')+' '+(r.vendor||''),q:Number(r.recQty)||Number(r.qty)||0})});
+ mv.sort(function(a,b){return String(a.d).localeCompare(String(b.d))});
+ var bal=Number(sp.avail!=null?sp.avail:sp.qty)||0;for(var i=mv.length-1;i>=0;i--){mv[i].b=bal;bal-=mv[i].q}
+ return {mv:mv,open:bal};
+}
+function ledger(){
+ var L=data.spares||[];if(!L.length)return alert('Spare list khali hai.');
+ var m=modal('<h3 style="margin:0 0 8px">📒 Spare Stock Ledger</h3><select id="v154Sp" style="width:100%;padding:8px">'+L.map(function(s,i){return '<option value="'+i+'">'+E((s.code||'')+' '+(s.desc||'')+' '+(s.spec||''))+'</option>'}).join('')+'</select><div id="v154Lg"></div>');
+ function draw(){var sp=L[+$('#v154Sp',m).value],r=ledgerRows(sp);
+  $('#v154Lg',m).innerHTML='<div class="v154note" style="font-size:12px;margin-top:6px">Movement sirf Breakdown/MR issue aur Received purchase se bante hain. Opening = abhi ke Avail me se piche ki ginti (estimate).</div><table><tr><th>Date</th><th>Type</th><th>Reference</th><th>Qty</th><th>Balance</th></tr><tr><td>—</td><td>Opening (est.)</td><td></td><td></td><td>'+r.open+'</td></tr>'+(r.mv.map(function(x){return '<tr><td>'+E(x.d)+'</td><td>'+x.t+'</td><td>'+E(x.ref)+'</td><td class="'+(x.q<0?'bad':'ok')+'">'+(x.q>0?'+':'')+x.q+'</td><td>'+x.b+'</td></tr>'}).join('')||'<tr><td colspan="5">Koi movement nahi mila</td></tr>')+'</table>'}
+ $('#v154Sp',m).onchange=draw;draw();
+}
+
+/* ---------- 6) AUDIT TRAIL old -> new (edit diff) ---------- */
+var shadow={};
+function snap(){try{Object.keys(KEY).forEach(function(k){shadow[k]=JSON.stringify(data[k])})}catch(e){}}
+function recId(r){return r&&(r.id||r._sid||(r.sr!=null?'sr'+r.sr:null))}
+function diffAudit(k){
+ try{
+  if(typeof audit!=='function'||!shadow[k])return;
+  var old=JSON.parse(shadow[k]),cur=data[k];if(!Array.isArray(old)||!Array.isArray(cur))return;
+  var om={};old.forEach(function(r){var i=recId(r);if(i!=null)om[i]=r});
+  var n=0;
+  cur.forEach(function(r){if(n>=3)return;var i=recId(r),o=i!=null?om[i]:null;if(!o)return;
+   var ch=[];Object.keys(r).forEach(function(f){if(f.charAt(0)==='_'||/^(ts|updatedAt|savedAt|editedAt|savedByAt|editedByAt)$/.test(f))return;var a=o[f],b=r[f];
+    if(typeof a==='object'||typeof b==='object'){if(JSON.stringify(a)!==JSON.stringify(b))ch.push(f+': (list/detail badla)')}else if(String(a==null?'':a)!==String(b==null?'':b))ch.push(f+': '+String(a==null?'':a).slice(0,40)+' → '+String(b==null?'':b).slice(0,40))});
+   if(ch.length){n++;audit('SAVE',k,'EDIT #'+i+' | '+ch.slice(0,6).join(' ; ').slice(0,380))}});
+ }catch(e){console.warn('audit diff',e)}
+ try{shadow[k]=JSON.stringify(data[k])}catch(e){}
+}
+
+/* ---------- 7) DASHBOARD CARDS: repeat breakdown, power+DG trends, audit pack, quick nav ---------- */
+function repeatBD(){
+ var lim=new Date(Date.now()-30*864e5).toISOString().slice(0,10),m={};
+ (data.bd||[]).forEach(function(r){if((r.date||'')>=lim){var k=r.machineNumber||r.machine||'?',o=m[k]||(m[k]={n:0,h:0});o.n++;o.h+=Number(r.hours)||0}});
+ var a=Object.keys(m).filter(function(k){return m[k].n>=3}).sort(function(x,y){return m[y].n-m[x].n});
+ return '<div class="v154c"><h3>🔁 Repeat Breakdown (pichle 30 din me 3+ baar)</h3>'+(a.length?'<table><tr><th>Machine</th><th>Breakdown</th><th>Total hrs</th></tr>'+a.map(function(k){return '<tr><td>'+E(k)+'</td><td class="bad">'+m[k].n+'</td><td>'+Math.round(m[k].h*10)/10+'</td></tr>'}).join('')+'</table>':'<div class="v154note" style="font-size:12px">✅ Koi machine 3+ baar nahi tooti.</div>')+'</div>';
+}
+function monLbl(m){var n=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return n[+m.slice(5,7)-1]+' '+m.slice(2,4)}
+function powerCard(){
+ var h='<div class="v154c"><h3>⚡ Power & DG Trend</h3>';
+ try{
+  var B=(data.hpsebBill||[]).filter(function(r){return r.date}).slice().sort(function(a,b){return String(a.date).localeCompare(String(b.date))}).slice(-8).map(function(r){return pwCalcBill(r)});
+  if(B.length){
+   var mx=Math.max.apply(null,B.map(function(c){return Number(c.total)||0}))||1,bw=40,H=90,svg='<svg viewBox="0 0 '+(B.length*(bw+10)+10)+' '+(H+34)+'" style="width:100%;max-width:560px">';
+   B.forEach(function(c,i){var v=Number(c.total)||0,bh=Math.round(v/mx*H),x=10+i*(bw+10);svg+='<rect x="'+x+'" y="'+(H-bh+6)+'" width="'+bw+'" height="'+bh+'" fill="#0e7490"/><text x="'+(x+bw/2)+'" y="'+(H+20)+'" font-size="9" text-anchor="middle" fill="#334155">'+monLbl(String(c.date))+'</text><text x="'+(x+bw/2)+'" y="'+(H-bh+2)+'" font-size="8" text-anchor="middle" fill="#334155">'+(v/1e5).toFixed(1)+'L</text>'});
+   svg+='</svg>';
+   h+='<b style="font-size:12px">HPSEBL Total Bill (₹ Lac)</b>'+svg+'<table><tr><th>Month</th><th>Units</th><th>PF</th></tr>'+B.map(function(c){var pf=Number(c.pf)||0,cl=pf&&pf<0.9?'bad':(pf&&pf<0.95?'warn':'ok');return '<tr><td>'+monLbl(String(c.date))+'</td><td>'+Math.round(c.units||0)+'</td><td class="'+cl+'">'+(pf?pf.toFixed(3):'—')+'</td></tr>'}).join('')+'</table><div class="v154note" style="font-size:11px;color:#64748b">PF colour (indicative): 0.90 se kam = laal, 0.90-0.95 = peela, 0.95+ = hara. Asli penalty/incentive HPSEBL bill ke hisaab se dekho.</div>';
+  }else h+='<div class="v154note" style="font-size:12px">HPSEBL Bill ka data nahi mila.</div>';
+ }catch(e){h+='<div class="v154note">Bill trend load nahi hua.</div>'}
+ try{
+  var ms={};(data.dg||[]).forEach(function(r){if(r.date)ms[String(r.date).slice(0,7)]=1});
+  var M=Object.keys(ms).sort().slice(-6),rows=M.map(function(m){var t=pwDgMonth(m);return {m:m,s:t.s,c:t.c}});
+  if(rows.length){
+   var f=function(o){return o.hrs>0?o.ltr/o.hrs:null};
+   var all=[];rows.forEach(function(r){[f(r.s),f(r.c)].forEach(function(v){if(v)all.push(v)})});var av=all.length?all.reduce(function(a,b){return a+b},0)/all.length:0;
+   var cell=function(o){var v=f(o);return '<td>'+(Math.round(o.hrs*10)/10)+' h / '+Math.round(o.ltr)+' L</td><td class="'+(v&&av&&v>av*1.3?'bad':'')+'">'+(v?v.toFixed(1):'—')+'</td>'};
+   h+='<b style="font-size:12px;display:block;margin-top:8px">DG: Diesel Litre / Running Hour</b><table><tr><th>Month</th><th colspan="2">DG-01</th><th colspan="2">DG-02</th></tr>'+rows.map(function(r){return '<tr><td>'+monLbl(r.m+'-01')+'</td>'+cell(r.s)+cell(r.c)+'</tr>'}).join('')+'</table><div class="v154note" style="font-size:11px;color:#64748b">Laal = average se 30% zyada L/hr (diesel leakage / engine check).</div>';
+  }
+ }catch(e){}
+ return h+'</div>';
+}
+function dashPanel(){
+ var d=document.getElementById('dashboard');if(!d||!d.classList.contains('active')||!logged())return;
+ var p=document.getElementById('v154Dash');
+ if(!p){p=document.createElement('div');p.id='v154Dash';var g=d.querySelector('.quick-module-grid');if(!g)return;g.insertAdjacentElement('afterend',p);
+  p.onclick=function(e){var t=e.target,g2=t.getAttribute&&t.getAttribute('data-go');if(g2)goMod(g2);else if(t.getAttribute&&t.getAttribute('data-t')==='pack')auditPack()}}
+ var n=nav(),chips='';
+ if(n.f.length)chips+='<b style="font-size:12px">⭐</b> '+n.f.map(function(id){return '<button type="button" class="v154chip" data-go="'+id+'">'+E(tabLabel(id))+'</button>'}).join('');
+ if(n.r.length)chips+=' <b style="font-size:12px">🕘</b> '+n.r.map(function(id){return '<button type="button" class="v154chip" data-go="'+id+'">'+E(tabLabel(id))+'</button>'}).join('');
+ var html=(chips?'<div class="v154c">'+chips+'</div>':'')+repeatBD()+powerCard()+'<div class="v154c"><h3>🛡 Furnace Audit Pack</h3><button type="button" class="primary" data-t="pack">Print: Furnace-wise SAT / TUS / Probe / Thermocouple status</button></div>';
+ if(p.__h!==html){p.innerHTML=html;p.__h=html}
+}
+
+/* ---------- 8) FURNACE-WISE AUDIT PACK ---------- */
+function auditPack(){
+ var MODS=[['satReport','SAT Report'],['satTemp','SAT Temp'],['oxyMV','Oxy MV'],['oxyImp','O2 Impedance'],['oxyRep','Probe Replace'],['tus','TUS Survey'],['furnChk','Furnace Check'],['tc','Thermocouple']],furn={},T=td();
+ function fOf(r){return String(r.furnace||r.fc||r.furnaceNo||'').trim()}
+ function dOf(r){return r.satDate||r.testDate||r.surveyDate||r.checkDate||r.date||r.inst||''}
+ function uOf(r){return r.dueDate||r.nextDue||(/^\d{4}-\d{2}-\d{2}$/.test(r.due||'')?r.due:'')||''}
+ function sOf(r,k){try{if(k==='tc'&&typeof tcEffStatus==='function')return tcEffStatus(r)}catch(e){}return r.status||r.result||''}
+ MODS.forEach(function(m){var L;try{L=m[0]==='tc'?data.tc:hqList(m[0])}catch(e){L=[]}
+  (L||[]).forEach(function(r){var f=fOf(r);if(!f)return;var o=furn[f]||(furn[f]={});var c=o[m[0]];if(!c||String(dOf(r))>String(dOf(c.r)))o[m[0]]={r:r,n:(c?c.n:0)+1};else c.n++})});
+ var F=Object.keys(furn).sort();if(!F.length)return alert('Furnace-wise data nahi mila.');
+ var rows=F.map(function(f){return '<tr><td style="text-align:left"><b>'+E(f)+'</b></td>'+MODS.map(function(m){var c=furn[f][m[0]];if(!c)return '<td>—</td>';var r=c.r,d=dOf(r),u=uOf(r),s=sOf(r,m[0]),bad=/not ok|fail|reject|overdue|expired/i.test(s)||(u&&u<T);return '<td style="'+(bad?'background:#fee2e2':'')+'">'+E(s)+'<br><small>'+E(d)+(u?'<br>Due: '+E(u):'')+'</small></td>'}).join('')+'</tr>'}).join('');
+ var w=window.open('','_blank');if(!w)return alert('Popup block hai - allow karo.');
+ w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Furnace Audit Pack</title><style>@page{size:A4 landscape;margin:8mm}body{font-family:Arial;font-size:9px}h1{font-size:15px;text-align:center;margin:2px}p{text-align:center;margin:2px 0 8px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #000;padding:3px;text-align:center;vertical-align:top}th{background:#e5e7eb}.s{display:flex;gap:10px;margin-top:20px}.s div{flex:1;border-top:1px solid #000;text-align:center;padding-top:3px;font-weight:bold}</style></head><body>'+(typeof APP_LOGO!=='undefined'?'<div style="text-align:center"><img src="'+APP_LOGO+'" style="height:12mm"></div>':'')+'<h1>Milestone Gears Ltd. UNIT-7 - Furnace-wise Audit Pack</h1><p>Har module ka latest record (date, status, next due). Date: '+E(T)+' | Laal = NOT OK / due nikal gayi</p><table><thead><tr><th>Furnace</th>'+MODS.map(function(m){return '<th>'+m[1]+'</th>'}).join('')+'</tr></thead><tbody>'+rows+'</tbody></table><div class="s"><div>Prepared by</div><div>Reviewed by (Maintenance)</div><div>Approved by (Quality)</div></div><script>window.onload=function(){window.print()}<\/script></body></html>');w.document.close();
+}
+
+/* ---------- search overlay: empty query => modules / recent / favourites + scan button ---------- */
+function patchSearch(){
+ var o=$('#v153S');if(!o||o.__v154)return;o.__v154=1;
+ var inp=$('#v153SIn');if(inp&&!$('#v154ScanB',o)){var b=document.createElement('button');b.id='v154ScanB';b.type='button';b.className='secondary';b.textContent='📷 Barcode scan';b.style.margin='6px 0';b.onclick=function(){scan(function(t){inp.value=t;inp.dispatchEvent(new Event('input',{bubbles:true}))})};inp.insertAdjacentElement('afterend',b)}
+ o.addEventListener('click',function(e){var t=e.target;
+  if(t.getAttribute&&t.getAttribute('data-star')){e.stopPropagation();toggleFav(t.getAttribute('data-star'));fill();return}
+  var g=t.closest&&t.closest('[data-go]');if(g&&!g.hasAttribute('data-h')){o.classList.remove('open');goMod(g.getAttribute('data-go'))}},true);
+ var out=$('#v153SOut');
+ function fill(){if(inp&&!inp.value.trim())out.innerHTML=navHtml()}
+ new MutationObserver(function(){if(inp&&!inp.value.trim()&&out.innerHTML.indexOf('data-go')<0)fill()}).observe(out,{childList:true});
+ inp.addEventListener('input',function(){if(!inp.value.trim())setTimeout(fill,200)});
+ fill();
+}
+
+/* ---------- boot ---------- */
+function boot(){
+ try{dk()}catch(e){}
+ try{mountTools()}catch(e){console.warn('v154 tools',e)}
+ try{dashPanel()}catch(e){console.warn('v154 dash',e)}
+ try{patchSearch()}catch(e){}
+}
+document.addEventListener('click',function(e){if(e.target&&e.target.id==='v153SBtn')setTimeout(patchSearch,60)},true);
+document.addEventListener('keydown',function(e){if((e.ctrlKey||e.metaKey)&&(e.key==='k'||e.key==='K'))setTimeout(patchSearch,60)},true);
+setTimeout(function(){snap();wrapAfter('persist',function(k){diffAudit(k)});boot()},1200);
+setInterval(boot,2500);
+})();
+
+</script>
 </body>
 </html>
