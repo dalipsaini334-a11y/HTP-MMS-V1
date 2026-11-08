@@ -18253,6 +18253,24 @@ function show(m){
   var box={mm:'mm_search',mr:'mr_search',mh:'mh_search'}[g];goFiltered(g,box,no)};
  document.body.appendChild(o);
 }
+/* ---- har screen par floating scan button (Machine Master kholne ki zarurat nahi) ---- */
+(function(){
+ var css=document.createElement('style');
+ css.textContent='#v155Fab{position:fixed;right:14px;bottom:86px;z-index:9998;width:52px;height:52px;border-radius:50%;border:0;background:#0e7490;color:#fff;font-size:24px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.35);display:none}@media print{#v155Fab{display:none!important}}';
+ document.head.appendChild(css);
+ function logged(){try{return typeof session==='function'&&!!session()}catch(e){return false}}
+ function ensure(){
+  var b=document.getElementById('v155Fab');
+  if(!b){b=document.createElement('button');b.id='v155Fab';b.type='button';b.textContent='\uD83D\uDCF7';b.title='Machine barcode scan';
+   b.onclick=function(){
+    var sc=window.__v154&&window.__v154.scan;if(!sc)return alert('Scan abhi tayyar nahi, thodi der baad try karo.');
+    sc(function(t){if(window.v155MachineView(t))return;
+     alert('Machine "'+t+'" Machine Master me nahi mila.');goFiltered('mm','mm_search',t)})};
+   document.body.appendChild(b)}
+  b.style.display=logged()&&!document.getElementById('v155M')?'block':'none';
+ }
+ setInterval(ensure,1500);setTimeout(ensure,1500);
+})();
 /* scan ke baad call hota hai: true = machine mila aur card khul gaya, false = purana behaviour chale */
 window.v155MachineView=function(txt){
  try{var m=findMachine(txt);if(!m)return false;var s=document.getElementById('v153S');if(s)s.classList.remove('open');show(m);return true}
