@@ -18028,11 +18028,11 @@ function mountTools(){
  Object.keys(CSVMAP).forEach(function(sec){
   var s=document.getElementById(sec);if(!s||$('.v154tool',s))return;
   var d=document.createElement('div');d.className='v154tool';
-  var h='<button type="button" class="secondary" data-t="csv">⬇ Excel/CSV</button>';
+  var h='<button type="button" class="secondary" data-t="csv" title="Module ke print format jaisa Excel">⬇ Excel</button>';
   if(sec==='spares')h+='<button type="button" class="secondary" data-t="ledger">📒 Stock Ledger</button>';
   if(sec==='mm')h+='<button type="button" class="secondary" data-t="labels">🏷 Barcode Labels</button><button type="button" class="secondary" data-t="scan">📷 Scan Machine</button>';
   d.innerHTML=h;d.onclick=function(e){var t=e.target.getAttribute&&e.target.getAttribute('data-t');if(!t)return;
-   if(t==='csv')exportCsv(sec);else if(t==='ledger')ledger();else if(t==='labels')labels();
+   if(t==='csv'){if(!(window.v155ExcelFmt&&window.v155ExcelFmt(sec)))exportCsv(sec)}else if(t==='ledger')ledger();else if(t==='labels')labels();
    else if(t==='scan')scan(function(txt){if(window.v155MachineView&&window.v155MachineView(txt))return;var i=document.getElementById('mm_search');if(i){i.value=txt;i.dispatchEvent(new Event('input',{bubbles:true}))}})};
   s.insertBefore(d,s.firstChild);
  });
@@ -18271,6 +18271,21 @@ function show(m){
  }
  setInterval(ensure,1500);setTimeout(ensure,1500);
 })();
+/* ---- Excel download = module ke print format jaisa (same rows/columns); print format na mile to purana CSV ---- */
+var PRINT_BTN=/^\s*(print[A-Za-z0-9]*|pwPrint|hqPrint[A-Za-z]*|dcPrint[A-Za-z]*)\s*\(/;
+window.v155ExcelFmt=function(sec){
+ try{
+  if(typeof window.xlBuildFromCode!=='function'||typeof window.xlExportClick!=='function')return false;
+  var s=document.getElementById(sec);if(!s)return false;
+  var btns=[].slice.call(s.querySelectorAll('button[onclick]')).filter(function(b){return !b.classList.contains('xl-btn')&&PRINT_BTN.test(b.getAttribute('onclick')||'')});
+  if(!btns.length)return false;
+  var code=btns[0].getAttribute('onclick');
+  var r=window.xlBuildFromCode(code);
+  if(r.error&&!r.blob){alert(r.error);return true}
+  var tmp=document.createElement('button');tmp.setAttribute('data-xl',code);
+  window.xlExportClick(tmp);return true;
+ }catch(e){console.warn('v155 excel',e);return false}
+};
 /* scan ke baad call hota hai: true = machine mila aur card khul gaya, false = purana behaviour chale */
 window.v155MachineView=function(txt){
  try{var m=findMachine(txt);if(!m)return false;var s=document.getElementById('v153S');if(s)s.classList.remove('open');show(m);return true}
