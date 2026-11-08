@@ -131,7 +131,7 @@
 })();
 </script>
 <script>/* FIX v122: pwHr startup pe hi chahiye (renderDG), isliye sabse pehle define */function pwHr(v){if(v==null||v==='')return NaN;var t=String(v).trim();if(t.indexOf(':')>=0){var p=t.split(':'),h=Number(p[0]),m=Number(p[1]||0);return isFinite(h)&&isFinite(m)?h+m/60:NaN}var n=Number(t);return isFinite(n)?n:NaN}</script>
-<script>window.APP_VERSION='154-features-v2';</script>
+<script>window.APP_VERSION='155-scanfix';</script>
 <script>if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js?v='+encodeURIComponent(window.APP_VERSION||'0')).then(function(r){try{r.update()}catch(e){}}).catch(function(e){console.warn('SW',e)})})}</script>
 <title>Milestone Gears Ltd. Unit-7 | Maintenance & Utility Daily Log</title>
 <style>
@@ -13624,6 +13624,9 @@ function openMenu(){
  if(logged&&user)h+='<div class="aam-mu">'+E(user)+'</div>';
  var sb=$('mmsSyncBtn'),up=$('mmsUpgradeBtn'),lo=$('mmsLogoutBtn');
  if(logged&&sb){var st=sb.textContent.trim();h+=mItem('sync','sync','Sync now',st&&st!=='\uD83D\uDD04 Sync'?st:'')}
+ if(logged){var _se=$('v153SBtn'),_dk=$('v154Dk');
+  if(_dk)h+='<button type="button" class="aam-mi" data-k="x-dark"><span style="font-size:20px;width:24px;text-align:center">\uD83C\uDF19</span><span>Dark / Light mode<small>Poori app ka theme</small></span></button>';
+  if(_se)h+='<button type="button" class="aam-mi" data-k="x-search"><span style="font-size:20px;width:24px;text-align:center">\uD83D\uDD0D</span><span>Search<small>Modules / machines dhoondo</small></span></button>'}
  if(logged&&up&&up.classList.contains('mms-show'))h+=mItem('tools','tools','System tools');
  var lightT=document.documentElement.classList.contains('aam-tl');
  h+=mItem('theme','moon','Tables & cards: '+(lightT?'Light':'Dark'),lightT?'Dark mode me badlo':'Light mode me badlo');
@@ -13660,6 +13663,7 @@ function bind(){
   var k=b.getAttribute('data-k');closeMenu();
   var el={sync:$('mmsSyncBtn'),tools:$('mmsUpgradeBtn'),logout:$('mmsLogoutBtn')}[k];
   if(k==='reload')location.reload();
+  else if(k==='x-dark'||k==='x-search'){var xb=$(k==='x-dark'?'v154Dk':'v153SBtn');if(xb)xb.click()}
   else if(k==='theme'){var on=document.documentElement.classList.toggle('aam-tl');try{localStorage.setItem('aam_tbl',on?'light':'dark')}catch(e){}toast(on?'Light tables':'Dark tables')}
   else if(el)el.click();
  });
@@ -17795,7 +17799,7 @@ html body main.wrap section#bd table.bd-tbl th:nth-child(17){min-width:150px}
 'use strict';
 var $=function(s,r){return (r||document).querySelector(s)};
 function E(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
-function logged(){try{return typeof session==='function'&&!!session()}catch(e){return false}}
+function logged(){try{if(typeof session==='function')return !!session();return !!JSON.parse(localStorage.getItem('htp_mms_session_v1')||'null')}catch(e){return false}}
 function today(){return new Date().toISOString().slice(0,10)}
 function wrapAfter(name,fn){var o=window[name];if(typeof o!=='function'||o.__v153)return;var w=function(){var r=o.apply(this,arguments);try{fn.apply(this,arguments)}catch(e){console.warn(name,e)}return r};w.__v153=1;window[name]=w}
 
@@ -17805,7 +17809,7 @@ st.textContent=
 '#v153Install i{font-style:normal;margin-left:10px;opacity:.8;padding:0 4px}'+
 '#v153Upd{position:fixed;left:50%;top:80px;transform:translateX(-50%);z-index:100003;background:#1e293b;color:#fff;border-radius:12px;padding:10px 14px;font:600 13px Arial;box-shadow:0 6px 24px rgba(0,0,0,.35);display:flex;gap:12px;align-items:center;max-width:94vw}'+
 '#v153Upd button{background:#22c55e;color:#fff;border:0;border-radius:8px;padding:6px 12px;font-weight:800;cursor:pointer}'+
-'#v153SBtn{position:fixed;right:18px;top:8px;z-index:9997;width:32px;height:32px;border-radius:50%;border:1px solid #cbd5e1;background:#fff;font-size:16px;cursor:pointer;display:none;box-shadow:0 2px 8px rgba(0,0,0,.15)}'+
+'#v153SBtn{position:fixed;right:20px;bottom:150px;top:auto;z-index:9997;width:32px;height:32px;border-radius:50%;border:1px solid #cbd5e1;background:#fff;font-size:16px;cursor:pointer;display:none;box-shadow:0 2px 8px rgba(0,0,0,.15)}'+
 '#v153S{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:100002;display:none;align-items:flex-start;justify-content:center;padding:70px 10px 10px}'+
 '#v153S.open{display:flex}#v153S .bx{background:#fff;width:min(720px,100%);max-height:calc(100vh - 90px);overflow:auto;border-radius:14px;padding:14px;box-shadow:0 18px 60px rgba(0,0,0,.35);font-family:Arial,sans-serif}'+
 '#v153S input{width:100%;padding:11px;border:2px solid #0e7490;border-radius:10px;font-size:15px;box-sizing:border-box}'+
@@ -17944,7 +17948,7 @@ setInterval(function(){try{sbtn()}catch(e){}},1500);
 'use strict';
 var $=function(s,r){return (r||document).querySelector(s)};
 function E(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
-function logged(){try{return typeof session==='function'&&!!session()}catch(e){return false}}
+function logged(){try{if(typeof session==='function')return !!session();return !!JSON.parse(localStorage.getItem('htp_mms_session_v1')||'null')}catch(e){return false}}
 function td(){return new Date().toISOString().slice(0,10)}
 function wrapAfter(name,fn){var o=window[name];if(typeof o!=='function'||o.__v154)return;var w=function(){var r=o.apply(this,arguments);try{fn.apply(this,arguments)}catch(e){console.warn(name,e)}return r};w.__v154=1;window[name]=w}
 function lsGet(k,d){try{var v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch(e){return d}}
@@ -17953,8 +17957,15 @@ function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
 var st=document.createElement('style');
 st.textContent=
 'html.v154dark{filter:invert(1) hue-rotate(180deg);background:#fff}html.v154dark img,html.v154dark video,html.v154dark canvas{filter:invert(1) hue-rotate(180deg)}@media print{html.v154dark{filter:none}html.v154dark img{filter:none}}'+
-'#v154Dk{position:fixed;right:58px;top:8px;z-index:9997;width:32px;height:32px;border-radius:50%;border:1px solid #cbd5e1;background:#fff;font-size:15px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.15)}'+
+'#v154Dk{position:fixed;right:20px;bottom:196px;top:auto;z-index:9997;width:32px;height:32px;border-radius:50%;border:1px solid #cbd5e1;background:#fff;font-size:15px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.15)}'+
 '#v154Dash{display:grid;gap:12px;margin:12px 0}.v154c{background:#fff;border:1px solid #dbe4ea;border-radius:14px;padding:12px 14px}.v154c h3{margin:0 0 6px;font-size:14px}.v154c table{border-collapse:collapse;width:100%;font-size:12px}.v154c th,.v154c td{border:1px solid #dbe4ea;padding:4px 6px;text-align:center}.v154c .bad{color:#b91c1c;font-weight:800}.v154c .warn{color:#b45309;font-weight:800}.v154c .ok{color:#15803d;font-weight:800}'+
+'#v154Dash .v154c{background:linear-gradient(160deg,#143252,#0e2238);border:1px solid #2a4a6b;border-radius:18px;padding:15px;color:#e6f0fa;box-shadow:0 6px 18px rgba(5,15,30,.3)}'+
+'#v154Dash .v154c .card-title-row{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding:0 0 10px;margin:0 0 9px;border-bottom:1px solid rgba(255,255,255,.12)}'+
+'#v154Dash .v154c h3{margin:0;font-size:13px;font-weight:700;color:#fff}#v154Dash .v154c small{display:block;margin-top:2px;font-size:9px;color:#84939c}'+
+'#v154Dash .v154c .mini-nav{border:0;background:#edf5f5;color:#0f766e;border-radius:16px;padding:4px 14px;font-size:12px;cursor:pointer;white-space:nowrap}'+
+'#v154Dash .v154c table{color:#e6f0fa}#v154Dash .v154c th,#v154Dash .v154c td{border-color:rgba(255,255,255,.14)}#v154Dash .v154c th{background:rgba(255,255,255,.08);color:#b9d3ec}'+
+'#v154Dash .v154c .bad{color:#fca5a5}#v154Dash .v154c .warn{color:#fcd34d}#v154Dash .v154c .ok{color:#86efac}#v154Dash .v154c .v154note{color:#b9d3ec!important}#v154Dash .v154c b{color:#e6f0fa}'+
+'#v153SBtn,#v154Dk{display:none!important}'+
 '.v154chip{display:inline-block;margin:3px 4px 3px 0;padding:6px 10px;border-radius:999px;background:#e0f2fe;color:#0c4a6e;font:700 12px Arial;cursor:pointer;border:0}'+
 '.v154tool{text-align:right;margin:4px 0}.v154tool button{margin-left:6px}'+
 '#v154Mod{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:100002;display:flex;align-items:flex-start;justify-content:center;padding:60px 10px 10px}#v154Mod .bx{background:#fff;width:min(820px,100%);max-height:calc(100vh - 80px);overflow:auto;border-radius:14px;padding:14px;font-family:Arial,sans-serif;box-shadow:0 18px 60px rgba(0,0,0,.35)}#v154Mod table{border-collapse:collapse;width:100%;font-size:12px;margin-top:8px}#v154Mod th,#v154Mod td{border:1px solid #cbd5e1;padding:4px 6px;text-align:center}';
@@ -18080,18 +18091,18 @@ function repeatBD(){
  var lim=new Date(Date.now()-30*864e5).toISOString().slice(0,10),m={};
  (data.bd||[]).forEach(function(r){if((r.date||'')>=lim){var k=r.machineNumber||r.machine||'?',o=m[k]||(m[k]={n:0,h:0});o.n++;o.h+=Number(r.hours)||0}});
  var a=Object.keys(m).filter(function(k){return m[k].n>=3}).sort(function(x,y){return m[y].n-m[x].n});
- return '<div class="v154c"><h3>🔁 Repeat Breakdown (pichle 30 din me 3+ baar)</h3>'+(a.length?'<table><tr><th>Machine</th><th>Breakdown</th><th>Total hrs</th></tr>'+a.map(function(k){return '<tr><td>'+E(k)+'</td><td class="bad">'+m[k].n+'</td><td>'+Math.round(m[k].h*10)/10+'</td></tr>'}).join('')+'</table>':'<div class="v154note" style="font-size:12px">✅ Koi machine 3+ baar nahi tooti.</div>')+'</div>';
+ return '<div class="v154c"><div class="card-title-row"><div><h3>🔁 Repeat Breakdown</h3><small>Pichle 30 din me 3+ baar toot-ne wali machines</small></div></div>'+(a.length?'<table><tr><th>Machine</th><th>Breakdown</th><th>Total hrs</th></tr>'+a.map(function(k){return '<tr><td>'+E(k)+'</td><td class="bad">'+m[k].n+'</td><td>'+Math.round(m[k].h*10)/10+'</td></tr>'}).join('')+'</table>':'<div class="v154note" style="font-size:12px">✅ Koi machine 3+ baar nahi tooti.</div>')+'</div>';
 }
 function monLbl(m){var n=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return n[+m.slice(5,7)-1]+' '+m.slice(2,4)}
 function powerCard(){
- var h='<div class="v154c"><h3>⚡ Power & DG Trend</h3>';
+ var h='<div class="v154c"><div class="card-title-row"><div><h3>⚡ Power &amp; DG Trend</h3><small>HPSEBL bill + DG diesel per running hour</small></div></div>';
  try{
   var B=(data.hpsebBill||[]).filter(function(r){return r.date}).slice().sort(function(a,b){return String(a.date).localeCompare(String(b.date))}).slice(-8).map(function(r){return pwCalcBill(r)});
   if(B.length){
    var mx=Math.max.apply(null,B.map(function(c){return Number(c.total)||0}))||1,bw=40,H=90,svg='<svg viewBox="0 0 '+(B.length*(bw+10)+10)+' '+(H+34)+'" style="width:100%;max-width:560px">';
-   B.forEach(function(c,i){var v=Number(c.total)||0,bh=Math.round(v/mx*H),x=10+i*(bw+10);svg+='<rect x="'+x+'" y="'+(H-bh+6)+'" width="'+bw+'" height="'+bh+'" fill="#0e7490"/><text x="'+(x+bw/2)+'" y="'+(H+20)+'" font-size="9" text-anchor="middle" fill="#334155">'+monLbl(String(c.date))+'</text><text x="'+(x+bw/2)+'" y="'+(H-bh+2)+'" font-size="8" text-anchor="middle" fill="#334155">'+(v/1e5).toFixed(1)+'L</text>'});
+   B.forEach(function(c,i){var v=Number(c.total)||0,bh=Math.round(v/mx*H),x=10+i*(bw+10);svg+='<rect x="'+x+'" y="'+(H-bh+6)+'" width="'+bw+'" height="'+bh+'" fill="#2dd4bf"/><text x="'+(x+bw/2)+'" y="'+(H+20)+'" font-size="9" text-anchor="middle" fill="#b9d3ec">'+monLbl(String(c.date))+'</text><text x="'+(x+bw/2)+'" y="'+(H-bh+2)+'" font-size="8" text-anchor="middle" fill="#e6f0fa">'+(v/1e5).toFixed(1)+'L</text>'});
    svg+='</svg>';
-   h+='<b style="font-size:12px">HPSEBL Total Bill (₹ Lac)</b>'+svg+'<table><tr><th>Month</th><th>Units</th><th>PF</th></tr>'+B.map(function(c){var pf=Number(c.pf)||0,cl=pf&&pf<0.9?'bad':(pf&&pf<0.95?'warn':'ok');return '<tr><td>'+monLbl(String(c.date))+'</td><td>'+Math.round(c.units||0)+'</td><td class="'+cl+'">'+(pf?pf.toFixed(3):'—')+'</td></tr>'}).join('')+'</table><div class="v154note" style="font-size:11px;color:#64748b">PF colour (indicative): 0.90 se kam = laal, 0.90-0.95 = peela, 0.95+ = hara. Asli penalty/incentive HPSEBL bill ke hisaab se dekho.</div>';
+   h+='<b style="font-size:12px">HPSEBL Total Bill (₹ Lac)</b>'+svg+'<table><tr><th>Month</th><th>Units</th><th>PF</th></tr>'+B.map(function(c){var pf=Number(c.pf)||0,cl=pf&&pf<0.9?'bad':(pf&&pf<0.95?'warn':'ok');return '<tr><td>'+monLbl(String(c.date))+'</td><td>'+Math.round(c.units||0)+'</td><td class="'+cl+'">'+(pf?pf.toFixed(3):'—')+'</td></tr>'}).join('')+'</table><div class="v154note" style="font-size:11px;color:#84939c">PF colour (indicative): 0.90 se kam = laal, 0.90-0.95 = peela, 0.95+ = hara. Asli penalty/incentive HPSEBL bill ke hisaab se dekho.</div>';
   }else h+='<div class="v154note" style="font-size:12px">HPSEBL Bill ka data nahi mila.</div>';
  }catch(e){h+='<div class="v154note">Bill trend load nahi hua.</div>'}
  try{
@@ -18101,7 +18112,7 @@ function powerCard(){
    var f=function(o){return o.hrs>0?o.ltr/o.hrs:null};
    var all=[];rows.forEach(function(r){[f(r.s),f(r.c)].forEach(function(v){if(v)all.push(v)})});var av=all.length?all.reduce(function(a,b){return a+b},0)/all.length:0;
    var cell=function(o){var v=f(o);return '<td>'+(Math.round(o.hrs*10)/10)+' h / '+Math.round(o.ltr)+' L</td><td class="'+(v&&av&&v>av*1.3?'bad':'')+'">'+(v?v.toFixed(1):'—')+'</td>'};
-   h+='<b style="font-size:12px;display:block;margin-top:8px">DG: Diesel Litre / Running Hour</b><table><tr><th>Month</th><th colspan="2">DG-01</th><th colspan="2">DG-02</th></tr>'+rows.map(function(r){return '<tr><td>'+monLbl(r.m+'-01')+'</td>'+cell(r.s)+cell(r.c)+'</tr>'}).join('')+'</table><div class="v154note" style="font-size:11px;color:#64748b">Laal = average se 30% zyada L/hr (diesel leakage / engine check).</div>';
+   h+='<b style="font-size:12px;display:block;margin-top:8px">DG: Diesel Litre / Running Hour</b><table><tr><th>Month</th><th colspan="2">DG-01</th><th colspan="2">DG-02</th></tr>'+rows.map(function(r){return '<tr><td>'+monLbl(r.m+'-01')+'</td>'+cell(r.s)+cell(r.c)+'</tr>'}).join('')+'</table><div class="v154note" style="font-size:11px;color:#84939c">Laal = average se 30% zyada L/hr (diesel leakage / engine check).</div>';
   }
  }catch(e){}
  return h+'</div>';
@@ -18114,7 +18125,7 @@ function dashPanel(){
  var n=nav(),chips='';
  if(n.f.length)chips+='<b style="font-size:12px">⭐</b> '+n.f.map(function(id){return '<button type="button" class="v154chip" data-go="'+id+'">'+E(tabLabel(id))+'</button>'}).join('');
  if(n.r.length)chips+=' <b style="font-size:12px">🕘</b> '+n.r.map(function(id){return '<button type="button" class="v154chip" data-go="'+id+'">'+E(tabLabel(id))+'</button>'}).join('');
- var html=(chips?'<div class="v154c">'+chips+'</div>':'')+repeatBD()+powerCard()+'<div class="v154c"><h3>🛡 Furnace Audit Pack</h3><button type="button" class="primary" data-t="pack">Print: Furnace-wise SAT / TUS / Probe / Thermocouple status</button></div>';
+ var html=(chips?'<div class="v154c">'+chips+'</div>':'')+repeatBD()+powerCard()+'<div class="v154c"><div class="card-title-row"><div><h3>🛡 Furnace Audit Pack</h3><small>Furnace-wise SAT / TUS / Probe / Thermocouple status</small></div><button type="button" class="mini-nav" data-t="pack">Print Pack →</button></div></div>';
  if(p.__h!==html){p.innerHTML=html;p.__h=html}
 }
 
@@ -18211,44 +18222,101 @@ st.textContent='#v155M{position:fixed;inset:0;background:rgba(15,23,42,.6);z-ind
 '#v155M h4{margin:12px 0 4px;font-size:12px;color:#0e7490;text-transform:uppercase}'+
 '#v155M table{border-collapse:collapse;width:100%;font-size:12px}#v155M th,#v155M td{border:1px solid #dbe4ea;padding:4px 6px;text-align:left}#v155M th{background:#e2e8f0}'+
 '#v155M .em{font-size:12px;color:#64748b;padding:4px 0}'+
+'#v155M .bx{width:min(900px,100%)}#v155M details.sx{border:1px solid #dbe4ea;border-radius:12px;margin:8px 0;background:#f8fafc}#v155M details.sx>summary{cursor:pointer;padding:9px 12px;font-weight:800;font-size:13px;color:#0f172a;list-style:none}#v155M details.sx>summary::-webkit-details-marker{display:none}#v155M details.sx>summary i{font-style:normal;background:#0e7490;color:#fff;border-radius:999px;padding:1px 8px;font-size:11px;margin-left:6px}#v155M .sc{padding:0 10px 10px;overflow-x:auto;max-height:340px;overflow-y:auto}#v155M .sc table{min-width:520px}'+
 '#v155M .ac{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 2px}#v155M .ac button{padding:8px 12px;border:0;border-radius:9px;background:#0e7490;color:#fff;font:700 12px Arial;cursor:pointer}#v155M .ac button.x{background:#dc2626}#v155M .ac button.g{background:#475569}';
 document.head.appendChild(st);
 function tbl(head,rows){return rows.length?'<table><tr>'+head.map(function(h){return '<th>'+h+'</th>'}).join('')+'</tr>'+rows.join('')+'</table>':'<div class="em">Koi record nahi.</div>'}
+function nk(x){return String(x==null?'':x).toUpperCase().replace(/[^A-Z0-9]/g,'').replace(/([A-Z])0+(\d)/g,'$1$2')}
+function dd(v){return v?E(D(v)):''}
+function cut(v,n){return E(String(v==null?'':v).slice(0,n||120))}
+function num(v){var n=parseFloat(String(v==null?'':v).replace(/[^0-9.\-]/g,''));return isNaN(n)?0:n}
+function sec(title,n,body,open){return '<details class="sx"'+(open?' open':'')+'><summary>'+title+' <i>'+n+'</i></summary><div class="sc">'+body+'</div></details>'}
 function show(m){
- var no=String(m.machineNumber||'').trim(),NO=N(no);
- var mr=byDate(pick(data.mr,NO,['machineNo','machine']),'pdate'),
-     openMr=mr.filter(function(r){return r.status!=='Closed'}),
-     bd=byDate(pick(data.bd,NO,['machineNumber','machine']),'date'),
-     mh=byDate(pick(data.mh,NO,['machineNo','machine']),'date'),
-     pm=byDate(pick(data.pm,NO,['machineNo']),'date'),
-     cs=pick(data.critical,NO,['machine','machineNo','machineNumber']);
- var bdHrs=0;bd.forEach(function(r){var h=parseFloat(r.hours);if(!isNaN(h))bdHrs+=h});
- var vis={mr:visible('mr'),bd:visible('bd'),mh:visible('mh'),pm:visible('pm'),cs:visible('criticalSpares'),mm:visible('mm')};
- var h='<h2>'+E(no)+' — '+E(m.machineName||'')+'</h2><div class="sub">'+[m.department||m.section,m.make,m.grade].filter(Boolean).map(E).join(' • ')+'</div>';
- h+='<div class="kp">'+
-  (vis.mr?'<div class="k'+(openMr.length?' bad':'')+'"><b>'+openMr.length+'</b><span>Open MR</span></div>':'')+
-  (vis.bd?'<div class="k"><b>'+bd.length+'</b><span>Breakdown ('+(Math.round(bdHrs*10)/10)+' hrs)</span></div>':'')+
-  (vis.mh?'<div class="k"><b>'+mh.length+'</b><span>History entries</span></div>':'')+
-  (vis.pm?'<div class="k"><b>'+(pm[0]?E(D(pm[0].date)):'—')+'</b><span>Last PM</span></div>':'')+'</div>';
- if(vis.mr){h+='<h4>Open Maintenance Requests</h4>'+tbl(['Sr','Date','Problem','Status'],openMr.slice(0,5).map(function(r){return '<tr><td>'+E(r.sr)+'</td><td>'+E(D(r.pdate))+'</td><td>'+E(String(r.problem||'').slice(0,80))+'</td><td>'+E(r.status)+'</td></tr>'}))}
- if(vis.bd){h+='<h4>Latest Breakdowns</h4>'+tbl(['Date','Reason','Hours'],bd.slice(0,5).map(function(r){return '<tr><td>'+E(D(r.date))+'</td><td>'+E(String(r.reason||'').slice(0,80))+'</td><td>'+E(r.hours||'')+'</td></tr>'}))}
- if(vis.mh){h+='<h4>Machine History (latest)</h4>'+tbl(['Date','Reason','Action'],mh.slice(0,5).map(function(r){return '<tr><td>'+E(D(r.date))+'</td><td>'+E(String(r.reason||'').slice(0,60))+'</td><td>'+E(String(r.action||'').slice(0,60))+'</td></tr>'}))}
- if(vis.mr){var su=[];mr.forEach(function(r){arr(r.spareParts).forEach(function(p){if(p&&p.part)su.push('<tr><td>'+E(D(r.mdate||r.pdate))+'</td><td>'+E(p.part)+'</td><td>'+E(p.qty)+'</td><td>'+E(r.sr)+'</td></tr>')})});
-  if(su.length)h+='<h4>Spares used (MR se, latest)</h4>'+tbl(['Date','Spare','Qty','MR Sr'],su.slice(0,8))}
- if(vis.cs&&cs.length){h+='<h4>Critical Spares</h4>'+tbl(['Code','Description','Available','Min'],cs.slice(0,8).map(function(r){return '<tr><td>'+E(r.code)+'</td><td>'+E(r.desc)+'</td><td>'+E(r.avail!=null?r.avail:r.available)+'</td><td>'+E(r.min)+'</td></tr>'}))}
+  var no=String(m.machineNumber||'').trim(),NO=N(no),today=new Date().toISOString().slice(0,10);
+  var mr=byDate(pick(data.mr,NO,['machineNo','machine']),'pdate'),
+      openMr=mr.filter(function(r){return r.status!=='Closed'}),
+      bd=byDate(pick(data.bd,NO,['machineNumber','machine']),'date'),
+      mh=byDate(pick(data.mh,NO,['machineNo','machine']),'date'),
+      pm=byDate(pick(data.pm,NO,['machineNo']),'date'),
+      cs=pick(data.critical,NO,['machine','machineNo','machineNumber']);
+  var bdHrs=0;bd.forEach(function(r){bdHrs+=num(r.hours)});
+  var cost=0;mh.forEach(function(r){cost+=num(r.cost)});mr.forEach(function(r){cost+=num(r.maintCost)});
+  var gap='—';
+  if(bd.length>1){var ds=bd.map(function(r){return Date.parse(r.date)}).filter(function(x){return !isNaN(x)}).sort(function(a,b){return a-b});
+   if(ds.length>1)gap=Math.round((ds[ds.length-1]-ds[0])/864e5/(ds.length-1))+' din'}
+  var mttr=bd.length?(Math.round(bdHrs/bd.length*10)/10)+' hrs':'—';
+  var vis={mr:visible('mr'),bd:visible('bd'),mh:visible('mh'),pm:visible('pm'),cs:visible('criticalSpares'),mm:visible('mm'),pp:visible('pmMonthly')||visible('pmMaster')};
+  /* PM master + yearly plan */
+  var pmm=null,plan=[],nextPm='—';
+  try{pmm=typeof pmMasterGet==='function'?pmMasterGet(m):null}catch(e){}
+  try{if(typeof pmScheduledMonths==='function'&&typeof pmPlanGet==='function'&&typeof PMPLAN_MONTHS!=='undefined'){
+   var sm=pmScheduledMonths(m);
+   PMPLAN_MONTHS.forEach(function(mo){if(sm.indexOf(mo)<0)return;var r=pmPlanGet(mo,m),st='';try{st=pmPlanStatus(r)}catch(e){}plan.push({mo:mo,r:r,st:st})});
+   var fut=plan.filter(function(x){return !x.r.actual&&x.r.planned&&x.r.planned>=today}).sort(function(a,b){return String(a.r.planned).localeCompare(String(b.r.planned))});
+   if(fut[0])nextPm=D(fut[0].r.planned)}}catch(e){console.warn('v155 plan',e)}
+  var lastPm=pm[0]?D(pm[0].date):'—';
+  /* header */
+  var h='<h2>'+E(no)+' — '+E(m.machineName||'')+'</h2><div class="sub">'+[m.department||m.section,m.make,m.grade?'Grade '+m.grade:'',m.costCenter?'CC '+m.costCenter:''].filter(Boolean).map(E).join(' • ')+'</div>';
+  h+='<div class="kp">'+
+   (vis.mr?'<div class="k'+(openMr.length?' bad':'')+'"><b>'+openMr.length+'</b><span>Open MR (total '+mr.length+')</span></div>':'')+
+   (vis.bd?'<div class="k"><b>'+bd.length+'</b><span>Breakdowns</span></div><div class="k"><b>'+(Math.round(bdHrs*10)/10)+'</b><span>Downtime hrs</span></div><div class="k"><b>'+mttr+'</b><span>MTTR</span></div><div class="k"><b>'+gap+'</b><span>Avg breakdown gap</span></div>':'')+
+   (vis.mh?'<div class="k"><b>'+mh.length+'</b><span>History entries</span></div>':'')+
+   ((vis.mh||vis.mr)?'<div class="k"><b>'+(cost?'₹'+Math.round(cost).toLocaleString('en-IN'):'—')+'</b><span>Maint. cost</span></div>':'')+
+   (vis.pm?'<div class="k"><b>'+E(lastPm)+'</b><span>Last PM</span></div>':'')+
+   (vis.pp?'<div class="k"><b>'+E(nextPm)+'</b><span>Next PM planned</span></div>':'')+'</div>';
+  /* machine master + PM master details */
+  var info=[['Machine No',no],['Machine Name',m.machineName],['Department',m.department||m.section],['Grade',m.grade],['Make / Manufacturer',m.make],['Cost Center',m.costCenter]];
+  if(pmm)info=info.concat([['PM Frequency',pmm.frequency],['PM Due Day',pmm.dueDay],['PM Priority',pmm.priority],['PM Responsible',pmm.responsible]]);
+  h+=sec('📋 Machine details',info.filter(function(x){return x[1]}).length,'<table style="min-width:0">'+info.filter(function(x){return x[1]!==''&&x[1]!=null}).map(function(x){return '<tr><th style="width:42%">'+E(x[0])+'</th><td>'+E(x[1])+'</td></tr>'}).join('')+'</table>',true);
+  /* combined timeline */
+  var ev=[];
+  if(vis.mr)mr.forEach(function(r){ev.push({d:r.pdate||r.mdate,t:'MR',x:'Sr '+(r.sr||'')+' — '+(r.problem||''),s:r.status})});
+  if(vis.bd)bd.forEach(function(r){ev.push({d:r.date,t:'Breakdown',x:(r.reason||'')+(r.hours?' ('+r.hours+' hrs)':''),s:r.status})});
+  if(vis.mh)mh.forEach(function(r){ev.push({d:r.date,t:'History',x:(r.reason||'')+(r.action?' → '+r.action:''),s:''})});
+  if(vis.pm)pm.forEach(function(r){ev.push({d:r.date,t:'PM',x:'Checked: '+(r.checkedBy||'-')+(r.action?' | '+r.action:''),s:r.actionStatus||''})});
+  ev.sort(function(a,b){return String(b.d||'').localeCompare(String(a.d||''))});
+  h+=sec('🕘 Poori timeline (sab modules, latest pehle)',ev.length,tbl(['Date','Module','Detail','Status'],ev.slice(0,60).map(function(e){return '<tr><td>'+dd(e.d)+'</td><td><b>'+E(e.t)+'</b></td><td>'+cut(e.x,140)+'</td><td>'+E(e.s)+'</td></tr>'}))+(ev.length>60?'<div class="em">Sirf latest 60 dikhaye — baaki module register me.</div>':''),true);
+  if(vis.mr)h+=sec('🛠 Maintenance Requests',mr.length,tbl(['Sr','Date','Problem','Observation / Action','Spare','Done','Status'],mr.map(function(r){var sp=arr(r.spareParts).map(function(p){return p&&p.part?p.part+(p.qty?' ×'+p.qty:''):''}).filter(Boolean).join(', ')||r.spare||'';return '<tr><td>'+E(r.sr)+'</td><td>'+dd(r.pdate)+'</td><td>'+cut(r.problem,100)+'</td><td>'+cut([r.observation,r.action].filter(Boolean).join(' | '),120)+'</td><td>'+cut(sp,80)+'</td><td>'+dd(r.hdate)+'</td><td>'+E(r.status)+'</td></tr>'})),openMr.length>0);
+  if(vis.bd)h+=sec('⚠ Breakdowns',bd.length,tbl(['Date','Reason','Type','From–To','Hrs','Action','Spare','Status'],bd.map(function(r){return '<tr><td>'+dd(r.date)+'</td><td>'+cut(r.reason,90)+'</td><td>'+E(r.type||'')+'</td><td>'+E((r.from||'')+(r.to?'–'+r.to:''))+'</td><td>'+E(r.hours||'')+'</td><td>'+cut(r.action,90)+'</td><td>'+cut((r.spare||'')+(r.qty?' ×'+r.qty:''),60)+'</td><td>'+E(r.status||'')+'</td></tr>'})),false);
+  if(vis.mh)h+=sec('📒 Machine History Card',mh.length,tbl(['Date','Reason','Action','Spares','BD hrs','Cost','By'],mh.map(function(r){return '<tr><td>'+dd(r.date)+'</td><td>'+cut(r.reason,90)+'</td><td>'+cut(r.action,90)+'</td><td>'+cut(r.spares,60)+'</td><td>'+E(r.bdHours||'')+'</td><td>'+E(r.cost||'')+'</td><td>'+E(r.attendedBy||'')+'</td></tr>'})),false);
+  if(vis.pm)h+=sec('✅ PM Check Sheets',pm.length,tbl(['Date','Plan month','Checked by','Verified by','Action','Action status'],pm.map(function(r){return '<tr><td>'+dd(r.date)+'</td><td>'+E(r.planMonth||'')+'</td><td>'+E(r.checkedBy||'')+'</td><td>'+E(r.verifiedBy||'')+'</td><td>'+cut(r.action,80)+'</td><td>'+E(r.actionStatus||'')+'</td></tr>'})),false);
+  if(vis.pp&&plan.length)h+=sec('📅 PM Plan (is saal)',plan.length,tbl(['Month','Planned','Actual','Next','Status','Technician'],plan.map(function(x){var bad=/overdue|pending/i.test(x.st);return '<tr><td>'+E(x.mo)+'</td><td>'+dd(x.r.planned)+'</td><td>'+dd(x.r.actual)+'</td><td>'+dd(x.r.nextDate)+'</td><td'+(bad?' style="color:#b91c1c;font-weight:700"':'')+'>'+E(x.st)+'</td><td>'+E(x.r.tech||'')+'</td></tr>'})),false);
+  /* spares used: MR + Breakdown + History */
+  var su=[];
+  mr.forEach(function(r){arr(r.spareParts).forEach(function(p){if(p&&p.part)su.push({d:r.mdate||r.pdate,s:p.part,q:p.qty,f:'MR Sr '+(r.sr||'')})})});
+  bd.forEach(function(r){if(r.spare)su.push({d:r.date,s:r.spare,q:r.qty,f:'Breakdown'})});
+  mh.forEach(function(r){if(r.spares&&!r.auto)su.push({d:r.date,s:r.spares,q:'',f:'History card'})});
+  su.sort(function(a,b){return String(b.d||'').localeCompare(String(a.d||''))});
+  if(su.length)h+=sec('🔩 Spares used (MR + Breakdown + History)',su.length,tbl(['Date','Spare','Qty','Source'],su.map(function(x){return '<tr><td>'+dd(x.d)+'</td><td>'+cut(x.s,90)+'</td><td>'+E(x.q||'')+'</td><td>'+E(x.f)+'</td></tr>'})),false);
+  if(vis.cs&&cs.length)h+=sec('⭐ Critical Spares (is machine ke)',cs.length,tbl(['Code','Description','Available','Min','Location'],cs.map(function(r){var av=r.avail!=null?r.avail:r.available;return '<tr><td>'+E(r.code)+'</td><td>'+cut(r.desc,80)+'</td><td'+(num(av)<num(r.min)?' style="color:#b91c1c;font-weight:700"':'')+'>'+E(av)+'</td><td>'+E(r.min)+'</td><td>'+E(r.loc||'')+'</td></tr>'})),false);
+  /* furnace compliance (SAT / TUS / Oxy probe / Thermocouple ...) - agar yeh machine furnace hai */
+  try{
+   var MODS=[['satReport','SAT Report'],['satTemp','SAT Temp'],['oxyMV','Oxy MV'],['oxyImp','O2 Impedance'],['oxyRep','Probe Replace'],['tus','TUS Survey'],['furnChk','Furnace Check'],['tc','Thermocouple']],key=nk(no),rowsF=[];
+   MODS.forEach(function(md){var L=[];try{L=md[0]==='tc'?data.tc:(typeof hqList==='function'?hqList(md[0]):[])}catch(e){}
+    var mine=arr(L).filter(function(r){return r&&nk(r.furnace||r.fc||r.furnaceNo||'')===key});if(!mine.length)return;
+    var dOf=function(r){return r.satDate||r.testDate||r.surveyDate||r.checkDate||r.date||r.inst||''};
+    mine.sort(function(a,b){return String(dOf(b)).localeCompare(String(dOf(a)))});var r=mine[0],st=r.status||r.result||'';
+    try{if(md[0]==='tc'&&typeof tcEffStatus==='function')st=tcEffStatus(r)}catch(e){}
+    var due=r.dueDate||r.nextDue||(/^\d{4}-\d{2}-\d{2}$/.test(r.due||'')?r.due:'')||'';
+    rowsF.push('<tr><td>'+E(md[1])+'</td><td>'+mine.length+'</td><td>'+dd(dOf(r))+'</td><td'+(/not ok|fail|reject|overdue|expired/i.test(st)||(due&&due<today)?' style="color:#b91c1c;font-weight:700"':'')+'>'+E(st)+'</td><td>'+dd(due)+'</td></tr>')});
+   if(rowsF.length)h+=sec('🔥 Furnace compliance (SAT / TUS / Probe / TC)',rowsF.length,tbl(['Record','Entries','Last date','Status','Due'],rowsF),false);
+  }catch(e){console.warn('v155 furnace',e)}
  h+='<div class="ac">'+
   (vis.mm?'<button type="button" data-g="mm">Master list</button>':'')+
   (vis.mr?'<button type="button" data-g="mr">MR</button>':'')+
   (vis.bd?'<button type="button" data-g="bd">Breakdown</button>':'')+
   (vis.mh?'<button type="button" data-g="mh">History</button>':'')+
   (vis.pm?'<button type="button" data-g="pm">PM</button>':'')+
+  '<button type="button" data-g="print">🖨 Print history</button>'+
   (vis.mr?'<button type="button" class="g" data-g="newmr">+ New MR</button>':'')+
   (vis.bd?'<button type="button" class="g" data-g="newbd">+ New Breakdown</button>':'')+
   '<button type="button" class="x" data-g="x">Band karo</button></div>';
  var o=document.getElementById('v155M');if(o)o.remove();
  o=document.createElement('div');o.id='v155M';o.innerHTML='<div class="bx">'+h+'</div>';
  o.onclick=function(e){if(e.target===o){o.remove();return}
-  var g=e.target.getAttribute&&e.target.getAttribute('data-g');if(!g)return;o.remove();if(g==='x')return;
+  var g=e.target.getAttribute&&e.target.getAttribute('data-g');if(!g)return;
+  if(g==='print'){var w=window.open('','_blank');if(!w)return alert('Popup block hai - allow karo.');var bx=o.querySelector('.bx').cloneNode(true);var ac=bx.querySelector('.ac');if(ac)ac.remove();[].forEach.call(bx.querySelectorAll('details'),function(d){d.setAttribute('open','')});w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Machine History - '+E(no)+'</title><style>@page{size:A4 landscape;margin:8mm}body{font-family:Arial;font-size:10px}h2{margin:0}.sub{margin:2px 0 8px}.kp{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.k{border:1px solid #999;padding:4px 8px;text-align:center}.k b{display:block;font-size:14px}summary{font-weight:bold;font-size:12px;margin:10px 0 3px;list-style:none}table{border-collapse:collapse;width:100%}th,td{border:1px solid #000;padding:3px;text-align:left}th{background:#eee}.em{color:#555}</style></head><body><div style="text-align:center;font-weight:bold;font-size:14px">Milestone Gears Ltd. UNIT-7 — MACHINE HISTORY REPORT</div><div style="text-align:center;margin-bottom:6px">Printed: '+E(D(new Date().toISOString().slice(0,10)))+'</div>'+bx.innerHTML+'<script>window.onload=function(){window.print()}<\/script></body></html>');w.document.close();return}
+  o.remove();if(g==='x')return;
   if(g==='newmr'||g==='newbd'){newRec(g==='newmr'?'mr':'bd',no);return}
   var box={mm:'mm_search',mr:'mr_search',mh:'mh_search'}[g];goFiltered(g,box,no)};
  document.body.appendChild(o);
@@ -18256,9 +18324,9 @@ function show(m){
 /* ---- har screen par floating scan button (Machine Master kholne ki zarurat nahi) ---- */
 (function(){
  var css=document.createElement('style');
- css.textContent='#v155Fab{position:fixed;right:14px;bottom:86px;z-index:9998;width:52px;height:52px;border-radius:50%;border:0;background:#0e7490;color:#fff;font-size:24px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.35);display:none}@media print{#v155Fab{display:none!important}}';
+ css.textContent='#v155Fab{position:fixed;right:14px;bottom:86px;z-index:9998;width:52px;height:52px;border-radius:50%;border:2px solid #2dd4bf;background:linear-gradient(160deg,#143252,#0e2238);color:#fff;font-size:24px;cursor:pointer;box-shadow:0 6px 18px rgba(5,15,30,.4);display:none}@media print{#v155Fab{display:none!important}}';
  document.head.appendChild(css);
- function logged(){try{return typeof session==='function'&&!!session()}catch(e){return false}}
+ function logged(){try{if(typeof session==='function')return !!session();return !!JSON.parse(localStorage.getItem('htp_mms_session_v1')||'null')}catch(e){return false}}
  function ensure(){
   var b=document.getElementById('v155Fab');
   if(!b){b=document.createElement('button');b.id='v155Fab';b.type='button';b.textContent='\uD83D\uDCF7';b.title='Machine barcode scan';
