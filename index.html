@@ -13626,7 +13626,8 @@ function openMenu(){
  if(logged&&sb){var st=sb.textContent.trim();h+=mItem('sync','sync','Sync now',st&&st!=='\uD83D\uDD04 Sync'?st:'')}
  if(logged){var _se=$('v153SBtn'),_dk=$('v154Dk');
   if(_dk)h+='<button type="button" class="aam-mi" data-k="x-dark"><span style="font-size:20px;width:24px;text-align:center">\uD83C\uDF19</span><span>Dark / Light mode<small>Poori app ka theme</small></span></button>';
-  if(window.v156Notif){var _nl=window.v156Notif.label();if(_nl)h+='<button type="button" class="aam-mi" data-k="x-notif"><span style="font-size:20px;width:24px;text-align:center">\uD83D\uDD14</span><span>'+E(_nl)+'<small>Overdue PM / calibration / low stock ka alert</small></span></button>'}
+  if(window.v156Alerts)h+='<button type="button" class="aam-mi" data-k="x-alerts"><span style="font-size:20px;width:24px;text-align:center">\uD83D\uDCCB</span><span>Aaj ke alerts<small>Sab modules ke due / pending ek jagah</small></span></button>';
+  if(window.v156Notif){var _nl=window.v156Notif.label();if(_nl)h+='<button type="button" class="aam-mi" data-k="x-notif"><span style="font-size:20px;width:24px;text-align:center">\uD83D\uDD14</span><span>'+E(_nl)+'<small>Sab modules ke due / overdue ka phone alert</small></span></button>'}
   try{var _s=JSON.parse(localStorage.getItem('htp_mms_session_v1')||'null');if(_s&&_s.role==='Admin'&&window.v156Backup)h+='<button type="button" class="aam-mi" data-k="x-backup"><span style="font-size:20px;width:24px;text-align:center">\uD83D\uDCBE</span><span>Backup lo<small>Poora data ek file me</small></span></button>'}catch(e){}
   if(_se)h+='<button type="button" class="aam-mi" data-k="x-search"><span style="font-size:20px;width:24px;text-align:center">\uD83D\uDD0D</span><span>Search<small>Modules / machines dhoondo</small></span></button>'}
  if(logged&&up&&up.classList.contains('mms-show'))h+=mItem('tools','tools','System tools');
@@ -13665,6 +13666,7 @@ function bind(){
   var k=b.getAttribute('data-k');closeMenu();
   var el={sync:$('mmsSyncBtn'),tools:$('mmsUpgradeBtn'),logout:$('mmsLogoutBtn')}[k];
   if(k==='reload')location.reload();
+  else if(k==='x-alerts'){window.v156Alerts()}
   else if(k==='x-notif'){window.v156Notif.toggle()}
   else if(k==='x-backup'){window.v156Backup()}
   else if(k==='x-dark'||k==='x-search'){var xb=$(k==='x-dark'?'v154Dk':'v153SBtn');if(xb)xb.click()}
@@ -18537,19 +18539,41 @@ window.v156Backup=function(){try{window.MMS.backup()}catch(e){toast('Backup nahi
 var NF='htp_v156_notif';
 function nfSupported(){return 'Notification' in window&&'serviceWorker' in navigator}
 function nfOn(){return nfSupported()&&Notification.permission==='granted'&&ls(NF,0)===1}
-function counts(){
- var o={low:0,mr:0,pm:0,cal:0,tc:0},T=today();
- try{o.low=arr(data.spares).filter(function(r){return typeof spareStatus==='function'&&spareStatus(r)==='LOW'}).length}catch(e){}
- try{o.mr=arr(data.mr).filter(function(r){return !/closed|complete|cancel/i.test(String(r.status||''))}).length}catch(e){}
- try{o.pm=pmComp().over}catch(e){}
- try{o.cal=arr(data.cal).filter(function(r){return r.duedate&&r.duedate<T}).length}catch(e){}
- return o}
+function visTab(id){var b=document.querySelector('.app-sidebar .tab[data-target="'+id+'"]');if(!b)return false;try{return b.style.display!=='none'&&!b.hidden&&getComputedStyle(b).display!=='none'}catch(e){return true}}
+function alertItems(){
+ var T=today(),L=[];
+ function add(tab,icon,label,n,bad){if(n>0&&visTab(tab))L.push({tab:tab,icon:icon,label:label,n:n,bad:bad||0})}
+ try{var pc=pmComp();add('pmMonthly','✅','PM overdue',pc.over,pc.over)}catch(e){}
+ try{var cal=calibrationDueSoon(30);add('calibration','⚖️','Calibration due (30 din)',cal.length,cal.filter(function(x){return x.diff<0}).length)}catch(e){}
+ try{var n=0,o=0,now=new Date();now.setHours(0,0,0,0);arr(data.tc).forEach(function(r){var x=tcDueDate(r);if(!x)return;x=new Date(x);if(isNaN(x))return;var df=Math.round((x-now)/864e5);if(df<=30){n++;if(df<0)o++}});add('thermocouple','🌡️','Thermocouple due (30 din)',n,o)}catch(e){}
+ try{var by={};hqDueItems().forEach(function(x){var b=by[x.m]||(by[x.m]={n:0,o:0});b.n++;if(x.d<0)b.o++});
+  var NM={satReport:['🎯','SAT Report due'],oxyRep:['🔁','Oxy probe replacement due'],oxyMV:['⚡','Oxy probe MV check due'],oxyImp:['🔌','O2 impedance check due'],tus:['📈','TUS survey due'],contingency:['🚨','Contingency drill due']};
+  Object.keys(by).forEach(function(k){var m=NM[k]||['📌',k];add(k,m[0],m[1],by[k].n,by[k].o)})}catch(e){}
+ try{var a=hqList('amc').filter(function(x){return x.endDate&&hqDaysTo(x.endDate)<=60});add('amc','📑','AMC contract expiring (60 din)',a.length,a.filter(function(x){return hqDaysTo(x.endDate)<0}).length)}catch(e){}
+ try{add('spares','📦','Low stock spares',arr(data.spares).filter(sLow).length,0)}catch(e){}
+ try{add('criticalSpares','⚠️','Critical spares minimum se kam',arr(data.critical).filter(function(r){return num(r.avail)<num(r.min)}).length,0)}catch(e){}
+ try{add('mr','🛠','Open Maintenance Request',arr(data.mr).filter(function(r){return !/closed|complete|cancel/i.test(String(r.status||''))}).length,0)}catch(e){}
+ try{add('bd','🔧','Breakdown open / in progress',arr(data.bd).filter(function(r){return /^(open|in progress)$/i.test(String(r.status||'').trim())}).length,0)}catch(e){}
+ try{add('pm','📋','PM check sheet: action open',arr(data.pm).filter(function(r){return r.action&&/^open$/i.test(String(r.actionStatus||'Open'))}).length,0)}catch(e){}
+ try{var pu=arr(data.sparePurchase).filter(function(r){return r&&r.status&&r.status!=='Received'&&r.status!=='Cancelled'});add('sparePurchase','🛒','Spare purchase pending',pu.length,pu.filter(function(r){return r.expDate&&r.expDate<T}).length)}catch(e){}
+ return L.sort(function(a,b){return (b.bad>0)-(a.bad>0)||b.bad-a.bad||b.n-a.n});
+}
+function alertsModal(){
+ var L=alertItems();
+ var m=modal('<h2>🔔 Aaj ke alerts</h2><div class="sub">Sab modules ke due / overdue / pending. Tap karke module kholo.</div>'+
+  (L.length?'<div>'+L.map(function(x,i){return '<div data-i="'+i+'" style="display:flex;align-items:center;gap:10px;padding:10px;border:1px solid '+(x.bad?'#fecaca':'#dbe4ea')+';background:'+(x.bad?'#fef2f2':'#f8fafc')+';border-radius:12px;margin:6px 0;cursor:pointer"><span style="font-size:20px">'+x.icon+'</span><span style="flex:1;font-size:13px;font-weight:700">'+E(x.label)+(x.bad?'<br><small style="color:#b91c1c">'+x.bad+' overdue</small>':'')+'</span><b style="font-size:18px;color:'+(x.bad?'#b91c1c':'#0f172a')+'">'+x.n+'</b></div>'}).join('')+'</div>':'<div style="color:#15803d;font-weight:700;padding:10px 0">✔ Abhi koi alert nahi — sab theek hai.</div>')+
+  '<div class="ac"><button type="button" class="x" data-x="1">Band karo</button></div>');
+ m.addEventListener('click',function(e){var t=e.target;if(t.getAttribute&&t.getAttribute('data-x')){closeMod();return}
+  var row=t.closest&&t.closest('[data-i]');if(!row)return;var x=L[+row.getAttribute('data-i')];if(!x)return;closeMod();
+  try{showTab(x.tab,document.querySelector('.app-sidebar .tab[data-target="'+x.tab+'"]'))}catch(err){}});
+}
+window.v156Alerts=alertsModal;
 function nfCheck(force){
- if(!nfOn()||!logged())return;var c=counts(),tot=c.low+c.pm+c.cal;if(!tot&&!force)return;
- var sig=today()+'|'+c.low+'|'+c.pm+'|'+c.cal;if(!force&&ls('htp_v156_nsig','')===sig)return;lsSet('htp_v156_nsig',sig);
- var lines=[];if(c.pm)lines.push('PM overdue: '+c.pm);if(c.cal)lines.push('Calibration overdue: '+c.cal);if(c.low)lines.push('Low stock spares: '+c.low);if(c.mr)lines.push('Open MR: '+c.mr);
- var body=lines.join(' • ')||'Sab theek hai ✅';
- navigator.serviceWorker.ready.then(function(reg){reg.showNotification('HTP MMS — aaj ka alert',{body:body,icon:'icon-192.png',badge:'favicon-32.png',tag:'v156daily'})}).catch(function(){try{new Notification('HTP MMS — aaj ka alert',{body:body})}catch(e){}});
+ if(!nfOn()||!logged())return;var L=alertItems();if(!L.length&&!force)return;
+ var sig=today()+'|'+L.map(function(x){return x.tab+x.n+'/'+x.bad}).join(',');if(!force&&ls('htp_v156_nsig','')===sig)return;lsSet('htp_v156_nsig',sig);
+ var lines=L.slice(0,8).map(function(x){return x.icon+' '+x.label+': '+x.n+(x.bad?' ('+x.bad+' overdue)':'')});if(L.length>8)lines.push('+ '+(L.length-8)+' aur…');
+ var title='HTP MMS — '+(L.length?L.length+' alerts':'sab theek ✅'),body=lines.join('\n')||'Abhi koi due / pending nahi.';
+ navigator.serviceWorker.ready.then(function(reg){reg.showNotification(title,{body:body,icon:'icon-192.png',badge:'favicon-32.png',tag:'v156daily',renotify:true,data:{url:'./'}})}).catch(function(){try{new Notification(title,{body:body})}catch(e){}});
 }
 window.v156Notif={
  label:function(){if(!nfSupported())return null;if(Notification.permission==='denied')return 'Phone alerts: browser me band hain';return nfOn()?'Phone alerts: ON (band karo)':'Phone alerts: ON karo'},

@@ -1,5 +1,5 @@
 /* HTP MMS service worker - app shell offline. Version badlo jab files update karo. */
-const CACHE = 'htp-mms-v157-insights';
+const CACHE = 'htp-mms-v158-alerts';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './favicon-32.png', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', function (e) {
@@ -28,4 +28,13 @@ self.addEventListener('fetch', function (e) {
       return caches.match(req).then(function (m) { return m || caches.match('./index.html'); });
     })
   );
+});
+
+/* Notification par tap karne se app khule / aage aaye */
+self.addEventListener('notificationclick', function (e) {
+  e.notification.close();
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (list) {
+    for (var i = 0; i < list.length; i++) { if ('focus' in list[i]) return list[i].focus(); }
+    return self.clients.openWindow('./');
+  }));
 });
