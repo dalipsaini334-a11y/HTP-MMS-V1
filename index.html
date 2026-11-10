@@ -131,7 +131,7 @@
 })();
 </script>
 <script>/* FIX v122: pwHr startup pe hi chahiye (renderDG), isliye sabse pehle define */function pwHr(v){if(v==null||v==='')return NaN;var t=String(v).trim();if(t.indexOf(':')>=0){var p=t.split(':'),h=Number(p[0]),m=Number(p[1]||0);return isFinite(h)&&isFinite(m)?h+m/60:NaN}var n=Number(t);return isFinite(n)?n:NaN}</script>
-<script>window.APP_VERSION='155-scanfix';</script>
+<script>window.APP_VERSION='156-insights';</script>
 <script>if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js?v='+encodeURIComponent(window.APP_VERSION||'0')).then(function(r){try{r.update()}catch(e){}}).catch(function(e){console.warn('SW',e)})})}</script>
 <title>Milestone Gears Ltd. Unit-7 | Maintenance & Utility Daily Log</title>
 <style>
@@ -13626,6 +13626,8 @@ function openMenu(){
  if(logged&&sb){var st=sb.textContent.trim();h+=mItem('sync','sync','Sync now',st&&st!=='\uD83D\uDD04 Sync'?st:'')}
  if(logged){var _se=$('v153SBtn'),_dk=$('v154Dk');
   if(_dk)h+='<button type="button" class="aam-mi" data-k="x-dark"><span style="font-size:20px;width:24px;text-align:center">\uD83C\uDF19</span><span>Dark / Light mode<small>Poori app ka theme</small></span></button>';
+  if(window.v156Notif){var _nl=window.v156Notif.label();if(_nl)h+='<button type="button" class="aam-mi" data-k="x-notif"><span style="font-size:20px;width:24px;text-align:center">\uD83D\uDD14</span><span>'+E(_nl)+'<small>Overdue PM / calibration / low stock ka alert</small></span></button>'}
+  try{var _s=JSON.parse(localStorage.getItem('htp_mms_session_v1')||'null');if(_s&&_s.role==='Admin'&&window.v156Backup)h+='<button type="button" class="aam-mi" data-k="x-backup"><span style="font-size:20px;width:24px;text-align:center">\uD83D\uDCBE</span><span>Backup lo<small>Poora data ek file me</small></span></button>'}catch(e){}
   if(_se)h+='<button type="button" class="aam-mi" data-k="x-search"><span style="font-size:20px;width:24px;text-align:center">\uD83D\uDD0D</span><span>Search<small>Modules / machines dhoondo</small></span></button>'}
  if(logged&&up&&up.classList.contains('mms-show'))h+=mItem('tools','tools','System tools');
  var lightT=document.documentElement.classList.contains('aam-tl');
@@ -13663,6 +13665,8 @@ function bind(){
   var k=b.getAttribute('data-k');closeMenu();
   var el={sync:$('mmsSyncBtn'),tools:$('mmsUpgradeBtn'),logout:$('mmsLogoutBtn')}[k];
   if(k==='reload')location.reload();
+  else if(k==='x-notif'){window.v156Notif.toggle()}
+  else if(k==='x-backup'){window.v156Backup()}
   else if(k==='x-dark'||k==='x-search'){var xb=$(k==='x-dark'?'v154Dk':'v153SBtn');if(xb)xb.click()}
   else if(k==='theme'){var on=document.documentElement.classList.toggle('aam-tl');try{localStorage.setItem('aam_tbl',on?'light':'dark')}catch(e){}toast(on?'Light tables':'Dark tables')}
   else if(el)el.click();
@@ -18023,7 +18027,7 @@ function scan(done){
   (function loop(){if(stop)return;det.detect(v).then(function(r){if(r&&r.length){var t=r[0].rawValue;end();done(t)}else setTimeout(loop,300)}).catch(function(){setTimeout(loop,500)})})();
  }).catch(function(){end();alert('Camera allow nahi hua.')});
 }
-window.__v154={labels:labels,scan:scan};
+window.__v154={labels:labels,scan:scan,code39:code39};
 
 /* ---------- 4) PER-REGISTER EXCEL/CSV BUTTON ---------- */
 var CSVMAP={pf:'pf',pc:'pc',dg:'dg',mr:'mr',mh:'mh',pm:'pm',bd:'bd',spares:'spares',criticalSpares:'critical',thermocouple:'tc',calibration:'cal',airCompressor:'airCompressor',maintUtility:'utility',sparePurchase:'sparePurchase',mm:'*MM'};
@@ -18230,6 +18234,7 @@ function nk(x){return String(x==null?'':x).toUpperCase().replace(/[^A-Z0-9]/g,''
 function dd(v){return v?E(D(v)):''}
 function cut(v,n){return E(String(v==null?'':v).slice(0,n||120))}
 function num(v){var n=parseFloat(String(v==null?'':v).replace(/[^0-9.\-]/g,''));return isNaN(n)?0:n}
+function phl(k){try{var n=window.v156Photos?window.v156Photos.count(k):0;return n?' <a href="#" data-ph="'+E(k)+'" style="text-decoration:none">📷'+n+'</a>':''}catch(e){return ''}}
 function sec(title,n,body,open){return '<details class="sx"'+(open?' open':'')+'><summary>'+title+' <i>'+n+'</i></summary><div class="sc">'+body+'</div></details>'}
 function show(m){
   var no=String(m.machineNumber||'').trim(),NO=N(no),today=new Date().toISOString().slice(0,10);
@@ -18276,8 +18281,8 @@ function show(m){
   if(vis.pm)pm.forEach(function(r){ev.push({d:r.date,t:'PM',x:'Checked: '+(r.checkedBy||'-')+(r.action?' | '+r.action:''),s:r.actionStatus||''})});
   ev.sort(function(a,b){return String(b.d||'').localeCompare(String(a.d||''))});
   h+=sec('🕘 Poori timeline (sab modules, latest pehle)',ev.length,tbl(['Date','Module','Detail','Status'],ev.slice(0,60).map(function(e){return '<tr><td>'+dd(e.d)+'</td><td><b>'+E(e.t)+'</b></td><td>'+cut(e.x,140)+'</td><td>'+E(e.s)+'</td></tr>'}))+(ev.length>60?'<div class="em">Sirf latest 60 dikhaye — baaki module register me.</div>':''),true);
-  if(vis.mr)h+=sec('🛠 Maintenance Requests',mr.length,tbl(['Sr','Date','Problem','Observation / Action','Spare','Done','Status'],mr.map(function(r){var sp=arr(r.spareParts).map(function(p){return p&&p.part?p.part+(p.qty?' ×'+p.qty:''):''}).filter(Boolean).join(', ')||r.spare||'';return '<tr><td>'+E(r.sr)+'</td><td>'+dd(r.pdate)+'</td><td>'+cut(r.problem,100)+'</td><td>'+cut([r.observation,r.action].filter(Boolean).join(' | '),120)+'</td><td>'+cut(sp,80)+'</td><td>'+dd(r.hdate)+'</td><td>'+E(r.status)+'</td></tr>'})),openMr.length>0);
-  if(vis.bd)h+=sec('⚠ Breakdowns',bd.length,tbl(['Date','Reason','Type','From–To','Hrs','Action','Spare','Status'],bd.map(function(r){return '<tr><td>'+dd(r.date)+'</td><td>'+cut(r.reason,90)+'</td><td>'+E(r.type||'')+'</td><td>'+E((r.from||'')+(r.to?'–'+r.to:''))+'</td><td>'+E(r.hours||'')+'</td><td>'+cut(r.action,90)+'</td><td>'+cut((r.spare||'')+(r.qty?' ×'+r.qty:''),60)+'</td><td>'+E(r.status||'')+'</td></tr>'})),false);
+  if(vis.mr)h+=sec('🛠 Maintenance Requests',mr.length,tbl(['Sr','Date','Problem','Observation / Action','Spare','Done','Status'],mr.map(function(r){var sp=arr(r.spareParts).map(function(p){return p&&p.part?p.part+(p.qty?' ×'+p.qty:''):''}).filter(Boolean).join(', ')||r.spare||'';return '<tr><td>'+E(r.sr)+phl('mr:'+(r.sr||''))+'</td><td>'+dd(r.pdate)+'</td><td>'+cut(r.problem,100)+'</td><td>'+cut([r.observation,r.action].filter(Boolean).join(' | '),120)+'</td><td>'+cut(sp,80)+'</td><td>'+dd(r.hdate)+'</td><td>'+E(r.status)+'</td></tr>'})),openMr.length>0);
+  if(vis.bd)h+=sec('⚠ Breakdowns',bd.length,tbl(['Date','Reason','Type','From–To','Hrs','Action','Spare','Status'],bd.map(function(r){return '<tr><td>'+dd(r.date)+phl('bd:'+(r.id||''))+'</td><td>'+cut(r.reason,90)+'</td><td>'+E(r.type||'')+'</td><td>'+E((r.from||'')+(r.to?'–'+r.to:''))+'</td><td>'+E(r.hours||'')+'</td><td>'+cut(r.action,90)+'</td><td>'+cut((r.spare||'')+(r.qty?' ×'+r.qty:''),60)+'</td><td>'+E(r.status||'')+'</td></tr>'})),false);
   if(vis.mh)h+=sec('📒 Machine History Card',mh.length,tbl(['Date','Reason','Action','Spares','BD hrs','Cost','By'],mh.map(function(r){return '<tr><td>'+dd(r.date)+'</td><td>'+cut(r.reason,90)+'</td><td>'+cut(r.action,90)+'</td><td>'+cut(r.spares,60)+'</td><td>'+E(r.bdHours||'')+'</td><td>'+E(r.cost||'')+'</td><td>'+E(r.attendedBy||'')+'</td></tr>'})),false);
   if(vis.pm)h+=sec('✅ PM Check Sheets',pm.length,tbl(['Date','Plan month','Checked by','Verified by','Action','Action status'],pm.map(function(r){return '<tr><td>'+dd(r.date)+'</td><td>'+E(r.planMonth||'')+'</td><td>'+E(r.checkedBy||'')+'</td><td>'+E(r.verifiedBy||'')+'</td><td>'+cut(r.action,80)+'</td><td>'+E(r.actionStatus||'')+'</td></tr>'})),false);
   if(vis.pp&&plan.length)h+=sec('📅 PM Plan (is saal)',plan.length,tbl(['Month','Planned','Actual','Next','Status','Technician'],plan.map(function(x){var bad=/overdue|pending/i.test(x.st);return '<tr><td>'+E(x.mo)+'</td><td>'+dd(x.r.planned)+'</td><td>'+dd(x.r.actual)+'</td><td>'+dd(x.r.nextDate)+'</td><td'+(bad?' style="color:#b91c1c;font-weight:700"':'')+'>'+E(x.st)+'</td><td>'+E(x.r.tech||'')+'</td></tr>'})),false);
@@ -18314,6 +18319,7 @@ function show(m){
  var o=document.getElementById('v155M');if(o)o.remove();
  o=document.createElement('div');o.id='v155M';o.innerHTML='<div class="bx">'+h+'</div>';
  o.onclick=function(e){if(e.target===o){o.remove();return}
+  var ph=e.target.getAttribute&&e.target.getAttribute('data-ph');if(ph){e.preventDefault();if(window.v156Photos)window.v156Photos.view(ph,ph);return}
   var g=e.target.getAttribute&&e.target.getAttribute('data-g');if(!g)return;
   if(g==='print'){var w=window.open('','_blank');if(!w)return alert('Popup block hai - allow karo.');var bx=o.querySelector('.bx').cloneNode(true);var ac=bx.querySelector('.ac');if(ac)ac.remove();[].forEach.call(bx.querySelectorAll('details'),function(d){d.setAttribute('open','')});w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Machine History - '+E(no)+'</title><style>@page{size:A4 landscape;margin:8mm}body{font-family:Arial;font-size:10px}h2{margin:0}.sub{margin:2px 0 8px}.kp{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.k{border:1px solid #999;padding:4px 8px;text-align:center}.k b{display:block;font-size:14px}summary{font-weight:bold;font-size:12px;margin:10px 0 3px;list-style:none}table{border-collapse:collapse;width:100%}th,td{border:1px solid #000;padding:3px;text-align:left}th{background:#eee}.em{color:#555}</style></head><body><div style="text-align:center;font-weight:bold;font-size:14px">Milestone Gears Ltd. UNIT-7 — MACHINE HISTORY REPORT</div><div style="text-align:center;margin-bottom:6px">Printed: '+E(D(new Date().toISOString().slice(0,10)))+'</div>'+bx.innerHTML+'<script>window.onload=function(){window.print()}<\/script></body></html>');w.document.close();return}
   o.remove();if(g==='x')return;
@@ -18333,7 +18339,8 @@ function show(m){
    b.onclick=function(){
     var sc=window.__v154&&window.__v154.scan;if(!sc)return alert('Scan abhi tayyar nahi, thodi der baad try karo.');
     sc(function(t){if(window.v155MachineView(t))return;
-     alert('Machine "'+t+'" Machine Master me nahi mila.');goFiltered('mm','mm_search',t)})};
+     if(window.v156Find&&window.v156Find(t))return;
+     alert('"'+t+'" Machine / Spare / Instrument me nahi mila.');goFiltered('mm','mm_search',t)})};
    document.body.appendChild(b)}
   b.style.display=logged()&&!document.getElementById('v155M')?'block':'none';
  }
@@ -18360,6 +18367,433 @@ window.v155MachineView=function(txt){
  catch(e){console.warn('v155 machine view',e);return false}
 };
 })();
+</script>
+<script>
+/* ===== v156 ADDITIVE LAYER: Insights, Backup reminder, Phone alerts, Role-wise home, Spare reorder / labels / scan,
+   CSV import, long-table paging, local photos (MR/BD), voice input, toast, accessibility ===== */
+(function(){
+'use strict';
+function $(s,r){return (r||document).querySelector(s)}
+function $$(s,r){return [].slice.call((r||document).querySelectorAll(s))}
+function E(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function N(s){return String(s==null?'':s).trim().toUpperCase()}
+function arr(x){return Array.isArray(x)?x:[]}
+function num(v){var n=parseFloat(String(v==null?'':v).replace(/[^0-9.\-]/g,''));return isNaN(n)?0:n}
+function today(){return new Date().toISOString().slice(0,10)}
+function ls(k,d){try{var v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch(e){return d}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}}
+function sess(){try{return JSON.parse(localStorage.getItem('htp_mms_session_v1')||'null')}catch(e){return null}}
+function logged(){return !!sess()}
+function role(){var s=sess();return (s&&s.role)||''}
+function D(v){try{return typeof fmtDate==='function'?fmtDate(v):(v||'')}catch(e){return v||''}}
+function dashActive(){var d=document.getElementById('dashboard');return !!d&&d.classList.contains('active')}
+function gs(ms){try{if(typeof gsSchedule==='function')gsSchedule(ms||1500)}catch(e){}}
+function guard(k){try{return typeof mmsGuardSave==='function'?mmsGuardSave(k):true}catch(e){return true}}
+
+/* ---------- CSS ---------- */
+var css=document.createElement('style');
+css.textContent=[
+'#v156Toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(16px);background:#0b2545;color:#fff;padding:10px 16px;border-radius:12px;z-index:100020;opacity:0;pointer-events:none;transition:.25s;max-width:86vw;font:600 13px Arial;box-shadow:0 6px 20px rgba(0,0,0,.35)}#v156Toast.on{opacity:1;transform:translateX(-50%)}',
+'#v156Mod{position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:100012;display:flex;align-items:flex-start;justify-content:center;padding:30px 8px 8px}',
+'#v156Mod .bx{background:#fff;color:#0f172a;width:min(820px,100%);max-height:calc(100vh - 46px);overflow:auto;border-radius:16px;padding:14px;font-family:Arial,sans-serif;box-shadow:0 18px 60px rgba(0,0,0,.4)}',
+'#v156Mod h2{margin:0 0 4px;font-size:17px}#v156Mod .sub{font-size:12px;color:#475569;margin:0 0 8px}#v156Mod table{border-collapse:collapse;width:100%;font-size:12px}#v156Mod th,#v156Mod td{border:1px solid #dbe4ea;padding:4px 6px;text-align:left}#v156Mod th{background:#e2e8f0}',
+'#v156Mod .ac{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 2px}#v156Mod .ac button,#v156Mod .mb{padding:8px 12px;border:0;border-radius:9px;background:#0e7490;color:#fff;font:700 12px Arial;cursor:pointer}#v156Mod .ac button.x{background:#dc2626}#v156Mod .ac button.g{background:#475569}',
+'#v156Mod .kp{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;margin:8px 0}#v156Mod .k{border:1px solid #dbe4ea;border-radius:12px;padding:8px;text-align:center;background:#f8fafc}#v156Mod .k b{display:block;font-size:18px}#v156Mod .k span{font-size:11px;color:#475569}#v156Mod .k.bad b{color:#b91c1c}',
+'#v156Mod select,#v156Mod input[type=number],#v156Mod input[type=file]{font:13px Arial;padding:6px;border:1px solid #cbd5e1;border-radius:8px;max-width:100%}',
+'#v156Ins{margin:12px 0}#v156Ins .dash-card{grid-column:1/-1}#v156Ins .per{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 6px}#v156Ins .per button{border:0!important;border-radius:14px!important;padding:4px 12px!important;font-size:12px!important;cursor:pointer;background:rgba(255,255,255,.12)!important;color:#cfe3f5!important;width:auto!important;flex:none!important;min-height:0!important;height:auto!important;margin:0!important;box-shadow:none!important}#v156Ins .per button.on{background:#edf5f5!important;color:#0f766e!important;font-weight:700}',
+'#v156Ins .pr{display:grid;grid-template-columns:78px 1fr auto;gap:8px;align-items:center;margin:6px 0;font-size:12px;color:#e6f0fa}#v156Ins .pr .bar{height:10px;border-radius:6px;background:rgba(255,255,255,.1);overflow:hidden}#v156Ins .pr .bar i{display:block;height:100%;background:#2dd4bf;border-radius:6px}#v156Ins .pr .bar i.b{background:#fbbf24}#v156Ins .pr small{color:#9db4c8;font-size:10px}#v156Ins .nm{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+'#v156Ins table{border-collapse:collapse;width:100%;font-size:12px;color:#e6f0fa}#v156Ins th,#v156Ins td{border:1px solid rgba(255,255,255,.14);padding:4px 6px;text-align:left}#v156Ins th{background:rgba(255,255,255,.08);color:#b9d3ec}',
+'#v156Ins .big{display:flex;gap:8px;margin:2px 0 8px}#v156Ins .big div{flex:1;text-align:center;background:rgba(255,255,255,.07);border-radius:12px;padding:8px 4px}#v156Ins .big b{display:block;font-size:22px;color:#7dd3fc}#v156Ins .big b.g{color:#86efac}#v156Ins .big b.r{color:#fca5a5}#v156Ins .big span{font-size:10px;color:#9db4c8}',
+'#v156Ins .em{color:#b9d3ec;font-size:12px;padding:4px 0}#v156Ins .mini-nav{border:0!important;background:#edf5f5!important;color:#0f766e!important;border-radius:16px!important;padding:4px 12px!important;font-size:12px!important;cursor:pointer;width:auto!important;min-height:0!important;flex:none!important}',
+'#v156Ins h3{color:#fff;margin:0;font-size:13px}#v156Ins small{color:#84939c;font-size:9px;display:block;margin-top:2px}#v156Ins .card-title-row{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}',
+'body.v156r-operator #hqDueGrid,body.v156r-operator #amcDueGrid,body.v156r-operator #v154Dash,body.v156r-operator #v156Ins,body.v156r-operator #up1-due{display:none!important}body.v156r-technician .v156-cost{display:none!important}',
+'#v156Bk{position:fixed;left:10px;right:10px;bottom:84px;z-index:9996;background:#0b2545;color:#fff;border:1px solid #2a4a6b;border-radius:14px;padding:10px 12px;font:13px Arial;box-shadow:0 8px 24px rgba(0,0,0,.35);display:none}#v156Bk b{display:block;margin-bottom:6px}#v156Bk button{border:0;border-radius:10px;padding:7px 12px;font:700 12px Arial;cursor:pointer;margin-right:6px;background:#edf5f5;color:#0f766e}#v156Bk button.g{background:rgba(255,255,255,.15);color:#fff}',
+'.v156tool{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}',
+'.v156more{text-align:center;padding:8px}.v156more button{border:0;border-radius:10px;background:#0e7490;color:#fff;padding:8px 16px;font:700 12px Arial;cursor:pointer}',
+'.v156ph{margin:6px 0;padding:8px;border:1px dashed #94a3b8;border-radius:10px;font-size:12px;grid-column:1/-1}.v156ph .th{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.v156ph .th span{position:relative;display:inline-block}.v156ph img{width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid #cbd5e1;cursor:pointer}.v156ph .rm{position:absolute;top:-6px;right:-6px;background:#dc2626;color:#fff;border-radius:50%;width:18px;height:18px;text-align:center;line-height:18px;font-size:11px;cursor:pointer}',
+'.v156ph label.pb{display:inline-block;background:#0e7490;color:#fff;border-radius:8px;padding:6px 10px;font-weight:700;cursor:pointer}',
+'.v156mic{border:0;background:#e0f2fe;border-radius:50%;width:30px;height:30px;font-size:15px;cursor:pointer;margin-left:4px;vertical-align:middle}.v156mic.on{background:#fecaca}.v156lg{border:0;background:#f1f5f9;border-radius:8px;font-size:10px;padding:3px 5px;margin-left:2px;cursor:pointer;vertical-align:middle}',
+'@media print{#v156Toast,#v156Bk,#v156Mod,.v156tool,.v156more{display:none!important}}'
+].join('\n');
+document.head.appendChild(css);
+
+/* ---------- toast + modal ---------- */
+var tEl;
+function toast(m,ms){if(!tEl){tEl=document.createElement('div');tEl.id='v156Toast';document.body.appendChild(tEl)}tEl.textContent=m;tEl.className='on';clearTimeout(toast.t);toast.t=setTimeout(function(){tEl.className=''},ms||2600)}
+function modal(html){var m=document.getElementById('v156Mod');if(m)m.remove();m=document.createElement('div');m.id='v156Mod';m.innerHTML='<div class="bx">'+html+'</div>';m.addEventListener('click',function(e){if(e.target===m)m.remove()});document.body.appendChild(m);return m}
+function closeMod(){var m=document.getElementById('v156Mod');if(m)m.remove()}
+window.v156Toast=toast;
+
+/* ---------- 1) alert -> toast (sirf "saved / updated" jaise sucess message) ---------- */
+(function(){var _a=window.alert;window.alert=function(m){var s=String(m==null?'':m);
+ if(s.length<230&&/(successfully|saved|updated|deleted|added|copied)/i.test(s)&&!/(reload|restor|error|fail|required|please|not |nahi|cannot|can't|invalid|\?)/i.test(s)){toast(s.replace(/\s+/g,' '),3200);return}
+ return _a.apply(this,arguments)}})();
+
+/* ---------- 2) accessibility: aria-label + img alt ---------- */
+function a11y(){
+ $$('input:not([type=hidden]):not([aria-label]),select:not([aria-label]),textarea:not([aria-label])').forEach(function(i){
+  if(i.id&&document.querySelector('label[for="'+i.id+'"]'))return;
+  var lab=i.closest&&i.closest('label');if(lab&&lab.textContent.trim())return;
+  var t='';var fld=i.closest&&i.closest('.field');if(fld){var l=fld.querySelector('label');if(l)t=l.textContent}
+  if(!t)t=i.getAttribute('placeholder')||i.getAttribute('title')||i.name||i.id||'';
+  t=String(t).replace(/\s+/g,' ').trim();if(t)i.setAttribute('aria-label',t.slice(0,80))});
+ $$('img:not([alt])').forEach(function(im){im.setAttribute('alt',im.classList.contains('aam-logo')?'HTP logo':'')});
+}
+var a11yT;function a11ySoon(){clearTimeout(a11yT);a11yT=setTimeout(a11y,900)}
+
+/* ---------- 3) INSIGHTS: PM compliance, Breakdown Pareto, Worst-5, Machine cost ---------- */
+var per=ls('htp_v156_per',90);
+function limDate(){return per?new Date(Date.now()-per*864e5).toISOString().slice(0,10):''}
+function inPer(d){var l=limDate();return !l||String(d||'')>=l}
+function bdMachine(r){return String(r.machineNumber||String(r.machine||'').split(' — ')[0]||'?').trim()||'?'}
+function pmComp(){
+ var o={tot:0,done:0,ontime:0,over:0,months:[]};
+ try{
+  if(typeof pmPlanMachines!=='function'||typeof pmScheduledMonths!=='function'||typeof pmPlanGet!=='function'||typeof PMPLAN_MONTHS==='undefined')return o;
+  var M=pmPlanMachines(),T=today(),sch=M.map(function(m){return pmScheduledMonths(m)});
+  PMPLAN_MONTHS.forEach(function(mo){var t=0,d=0,on=0,ov=0;
+   M.forEach(function(m,i){if(sch[i].indexOf(mo)<0)return;var r=pmPlanGet(mo,m);if(!r.planned&&!r.actual)return;if(r.planned&&r.planned>T&&!r.actual)return;
+    t++;if(r.actual){d++;if(!r.planned||r.actual<=r.planned)on++}else ov++});
+   if(t){o.months.push({mo:mo,t:t,d:d,on:on,ov:ov});o.tot+=t;o.done+=d;o.ontime+=on;o.over+=ov}});
+ }catch(e){console.warn('v156 pmComp',e)}
+ return o;
+}
+function pct(a,b){return b?Math.round(a*100/b):0}
+function pareto(map,keyLabel,unit){
+ var rows=Object.keys(map).map(function(k){return {k:k,n:map[k].n,h:map[k].h}});
+ var useH=rows.some(function(r){return r.h>0});
+ rows.sort(function(a,b){return useH?(b.h-a.h||b.n-a.n):(b.n-a.n)});
+ var tot=rows.reduce(function(s,r){return s+(useH?r.h:r.n)},0)||1,mx=rows.length?(useH?rows[0].h:rows[0].n)||1:1,cum=0;
+ return rows.slice(0,8).map(function(r){var v=useH?r.h:r.n;cum+=v;
+  return '<div class="pr"><div class="nm" title="'+E(r.k)+'">'+E(r.k)+'</div><div class="bar"><i style="width:'+Math.max(3,Math.round(v*100/mx))+'%"></i></div><div>'+(useH?(Math.round(r.h*10)/10)+' h':'')+' <small>'+r.n+'× • '+Math.round(cum*100/tot)+'%</small></div></div>'}).join('')||'<div class="em">Is period me koi breakdown nahi.</div>';
+}
+function insights(){
+ var bd=arr(data.bd).filter(function(r){return inPer(r.date)});
+ var mM={},cM={},hrs=0;
+ bd.forEach(function(r){var k=bdMachine(r),h=num(r.hours),o=mM[k]||(mM[k]={n:0,h:0,last:'',}),c=String(r.type||'Other').trim()||'Other',oc=cM[c]||(cM[c]={n:0,h:0});
+  o.n++;o.h+=h;if(String(r.date||'')>o.last)o.last=r.date||'';oc.n++;oc.h+=h;hrs+=h});
+ var perBtns=[[30,'30 din'],[90,'90 din'],[365,'1 saal'],[0,'Sab']].map(function(p){return '<button type="button" data-per="'+p[0]+'" class="'+(per===p[0]?'on':'')+'">'+p[1]+'</button>'}).join('');
+ /* PM compliance */
+ var pc=pmComp(),bars=pc.months.map(function(m){var p=pct(m.d,m.t);return '<div class="pr"><div class="nm">'+E((function(x){var q=String(x).match(/^([A-Za-z]{3})[A-Za-z]*\W*(\d{2,4})?/);return q?q[1]+(q[2]?' '+q[2].slice(-2):''):String(x).slice(0,8)})(m.mo))+'</div><div class="bar"><i class="'+(p<80?'b':'')+'" style="width:'+Math.max(3,p)+'%"></i></div><div>'+p+'% <small>'+m.d+'/'+m.t+(m.ov?' • '+m.ov+' overdue':'')+'</small></div></div>'}).join('');
+ var h='<div class="dash-card"><div class="card-title-row"><div><h3>✅ PM Compliance</h3><small>Is saal ke due PM: kitne hue, kitne time par</small></div><button class="mini-nav" data-go="pmMonthly">Open PM Register →</button></div>'+
+  (pc.tot?'<div class="big"><div><b class="'+(pct(pc.done,pc.tot)>=90?'g':pct(pc.done,pc.tot)<70?'r':'')+'">'+pct(pc.done,pc.tot)+'%</b><span>PM complete</span></div><div><b>'+pct(pc.ontime,pc.tot)+'%</b><span>Time par</span></div><div><b class="'+(pc.over?'r':'g')+'">'+pc.over+'</b><span>Overdue</span></div></div>'+bars:'<div class="em">Abhi koi due PM nahi ya PM Plan me date set nahi hai.</div>')+'</div>';
+ /* Pareto */
+ h+='<div class="dash-card"><div class="card-title-row"><div><h3>📊 Breakdown Pareto</h3><small>Kaun si machine / kaaran sabse zyada</small></div></div><div class="per">'+perBtns+'</div>'+
+  '<div class="big"><div><b>'+bd.length+'</b><span>Breakdowns</span></div><div><b>'+(Math.round(hrs*10)/10)+'</b><span>Downtime hrs</span></div><div><b>'+(bd.length?(Math.round(hrs/bd.length*10)/10):'—')+'</b><span>MTTR (hrs)</span></div></div>'+
+  '<div style="font-size:11px;color:#9db4c8;margin:4px 0">Machine-wise</div>'+pareto(mM)+'<div style="font-size:11px;color:#9db4c8;margin:10px 0 4px">Kaaran (Type) wise</div>'+pareto(cM)+'</div>';
+ /* Worst 5 */
+ var w=Object.keys(mM).map(function(k){return {k:k,n:mM[k].n,h:mM[k].h,last:mM[k].last}}).sort(function(a,b){return b.n-a.n||b.h-a.h}).slice(0,5);
+ h+='<div class="dash-card"><div class="card-title-row"><div><h3>🚨 Sabse kharab 5 machines</h3><small>Selected period me sabse zyada breakdown</small></div></div>'+
+  (w.length?'<table><tr><th>Machine</th><th>BD</th><th>Hrs</th><th>MTTR</th><th>Last</th></tr>'+w.map(function(r){return '<tr><td><b>'+E(r.k)+'</b></td><td>'+r.n+'</td><td>'+(Math.round(r.h*10)/10)+'</td><td>'+(r.n?(Math.round(r.h/r.n*10)/10):'—')+'</td><td>'+E(D(r.last))+'</td></tr>'}).join('')+'</table><div class="em">Machine par tap karke poori history ke liye uska barcode scan karo.</div>':'<div class="em">Is period me koi breakdown nahi.</div>')+'</div>';
+ /* Machine cost */
+ var cost={};
+ arr(data.mr).forEach(function(r){var c=num(r.maintCost);if(!c||!inPer(r.pdate||r.mdate))return;var k=String(r.machineNo||r.machine||'?').split(' — ')[0].trim();(cost[k]||(cost[k]={mr:0,mh:0}));cost[k].mr+=c});
+ arr(data.mh).forEach(function(r){var c=num(r.cost);if(!c||r.sourceSr||r.auto||!inPer(r.date))return;var k=String(r.machineNo||r.machine||'?').split(' — ')[0].trim();(cost[k]||(cost[k]={mr:0,mh:0}));cost[k].mh+=c});
+ var cr=Object.keys(cost).map(function(k){return {k:k,mr:cost[k].mr,mh:cost[k].mh,t:cost[k].mr+cost[k].mh}}).sort(function(a,b){return b.t-a.t}),ct=cr.reduce(function(s,r){return s+r.t},0);
+ var inr=function(v){return '₹'+Math.round(v).toLocaleString('en-IN')};
+ h+='<div class="dash-card v156-cost"><div class="card-title-row"><div><h3>💰 Machine-wise Maintenance Cost</h3><small>MR ka maint. cost + History card ka cost (selected period)</small></div><button class="mini-nav" data-act="costcsv">⬇ Excel</button></div>'+
+  (cr.length?'<div class="big"><div><b>'+inr(ct)+'</b><span>Kul kharcha</span></div><div><b>'+cr.length+'</b><span>Machines</span></div></div><table><tr><th>Machine</th><th>MR</th><th>History</th><th>Total</th></tr>'+cr.slice(0,10).map(function(r){return '<tr><td><b>'+E(r.k)+'</b></td><td>'+inr(r.mr)+'</td><td>'+inr(r.mh)+'</td><td><b>'+inr(r.t)+'</b></td></tr>'}).join('')+'</table>'+(cr.length>10?'<div class="em">Top 10 dikhaye — poori list Excel me.</div>':''):'<div class="em">Is period me koi cost entry nahi mili.</div>')+'</div>';
+ insights.cost=cr;
+ return h;
+}
+function mountIns(){
+ if(!logged()||!dashActive())return;
+ var p=document.getElementById('v156Ins');
+ if(!p){var d=document.getElementById('dashboard');var anchor=document.getElementById('v154Dash')||(d&&d.querySelector('.quick-module-grid'));if(!anchor)return;
+  p=document.createElement('div');p.id='v156Ins';p.className='dash-grid modern-grid';anchor.insertAdjacentElement('afterend',p);
+  p.addEventListener('click',function(e){var t=e.target;
+   var pr=t.getAttribute&&t.getAttribute('data-per');if(pr!==null&&pr!==undefined){per=Number(pr);lsSet('htp_v156_per',per);p.__h='';mountIns();return}
+   var go=t.getAttribute&&t.getAttribute('data-go');if(go){try{showTab(go,document.querySelector('.app-sidebar .tab[data-target="'+go+'"]'))}catch(x){}return}
+   if(t.getAttribute&&t.getAttribute('data-act')==='costcsv')costCsv()})}
+ var html='';try{html=insights()}catch(e){console.warn('v156 insights',e);return}
+ if(p.__h!==html){p.innerHTML=html;p.__h=html}
+}
+function csvCell(v){v=String(v==null?'':v);return /[",\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}
+function download(name,text){var a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['﻿'+text],{type:'text/csv;charset=utf-8;'}));a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},500)}
+function costCsv(){var cr=insights.cost||[];if(!cr.length)return toast('Koi cost data nahi.');download('HTP_Machine_Cost_'+today()+'.csv',['Machine,MR cost,History cost,Total'].concat(cr.map(function(r){return [r.k,r.mr,r.mh,r.t].map(csvCell).join(',')})).join('\r\n'))}
+
+/* ---------- 4) role-wise home ---------- */
+function applyRole(){var r=String(role()||'').toLowerCase().replace(/[^a-z]/g,'');var cl=document.body.classList;
+ [].slice.call(cl).forEach(function(c){if(c.indexOf('v156r-')===0&&c!=='v156r-'+r)cl.remove(c)});if(r)cl.add('v156r-'+r)}
+
+/* ---------- 5) backup reminder ---------- */
+var BK='htp_v156_backup',SNZ='htp_v156_bk_snz';
+function wrapBackup(){try{if(window.MMS&&typeof window.MMS.backup==='function'&&!window.MMS.backup.__v156){var o=window.MMS.backup;var w=function(){var r=o.apply(this,arguments);try{var s=ls(BK,{});s.last=new Date().toISOString();lsSet(BK,s);hideBk()}catch(e){}return r};w.__v156=1;window.MMS.backup=w}}catch(e){}}
+function hideBk(){var b=document.getElementById('v156Bk');if(b)b.style.display='none'}
+function bkCheck(){
+ if(!logged()||role()!=='Admin'){hideBk();return}
+ var s=ls(BK,{});if(!s.first){s.first=new Date().toISOString();lsSet(BK,s)}
+ var ref=s.last||s.first,days=Math.floor((Date.now()-Date.parse(ref))/864e5);
+ if(days<7||ls(SNZ,'')===today()){hideBk();return}
+ var b=document.getElementById('v156Bk');
+ if(!b){b=document.createElement('div');b.id='v156Bk';b.innerHTML='<b></b><button type="button" data-a="now">💾 Abhi backup lo</button><button type="button" class="g" data-a="later">Kal yaad dilana</button>';document.body.appendChild(b);
+  b.addEventListener('click',function(e){var a=e.target.getAttribute&&e.target.getAttribute('data-a');if(a==='now'){try{window.MMS.backup()}catch(x){toast('Backup shuru nahi hua — ⚙ menu → System tools se karo.')}}else if(a==='later'){lsSet(SNZ,today());hideBk()}})}
+ b.firstChild.textContent='💾 '+(s.last?days+' din se backup nahi liya':'Abhi tak backup nahi liya')+' — data phone me hai, ek backup file bacha lo.';
+ b.style.display='block';
+}
+window.v156Backup=function(){try{window.MMS.backup()}catch(e){toast('Backup nahi chala.')}};
+
+/* ---------- 6) phone alerts (app khula ho tab; background push ke liye server chahiye) ---------- */
+var NF='htp_v156_notif';
+function nfSupported(){return 'Notification' in window&&'serviceWorker' in navigator}
+function nfOn(){return nfSupported()&&Notification.permission==='granted'&&ls(NF,0)===1}
+function counts(){
+ var o={low:0,mr:0,pm:0,cal:0,tc:0},T=today();
+ try{o.low=arr(data.spares).filter(function(r){return typeof spareStatus==='function'&&spareStatus(r)==='LOW'}).length}catch(e){}
+ try{o.mr=arr(data.mr).filter(function(r){return !/closed|complete|cancel/i.test(String(r.status||''))}).length}catch(e){}
+ try{o.pm=pmComp().over}catch(e){}
+ try{o.cal=arr(data.cal).filter(function(r){return r.duedate&&r.duedate<T}).length}catch(e){}
+ return o}
+function nfCheck(force){
+ if(!nfOn()||!logged())return;var c=counts(),tot=c.low+c.pm+c.cal;if(!tot&&!force)return;
+ var sig=today()+'|'+c.low+'|'+c.pm+'|'+c.cal;if(!force&&ls('htp_v156_nsig','')===sig)return;lsSet('htp_v156_nsig',sig);
+ var lines=[];if(c.pm)lines.push('PM overdue: '+c.pm);if(c.cal)lines.push('Calibration overdue: '+c.cal);if(c.low)lines.push('Low stock spares: '+c.low);if(c.mr)lines.push('Open MR: '+c.mr);
+ var body=lines.join(' • ')||'Sab theek hai ✅';
+ navigator.serviceWorker.ready.then(function(reg){reg.showNotification('HTP MMS — aaj ka alert',{body:body,icon:'icon-192.png',badge:'favicon-32.png',tag:'v156daily'})}).catch(function(){try{new Notification('HTP MMS — aaj ka alert',{body:body})}catch(e){}});
+}
+window.v156Notif={
+ label:function(){if(!nfSupported())return null;if(Notification.permission==='denied')return 'Phone alerts: browser me band hain';return nfOn()?'Phone alerts: ON (band karo)':'Phone alerts: ON karo'},
+ toggle:function(){
+  if(!nfSupported())return toast('Is browser me alerts support nahi.');
+  if(Notification.permission==='denied')return toast('Browser/Site settings me Notifications allow karo.',4000);
+  if(Notification.permission==='granted'){if(ls(NF,0)===1){lsSet(NF,0);toast('Phone alerts band.')}else{lsSet(NF,1);toast('Phone alerts ON.');nfCheck(true)}return}
+  Notification.requestPermission().then(function(p){if(p==='granted'){lsSet(NF,1);toast('Phone alerts ON.');nfCheck(true)}else toast('Permission nahi mili.')})
+ }};
+
+/* ---------- 7) SPARES: reorder suggestion + barcode labels + scan ---------- */
+function sAvail(r){try{return num(typeof inventoryAvailableQty==='function'?inventoryAvailableQty(r):(r.availableQty!=null?r.availableQty:r.qty))}catch(e){return num(r.qty)}}
+function sLow(r){try{return typeof spareStatus==='function'?spareStatus(r)==='LOW':sAvail(r)<num(r.min)}catch(e){return false}}
+function sCode(r){var c=String(r.code||'').trim()||('SP-'+String(r.sno||''));return N(c).replace(/[^0-9A-Z\-\. \$\/\+%]/g,'-')}
+function pendingPurchase(r){return arr(data.sparePurchase).some(function(p){return p&&String(p.desc||'').trim().toLowerCase()===String(r.desc||'').trim().toLowerCase()&&String(p.spec||'')===String(r.spec||'')&&p.status&&p.status!=='Received'&&p.status!=='Cancelled'})}
+function sugQty(r){var a=sAvail(r),mn=num(r.min),mx=num(r.max);return Math.max(1,mx>0?mx-a:Math.max(mn*2-a,mn-a+1))}
+function reorderUI(){
+ var L=arr(data.spares).filter(sLow);
+ if(!L.length)return modal('<h2>🛒 Reorder suggestion</h2><div class="sub">Abhi koi spare minimum se kam nahi hai. ✅</div><div class="ac"><button type="button" class="x" data-x="1">Band karo</button></div>');
+ var rows=L.map(function(r,i){var pp=pendingPurchase(r);return '<tr><td><input type="checkbox" data-i="'+i+'" '+(pp?'disabled':'checked')+' aria-label="select"></td><td>'+E(r.code||'')+'</td><td>'+E(r.desc)+'<br><small>'+E(r.spec||'')+'</small></td><td>'+sAvail(r)+' / '+num(r.min)+(num(r.max)?' / '+num(r.max):'')+'</td><td>'+(pp?'<small>Purchase me pehle se hai</small>':'<input type="number" min="1" value="'+sugQty(r)+'" data-q="'+i+'" style="width:70px" aria-label="qty">')+'</td></tr>'}).join('');
+ var m=modal('<h2>🛒 Reorder suggestion</h2><div class="sub">Jo spares minimum se kam hain. Tick karke "Purchase me daalo" dabao — Spare Purchase register me <b>Planned</b> entry ban jayegi (qty badal sakte ho).</div><div style="overflow-x:auto"><table><tr><th></th><th>Code</th><th>Part</th><th>Avail / Min / Max</th><th>Maango</th></tr>'+rows+'</table></div><div class="ac"><button type="button" data-go="1">🛒 Purchase me daalo</button><button type="button" class="x" data-x="1">Band karo</button></div>');
+ m.addEventListener('click',function(e){var t=e.target;if(t.getAttribute('data-x')){closeMod();return}
+  if(t.getAttribute('data-go')){
+   if(!guard('sparePurchase'))return;
+   var made=0;if(!Array.isArray(data.sparePurchase))data.sparePurchase=[];
+   $$('input[type=checkbox][data-i]:checked',m).forEach(function(cb){var i=+cb.getAttribute('data-i'),r=L[i],qi=$('input[data-q="'+i+'"]',m),q=qi?num(qi.value):0;if(!r||q<=0)return;
+    var sno=typeof nextPurchaseSno==='function'?nextPurchaseSno():(data.sparePurchase.length+1);
+    data.sparePurchase.push({id:'pur-'+Date.now()+'-'+i,sno:sno,desc:r.desc||'',spec:r.spec||'',qty:q,urgency:sAvail(r)<=0?'High':'Normal',source:'Low Stock',refInfo:r.code||'',reqDate:today(),status:'Planned',prNo:'',prDate:'',po:'',poDate:'',ordDate:'',vendor:'',sentDate:'',expDate:'',recDate:'',recQty:0,cost:0,challan:'',remark:'Auto reorder suggestion (Avail '+sAvail(r)+', Min '+num(r.min)+')',updatedAt:new Date().toISOString()});made++});
+   if(!made){toast('Kuch select nahi kiya.');return}
+   try{persist('sparePurchase')}catch(x){}try{if(typeof renderPurchaseTable==='function')renderPurchaseTable()}catch(x){}gs(1500);closeMod();toast(made+' item Purchase register me Planned ho gaye.',3500)}});
+}
+function labelsPage(title,cells){
+ if(!cells.length)return toast('Barcode-yogya record nahi mila.');
+ var w=window.open('','_blank');if(!w)return alert('Popup block hai - allow karo.');
+ w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>'+E(title)+'</title><style>@page{size:A4;margin:8mm}body{font-family:Arial;margin:0}.g{display:grid;grid-template-columns:repeat(3,1fr);gap:4mm}.l{border:1px solid #000;padding:3mm;text-align:center;page-break-inside:avoid}.l b{display:block;font-size:14px}.l small{display:block;font-size:9px;min-height:11px;margin-bottom:2mm}.n{font-size:10px;margin:4px}</style></head><body><div class="n">'+E(title)+' — Code 39 | scan: app ka 📷 button</div><div class="g">'+cells.join('')+'</div><script>window.onload=function(){window.print()}<\/script></body></html>');w.document.close();
+}
+function c39(t){try{return window.__v154&&window.__v154.code39?window.__v154.code39(t):''}catch(e){return ''}}
+function spareLabels(){labelsPage('Spare Parts Barcode Labels',arr(data.spares).map(function(r){var c=sCode(r),b=c39(c);return b?'<div class="l"><b>'+E(c)+'</b><small>'+E(String(r.desc||'').slice(0,40)+(r.spec?' • '+r.spec:''))+'</small>'+b+'</div>':''}).filter(Boolean))}
+function calLabels(){labelsPage('Instrument Barcode Labels',arr(data.cal).map(function(r){var c=N(r.idno).replace(/[^0-9A-Z\-\. \$\/\+%]/g,'-'),b=c?c39(c):'';return b?'<div class="l"><b>'+E(c)+'</b><small>'+E(r.name||'')+'</small>'+b+'</div>':''}).filter(Boolean))}
+function findSpare(t){var T=N(t);if(!T)return null;var L=arr(data.spares);return L.filter(function(r){return N(r.code)===T||sCode(r)===T})[0]||null}
+function findInst(t){var T=N(t);if(!T)return null;return arr(data.cal).filter(function(r){return N(r.idno)===T})[0]||null}
+function goSearch(tab,box,q){var b=document.querySelector('.app-sidebar .tab[data-target="'+tab+'"]');try{showTab(tab,b)}catch(e){}setTimeout(function(){var i=document.getElementById(box);if(i){i.value=q;i.dispatchEvent(new Event('input',{bubbles:true}))}},250)}
+function spareCard(r){
+ var a=sAvail(r),low=sLow(r),used=0,last='';
+ arr(data.mr).forEach(function(m){arr(m.spareParts).forEach(function(p){if(p&&String(p.part||'').toLowerCase()===String(r.desc||'').toLowerCase()){used++;if(String(m.mdate||m.pdate||'')>last)last=m.mdate||m.pdate}})});
+ arr(data.bd).forEach(function(b){if(b.spareLink==='spares:'+r.id){used++;if(String(b.date||'')>last)last=b.date}});
+ var pp=pendingPurchase(r);
+ var m=modal('<h2>📦 '+E(r.desc)+'</h2><div class="sub">'+[r.code||sCode(r),r.spec,r.make,r.loc?'📍 '+r.loc:''].filter(Boolean).map(E).join(' • ')+'</div><div class="kp"><div class="k'+(low?' bad':'')+'"><b>'+a+'</b><span>Available</span></div><div class="k"><b>'+num(r.min)+'</b><span>Min</span></div><div class="k"><b>'+(num(r.max)||'—')+'</b><span>Max</span></div><div class="k"><b>'+used+'</b><span>Baar issue hua</span></div><div class="k"><b>'+(last?E(D(last)):'—')+'</b><span>Last use</span></div></div>'+
+  (low?'<div style="color:#b91c1c;font-weight:700;font-size:13px">⚠ Stock minimum se kam hai'+(pp?' — Purchase me pehle se hai.':'.')+'</div>':'<div style="color:#15803d;font-weight:700;font-size:13px">✔ Stock theek hai.</div>')+
+  '<div class="ac">'+(low&&!pp?'<button type="button" data-a="re">🛒 Purchase me daalo</button>':'')+'<button type="button" class="g" data-a="inv">Inventory me dekho</button><button type="button" class="x" data-a="x">Band karo</button></div>');
+ m.addEventListener('click',function(e){var a2=e.target.getAttribute&&e.target.getAttribute('data-a');if(!a2)return;if(a2==='x'){closeMod();return}
+  if(a2==='inv'){closeMod();goSearch('spares','sp_search',r.code||r.desc);return}
+  if(a2==='re'){closeMod();reorderUI()}});
+ return true;
+}
+function instCard(r){
+ var T=today(),due=r.duedate||'',over=due&&due<T;
+ var m=modal('<h2>⚖️ '+E(r.name)+'</h2><div class="sub">'+[r.idno,r.make,r.range,r.location].filter(Boolean).map(E).join(' • ')+'</div><div class="kp"><div class="k"><b>'+(r.date?E(D(r.date)):'—')+'</b><span>Last calibration</span></div><div class="k'+(over?' bad':'')+'"><b>'+(due?E(D(due)):'—')+'</b><span>Due date'+(over?' (overdue)':'')+'</span></div><div class="k"><b>'+E(r.certNo||'—')+'</b><span>Certificate</span></div><div class="k"><b>'+E(r.lab||'—')+'</b><span>Lab '+(r.nabl?'• NABL':'')+'</span></div></div>'+
+  '<div class="ac"><button type="button" class="g" data-a="go">Calibration plan me dekho</button><button type="button" class="x" data-a="x">Band karo</button></div>');
+ m.addEventListener('click',function(e){var a=e.target.getAttribute&&e.target.getAttribute('data-a');if(!a)return;closeMod();if(a==='go')goSearch('calibration','cal_search',r.idno||r.name)});
+ return true;
+}
+window.v156Find=function(txt){try{var s=findSpare(txt);if(s)return spareCard(s);var i=findInst(txt);if(i)return instCard(i)}catch(e){console.warn('v156 find',e)}return false};
+function scanThen(fn,notFound){var sc=window.__v154&&window.__v154.scan;if(!sc)return toast('Scan abhi tayyar nahi.');sc(function(t){if(!fn(t))alert(notFound.replace('%',t))})}
+function mountTools(){
+ var jobs=[['spares','<button type="button" class="secondary" data-t="re">🛒 Reorder suggestion</button><button type="button" class="secondary" data-t="sl">🏷 Spare Labels</button><button type="button" class="secondary" data-t="ss">📷 Scan Spare</button><button type="button" class="secondary" data-t="imp-s">📥 CSV Import</button>'],
+  ['calibration','<button type="button" class="secondary" data-t="cl">🏷 Instrument Labels</button><button type="button" class="secondary" data-t="cs">📷 Scan Instrument</button>'],
+  ['mm','<button type="button" class="secondary" data-t="imp-m">📥 CSV Import</button>']];
+ jobs.forEach(function(j){var s=document.getElementById(j[0]);if(!s||$('.v156tool',s))return;var d=document.createElement('div');d.className='v156tool';d.innerHTML=j[1];
+  d.addEventListener('click',function(e){var t=e.target.getAttribute&&e.target.getAttribute('data-t');if(!t)return;
+   if(t==='re')reorderUI();else if(t==='sl')spareLabels();else if(t==='cl')calLabels();
+   else if(t==='ss')scanThen(function(x){var r=findSpare(x);return r?spareCard(r):false},'Spare "%" nahi mila.');
+   else if(t==='cs')scanThen(function(x){var r=findInst(x);return r?instCard(r):false},'Instrument "%" nahi mila.');
+   else if(t==='imp-s')importUI('spares');else if(t==='imp-m')importUI('machines')});
+  var v=$('.v154tool',s);if(v)v.insertAdjacentElement('afterend',d);else s.insertBefore(d,s.firstChild)})
+}
+
+/* ---------- 8) CSV import (Machine Master / Spare Parts) ---------- */
+function parseCSV(t){
+ t=String(t||'').replace(/^﻿/,'');var first=t.split(/\r?\n/)[0]||'',dl=',',best=0;[',',';','\t'].forEach(function(d){var c=first.split(d).length;if(c>best){best=c;dl=d}});
+ var rows=[],row=[],f='',q=false;
+ for(var i=0;i<t.length;i++){var c=t.charAt(i);
+  if(q){if(c==='"'){if(t.charAt(i+1)==='"'){f+='"';i++}else q=false}else f+=c}
+  else if(c==='"')q=true;else if(c===dl){row.push(f);f=''}else if(c==='\n'){row.push(f);rows.push(row);row=[];f=''}else if(c!=='\r')f+=c}
+ if(f!==''||row.length){row.push(f);rows.push(row)}
+ return rows.filter(function(r){return r.some(function(x){return String(x).trim()!==''})});
+}
+var ALIAS={
+ machines:{machineNumber:['machinenumber','machineno','machinecode','number','code','mcno'],machineName:['machinename','name','description','machine'],department:['department','dept','line','section'],grade:['grade'],make:['make','manufacturer','makemanufacturer'],costCenter:['costcenter','costcentre','cc']},
+ spares:{code:['itemcode','code','partcode'],desc:['partdescription','description','desc','item','itemname','partname'],spec:['partspecification','specification','spec'],make:['make','brand'],min:['minqty','min','minimum'],max:['maxqty','max','maximum'],avail:['availableqty','available','avail','qty','stock','quantity'],loc:['location','loc','rack']}
+};
+function normH(h){return String(h||'').toLowerCase().replace(/[^a-z0-9]/g,'')}
+function mapRows(kind,rows){
+ var H=rows[0].map(normH),al=ALIAS[kind],idx={};
+ Object.keys(al).forEach(function(k){for(var i=0;i<H.length;i++){if(al[k].indexOf(H[i])>=0){idx[k]=i;break}}});
+ return {idx:idx,rows:rows.slice(1).map(function(r){var o={};Object.keys(idx).forEach(function(k){o[k]=String(r[idx[k]]==null?'':r[idx[k]]).trim()});return o})};
+}
+function importUI(kind){
+ var isM=kind==='machines',title=isM?'Machine Master':'Spare Parts';
+ var cols=isM?'Machine Number, Machine Name, Department, Grade, Make, Cost Center':'Item Code, Part Description, Part Specification, Make, Min Qty, Max Qty, Available Qty, Location';
+ var m=modal('<h2>📥 CSV Import — '+title+'</h2><div class="sub">Excel me file banao → <b>Save As → CSV</b>. Pehli row heading ho:<br><b>'+cols+'</b><br>Jo record pehle se hai (same '+(isM?'Machine Number':'Code / Description+Spec')+') wo update hoga, baaki naye jodenge. Khali box purani value ko nahi badalte.</div><input type="file" accept=".csv,text/csv,.txt" id="v156f" aria-label="CSV file"><div id="v156pv" style="margin-top:8px"></div><div class="ac"><button type="button" class="g" data-a="tpl">⬇ Template CSV</button><button type="button" data-a="go" id="v156go" style="display:none">✔ Import karo</button><button type="button" class="x" data-a="x">Band karo</button></div>');
+ var parsed=null;
+ function plan(){
+  var L=isM?MACHINE_MASTER:data.spares,add=[],upd=[],skip=0;
+  parsed.rows.forEach(function(r){
+   if(isM){if(!r.machineNumber){skip++;return}var ex=L.filter(function(x){return N(x.machineNumber)===N(r.machineNumber)})[0];ex?upd.push([ex,r]):add.push(r)}
+   else{if(!r.desc&&!r.code){skip++;return}var ex2=L.filter(function(x){return r.code?N(x.code)===N(r.code):(N(x.desc)===N(r.desc)&&N(x.spec)===N(r.spec))})[0];ex2?upd.push([ex2,r]):add.push(r)}});
+  return {add:add,upd:upd,skip:skip};
+ }
+ m.addEventListener('change',function(e){if(e.target.id!=='v156f')return;var f=e.target.files&&e.target.files[0];if(!f)return;
+  var rd=new FileReader();rd.onload=function(){
+   var rows=parseCSV(rd.result);if(rows.length<2){$('#v156pv',m).innerHTML='<div style="color:#b91c1c">File me data nahi mila.</div>';return}
+   parsed=mapRows(kind,rows);var need=isM?'machineNumber':'desc';
+   if(parsed.idx[need]===undefined&&!(kind==='spares'&&parsed.idx.code!==undefined)){$('#v156pv',m).innerHTML='<div style="color:#b91c1c">Heading nahi pehchani. Template CSV download karke dekho.</div>';parsed=null;return}
+   var p=plan();$('#v156pv',m).innerHTML='<div class="kp"><div class="k"><b>'+p.add.length+'</b><span>Naye</span></div><div class="k"><b>'+p.upd.length+'</b><span>Update</span></div><div class="k"><b>'+p.skip+'</b><span>Skip (khali)</span></div></div><div style="font-size:11px;color:#475569">Pehchane columns: '+Object.keys(parsed.idx).map(E).join(', ')+'</div>';
+   $('#v156go',m).style.display=(p.add.length||p.upd.length)?'':'none'};rd.readAsText(f)});
+ m.addEventListener('click',function(e){var a=e.target.getAttribute&&e.target.getAttribute('data-a');if(!a)return;
+  if(a==='x'){closeMod();return}
+  if(a==='tpl'){download(isM?'Machine_Master_Template.csv':'Spare_Parts_Template.csv',(isM?'Machine Number,Machine Name,Department,Grade,Make,Cost Center\r\nSQF - 99,SAMPLE FURNACE,HEAT TREATMENT,B,AICHELIN,1072200099':'Item Code,Part Description,Part Specification,Make,Min Qty,Max Qty,Available Qty,Location\r\nSP-0001,HRC Fuse Link,100 Amp,L&T,2,6,4,Rack A1'));return}
+  if(a==='go'&&parsed){
+   if(!guard(isM?'mm':'spares'))return;var p=plan(),now=new Date().toISOString();
+   if(isM){
+    p.upd.forEach(function(u){['machineName','department','grade','make','costCenter'].forEach(function(k){if(u[1][k])u[0][k]=u[1][k]})});
+    p.add.forEach(function(r){MACHINE_MASTER.push({sno:MACHINE_MASTER.length+1,department:r.department||'',machineNumber:r.machineNumber,machineName:r.machineName||r.machineNumber,grade:r.grade||'',make:r.make||'',costCenter:r.costCenter||''})});
+    MACHINE_MASTER.forEach(function(x,i){x.sno=i+1});try{saveEditableMachineMaster()}catch(x){}try{renderMachineMaster()}catch(x){}
+   }else{
+    p.upd.forEach(function(u){var s=u[0],r=u[1];['code','desc','spec','make','loc'].forEach(function(k){if(r[k])s[k]=r[k]});
+     if(r.min!=='')s.min=num(r.min);if(r.max!=='')s.max=num(r.max);if(r.avail!==''){s.availableQty=num(r.avail);s.qty=String(num(r.avail))}s.updatedAt=now});
+    p.add.forEach(function(r,i){data.spares.push({id:'sp-imp-'+Date.now()+'-'+i,sno:data.spares.length+1,code:r.code||'',desc:r.desc||r.code,spec:r.spec||'',make:r.make||'',min:num(r.min),max:num(r.max),qty:String(num(r.avail)),availableQty:num(r.avail),loc:r.loc||'',u4:false,updatedAt:now})});
+    try{persist('spares')}catch(x){}try{renderSparePartsTable()}catch(x){}
+   }
+   gs(1500);closeMod();toast('Import ho gaya: '+p.add.length+' naye, '+p.upd.length+' update.',4000)}});
+}
+window.v156Import=importUI;
+
+/* ---------- 9) lambi tables: pehle 50 rows, baaki "Aur dikhao" ---------- */
+var PG=50,PGSEL=['#spBody','#empListBody','#mhBody','#mrBody','#bdBody','#mmBody','#calBody','#tcBody','#csBody','#purBody'];
+function pgApply(tb){
+ var rows=[].slice.call(tb.children).filter(function(r){return r.tagName==='TR'});
+ var old=tb.__v156m;if(old&&old.parentNode)old.remove();
+ if(rows.length<=PG+20){rows.forEach(function(r){r.style.display=''});return}
+ var shown=PG;
+ function paint(){rows.forEach(function(r,i){r.style.display=i<shown?'':'none'});
+  if(!tb.__v156m||!tb.__v156m.parentNode){var d=document.createElement('div');d.className='v156more';d.innerHTML='<button type="button"></button>';d.firstChild.onclick=function(){shown+=PG;paint()};var tbl=tb.closest('table');(tbl||tb).insertAdjacentElement('afterend',d);tb.__v156m=d}
+  if(shown>=rows.length){tb.__v156m.style.display='none'}else{tb.__v156m.style.display='';tb.__v156m.firstChild.textContent='⬇ Aur '+Math.min(PG,rows.length-shown)+' dikhao ('+(rows.length-shown)+' baaki)'}}
+ paint();
+}
+function pgScan(){PGSEL.forEach(function(s){var tb=$(s);if(!tb)return;var f=tb.firstElementChild,n=tb.children.length;if(tb.__v156f===f&&tb.__v156n===n)return;tb.__v156f=f;tb.__v156n=n;pgApply(tb)})}
+
+/* ---------- 10) PHOTOS (MR / Breakdown) — sirf isi phone me save (Google Sheet sync me nahi) ---------- */
+var PHK='htp_v156_photos',pend={mr:[],bd:[]};
+function phAll(){return ls(PHK,{})}
+function phGet(key){return arr(phAll()[key])}
+function phAdd(key,list){var all=phAll();all[key]=arr(all[key]).concat(list).slice(-6);if(!lsSet(PHK,all)){toast('Photo save nahi ho paya (storage full).',4000);return false}return true}
+function phCount(key){return phGet(key).length}
+function compress(file,cb){
+ var rd=new FileReader();rd.onload=function(){var im=new Image();im.onload=function(){var mx=900,w=im.width,h=im.height,k=Math.min(1,mx/Math.max(w,h));var c=document.createElement('canvas');c.width=Math.round(w*k);c.height=Math.round(h*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);cb(c.toDataURL('image/jpeg',.6))};im.onerror=function(){cb('')};im.src=rd.result};rd.onerror=function(){cb('')};rd.readAsDataURL(file);
+}
+function viewPhotos(key,title){
+ var L=phGet(key);if(!L.length)return toast('Is record ki koi photo nahi.');
+ var m=modal('<h2>📷 '+E(title||'Photos')+'</h2><div style="display:grid;gap:8px">'+L.map(function(u,i){return '<div><img src="'+u+'" alt="photo '+(i+1)+'" style="width:100%;border-radius:10px;border:1px solid #cbd5e1"><div class="ac"><button type="button" class="x" data-d="'+i+'">🗑 Hatao</button></div></div>'}).join('')+'</div><div class="ac"><button type="button" class="g" data-x="1">Band karo</button></div>');
+ m.addEventListener('click',function(e){var t=e.target;if(t.getAttribute('data-x')){closeMod();return}var d=t.getAttribute('data-d');if(d!==null){if(!confirm('Ye photo hatani hai?'))return;var all=phAll();all[key]=arr(all[key]).filter(function(_,i){return i!==+d});lsSet(PHK,all);closeMod();toast('Photo hata di.')}});
+}
+window.v156Photos={count:phCount,view:viewPhotos};
+function editKey(tag){try{var i=edit[tag];if(i===null||i===undefined)return '';var r=data[tag][i];return r?(tag==='mr'?'mr:'+(r.sr||''):'bd:'+(r.id||'')):''}catch(e){return ''}}
+function phWidget(tag,anchorId){
+ var a=document.getElementById(anchorId);if(!a)return;var id='v156ph_'+tag;if(document.getElementById(id))return;
+ var host=a.closest('.field')||a.parentNode;var d=document.createElement('div');d.className='v156ph';d.id=id;
+ d.innerHTML='<b>📷 Photos</b> <small style="color:#64748b">(sirf is phone me save hoti hain)</small><br><label class="pb">📷 Photo lo / chuno<input type="file" accept="image/*" multiple style="display:none" aria-label="photo"></label><div class="th"></div>';
+ host.insertAdjacentElement('afterend',d);
+ var th=$('.th',d);
+ function draw(){var ek=editKey(tag),ex=ek?phGet(ek):[];
+  th.innerHTML=ex.map(function(u,i){return '<span><img src="'+u+'" alt="saved photo" data-v="'+ek+'"></span>'}).join('')+pend[tag].map(function(u,i){return '<span><img src="'+u+'" alt="nayi photo"><b class="rm" data-r="'+i+'">×</b></span>'}).join('')}
+ d.__draw=draw;
+ d.addEventListener('change',function(e){if(e.target.type!=='file')return;var fs=[].slice.call(e.target.files||[]).slice(0,4);e.target.value='';
+  var left=fs.length;fs.forEach(function(f){compress(f,function(u){if(u)pend[tag].push(u);if(--left===0){pend[tag]=pend[tag].slice(-4);draw()}})})});
+ d.addEventListener('click',function(e){var t=e.target,r=t.getAttribute&&t.getAttribute('data-r');if(r!==null&&r!==undefined){pend[tag].splice(+r,1);draw();return}var v=t.getAttribute&&t.getAttribute('data-v');if(v)viewPhotos(v,v)});
+ d.__last='';draw();
+}
+var wrapBusy={};
+function wrapSave(name,tag,afterFn){
+ var o=window[name];if(typeof o!=='function'||o.__v156)return;
+ var w=function(){
+  if(wrapBusy[name])return o.apply(this,arguments);wrapBusy[name]=1;try{return inner.apply(this,arguments)}finally{wrapBusy[name]=0}};
+ var inner=function(){
+  var list=data[tag],n0=list.length,ei=edit[tag],before=ei!==null&&ei!==undefined&&list[ei]?JSON.parse(JSON.stringify(list[ei])):null;
+  var r=o.apply(this,arguments);
+  try{
+   var saved=data[tag].length>n0||(ei!==null&&ei!==undefined&&edit[tag]===null);
+   if(saved){var rec=(ei!==null&&ei!==undefined)?data[tag][ei]:data[tag][data[tag].length-1];
+    if(rec&&pend[tag].length){var key=tag==='mr'?'mr:'+(rec.sr||''):'bd:'+(rec.id||'');if(phAdd(key,pend[tag])){toast('📷 '+pend[tag].length+' photo save hui.');pend[tag]=[];var wd=document.getElementById('v156ph_'+tag);if(wd&&wd.__draw)wd.__draw()}}
+    if(afterFn&&rec)afterFn(rec,before)}
+  }catch(e){console.warn('v156 '+name,e)}
+  return r};
+ w.__v156=1;window[name]=w;
+}
+/* Breakdown band hone par WhatsApp summary */
+function bdWhatsApp(rec,before){
+ if(!rec||!/closed/i.test(String(rec.status||''))||(before&&/closed/i.test(String(before.status||''))))return;
+ setTimeout(function(){
+  if(!confirm('Breakdown band ho gaya. WhatsApp par summary bhejni hai?'))return;
+  var t='🔧 *Breakdown CLOSED*\nMachine: '+(rec.machineNumber||rec.machine||'')+'\nDate: '+D(rec.date)+'\nTime: '+(rec.from||'')+(rec.to?' – '+rec.to:'')+(rec.hours?' ('+rec.hours+' hrs)':'')+'\nReason: '+(rec.reason||'')+'\nAction: '+(rec.action||'')+(rec.spare?'\nSpare: '+rec.spare+(rec.qty?' ×'+rec.qty:''):'')+'\n— HTP Maintenance';
+  window.open('https://wa.me/?text='+encodeURIComponent(t),'_blank');
+ },400);
+}
+
+/* ---------- 11) VOICE input (Chrome/Android; internet + mic permission chahiye) ---------- */
+var VIDS=['mr_problem','mr_observation','mr_action','bd_reason','bd_action','bd_rca','bd_prev','mh_reason','mh_action','pm_action'];
+var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+function listen(el,btn){
+ if(btn.__rec){try{btn.__rec.stop()}catch(e){}return}
+ var rec=new SR();rec.lang=ls('htp_v156_lang','hi-IN');rec.interimResults=false;rec.continuous=false;btn.__rec=rec;btn.classList.add('on');
+ rec.onresult=function(e){var t='';for(var i=e.resultIndex;i<e.results.length;i++)t+=e.results[i][0].transcript;t=t.trim();if(t){el.value=(el.value?el.value+' ':'')+t;el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}))}};
+ rec.onerror=function(e){toast(e.error==='not-allowed'?'Mic ki permission do.':e.error==='network'?'Voice ke liye internet chahiye.':'Mic: '+e.error,3500)};
+ rec.onend=function(){btn.__rec=null;btn.classList.remove('on')};
+ try{rec.start();toast('🎤 Bolo…',1500)}catch(e){btn.__rec=null;btn.classList.remove('on')}
+}
+function mountVoice(){
+ if(!SR)return;
+ VIDS.forEach(function(id){var el=document.getElementById(id);if(!el||el.__v156v)return;el.__v156v=1;
+  var b=document.createElement('button');b.type='button';b.className='v156mic';b.textContent='🎤';b.title='Bolkar likho';b.setAttribute('aria-label','Bolkar likho');
+  var lg=document.createElement('button');lg.type='button';lg.className='v156lg';lg.setAttribute('aria-label','Voice language');
+  function lab(){lg.textContent=ls('htp_v156_lang','hi-IN')==='hi-IN'?'हि':'EN'}lab();
+  b.onclick=function(){listen(el,b)};lg.onclick=function(){lsSet('htp_v156_lang',ls('htp_v156_lang','hi-IN')==='hi-IN'?'en-IN':'hi-IN');lab();toast('Voice: '+(ls('htp_v156_lang','hi-IN')==='hi-IN'?'Hindi':'English'))};
+  el.insertAdjacentElement('afterend',b);b.insertAdjacentElement('afterend',lg)});
+}
+
+/* ---------- main loop ---------- */
+function tick(){
+ try{applyRole();wrapBackup();bkCheck();
+  if(logged()){
+   mountIns();mountTools();pgScan();mountVoice();
+   phWidget('mr','mr_problem');phWidget('bd','bd_reason');
+   ['mr','bd'].forEach(function(t){var w=document.getElementById('v156ph_'+t);if(w){var k=editKey(t);if(w.__last!==k){w.__last=k;w.__draw()}}});
+   wrapSave('saveMR','mr');wrapSave('saveBreakdown','bd',bdWhatsApp);
+  }
+ }catch(e){console.warn('v156 tick',e)}
+}
+setInterval(tick,2000);setTimeout(tick,1800);
+setInterval(function(){nfCheck(false)},30*60*1000);setTimeout(function(){nfCheck(false)},9000);
+if(window.MutationObserver)new MutationObserver(a11ySoon).observe(document.body,{childList:true,subtree:true});
+setTimeout(a11y,2500);
+})();
+
 </script>
 </body>
 </html>
