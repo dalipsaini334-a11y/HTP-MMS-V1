@@ -131,7 +131,7 @@
 })();
 </script>
 <script>/* FIX v122: pwHr startup pe hi chahiye (renderDG), isliye sabse pehle define */function pwHr(v){if(v==null||v==='')return NaN;var t=String(v).trim();if(t.indexOf(':')>=0){var p=t.split(':'),h=Number(p[0]),m=Number(p[1]||0);return isFinite(h)&&isFinite(m)?h+m/60:NaN}var n=Number(t);return isFinite(n)?n:NaN}</script>
-<script>window.APP_VERSION='159-tombstone';</script>
+<script>window.APP_VERSION='160-sno-stable';</script>
 <script>if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js?v='+encodeURIComponent(window.APP_VERSION||'0')).then(function(r){try{r.update()}catch(e){}}).catch(function(e){console.warn('SW',e)})})}</script>
 <title>Milestone Gears Ltd. Unit-7 | Maintenance & Utility Daily Log</title>
 <style>
@@ -1173,7 +1173,7 @@ main.wrap{margin-left:252px;padding:94px 22px 25px;max-width:none}.sidebar-overl
 </div>
 <div class="card">
   <div class="toolbar"><input id="mh_search" placeholder="Search machine, spare, breakdown, Sr. No..." oninput="renderHistory()"><button class="secondary" onclick="printHistoryCurrent()">Print Selected Machine</button></div>
-  <div class="tablewrap"><table class="tbl"><thead><tr><th>Date</th><th>Machine No.</th><th>Machine Name</th><th>Make</th><th>Reason of Break Down</th><th>Attended By</th><th>Action Taken</th><th>Spares Parts Used</th><th>Total B/D Hours</th><th>Cost of Maint.</th><th>Source Sr. No.</th><th>Action</th></tr></thead><tbody id="mhBody"></tbody></table></div>
+  <div class="tablewrap"><table class="tbl"><thead><tr><th>Date</th><th>Machine No.</th><th>Machine Name</th><th>Make</th><th>Reason of Break Down</th><th>Attended By</th><th>Action Taken</th><th>Spares Parts Used</th><th>Total B/D Hours</th><th>Cost of Maint.</th><th>Done In</th><th>Source Sr. No.</th><th>Action</th></tr></thead><tbody id="mhBody"></tbody></table></div>
 </div>
 </section>
 
@@ -2080,6 +2080,81 @@ function populatePMTCSelect(){
 }
 // PM me ek se zyada thermocouple badle ho to extra rows (pehla select pm_tc_select hi rehta hai)
 function pmTcAddRow(){const box=document.getElementById('pmTcExtra');if(!box)return;const d=document.createElement('div');d.style.cssText='display:flex;gap:6px;margin-top:6px';d.innerHTML='<select style="flex:1"><option value="">-- None --</option>'+tcOptionList()+'</select><button type="button" class="danger" title="Remove" onclick="this.parentNode.remove()">✕</button>';box.appendChild(d)}
+
+// ===== Thermocouple replacement: Spare list + Critical list se stock kam karna, aur Machine History me entry =====
+function tcStockCandidates(){return (data.spares||[]).filter(function(s){return /th[ea]r?mo\s*-?\s*c[ou]+p?l/i.test(String(s.desc||''))})}
+function tcStockGuess(tc,list){
+  const txt=(String(tc.furnace||'')+' '+String(tc.loc||'')).toUpperCase(),ty=String(tc.type||'').toUpperCase().replace(/[^A-Z]/g,'');
+  let best=-1,bi=-1;
+  list.forEach(function(s,i){const d=(String(s.desc||'')+' '+String(s.spec||'')).toUpperCase();let sc=0;
+    if(ty&&new RegExp('(^|[^A-Z])'+ty+'[\\s-]*TYPE').test(d))sc+=3;
+    if(/Q\.?\s*TANK|QUENCH/.test(txt)&&/QUENCH/.test(d))sc+=4;
+    if(/TEMPER/.test(txt)&&/TEMPER/.test(d))sc+=4;
+    txt.split(/[^A-Z0-9]+/).forEach(function(w){if(w.length>=4&&d.indexOf(w)>=0)sc+=1});
+    if(inventoryAvailableQty(s)>0)sc+=0.5;
+    if(sc>best){best=sc;bi=i}});
+  return bi;
+}
+function tcLabel(t){return [t.furnace,t.loc,t.srid].filter(Boolean).join(' - ')||String(t.id||'')}
+// Save se pehle: har thermocouple ke liye naya serial / certificate / kaun sa stock item use hua - poochta hai. opt.simple = sirf stock poochho.
+function tcCollectPlan(ids,opt){
+  opt=opt||{};const plan=[];plan.warn=[];if(!ids||!ids.length)return plan;
+  plan.reason=opt.reason||(prompt('Replacement reason (all selected thermocouples):','Planned replacement (PM)')||'Planned replacement (PM)');
+  const list=tcStockCandidates();
+  ids.forEach(function(id){
+    const t=data.tc.find(x=>sameId(x.id,id));if(!t)return;
+    const nm=tcLabel(t),it={id:id,newSrid:'',certNo:'',spareId:''};
+    if(!opt.simple){it.newSrid=(prompt('['+nm+']\nNew thermocouple Serial / ID (blank = keep the same):','')||'').trim();it.certNo=(prompt('['+nm+']\nNew thermocouple calibration certificate no.:','')||'').trim();}
+    if(list.length){
+      const g=tcStockGuess(t,list),lines=list.map(function(sp,i){return (i+1)+'. '+sp.desc+(sp.spec?' ('+sp.spec+')':'')+' - Available: '+inventoryAvailableQty(sp)});
+      const ans=prompt('['+nm+']\nStock se kaun sa thermocouple use hua? (Spare list + Critical list dono se 1 nos kam hoga)\n\n'+lines.join('\n')+'\n0. Stock se nahi - koi deduction nahi\n\nNumber likho:',String(g>=0&&inventoryAvailableQty(list[g])>0?g+1:0));
+      const k=parseInt(ans,10);if(k>=1&&k<=list.length)it.spareId=list[k-1].id;
+    }else plan.warn.push(nm+': Spare list me thermocouple item nahi mila - stock kam nahi hua.');
+    plan.push(it);
+  });
+  return plan;
+}
+// Save ke baad: replacement lagao + stock kam karo. Return: done = [{tcId,label,oldSrid,newSrid,stock,stockOk}]
+function tcApplyPlan(plan,dateStr,note,extra){
+  const done=[],warn=(plan.warn||[]).slice();extra=extra||{};
+  plan.forEach(function(it){
+    const t=data.tc.find(x=>sameId(x.id,it.id));if(!t)return;
+    const oldSrid=t.srid||'',label=tcLabel(t);
+    if(!applyThermocoupleReplacement(it.id,dateStr,it.newSrid,note,{reason:plan.reason||extra.reason||'',certNo:it.certNo,tech:extra.tech,appr:extra.appr}))return;
+    const d={tcId:it.id,label:label,oldSrid:oldSrid,newSrid:it.newSrid||oldSrid,stock:'',stockOk:false};
+    if(it.spareId){
+      const sp=findById(data.spares,it.spareId),chk=normalSpareDeltaCheck(it.spareId,1);
+      if(sp)d.stock=sp.desc+(sp.spec?' ('+sp.spec+')':'');
+      if(chk.ok){applyNormalSpareDelta(it.spareId,1);d.stockOk=true}else warn.push(label+': '+(chk.msg||'stock kam nahi hua'));
+    }
+    done.push(d);
+  });
+  if(done.some(function(x){return x.stockOk})){persist('spares');persist('critical');try{renderSparePartsTable();renderCriticalTable()}catch(e){}}
+  if(warn.length)setTimeout(function(){alert('Thermocouple stock note:\n\n'+warn.join('\n'))},200);
+  return done;
+}
+function tcReplacedText(list){
+  return (Array.isArray(list)?list:[]).map(function(x){return 'Thermocouple replaced: '+x.label+((x.oldSrid||x.newSrid)&&x.oldSrid!==x.newSrid?' (ID '+(x.oldSrid||'-')+' -> '+(x.newSrid||'-')+')':'')+(x.stock?' [Stock: '+x.stock+(x.stockOk?'':' - not deducted')+']':'')}).join('; ');
+}
+// PM me use hue spare + replace hue thermocouple -> Machine History Card me entry (sourceSr = PM-<id>)
+function historyFromPM(r){
+  if(!r||!r.id)return null;
+  const parts=[],sp=formatPMSpareParts(((r.entries||[])[0]||{}).spareUsed||[]);
+  if(sp&&sp!=='None')parts.push(sp);
+  const tt=tcReplacedText(r.tcReplaced);if(tt)parts.push(tt);
+  const key=/^PM-/.test(String(r.id))?String(r.id):'PM-'+r.id,existing=data.mh.find(x=>String(x.sourceSr||'')===key);
+  if(!parts.length&&!existing)return null;
+  const mm=machineMasterInfo(r.machineNo);
+  const row={id:existing?.id||('MH-'+Date.now()+'-'+Math.random().toString(36).slice(2,8)),sourceSr:key,machineNo:r.machineNo||'',machine:mm?mm.machineName:(r.template||existing?.machine||''),year:existing?.year||mm?.manufacturingYear||'',make:mm?mm.make:(existing?.make||''),
+    date:r.date||new Date().toISOString().slice(0,10),reason:'Preventive Maintenance (PM Check Sheet) - '+(r.template||'')+((r.dateTo&&r.dateTo>r.date)?' [till '+fmtDate(r.dateTo)+']':''),attendedBy:r.checkedBy||existing?.attendedBy||'Maintenance Team',
+    action:'PM carried out'+(r.partial?' (partial)':''),spares:parts.length?parts.join('; '):'None',bdHours:'',cost:existing?.cost??0,auto:true,updatedAt:new Date().toISOString()};
+  if(existing){Object.assign(existing,row);return existing}
+  data.mh.push(row);return row;
+}
+function syncHistoryFromPM(r){const row=historyFromPM(r);if(!row)return false;persist('mh');try{renderHistory()}catch(e){}return true}
+function mhSourceLabel(r){const sid=String((r&&r.sourceSr)||'');if(/^BD-/.test(sid))return 'Breakdown';if(/^PM-/.test(sid))return 'PM';return sid?'Maint. Request':'Manual'}
+function mhSparesPrint(r){const t=String((r&&r.spares)||'').trim();if(!t||/^none$/i.test(t))return t;const l=mhSourceLabel(r);return (l==='Breakdown'?'[B/D] ':(l==='PM'?'[PM] ':''))+t}
+
 function pmTcClearExtra(){const box=document.getElementById('pmTcExtra');if(box)box.innerHTML=''}
 function pmTcSelected(){const ids=[];[document.getElementById('pm_tc_select')].concat([...document.querySelectorAll('#pmTcExtra select')]).forEach(function(x){if(x&&x.value&&ids.indexOf(x.value)<0)ids.push(x.value)});return ids}
 function calIso(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
@@ -2158,10 +2233,11 @@ function saveBreakdown(){
      return alert(spareCheck?.msg||'Spare stock is insufficient.');
    }
  }
+ if(edit.bd!==null&&data.bd[edit.bd]&&Array.isArray(data.bd[edit.bd].tcReplaced))r.tcReplaced=data.bd[edit.bd].tcReplaced.slice();
  if(edit.bd!==null)data.bd[edit.bd]=r;else data.bd.push(r);persist('bd');
  if(delta){if(kind==='spares')applyNormalSpareDelta(id,delta);else if(kind==='critical'){if(delta>0)deductCriticalAvail(id,delta);else restoreCriticalAvail(id,-delta);}persist('spares');persist('critical');renderSparePartsTable();renderCriticalTable();}
- let tcLink=f('bd_tc_select');if(tcLink)applyThermocoupleReplacement(tcLink,r.date,'','Breakdown register se',{reason:'Breakdown'});
- let historyUpdated=false;const historySpare=String(r.spare||'').trim();if(historySpare&&!/^none$/i.test(historySpare))historyUpdated=syncHistoryFromBreakdown(r);
+ let tcLink=f('bd_tc_select');if(tcLink){const bdPl=tcCollectPlan([tcLink],{simple:true,reason:'Breakdown'});const bdDone=tcApplyPlan(bdPl,r.date,'Breakdown register se',{reason:'Breakdown'});if(bdDone.length){r.tcReplaced=(r.tcReplaced||[]).concat(bdDone);persist('bd');}}
+ let historyUpdated=false;const historySpare=String(r.spare||'').trim();if((historySpare&&!/^none$/i.test(historySpare))||(r.tcReplaced&&r.tcReplaced.length))historyUpdated=syncHistoryFromBreakdown(r);
  let wasEdit=edit.bd!==null;edit.bd=null;clearBreakdown();renderBreakdown();renderMTTR();renderDashboard();renderHistory();alert((wasEdit?'Breakdown updated successfully.':'Breakdown saved successfully. Monthly report and MTTR are updated automatically.')+((spareLink&& !String(spareLink).startsWith('unlisted:'))?' Spare inventory deducted automatically.':(spareLink?' Unlisted spare recorded; inventory stock was not deducted.':''))+(tcLink?' Thermocouple replacement date updated automatically.':'')+(historyUpdated?' Machine History Card updated automatically because Spare Part Used was entered.':''))}
 
 function historyFromBreakdown(r){
@@ -2174,7 +2250,7 @@ function historyFromBreakdown(r){
    sourceSr:sourceKey,machineNo:r.machineNumber||'',machine:mm?mm.machineName:(r.machine||existing?.machine||''),
    year:existing?.year||'',make:mm?mm.make:(existing?.make||''),
    date:r.date||new Date().toISOString().slice(0,10),reason:r.reason||'Breakdown',attendedBy:r.attended||existing?.attendedBy||'Team',
-   action:r.action||existing?.action||'Resolved',spares:r.spare||'None',bdHours:num(r.hours).toFixed(2),cost:existing?.cost??0,
+   action:r.action||existing?.action||'Resolved',spares:(function(){const b=String(r.spare||'').trim(),t=tcReplacedText(r.tcReplaced);return t?((b&&!/^none$/i.test(b)?b+'; ':'')+t):(b||'None')})(),bdHours:num(r.hours).toFixed(2),cost:existing?.cost??0,
    auto:true,updatedAt:new Date().toISOString()
  };
  if(existing){Object.assign(existing,row);return existing;}
@@ -3701,21 +3777,21 @@ function savePM(){
   if(r.partial&&!confirm('PM sheet is incomplete: '+miss.join(', ')+'.\n\nPress OK to save as "Partial" (it will not count as Completed in the PM Plan), or Cancel to complete it first.'))return;}
  const pmUnlistedCheck=validateUnlistedSpareRecords((r.entries||[]).flatMap(e=>e.spareUsed||[]));
  if(!pmUnlistedCheck.ok)return alert(pmUnlistedCheck.msg);
+ const pmTcPlan=tcCollectPlan(pmTcSelected());
+ if(previousPM&&Array.isArray(previousPM.tcReplaced)&&previousPM.tcReplaced.length)r.tcReplaced=previousPM.tcReplaced.slice();
  if(edit.pm!==null){r.id=data.pm[edit.pm].id;data.pm[edit.pm]=r}else data.pm.push(r);
  persistPMWithEvidence();
  // Reconcile against the previously saved PM record. On edit, unchanged spares
  // produce zero delta, so inventory cannot be deducted a second time.
  let spareDeducted=pmDeductSpares(previousPM?.entries||[]);
- const pmTcIds=pmTcSelected();let pmTcDone=0;
- if(pmTcIds.length){const rs=prompt('Replacement reason (all selected thermocouples):','Planned replacement (PM)')||'Planned replacement (PM)';
-  pmTcIds.forEach(function(id){const t=data.tc.find(x=>sameId(x.id,id))||{},nm=[t.furnace,t.loc,t.srid].filter(Boolean).join(' - ')||String(id);
-   const ns=prompt('['+nm+']\nNew thermocouple Serial / ID (blank = keep the same):','')||'',nc=prompt('['+nm+']\nNew thermocouple calibration certificate no.:','')||'';
-   if(applyThermocoupleReplacement(id,r.date,ns.trim(),'PM Check Sheet se',{reason:rs,certNo:nc.trim(),tech:r.checkedBy,appr:r.verifiedBy}))pmTcDone++;});}
+ let pmTcDone=0,pmHist=false;
+ if(pmTcPlan.length){const done=tcApplyPlan(pmTcPlan,r.date,'PM Check Sheet se',{tech:r.checkedBy,appr:r.verifiedBy});pmTcDone=done.length;if(done.length){r.tcReplaced=(r.tcReplaced||[]).concat(done);persistPMWithEvidence();}}
+ try{pmHist=syncHistoryFromPM(r)}catch(e){console.warn('PM -> Machine History',e)}
  let linkCtx=PM_PLAN_LINK_CONTEXT;
  try{if(!linkCtx){linkCtx=JSON.parse(localStorage.getItem('htp7_pm_plan_link_context')||'null');}}catch(e){}
  const linked=pmPlanLinkFromCheckSheet(r,linkCtx);
  PM_PLAN_LINK_CONTEXT=null;localStorage.removeItem('htp7_pm_plan_link_context');edit.pm=null;setv('pm_tc_select','');pmTcClearExtra();renderPMGlobalSpares([]);renderPMHistory();if(typeof renderPMPlan==='function')renderPMPlan();renderDashboard();
- alert((linked?'Preventive Maintenance record saved successfully.\n\nPM Check Sheet saved and PM Plan updated successfully.':'Preventive Maintenance record saved successfully.\n\nNote: PM Plan link could not be matched. Please check Machine No. and PM Plan month.')+(pmTcDone?'\n\n'+pmTcDone+' thermocouple replacement(s) date updated automatically.':'')+(spareDeducted?'\n\nSpare Parts Inventory deducted automatically for the spare(s) used during this PM.':''));
+ alert((linked?'Preventive Maintenance record saved successfully.\n\nPM Check Sheet saved and PM Plan updated successfully.':'Preventive Maintenance record saved successfully.\n\nNote: PM Plan link could not be matched. Please check Machine No. and PM Plan month.')+(pmTcDone?'\n\n'+pmTcDone+' thermocouple replacement(s) date updated automatically (Spare + Critical stock also reduced where selected).':'')+(pmHist?'\n\nMachine History Card updated (spares / thermocouple used in this PM).':'')+(spareDeducted?'\n\nSpare Parts Inventory deducted automatically for the spare(s) used during this PM.':''));
 }
 function pmFillPlanMonthSelect(){const el=document.getElementById('pm_plan_month');if(!el)return;const cur=el.value;el.innerHTML='<option value="">Auto (month of Done Date)</option>'+PMPLAN_MONTHS.map(x=>'<option>'+x+'</option>').join('');el.value=cur;}
 function loadPMRecord(i){let r=data.pm[i];if(!r)return;edit.pm=i;setv('pm_template',r.template);setv('pm_machine_no',r.machineNo);setv('pm_start',r.start);setv('pm_end',r.end);setv('pm_date',r.date);setv('pm_date_to',r.dateTo||'');setv('pm_checked_by',r.checkedBy);pmFillPlanMonthSelect();setv('pm_verified_by',r.verifiedBy);setv('pm_plan_month',r.planMonth||'');setv('pm_action',r.action||'');setv('pm_action_target',r.actionTarget||'');setv('pm_action_status',r.actionStatus||'Open');window.__pmLoadedEntries=r.entries||[];renderPMRows(r.checklistRows||PM_CHECKLISTS[r.template]?.rows||[]);let trs=[...document.querySelectorAll('#pmBody tr')];(r.entries||[]).forEach((e,j)=>{if(!trs[j])return;trs[j].querySelector('.pm-obs').value=e.observation||'';trs[j].querySelector('.pm-work').value=e.workDone||'';trs[j].querySelector('.pm-rem').value=e.remark||'';trs[j].__evidence=Array.isArray(e.evidence)?e.evidence:[];pmRenderEvidenceCell(trs[j],j)});document.getElementById('pm').scrollIntoView({behavior:'smooth'});}
@@ -3966,10 +4042,10 @@ function printHistoryRow(i){let r=data.mh[i];if(!r)return;let rows=data.mh.filte
 function setText(id,v){let e=document.getElementById(id);if(e)e.textContent=v??''}
 function fillPrintHistory(machineNo,rows){
  let m=machineMasterInfo(machineNo),first=rows[0]||{};setText('ph_machine_no',machineNo||'');setText('ph_machine',first.machine||m?.machineName||'');setText('ph_year',first.year||m?.manufacturingYear||'');setText('ph_make',first.make||m?.make||'');
- document.getElementById('ph_body').innerHTML=rows.map(r=>`<tr><td>${esc(fmtDate(r.date))}</td><td>${esc(r.reason)}</td><td>${esc(r.attendedBy)}</td><td>${esc(r.action)}</td><td>${esc(r.spares)}</td><td>${esc(r.bdHours)}</td><td>${esc(r.cost===''||r.cost==null?'':Number(r.cost).toFixed(2))}</td></tr>`).join('');
+ document.getElementById('ph_body').innerHTML=rows.map(r=>`<tr><td>${esc(fmtDate(r.date))}</td><td>${esc(r.reason)}</td><td>${esc(r.attendedBy)}</td><td>${esc(r.action)}</td><td>${esc(mhSparesPrint(r))}</td><td>${esc(r.bdHours)}</td><td>${esc(r.cost===''||r.cost==null?'':Number(r.cost).toFixed(2))}</td></tr>`).join('');
 }
 function printHistoryCurrent(){let machineNo=f('mh_machine_no');if(!machineNo&&edit.mh!==null)machineNo=data.mh[edit.mh].machineNo;if(!machineNo){let q=f('mh_search').trim().toLowerCase();let found=data.mh.find(r=>q&&JSON.stringify(r).toLowerCase().includes(q));machineNo=found?.machineNo||'';}if(!machineNo)return alert('Please select a Machine Number first.');let rows=data.mh.filter(r=>r.machineNo===machineNo).sort((a,b)=>(a.date||'').localeCompare(b.date||''));if(!rows.length)return alert('No history entries found for this machine.');fillPrintHistory(machineNo,rows);document.body.classList.add('print-history');window.print();setTimeout(()=>document.body.classList.remove('print-history'),500);}
-function renderHistory(){let q=(f('mh_search')||'').toLowerCase();let a=[...data.mh].sort((x,y)=>(x.date||'').localeCompare(y.date||''));a=a.filter(r=>!q||JSON.stringify(r).toLowerCase().includes(q));document.getElementById('mhBody').innerHTML=a.map(r=>{let i=data.mh.indexOf(r);return `<tr><td>${esc(fmtDate(r.date))}</td><td>${esc(r.machineNo)}</td><td>${esc(r.machine)}</td><td>${esc(r.make)}</td><td title="${esc(r.reason)}">${esc((r.reason||'').slice(0,50))}</td><td>${esc(r.attendedBy)}</td><td title="${esc(r.action)}">${esc((r.action||'').slice(0,50))}</td><td title="${esc(r.spares)}">${esc((r.spares||'').slice(0,50))}</td><td>${esc(r.bdHours)}</td><td>${esc(r.cost===''||r.cost==null?'':Number(r.cost).toFixed(2))}</td><td>${esc(r.sourceSr||'')}</td><td><div class="editbar"><button class="secondary" onclick="editHistory(${i})">Edit</button><button class="secondary" onclick="printHistoryRow(${i})">Print</button><button class="danger" onclick="delRow('mh',${i})">Delete</button></div></td></tr>`}).join('');}
+function renderHistory(){let q=(f('mh_search')||'').toLowerCase();let a=[...data.mh].sort((x,y)=>(x.date||'').localeCompare(y.date||''));a=a.filter(r=>!q||JSON.stringify(r).toLowerCase().includes(q));document.getElementById('mhBody').innerHTML=a.map(r=>{let i=data.mh.indexOf(r);return `<tr><td>${esc(fmtDate(r.date))}</td><td>${esc(r.machineNo)}</td><td>${esc(r.machine)}</td><td>${esc(r.make)}</td><td title="${esc(r.reason)}">${esc((r.reason||'').slice(0,50))}</td><td>${esc(r.attendedBy)}</td><td title="${esc(r.action)}">${esc((r.action||'').slice(0,50))}</td><td title="${esc(r.spares)}">${esc((r.spares||'').slice(0,50))}</td><td>${esc(r.bdHours)}</td><td>${esc(r.cost===''||r.cost==null?'':Number(r.cost).toFixed(2))}</td><td>${esc(mhSourceLabel(r))}</td><td>${esc(r.sourceSr||'')}</td><td><div class="editbar"><button class="secondary" onclick="editHistory(${i})">Edit</button><button class="secondary" onclick="printHistoryRow(${i})">Print</button><button class="danger" onclick="delRow('mh',${i})">Delete</button></div></td></tr>`}).join('');}
 
 function saveMR(){
  if(!mmsGuardSave('mr'))return;
@@ -6002,7 +6078,12 @@ function gsCfg(){
  return {url:GS_DEFAULT_URL,token:mmsSrvToken()};   // token = Code.gs ka signed session (login ke baad)
 }
 function gsMeta(){try{const m=JSON.parse(localStorage.getItem(GS_META_KEY)||'null');if(m&&m.base)return m}catch(e){}return {since:0,base:{}}}
-function gsHash(str){let h1=0xdeadbeef,h2=0x41c6ce57;for(let i=0,ch;i<str.length;i++){ch=str.charCodeAt(i);h1=Math.imul(h1^ch,2654435761);h2=Math.imul(h2^ch,1597334677)}h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return (4294967296*(2097151&h2)+(h1>>>0)).toString(36)}
+// Spare / Critical ka S.No. har device par index se dobara ginta hai (delete ke baad sab ka badal jata hai) - isliye hash me sno ginti nahi,
+// warna ek delete se 6-9 records 'edit' ban kar sync hote the aur purani copy wapas aa sakti thi.
+function gsHash(str){if(str.indexOf('"desc":')>=0&&str.indexOf('"min":')>=0&&str.indexOf('"max":')>=0)str=str.replace(/"sno":(?:"[^"]*"|-?\d+(?:\.\d+)?),?/,'');return gsHashLegacy(str)}
+// Upgrade ke baad ek baar: purana base hash sno ke saath bana tha. Sno ko ginkar match karo - match ho to record badla nahi (dobara push nahi hoga).
+function gsSnoMigrated(js,oldH){const m=/"sno":(?:"[^"]*"|-?\d+(?:\.\d+)?)/.exec(js);if(!m)return false;for(let k=0;k<=800;k++){if(gsHashLegacy(js.replace(m[0],'"sno":'+k))===oldH)return true}return false}
+function gsHashLegacy(str){let h1=0xdeadbeef,h2=0x41c6ce57;for(let i=0,ch;i<str.length;i++){ch=str.charCodeAt(i);h1=Math.imul(h1^ch,2654435761);h2=Math.imul(h2^ch,1597334677)}h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return (4294967296*(2097151&h2)+(h1>>>0)).toString(36)}
 function gsClean(r){return JSON.stringify(r,function(k,v){if(k==='evidence')return undefined;if(k==='sno'&&this&&this.machineNumber!==undefined&&this.costCenter!==undefined&&this.machineName!==undefined)return undefined;/* Machine Master ka S.No. har load par dobara ginta hai - sync ke liye change nahi */if((k==='h'||k==='s'||k==='p')&&this&&typeof this.u==='string'&&this.role!==undefined)return undefined;return v})}
 /* ===== Sheet report tabs: one tab per module (and per month), same columns as the print formats ===== */
 const GS_MONTHLY=['pf','pc','dg','mr','bd','mh','airCompressor','utility','pm','pmPlan','meeting'];
@@ -6848,7 +6929,9 @@ async function gsSync(auto){
     used.add(sid);
     const js=gsClean(r),h=gsHash(js),b=oldBase[sid];
     const mk=gsRecMonth(mod,r);
-    if(!b||b.h!==h){changes.push({module:mod,sid:sid,ts:now,deleted:0,json:js,bts:(b?b.ts:0)});nb[sid]={h:h,ts:now,m:mk||''};gsAff(aff,mod,mk);if(b&&b.m&&b.m!==mk)gsAff(aff,mod,b.m)}
+    const sm=(b&&b.h!==h&&(mod==='spares'||mod==='critical')&&gsSnoMigrated(js,b.h));
+    if(sm){nb[sid]={h:h,ts:b.ts,m:b.m||''}}
+    else if(!b||b.h!==h){changes.push({module:mod,sid:sid,ts:now,deleted:0,json:js,bts:(b?b.ts:0)});nb[sid]={h:h,ts:now,m:mk||''};gsAff(aff,mod,mk);if(b&&b.m&&b.m!==mk)gsAff(aff,mod,b.m)}
     else nb[sid]=b;
    });
    if(mmDupLocal.length){mmDupLocal.forEach(function(r){const i=list.indexOf(r);if(i>=0)list.splice(i,1)});assigned.add(mod)}
@@ -6958,7 +7041,7 @@ function gsBeaconFlush(){
     if(!sid||used.has(sid)){sid=sid||('h'+gsHash(gsClean(r)));while(used.has(sid))sid+='+'}
     used.add(sid);
     const js=gsClean(r),hh=gsHash(js),b=oldBase[sid];
-    if(!b||b.h!==hh)changes.push({module:mod,sid:sid,ts:now,deleted:0,json:js,bts:(b?b.ts:0)});
+    if((!b||b.h!==hh)&&!((mod==='spares'||mod==='critical')&&b&&gsSnoMigrated(js,b.h)))changes.push({module:mod,sid:sid,ts:now,deleted:0,json:js,bts:(b?b.ts:0)});
    });
   });
   if(!changes.length)return;
