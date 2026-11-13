@@ -131,7 +131,7 @@
 })();
 </script>
 <script>/* FIX v122: pwHr startup pe hi chahiye (renderDG), isliye sabse pehle define */function pwHr(v){if(v==null||v==='')return NaN;var t=String(v).trim();if(t.indexOf(':')>=0){var p=t.split(':'),h=Number(p[0]),m=Number(p[1]||0);return isFinite(h)&&isFinite(m)?h+m/60:NaN}var n=Number(t);return isFinite(n)?n:NaN}</script>
-<script>window.APP_VERSION='156-insights';</script>
+<script>window.APP_VERSION='159-tombstone';</script>
 <script>if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js?v='+encodeURIComponent(window.APP_VERSION||'0')).then(function(r){try{r.update()}catch(e){}}).catch(function(e){console.warn('SW',e)})})}</script>
 <title>Milestone Gears Ltd. Unit-7 | Maintenance & Utility Daily Log</title>
 <style>
@@ -6836,7 +6836,7 @@ async function gsSync(auto){
     used.add(sid);
     const js=gsClean(r),h=gsHash(js),b=oldBase[sid];
     const mk=gsRecMonth(mod,r);
-    if(!b||b.h!==h){changes.push({module:mod,sid:sid,ts:now,deleted:0,json:js});nb[sid]={h:h,ts:now,m:mk||''};gsAff(aff,mod,mk);if(b&&b.m&&b.m!==mk)gsAff(aff,mod,b.m)}
+    if(!b||b.h!==h){changes.push({module:mod,sid:sid,ts:now,deleted:0,json:js,bts:(b?b.ts:0)});nb[sid]={h:h,ts:now,m:mk||''};gsAff(aff,mod,mk);if(b&&b.m&&b.m!==mk)gsAff(aff,mod,b.m)}
     else nb[sid]=b;
    });
    if(mmDupLocal.length){mmDupLocal.forEach(function(r){const i=list.indexOf(r);if(i>=0)list.splice(i,1)});assigned.add(mod)}
@@ -6946,7 +6946,7 @@ function gsBeaconFlush(){
     if(!sid||used.has(sid)){sid=sid||('h'+gsHash(gsClean(r)));while(used.has(sid))sid+='+'}
     used.add(sid);
     const js=gsClean(r),hh=gsHash(js),b=oldBase[sid];
-    if(!b||b.h!==hh)changes.push({module:mod,sid:sid,ts:now,deleted:0,json:js});
+    if(!b||b.h!==hh)changes.push({module:mod,sid:sid,ts:now,deleted:0,json:js,bts:(b?b.ts:0)});
    });
   });
   if(!changes.length)return;
