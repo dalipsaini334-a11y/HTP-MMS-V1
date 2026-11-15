@@ -11017,6 +11017,52 @@ if (typeof renderAll !== 'undefined') {
     '.dc-obs{min-width:120px;width:100%;box-sizing:border-box;padding:4px;font-size:11px}' +
     '.dc-notok td{background:#fef2f2!important}';
   var st0 = document.createElement('style'); st0.id = 'dc-style'; st0.textContent = css; document.head.appendChild(st0);
+  var css2 = [
+    '.dcx-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}.dcx-sp{flex:1}',
+    '.dcx-seg{display:inline-flex;border:1px solid #3b6288;border-radius:12px;overflow:hidden}',
+    '.dcx-seg button{border:0;border-radius:0;background:#112b45;color:#9fc0e0;padding:10px 16px;font-weight:800;font-size:13px;cursor:pointer;width:auto;margin:0;min-height:0;min-width:0;white-space:nowrap}',
+    '.dcx-seg button.on{background:linear-gradient(135deg,#1d5b8e,#2a7fc4);color:#fff}',
+    '.dcx-strip{display:flex;flex-wrap:nowrap;gap:5px;overflow-x:auto;padding:2px 1px 10px;-webkit-overflow-scrolling:touch}',
+    '.dcx-d{flex:1 0 40px;min-width:40px;width:auto;height:50px;border-radius:10px;border:1px solid #2a4a6b;background:#143252;color:#e6f0fa;font-weight:800;font-size:13px;padding:6px 0 0;margin:0;cursor:pointer;text-align:center;line-height:1.1;min-height:0}',
+    '.dcx-d small{display:block;font-weight:400;font-size:9px;color:#8fb0cf;margin-top:3px}',
+    '.dcx-d.done{background:#14513a;border-color:#2f9e6b}.dcx-d.bad{background:#5e2230;border-color:#e0566b}.dcx-d.fut{opacity:.55}',
+    '.dcx-d.today{box-shadow:0 0 0 2px #f59e0b inset}',
+    '.dcx-d.sel{background:linear-gradient(135deg,#1d5b8e,#2a7fc4);border-color:#5aa5e0;color:#fff;opacity:1}.dcx-d.sel small{color:#dbeafe}',
+    '.dcx-dayhead{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;background:#112b45;border:1px solid #2a4a6b;border-radius:12px;padding:9px 14px;margin:2px 0 12px;font-size:14px;color:#e6f0fa}',
+    '.dcx-dayhead label{font-size:12px;font-weight:700;display:flex;gap:8px;align-items:center;color:#9fc0e0}',
+    '.dcx-sign{width:120px;padding:6px 8px;border:1px solid #3b6288;border-radius:8px;font-size:13px;background:#0e2238;color:#e6f0fa}',
+    '.dcx-body{display:flex;gap:14px;align-items:flex-start}.dcx-main{flex:1;min-width:0}',
+    '.dcx-list{display:grid;grid-template-columns:1fr;gap:9px}',
+    '.dcx-pt{background:#112b45;border:1px solid #2a4a6b;border-radius:12px;padding:10px 12px;display:flex;align-items:center;gap:10px}',
+    '.dcx-pt .t{flex:1;min-width:0;font-size:13.5px;font-weight:700;color:#e6f0fa}.dcx-pt .t .no{color:#7fc1f5}.dcx-pt .t small{display:block;font-weight:400;font-size:11.5px;color:#9fc0e0;margin-top:3px}',
+    '.dcx-ctl{display:flex;gap:7px;flex:none}',
+    '.dcx-ctl button{width:48px;height:44px;border-radius:10px;border:2px solid #3b6288;background:#0e2238;color:#6f93b5;font-size:21px;font-weight:900;cursor:pointer;padding:0;margin:0;min-height:0;min-width:0;max-width:48px;flex:0 0 48px}',
+    '.dcx-ctl button.dcx-ok.on{background:#16a34a;border-color:#4ade80;color:#fff}.dcx-ctl button.dcx-ng.on{background:#dc2626;border-color:#f87171;color:#fff}',
+    '.dcx-in{width:96px;height:44px;border:2px solid #3b6288;border-radius:10px;text-align:center;font-size:16px;font-weight:800;background:#0e2238;color:#e6f0fa;flex:none;padding:0;min-width:0}',
+    '.dcx-in.bad{background:#5e2230;border-color:#f87171;color:#fecaca}',
+    '.dcx-side{width:300px;flex:none;display:none}.dcx-card{background:#112b45;border:1px solid #2a4a6b;border-radius:12px;padding:12px 14px}.dcx-card h5{margin:0 0 9px;font-size:12.5px;color:#9fc0e0;font-weight:700}',
+    '.dcx-hm{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}.dcx-hm button{height:30px;border-radius:7px;border:0;background:#1d4467;color:#9fc0e0;font-size:11px;font-weight:700;cursor:pointer;padding:0;margin:0;min-height:0;width:auto;min-width:0;max-width:none}',
+    '.dcx-hm button.a{background:#16a34a;color:#fff}.dcx-hm button.b{background:#dc2626;color:#fff}.dcx-hm button.t{outline:2px solid #7fc1f5;outline-offset:1px}',
+    '.dcx-lg{font-size:11px;color:#9fc0e0;margin-top:9px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}.dcx-lg span{width:11px;height:11px;border-radius:3px;background:#1d4467;display:inline-block}.dcx-lg .a{background:#16a34a}.dcx-lg .b{background:#dc2626}',
+    '.dcx-pts{display:none;width:300px;flex:none;background:#112b45;border:1px solid #2a4a6b;border-radius:12px;overflow:hidden}',
+    '.dcx-li{display:flex;gap:9px;align-items:center;width:100%;text-align:left;border:0;border-bottom:1px solid #1d4467;border-radius:0;background:#112b45;padding:10px 12px;margin:0;font-size:13px;font-weight:700;color:#e6f0fa;cursor:pointer;min-height:0;min-width:0;max-width:none;justify-content:flex-start}',
+    '.dcx-li em{font-style:normal;width:25px;height:25px;border-radius:50%;background:#1d4467;color:#9fc0e0;display:flex;align-items:center;justify-content:center;font-size:12px;flex:none}',
+    '.dcx-li.o em{background:#16a34a;color:#fff}.dcx-li.x em{background:#dc2626;color:#fff}.dcx-li.cur{background:#1d4467;box-shadow:inset 4px 0 0 #5aa5e0}',
+    '.dcx-wiz{flex:1;min-width:0}.dcx-wh{display:flex;justify-content:space-between;font-size:12.5px;font-weight:800;color:#9fc0e0;margin-bottom:6px}.dcx-wh .g{color:#4ade80}',
+    '.dcx-prog{height:8px;background:#1d4467;border-radius:5px;overflow:hidden;margin-bottom:12px}.dcx-prog i{display:block;height:100%;background:linear-gradient(90deg,#2a7fc4,#4ade80)}',
+    '.dcx-big{background:#112b45;border:1px solid #2a4a6b;border-radius:16px;padding:18px;text-align:center}.dcx-big .n{font-size:11px;font-weight:700;color:#8fb0cf;letter-spacing:.5px}',
+    '.dcx-big h3{margin:6px 0 10px;font-size:21px;line-height:1.25;color:#fff}.dcx-big .meta{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:16px}.dcx-big .meta span{background:#1d4467;border-radius:8px;padding:6px 11px;font-size:12px;color:#d5e6f5}',
+    '.dcx-ctl.big{gap:12px}.dcx-ctl.big button{flex:1 1 0;max-width:none;width:auto;height:auto;padding:22px 0;font-size:18px;border-radius:14px;color:#fff;border:0}.dcx-ctl.big .dcx-ok{background:#16a34a}.dcx-ctl.big .dcx-ng{background:#dc2626}',
+    '.dcx-ctl.big button.dcx-ok:not(.on),.dcx-ctl.big button.dcx-ng:not(.on){opacity:.85}.dcx-ctl.big button.on{box-shadow:0 0 0 4px #7fc1f5}',
+    '.dcx-in.big{width:75%;height:68px;font-size:28px}.dcx-kb{display:none;font-size:11.5px;color:#8fb0cf;margin-top:14px}.dcx-kb b{background:#1d4467;border:1px solid #3b6288;border-radius:5px;padding:1px 7px;color:#e6f0fa}',
+    '.dcx-nav{display:flex;gap:10px;margin-top:12px}.dcx-nav button{flex:1 1 0;min-width:0;max-width:none;padding:14px 0;font-weight:800;font-size:14px;border-radius:12px;margin:0;min-height:0}',
+    '.dc-msg,.dc-msg *{color:#7c2d12}',
+    '@media(min-width:900px){.dcx-side{display:block}.dcx-pts{display:block}.dcx-list{grid-template-columns:1fr 1fr}.dcx-kb{display:block}.dcx-big{padding:28px 36px}.dcx-big h3{font-size:30px}.dcx-ctl.big button{padding:32px 0;font-size:23px}.dcx-wiz .dcx-nav{max-width:520px}}',
+    '@media(min-width:900px){.dcx-body:has(.dcx-pts) .dcx-side{display:none}}'
+  ].join('');
+  css2 = css2.replace(/(^|[},{])(\s*)(\.dcx-)/g, '$1$2html body main.wrap section.panel .dcx.dcx.dcx.dcx.dcx.dcx.dcx.dcx.dcx $3').replace(/(^|[},{])(\s*)(\.dc-msg)/g, '$1$2html body main.wrap section.panel $3').replace(/([{;])([a-z-]+):([^;}]+)/g, '$1$2:$3 !important');
+  var st1 = document.createElement('style'); st1.id = 'dc-style2'; st1.textContent = css2; document.head.appendChild(st1);
+
 
   /* ====================== PTM / DSM : month grid engine ====================== */
   var CFG = {
@@ -11060,29 +11106,97 @@ if (typeof renderAll !== 'undefined') {
     }
     st.sel = nu; loadDraft(key); writeSel(key); renderGrid(key); loadMetaToForm(key);
   }
-  function gridHtml(key) {
-    var cfg = CFG[key], st = S[key], sel = st.sel, t = tplBy(key, sel.tpl);
-    if (!t) return '<div class="dc-msg warn">Is naam ka check sheet template nahi mila. Neeche "Edit check points" se template banao.</div>';
-    var n = dim(sel.month), td = sel.month === ymNow() ? +today().slice(8, 10) : 0, showM = cfg.method && !t.noMethod, h = '';
-    h += '<div class="dc-wrap"><table class="tbl dc-tbl"><thead><tr><th>Sr</th><th class="l st">' + (key === 'dsm' ? 'INSTRUMENT NAME' : 'CHECK POINTS') + '</th><th class="l">' + E(t.colS || (key === 'dsm' ? 'SPECIFICATION' : 'STANDARDS')) + '</th>' + (showM ? '<th class="l">METHOD</th>' : '');
-    for (var d = 1; d <= n; d++) h += '<th' + (d === td ? ' class="dc-today"' : '') + '>' + d + '</th>';
-    h += '</tr></thead><tbody>';
-    (t.rows || []).forEach(function (r, i) {
-      h += '<tr><td>' + (i + 1) + '</td><td class="l st">' + E(r.p) + '</td><td class="l">' + E(r.s) + '</td>' + (showM ? '<td class="l">' + E(r.m) + '</td>' : '');
-      for (var d = 1; d <= n; d++) {
-        var v = ((st.draft[d] || {}).v || {})[r.id], tdc = d === td ? ' dc-today' : '';
-        if (r.t === 'num') {
-          h += '<td class="dc-n' + tdc + '"><input inputmode="decimal" data-a="val" data-r="' + E(r.id) + '" data-d="' + d + '" value="' + E(v || '') + '"' + (outOfLimit(r.s, v) ? ' class="bad"' : '') + '></td>';
-        } else {
-          h += '<td class="dc-c' + (v === 'ok' ? ' ok' : v === 'ng' ? ' ng' : '') + tdc + '" data-a="tick" data-r="' + E(r.id) + '" data-d="' + d + '">' + (v === 'ok' ? '✓' : v === 'ng' ? '✗' : '') + '</td>';
-        }
-      }
-      h += '</tr>';
+  /* ---------- NEW check-sheet entry UI: Din-wise (A) + Ek-ek point wizard (D). Side scroll nahi. ---------- */
+  var WD = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  function vs(key) {
+    var st = S[key], sel = st.sel, n = dim(sel.month), tag = sel.month + '|' + sel.tpl;
+    if (st.dayTag !== tag) {
+      st.dayTag = tag; st.wi = 0;
+      var td = sel.month === ymNow() ? +today().slice(8, 10) : 0, last = 0;
+      Object.keys(st.draft).forEach(function (d) { if (+d > last) last = +d; });
+      st.day = td || last || 1;
+    }
+    if (!st.view) st.view = 'day';
+    if (st.day > n) st.day = n;
+    return st;
+  }
+  function dayState(key, d) {
+    var st = S[key], t = tplBy(key, st.sel.tpl), dd = st.draft[d]; if (!t || !dd) return '';
+    var any = false, bad = false;
+    (t.rows || []).forEach(function (r) {
+      var x = (dd.v || {})[r.id]; if (x === undefined || x === '') return; any = true;
+      if (r.t === 'num') { if (outOfLimit(r.s, x)) bad = true; } else if (x === 'ng') bad = true;
     });
-    h += '<tr><td colspan="' + (showM ? 4 : 3) + '" class="l st" style="font-weight:800">OPERATOR SIGN. (DAILY)</td>';
-    for (var d2 = 1; d2 <= n; d2++) h += '<td class="' + (d2 === td ? 'dc-today' : '') + '"><input class="dc-sg" data-a="sign" data-d="' + d2 + '" maxlength="12" value="' + E((st.draft[d2] || {}).sign || '') + '"></td>';
-    h += '</tr></tbody></table></div>';
+    return any ? (bad ? 'bad' : 'done') : '';
+  }
+  function refreshStrip(key) {
+    var g = $('dc_' + key + '_grid'); if (!g) return;
+    [].forEach.call(g.querySelectorAll('[data-a="day"]'), function (el) {
+      var d = +el.getAttribute('data-d'), s = dayState(key, d);
+      el.classList.toggle('done', s === 'done'); el.classList.toggle('bad', s === 'bad');
+    });
+  }
+  function ctlHtml(key, r, d, v, big) {
+    if (r.t === 'num') {
+      return '<input class="dcx-in' + (big ? ' big' : '') + (outOfLimit(r.s, v) ? ' bad' : '') + '" inputmode="decimal" placeholder="Reading" data-a="val" data-r="' + E(r.id) + '" data-d="' + d + '" value="' + E(v || '') + '">';
+    }
+    return '<div class="dcx-ctl' + (big ? ' big' : '') + '"><button type="button" class="dcx-ok' + (v === 'ok' ? ' on' : '') + '" data-a="mk" data-v="ok" data-r="' + E(r.id) + '" data-d="' + d + '">✓' + (big ? ' OK' : '') + '</button>' +
+      '<button type="button" class="dcx-ng' + (v === 'ng' ? ' on' : '') + '" data-a="mk" data-v="ng" data-r="' + E(r.id) + '" data-d="' + d + '">✗' + (big ? ' NOT OK' : '') + '</button></div>';
+  }
+  function gridHtml(key) {
+    var cfg = CFG[key], st = vs(key), sel = st.sel, t = tplBy(key, sel.tpl);
+    if (!t) return '<div class="dc-msg warn">Is naam ka check sheet template nahi mila. Neeche "Edit check points" se template banao.</div>';
+    var n = dim(sel.month), td = sel.month === ymNow() ? +today().slice(8, 10) : 0, d = st.day, rows = t.rows || [], showM = cfg.method && !t.noMethod, h = '';
+    var y = +sel.month.slice(0, 4), mo = +sel.month.slice(5, 7);
+    h += '<div class="dcx"><div class="dcx-bar"><div class="dcx-seg"><button type="button" data-a="view" data-v="day" class="' + (st.view === 'day' ? 'on' : '') + '">☰ Din-wise</button><button type="button" data-a="view" data-v="wiz" class="' + (st.view === 'wiz' ? 'on' : '') + '">▶ Ek-ek point</button></div><span class="dcx-sp"></span>' +
+      '<button type="button" class="secondary tiny" data-a="allday">✓ Is din ke baaki sab OK</button></div>';
+    h += '<div class="dcx-strip">';
+    for (var i = 1; i <= n; i++) {
+      var ds = dayState(key, i);
+      h += '<button type="button" class="dcx-d' + (i === d ? ' sel' : '') + (ds ? ' ' + ds : '') + (td && i > td ? ' fut' : '') + (i === td ? ' today' : '') + '" data-a="day" data-d="' + i + '">' + i + '<small>' + (i === td ? 'Aaj' : WD[new Date(y, mo - 1, i).getDay()]) + '</small></button>';
+    }
+    h += '</div>';
+    h += '<div class="dcx-dayhead"><b>' + E(fmtD(sel.month + '-' + pad(d))) + ' (' + WD[new Date(y, mo - 1, d).getDay()] + ')</b><label>Operator Sign: <input class="dcx-sign" data-a="sign" data-d="' + d + '" maxlength="12" value="' + E((st.draft[d] || {}).sign || '') + '"></label></div>';
+    var vals = (st.draft[d] || {}).v || {};
+    h += '<div class="dcx-body">';
+    if (st.view === 'day') {
+      h += '<div class="dcx-main"><div class="dcx-list">';
+      rows.forEach(function (r, i2) {
+        var v = vals[r.id];
+        h += '<div class="dcx-pt"><div class="t"><span class="no">' + (i2 + 1) + '.</span> ' + E(r.p) + '<small>' + (r.s ? E((key === 'dsm' ? 'Spec: ' : 'Std: ') + r.s) : '') + (showM && r.m ? ' • ' + E(r.m) : '') + '</small></div>' + ctlHtml(key, r, d, v, false) + '</div>';
+      });
+      h += '</div></div>';
+    } else {
+      if (st.wi >= rows.length) st.wi = Math.max(0, rows.length - 1);
+      var r = rows[st.wi] || { id: '', p: '', s: '', m: '', t: 'tick' }, v2 = vals[r.id], done = 0;
+      rows.forEach(function (x) { var q = vals[x.id]; if (q !== undefined && q !== '') done++; });
+      h += '<div class="dcx-pts">';
+      rows.forEach(function (x, i3) {
+        var q = vals[x.id], c = (q === undefined || q === '') ? '' : (x.t === 'num' ? (outOfLimit(x.s, q) ? 'x' : 'o') : (q === 'ok' ? 'o' : 'x'));
+        h += '<button type="button" class="dcx-li ' + c + (i3 === st.wi ? ' cur' : '') + '" data-a="wi" data-i="' + i3 + '"><em>' + (c === 'o' ? '✓' : c === 'x' ? '✗' : (i3 + 1)) + '</em>' + E(x.p) + '</button>';
+      });
+      h += '</div><div class="dcx-wiz"><div class="dcx-wh"><span>Point ' + (st.wi + 1) + ' / ' + rows.length + '</span><span class="g">' + done + ' bhar diye</span></div>' +
+        '<div class="dcx-prog"><i style="width:' + Math.round(100 * (st.wi + 1) / Math.max(1, rows.length)) + '%"></i></div>' +
+        '<div class="dcx-big"><div class="n">CHECK POINT ' + (st.wi + 1) + '</div><h3>' + E(r.p) + '</h3><div class="meta">' + (r.s ? '<span><b>' + (key === 'dsm' ? 'Spec' : 'Standard') + ':</b> ' + E(r.s) + '</span>' : '') + (showM && r.m ? '<span><b>Method:</b> ' + E(r.m) + '</span>' : '') + '</div>' +
+        ctlHtml(key, r, d, v2, true) + '<div class="dcx-kb">Keyboard: <b>←</b> <b>→</b> aage-peeche &nbsp; <b>Y</b> OK &nbsp; <b>N</b> Not OK</div></div>' +
+        '<div class="dcx-nav"><button type="button" class="secondary" data-a="wnav" data-v="-1">◀ Pichla</button><button type="button" class="primary" data-a="wnav" data-v="1">Agla ▶</button></div></div>';
+    }
+    h += '<div class="dcx-side"><div class="dcx-card"><h5>Mahina ek nazar me</h5><div class="dcx-hm">';
+    for (var k = 1; k <= n; k++) { var s2 = dayState(key, k); h += '<button type="button" class="' + (s2 === 'bad' ? 'b' : s2 === 'done' ? 'a' : '') + (k === d ? ' t' : '') + '" data-a="day" data-d="' + k + '">' + k + '</button>'; }
+    h += '</div><div class="dcx-lg"><span class="a"></span> Sab OK <span class="b"></span> Not OK mila <span></span> Khali</div></div></div>';
+    h += '</div></div>';
     return h;
+  }
+  function mkSet(key, d, rid, val) {
+    if (futureBlock(key, d)) return;
+    var cur = ((S[key].draft[d] || {}).v || {})[rid]; setCell(key, d, rid, cur === val ? '' : val);
+    var st = S[key], t = tplBy(key, st.sel.tpl);
+    if (st.view === 'wiz' && cur !== val && t && st.wi < t.rows.length - 1) st.wi++;
+    renderGrid(key);
+  }
+  function wizMove(key, dlt) {
+    var st = S[key], t = tplBy(key, st.sel.tpl); if (!t) return;
+    st.wi = Math.max(0, Math.min(t.rows.length - 1, (st.wi || 0) + dlt)); renderGrid(key);
   }
   function summaryHtml(key) {
     var st = S[key], sel = st.sel, t = tplBy(key, sel.tpl); if (!t) return '';
@@ -11138,6 +11252,7 @@ if (typeof renderAll !== 'undefined') {
     var sc = g.querySelector('.dc-wrap'), sl = sc ? sc.scrollLeft : 0, stp = sc ? sc.scrollTop : 0;
     g.innerHTML = gridHtml(key);
     var sc2 = g.querySelector('.dc-wrap'); if (sc2) { sc2.scrollLeft = sl; sc2.scrollTop = stp; }
+    try { var sd = g.querySelector('.dcx-d.sel'), ss = g.querySelector('.dcx-strip'); if (sd && ss) ss.scrollLeft = Math.max(0, sd.offsetLeft - (ss.clientWidth - sd.offsetWidth) / 2); } catch (e) { }
     $('dc_' + key + '_sum').innerHTML = summaryHtml(key);
     if (typeof window[LISTFN[key]] === 'function') window[LISTFN[key]](); else renderList(key);
   }
@@ -11459,6 +11574,15 @@ if (typeof renderAll !== 'undefined') {
       if (a === 'tick') {
         var d = +el.getAttribute('data-d'), rid = el.getAttribute('data-r'); if (futureBlock(key, d)) return;
         var cur = ((S[key].draft[d] || {}).v || {})[rid]; setCell(key, d, rid, cur === 'ok' ? 'ng' : cur === 'ng' ? '' : 'ok'); renderGrid(key);
+      } else if (a === 'day') { S[key].day = +el.getAttribute('data-d'); S[key].wi = 0; renderGrid(key); }
+      else if (a === 'view') { S[key].view = el.getAttribute('data-v'); renderGrid(key); }
+      else if (a === 'mk') { mkSet(key, +el.getAttribute('data-d'), el.getAttribute('data-r'), el.getAttribute('data-v')); }
+      else if (a === 'wi') { S[key].wi = +el.getAttribute('data-i'); renderGrid(key); }
+      else if (a === 'wnav') { wizMove(key, +el.getAttribute('data-v')); }
+      else if (a === 'allday') {
+        var st2 = S[key], t2 = tplBy(key, st2.sel.tpl), d3 = st2.day; if (!t2 || futureBlock(key, d3)) return;
+        t2.rows.forEach(function (r) { if (r.t !== 'num' && !((st2.draft[d3] || {}).v || {})[r.id]) setCell(key, d3, r.id, 'ok'); });
+        renderGrid(key);
       }
     });
     var inputHandler = function (ev) {
@@ -11476,15 +11600,23 @@ if (typeof renderAll !== 'undefined') {
           setCell(key, d, rid, el.value.trim());
           var tt = tplBy(key, S[key].sel.tpl), rw = tt && tt.rows.filter(function (x) { return x.id === rid; })[0];
           el.classList.toggle('bad', !!(rw && outOfLimit(rw.s, el.value)));
-          var sg = el.closest('table').querySelector('input[data-a="sign"][data-d="' + d + '"]'); if (sg && !sg.value && S[key].draft[d]) sg.value = S[key].draft[d].sign || '';
-          $('dc_' + key + '_sum').innerHTML = summaryHtml(key);
+          var sg = p.querySelector('input[data-a="sign"][data-d="' + d + '"]'); if (sg && !sg.value && S[key].draft[d]) sg.value = S[key].draft[d].sign || '';
+          $('dc_' + key + '_sum').innerHTML = summaryHtml(key); refreshStrip(key);
         }
       } else if (a === 'sign' && ev.type === 'input') {
         var d2 = +el.getAttribute('data-d'), dd = S[key].draft[d2] || (S[key].draft[d2] = { v: {}, sign: '' }); dd.sign = el.value; S[key].dirty[d2] = 1;
-        $('dc_' + key + '_sum').innerHTML = summaryHtml(key);
+        $('dc_' + key + '_sum').innerHTML = summaryHtml(key); refreshStrip(key);
       }
     };
     p.addEventListener('input', inputHandler);
+    if (key === 'ptm' || key === 'dsm') document.addEventListener('keydown', function (ev) {
+      var st = S[key]; if (!st || st.view !== 'wiz' || !p.classList.contains('active')) return;
+      var tg = ev.target && ev.target.tagName; if (tg === 'INPUT' || tg === 'SELECT' || tg === 'TEXTAREA' || ev.ctrlKey || ev.metaKey || ev.altKey) return;
+      var t = tplBy(key, st.sel.tpl), r = t && t.rows[st.wi], k = ev.key;
+      if (k === 'ArrowRight') { wizMove(key, 1); ev.preventDefault(); } else if (k === 'ArrowLeft') { wizMove(key, -1); ev.preventDefault(); }
+      else if (r && r.t !== 'num' && (k === 'y' || k === 'Y' || k === '1')) mkSet(key, st.day, r.id, 'ok');
+      else if (r && r.t !== 'num' && (k === 'n' || k === 'N' || k === '2')) mkSet(key, st.day, r.id, 'ng');
+    });
     p.addEventListener('change', function (ev) {
       var el = ev.target.closest('[data-a]'); if (!el) return;
       var a = el.getAttribute('data-a');
