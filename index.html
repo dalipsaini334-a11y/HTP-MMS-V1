@@ -2147,7 +2147,7 @@ function historyFromPM(r){
   const mm=machineMasterInfo(r.machineNo);
   const row={id:existing?.id||('MH-'+Date.now()+'-'+Math.random().toString(36).slice(2,8)),sourceSr:key,machineNo:r.machineNo||'',machine:mm?mm.machineName:(r.template||existing?.machine||''),year:existing?.year||mm?.manufacturingYear||'',make:mm?mm.make:(existing?.make||''),
     date:r.date||new Date().toISOString().slice(0,10),reason:'Preventive Maintenance (PM Check Sheet) - '+(r.template||'')+((r.dateTo&&r.dateTo>r.date)?' [till '+fmtDate(r.dateTo)+']':''),attendedBy:r.checkedBy||existing?.attendedBy||'Maintenance Team',
-    action:'PM carried out'+(r.partial?' (partial)':''),spares:parts.length?parts.join('; '):'None',bdHours:'',cost:existing?.cost??0,auto:true,updatedAt:new Date().toISOString()};
+    action:'PM carried out'+(r.partial?' (partial)':'')+(String(r.verifiedBy||'').trim()?' - Verified by '+r.verifiedBy:' - verification pending'),verifiedBy:r.verifiedBy||'',spares:parts.length?parts.join('; '):'None',bdHours:'',cost:existing?.cost??0,auto:true,updatedAt:new Date().toISOString()};
   if(existing){Object.assign(existing,row);return existing}
   data.mh.push(row);return row;
 }
@@ -16801,6 +16801,7 @@ html:not(.aam-tl) .tcm-chip{background:rgba(125,211,252,.15);color:#7dd3fc}
             if (!unans && String(r.checkedBy || '').trim() && String(r.machineNo || '').trim()) r.partial = false;
             try { persistPMWithEvidence(); } catch (e) { persist('pm'); }
             try { pmPlanLinkFromCheckSheet(r); } catch (e) { }
+            try { syncHistoryFromPM(r); } catch (e) { console.warn('PM verify -> Machine History', e); }
             try { window.audit('APPROVE', 'pm', me() + ' verified PM sheet ' + (r.machineNo || '') + ' ' + (r.date || '')); } catch (e) { }
             try { renderAll(); } catch (e) { } render();
           });
@@ -19256,5 +19257,213 @@ setTimeout(init,3000);
 })();
 </script>
 
+
+<script id="dcx-cards-patch">
+/* PM Check Sheet + SQF De-soot: table -> card layout (side scroll nahi). Data / save logic untouched: sab inputs wahi rehte hain. */
+(function () {
+  var P = 'html body main.wrap section.panel table.dcx-cards.dcx-cards.dcx-cards.dcx-cards.dcx-cards.dcx-cards.dcx-cards ';
+  var rules = [
+    '{display:block;min-width:0;width:100%;max-width:100%;table-layout:auto;border:0;background:transparent;box-shadow:none}',
+    ' thead{display:none}',
+    ' tbody{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;background:transparent;width:100%;max-width:100%}',
+    ' tbody tr{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:flex-start;background:#112b45;border:1px solid #2a4a6b;border-left:5px solid #2a7fc4;border-radius:12px;padding:11px 13px;box-sizing:border-box;min-width:0;max-width:100%;width:100%}',
+    ' tbody tr.dcx-ok{border-left-color:#16a34a}',
+    ' tbody tr.dcx-bad,tbody tr.dc-notok{border-left-color:#dc2626;background:#3a1a26}',
+    ' td{display:block;border:0;padding:0;margin:0;background:transparent;color:#e6f0fa;font-size:13px;min-width:0;max-width:100%;text-align:left;height:auto;width:auto;white-space:normal;overflow-wrap:anywhere;box-sizing:border-box}',
+    ' td::before{display:block;font-size:10px;font-weight:700;letter-spacing:.4px;color:#8fb0cf;margin-bottom:3px;text-transform:uppercase}',
+    ' td input,td select{width:100%;min-width:0;box-sizing:border-box}',
+    ' .pm-method-img{max-width:100%;max-height:160px}',
+    ' .dcx-q{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 6px}',
+    ' .dcx-q button{flex:1 1 0;min-width:0;max-width:none;width:auto;min-height:0;padding:10px 6px;margin:0;border-radius:10px;border:2px solid #3b6288;background:#0e2238;color:#9fc0e0;font-weight:800;font-size:12.5px;cursor:pointer;white-space:normal;line-height:1.15}',
+    '.dcx-ds .dcx-q button{flex:1 1 44%}',
+    ' .dcx-q button.on{color:#fff;border-color:transparent}',
+    ' .dcx-q button.on.k-ok{background:#16a34a}',
+    ' .dcx-q button.on.k-ng{background:#dc2626}',
+    ' .dcx-q button.on.k-na{background:#475f78}',
+    /* PM: 1 sno, 2 freq, 3 activity, 4 standard, 5 method, 6 obs, 7 work, 8 remark, 9 actions */
+    '.dcx-pm td:nth-child(1){order:1;background:#1d4467;border-radius:99px;padding:2px 10px;font-weight:800;font-size:12px}',
+    '.dcx-pm td:nth-child(2){order:2;background:#1d4467;border-radius:99px;padding:2px 10px;font-size:11px;font-weight:700;color:#cfe3f5}',
+    '.dcx-pm td:nth-child(3){order:3;flex:1 1 100%;font-weight:800;font-size:14.5px;color:#fff;line-height:1.3}',
+    '.dcx-pm td:nth-child(4){order:4;flex:1 1 100%;color:#cfe3f5}.dcx-pm td:nth-child(4)::before{content:"STANDARD"}',
+    '.dcx-pm td:nth-child(5){order:5;flex:1 1 100%;color:#cfe3f5}.dcx-pm td:nth-child(5)::before{content:"METHOD"}',
+    '.dcx-pm td:nth-child(7){order:6;flex:1 1 100%}.dcx-pm td:nth-child(7)::before{content:"WORK DONE"}.dcx-pm td:nth-child(7) select{display:none}',
+    '.dcx-pm td:nth-child(6){order:7;flex:1 1 100%}.dcx-pm td:nth-child(6)::before{content:"OBSERVATION"}',
+    '.dcx-pm td:nth-child(8){order:8;flex:1 1 100%}.dcx-pm td:nth-child(8)::before{content:"REMARK"}',
+    '.dcx-pm td:nth-child(9){order:9;flex:1 1 100%;border-top:1px dashed #2a4a6b;padding-top:8px}.dcx-pm td:nth-child(9)::before{content:"CHECKPOINT"}',
+    /* De-soot: 1 sno, 2 freq, 3 activity, 4 standard, 5 obs, 6 work, 7 remark */
+    '.dcx-ds td:nth-child(1){order:1;background:#1d4467;border-radius:99px;padding:2px 10px;font-weight:800;font-size:12px}',
+    '.dcx-ds td:nth-child(2){order:2;background:#1d4467;border-radius:99px;padding:2px 10px;font-size:10px;font-weight:700;color:#cfe3f5}',
+    '.dcx-ds td:nth-child(3){order:3;flex:1 1 100%;font-weight:800;font-size:14.5px;color:#fff;line-height:1.3}',
+    '.dcx-ds td:nth-child(4){order:4;flex:1 1 100%;color:#cfe3f5}.dcx-ds td:nth-child(4)::before{content:"STANDARD"}',
+    '.dcx-ds td:nth-child(5){order:5;flex:1 1 100%}.dcx-ds td:nth-child(5)::before{content:"OBSERVATION"}',
+    '.dcx-ds td:nth-child(6){order:6;flex:1 1 40%}.dcx-ds td:nth-child(6)::before{content:"WORK DONE"}',
+    '.dcx-ds td:nth-child(7){order:7;flex:1 1 40%}.dcx-ds td:nth-child(7)::before{content:"REMARK"}',
+    '@media(min-width:1000px){' + P + ' tbody{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}'
+  ];
+  var css = rules.map(function (r) {
+    if (r.charAt(0) === '@') return r.replace(/([{;])([a-z-]+):([^;}]+)/g, '$1$2:$3 !important');
+    var sel = r.charAt(0) === '.' ? P.replace('table.dcx-cards', 'table.dcx-cards') + '' : P;
+    var m = /^(\.dcx-(?:pm|ds))?([^{]*)\{(.*)$/.exec(r), pre = m[1] || '', rest = m[2], body = '{' + m[3];
+    var selector = P.replace(/ $/, '') + pre + rest;     /* table.dcx-cards...dcx-pm td:nth-child */
+    /* pre-class goes on the table itself: table.dcx-cards.dcx-pm */
+    selector = pre ? P.replace(/ $/, '') + pre + (rest ? ' ' + rest.replace(/^ /, '') : '') : P.replace(/ $/, '') + rest;
+    return selector + body.replace(/([{;])([a-z-]+):([^;}]+)/g, '$1$2:$3 !important');
+  }).join('\n');
+  var st = document.createElement('style'); st.id = 'dcx-cards-style'; st.textContent = css; document.head.appendChild(st);
+
+  function mkQ(vals, onPick) {
+    var d = document.createElement('div'); d.className = 'dcx-q';
+    vals.forEach(function (v) {
+      var b = document.createElement('button'); b.type = 'button'; b.textContent = v[0]; b.setAttribute('data-v', v[0]); b.className = v[1];
+      b.addEventListener('click', function (ev) { ev.preventDefault(); onPick(v[0]); }); d.appendChild(b);
+    });
+    return d;
+  }
+  function mark(tr, ok, bad) { tr.classList.toggle('dcx-ok', !!ok); tr.classList.toggle('dcx-bad', !!bad); }
+  function pmSync(tr) {
+    var sel = tr.querySelector('.pm-work'); if (!sel) return; var v = sel.value;
+    [].forEach.call(tr.querySelectorAll('.dcx-q button'), function (b) { b.classList.toggle('on', b.getAttribute('data-v') === v); });
+    mark(tr, v === 'OK', v === 'Not OK');
+  }
+  function pmEnh() {
+    var body = document.getElementById('pmBody'); if (!body) return;
+    var tb = body.closest('table'); if (tb && !tb.classList.contains('dcx-cards')) { tb.classList.add('dcx-cards', 'dcx-pm'); }
+    [].forEach.call(body.querySelectorAll(':scope > tr'), function (tr) {
+      var td = tr.children[6], sel = tr.querySelector('.pm-work');
+      if (td && sel && !td.querySelector('.dcx-q')) {
+        td.insertBefore(mkQ([['OK', 'k-ok'], ['Not OK', 'k-ng'], ['N/A', 'k-na']], function (v) {
+          sel.value = (sel.value === v ? '' : v); sel.dispatchEvent(new Event('change', { bubbles: true })); pmSync(tr);
+        }), td.firstChild);
+      }
+      pmSync(tr);
+    });
+  }
+  var BAD = /not\s*ok|\bng\b|✗/i, GOOD = /^(found ok|cleaning ok|done|ok)\b/i;
+  function dsSync(tr) {
+    var i = tr.querySelector('input[data-k="obs"]'); if (!i) return; var v = String(i.value || '').trim();
+    [].forEach.call(tr.querySelectorAll('.dcx-q button'), function (b) { b.classList.toggle('on', b.getAttribute('data-v').toLowerCase() === v.toLowerCase()); });
+    mark(tr, GOOD.test(v), BAD.test(v));
+  }
+  function dsEnh() {
+    var body = document.getElementById('dsoot_rows'); if (!body) return;
+    var tb = body.closest('table'); if (tb && !tb.classList.contains('dcx-cards')) { tb.classList.add('dcx-cards', 'dcx-ds'); }
+    [].forEach.call(body.querySelectorAll(':scope > tr'), function (tr) {
+      var td = tr.children[4], inp = tr.querySelector('input[data-k="obs"]');
+      if (td && inp && !td.querySelector('.dcx-q')) {
+        td.insertBefore(mkQ([['Found OK', 'k-ok'], ['Not OK', 'k-ng'], ['Cleaning OK', 'k-ok'], ['Done', 'k-ok']], function (v) {
+          inp.value = (String(inp.value).trim().toLowerCase() === v.toLowerCase() ? '' : v); inp.dispatchEvent(new Event('input', { bubbles: true })); dsSync(tr);
+        }), td.firstChild);
+      }
+      dsSync(tr);
+    });
+  }
+  var obs = {};
+  function watch(id, fn) {
+    var el = document.getElementById(id); if (!el || obs[id] === el) return;
+    obs[id] = el; fn();
+    try { new MutationObserver(function () { fn(); }).observe(el, { childList: true, subtree: id === 'pmBody' }); } catch (e) { }
+  }
+  function tick() { watch('pmBody', pmEnh); watch('dsoot_rows', dsEnh); [].forEach.call(document.querySelectorAll('#pmBody > tr'), pmSync); [].forEach.call(document.querySelectorAll('#dsoot_rows > tr'), dsSync); }
+  setInterval(tick, 900); tick();
+})();
+</script>
+
+<script id="cascade-delete-patch">
+/* Delete cascade: PM / MR / Breakdown delete karne par jude hue records (stock, Machine History, Breakdown/MTTR, PM Plan, Thermocouple) bhi saaf ho. */
+(function () {
+  function G(n) { try { return (0, eval)(n); } catch (e) { return undefined; } }
+  function call(n) { var f = G(n); if (typeof f === 'function') { try { return f.apply(null, [].slice.call(arguments, 1)); } catch (e) { console.warn('cascade ' + n, e); } } }
+  function persistK(k) { call('persist', k); }
+  function refresh() { ['renderHistory', 'renderBreakdown', 'renderMTTR', 'renderSparePartsTable', 'renderCriticalTable', 'renderThermocoupleTable', 'renderPMPlan', 'renderPMYearlyPlan', 'renderPMHistory', 'renderDashboard'].forEach(function (n) { call(n); }); }
+  function pmKey(r) { var id = String(r && r.id || ''); return /^PM-/.test(id) ? id : 'PM-' + id; }
+
+  function undoTc(list, dateStr, out) {
+    (Array.isArray(list) ? list : []).forEach(function (x) {
+      var tcs = G('data').tc || [], t = tcs.filter(function (z) { return String(z.id) === String(x.tcId); })[0];
+      if (!t || !Array.isArray(t.history)) { out.push('Thermocouple ' + (x.label || '') + ' record nahi mila - wapas nahi kiya.'); return; }
+      var idx = -1; t.history.forEach(function (e, i) { if (e.date === dateStr && String(e.oldSrid || '') === String(x.oldSrid || '') && String(e.newSrid || '') === String(x.newSrid || '')) idx = i; });
+      if (idx < 0) { out.push('Thermocouple ' + (x.label || '') + ': replacement entry nahi mili - check karo.'); }
+      else if (idx !== t.history.length - 1) { out.push('Thermocouple ' + (x.label || '') + ': uske baad nayi replacement ho chuki hai - purani date/ID wapas nahi ki (manually check karo).'); }
+      else {
+        var e = t.history[idx]; t.inst = e.oldInst || ''; t.srid = e.oldSrid || t.srid; t.due = e.oldDue || t.due; t.certNo = e.oldCertNo || ''; t.certDate = e.oldCertDate || '';
+        t.history.pop(); t.updatedAt = new Date().toISOString(); persistK('tc'); out.push('Thermocouple ' + (x.label || '') + ': purani date/ID wapas laga di.');
+      }
+      if (x.stockOk && x.stock) {
+        var sp = (G('data').spares || []).filter(function (s) { return (s.desc + (s.spec ? ' (' + s.spec + ')' : '')) === x.stock; })[0];
+        if (sp) { call('applyNormalSpareDelta', sp.id, -1); persistK('spares'); persistK('critical'); out.push('Stock wapas: ' + x.stock + ' +1'); }
+        else out.push('Stock item "' + x.stock + '" nahi mila - 1 nos stock manually wapas jodo.');
+      }
+    });
+  }
+  function planUnlink(rec, out) {
+    try {
+      var d = G('data'), machineNo = String(rec.machineNo || '').trim(); if (!machineNo || !rec.date) return;
+      var month = rec.planMonth || new Date(rec.date + 'T00:00:00').toLocaleString('en-US', { month: 'long', year: 'numeric' });
+      var PM = G('PMPLAN_MONTHS'); if (!PM || PM.indexOf(month) < 0) return;
+      var machine = (call('pmPlanMachines') || []).filter(function (m) { return m.machineNumber === machineNo; })[0] || { machineNumber: machineNo };
+      var val = call('pmPlanGet', month, machine); if (!val || String(val.pmCheckId || '') !== String(rec.id)) return;
+      var rest = d.pm.filter(function (p) { return String(p.machineNo || '').trim() === machineNo && p.id !== rec.id && (p.planMonth || new Date(p.date + 'T00:00:00').toLocaleString('en-US', { month: 'long', year: 'numeric' })) === month; })
+        .sort(function (a, b) { return String(b.date || '').localeCompare(String(a.date || '')); })[0];
+      if (rest) { call('pmPlanLinkFromCheckSheet', rest); out.push('PM Plan: ' + month + ' ka record pichli PM sheet (' + rest.date + ') se jod diya.'); return; }
+      val.actual = ''; val.nextDate = ''; val.partial = false; val.late = 0; val.tech = ''; val.work = ''; val.remark = ''; val.pmCheckId = '';
+      call('pmPlanSave', month, machine, val); out.push('PM Plan: ' + month + ' ki Actual date hata di (PM wapas Pending).');
+    } catch (e) { console.warn('planUnlink', e); }
+  }
+  function dropHist(pred) { var d = G('data'), n0 = d.mh.length; for (var i = d.mh.length - 1; i >= 0; i--) { if (pred(d.mh[i])) d.mh.splice(i, 1); } if (d.mh.length !== n0) persistK('mh'); return n0 - d.mh.length; }
+
+  function cascadePM(rec) {
+    var out = [], d = G('data');
+    try { var had = (rec.entries || []).some(function (e) { return (e.spareUsed || []).length; }); if (had && call('pmReconcileSpares', rec.entries, [])) out.push('Use hue spare ka stock wapas jod diya.'); } catch (e) { console.warn(e); }
+    var key = pmKey(rec), n = dropHist(function (x) { return String(x.sourceSr || '') === key; }); if (n) out.push('Machine History se is PM ki entry hata di.');
+    planUnlink(rec, out);
+    undoTc(rec.tcReplaced, rec.date, out);
+    return out;
+  }
+  function cascadeBD(rec, out) {
+    var n = dropHist(function (x) { return String(x.sourceSr || '') === 'BD-' + rec.id; }); if (n) out.push('Machine History se Breakdown ki entry hata di.');
+    if (Array.isArray(rec.tcReplaced) && rec.tcReplaced.length) undoTc(rec.tcReplaced, rec.date, out);
+  }
+  function cascadeMR(rec) {
+    var out = [], d = G('data'), sr = String(rec.sr || ''); if (!sr) return out;
+    var n = dropHist(function (x) { return x.auto && String(x.sourceSr || '') === sr; }); if (n) out.push('Machine History se is Request ki auto entry hata di.');
+    var gone = 0; for (var i = d.bd.length - 1; i >= 0; i--) { var b = d.bd[i]; if (b.auto && String(b.sourceMrSr || '') === sr) { cascadeBD(b, out); d.bd.splice(i, 1); gone++; } }
+    if (gone) { persistK('bd'); out.push('Breakdown (MTTR / MTBF) se is Request ki entry hata di.'); }
+    return out;
+  }
+  var NOTE = {
+    pm: 'Isse ye bhi hoga: use hue spare ka stock wapas, Machine History entry, PM Plan ki Actual date, aur PM me hui thermocouple replacement wapas.',
+    mr: 'Isse ye bhi hoga: Machine History aur Breakdown (MTTR/MTBF) ki is Request se bani auto entries hategi.',
+    bd: 'Isse ye bhi hoga: Machine History ki is Breakdown wali entry hategi.'
+  };
+  function withNote(kind, fn) {
+    var c0 = window.confirm; window.confirm = function (m) { window.confirm = c0; return c0.call(window, String(m) + '\n\n' + NOTE[kind]); };
+    try { return fn(); } finally { if (window.confirm !== c0 && /\n\n(Isse ye)/.test('') === false) { /* confirm kabhi call na hua (guard fail) - restore */ window.confirm = c0; } }
+  }
+  function report(out) { if (out.length) { try { alert('Delete ke saath ye bhi update hua:\n\n- ' + out.join('\n- ')); } catch (e) { } } }
+
+  function install() {
+    var d0 = window.delRow;
+    if (typeof d0 === 'function' && !d0.__cascade) {
+      window.delRow = function (k, i) {
+        var D = G('data'), rec = D && D[k] && D[k][i], res;
+        if (rec && (k === 'pm' || k === 'mr')) res = withNote(k, function () { return d0.apply(this, arguments); }.bind(this, k, i)); else res = d0.apply(this, arguments);
+        try { if (rec && (k === 'pm' || k === 'mr') && D[k].indexOf(rec) < 0) { var out = k === 'pm' ? cascadePM(rec) : cascadeMR(rec); refresh(); report(out); } } catch (e) { console.warn('cascade', e); }
+        return res;
+      };
+      window.delRow.__cascade = 1;
+    }
+    var b0 = window.deleteBreakdown;
+    if (typeof b0 === 'function' && !b0.__cascade) {
+      window.deleteBreakdown = function (i) {
+        var D = G('data'), rec = D && D.bd && D.bd[i], res = withNote('bd', function () { return b0.apply(this, arguments); }.bind(this, i));
+        try { if (rec && D.bd.indexOf(rec) < 0) { var out = []; cascadeBD(rec, out); refresh(); report(out); } } catch (e) { console.warn('cascade', e); }
+        return res;
+      };
+      window.deleteBreakdown.__cascade = 1;
+    }
+  }
+  install(); setTimeout(install, 1500);
+})();
+</script>
 </body>
 </html>
