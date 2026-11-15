@@ -19046,5 +19046,187 @@ setTimeout(a11y,2500);
 })();
 
 </script>
+<!-- ===== v157 History Edit/Delete layer: Thermocouple + Calibration history, Machine Master row delete, check-sheet Edit label (purana code ko nahi chhedta) ===== -->
+<style id="v157-style">
+.v157-ov{position:fixed;inset:0;background:rgba(2,8,23,.62);z-index:100000;display:flex;align-items:center;justify-content:center;padding:12px}
+.v157-box{background:#fff;color:#0f172a;border-radius:12px;max-width:980px;width:100%;max-height:92vh;overflow:auto;padding:14px 16px;box-shadow:0 20px 60px rgba(0,0,0,.45);font-family:inherit}
+.v157-box h3{margin:0 0 4px;font-size:16px}.v157-sub{font-size:12px;color:#475569;margin-bottom:10px}
+.v157-tw{overflow:auto;border:1px solid #cbd5e1;border-radius:8px}
+.v157-t{border-collapse:collapse;width:100%;font-size:12px}.v157-t th{background:#0f2a4a;color:#fff;padding:7px 8px;text-align:left;white-space:nowrap}
+.v157-t td{padding:7px 8px;border-top:1px solid #e2e8f0;vertical-align:top;color:#0f172a;background:#fff}
+.v157-act{display:flex;gap:6px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap}
+.v157-row{display:flex;gap:5px;white-space:nowrap}
+.v157-box button{padding:6px 12px;border-radius:7px;border:1px solid #94a3b8;background:#f1f5f9;color:#0f172a;font-weight:700;cursor:pointer;font-size:12px}
+.v157-box button.p{background:#1d4ed8;border-color:#1d4ed8;color:#fff}.v157-box button.d{background:#fee2e2;border-color:#fca5a5;color:#b91c1c}
+.v157-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.v157-grid label{display:flex;flex-direction:column;font-size:11px;font-weight:700;color:#334155;gap:3px}
+.v157-grid input,.v157-grid select{padding:7px;border:1px solid #94a3b8;border-radius:6px;font-size:13px;background:#fff;color:#0f172a}
+.v157-grid .w{grid-column:1/-1}@media(max-width:560px){.v157-grid{grid-template-columns:1fr}}
+</style>
+<script type="text/mms-defer" id="v157-layer">
+(function(){
+'use strict';
+function E(s){return (typeof esc==='function')?esc(s==null?'':s):String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function D(x){try{return fmtDate(x)}catch(e){return x||''}}
+function note(m,bad){try{if(typeof toast==='function')return toast(m,bad)}catch(e){}alert(m)}
+var ov=null;
+function closeV(){if(ov){try{ov.remove()}catch(e){}ov=null}}
+function modal(html){closeV();ov=document.createElement('div');ov.className='v157-ov';ov.innerHTML='<div class="v157-box">'+html+'</div>';
+  ov.addEventListener('mousedown',function(e){if(e.target===ov)closeV()});document.body.appendChild(ov);return ov}
+window.v157Close=closeV;
+function gv(id){var e=document.getElementById(id);return e?String(e.value||'').trim():''}
+function isoOk(d){return /^\d{4}-\d{2}-\d{2}$/.test(d)}
+function afterTC(){try{persist('tc')}catch(e){}try{renderThermocoupleTable()}catch(e){}try{renderDashboard()}catch(e){}}
+function afterCal(){try{persist('cal')}catch(e){}try{renderCalibrationTable()}catch(e){}try{renderDashboard()}catch(e){}}
+
+/* ================= THERMOCOUPLE replacement history ================= */
+function tcRecAt(i){return (data.tc||[])[i]}
+window.tcShowHistory=function(i){
+  var r=tcRecAt(i);if(!r)return;var h=r.history||[];
+  var rows=h.map(function(x,k){return {x:x,k:k}}).reverse().map(function(o){var x=o.x;
+    return '<tr><td>'+E(D(x.date))+'</td><td>'+E(x.reason||'-')+'</td><td>'+E(x.oldSrid||'-')+(x.newSrid&&x.newSrid!==x.oldSrid?' &rarr; <b>'+E(x.newSrid)+'</b>':'')+'</td><td>'+(x.newCertNo?E(x.newCertNo)+(x.newCertDate?'<br><small>'+E(D(x.newCertDate))+'</small>':''):'-')+'</td><td>'+E(x.note||'')+(x.tech?'<br><small>By: '+E(x.tech)+(x.appr?' | Appr: '+E(x.appr):'')+'</small>':'')+'</td>'+
+      '<td><div class="v157-row"><button onclick="v157TcEdit('+i+','+o.k+')">Edit</button><button class="d" onclick="v157TcDel('+i+','+o.k+')">Delete</button></div></td></tr>'}).join('');
+  modal('<h3>📜 Replacement History</h3><div class="v157-sub">'+E(r.furnace||'')+' | '+E(r.loc||'')+' | Current ID: <b>'+E(r.srid||'')+'</b></div>'+
+    '<div class="v157-tw"><table class="v157-t"><thead><tr><th>Date</th><th>Reason</th><th>ID</th><th>New Certificate</th><th>Note</th><th>Action</th></tr></thead><tbody>'+(rows||'<tr><td colspan="6">No replacement record yet.</td></tr>')+'</tbody></table></div>'+
+    '<div class="v157-act"><button onclick="v157Close()">Close</button></div>');
+};
+window.v157TcEdit=function(i,k){
+  if(typeof mmsGuardEdit==='function'&&!mmsGuardEdit('tc'))return;
+  var r=tcRecAt(i);if(!r||!r.history||!r.history[k])return;var x=r.history[k];
+  var reasons=['Failed / Burnt','Drift / Inaccurate','Calibration Due','Preventive','Other'];
+  if(x.reason&&reasons.indexOf(x.reason)<0)reasons.unshift(x.reason);
+  modal('<h3>✏️ Edit Replacement Entry</h3><div class="v157-sub">'+E(r.furnace||'')+' | '+E(r.loc||'')+'</div><div class="v157-grid">'+
+    '<label>Replacement Date<input type="date" id="v157_d" value="'+E(x.date||'')+'"></label>'+
+    '<label>Reason<select id="v157_rs"><option value=""></option>'+reasons.map(function(s){return '<option'+(s===x.reason?' selected':'')+'>'+E(s)+'</option>'}).join('')+'</select></label>'+
+    '<label>New ID / Serial<input id="v157_sr" value="'+E(x.newSrid||'')+'"></label>'+
+    '<label>New Certificate No.<input id="v157_cn" value="'+E(x.newCertNo||'')+'"></label>'+
+    '<label>Certificate Date<input type="date" id="v157_cd" value="'+E(x.newCertDate||'')+'"></label>'+
+    '<label>Replaced By<input id="v157_te" value="'+E(x.tech||'')+'"></label>'+
+    '<label>Approved By<input id="v157_ap" value="'+E(x.appr||'')+'"></label>'+
+    '<label class="w">Note<input id="v157_nt" value="'+E(x.note||'')+'"></label></div>'+
+    '<div class="v157-act"><button onclick="v157TcShow('+i+')">Back</button><button class="p" onclick="v157TcSave('+i+','+k+')">💾 Update Entry</button></div>');
+};
+window.v157TcShow=function(i){window.tcShowHistory(i)};
+window.v157TcSave=function(i,k){
+  var r=tcRecAt(i);if(!r||!r.history||!r.history[k])return;var x=r.history[k];
+  var d=gv('v157_d');if(!isoOk(d))return note('Replacement date required.',true);
+  var te=gv('v157_te'),ap=gv('v157_ap');
+  if(te&&ap&&te.toLowerCase()===ap.toLowerCase())return note('Replaced By and Approved By must be different persons.',true);
+  x.date=d;x.reason=gv('v157_rs');x.newSrid=gv('v157_sr')||x.newSrid||'';x.newCertNo=gv('v157_cn');x.newCertDate=gv('v157_cd');x.tech=te;x.appr=ap;x.note=gv('v157_nt');
+  x.needAppr=!ap;x.editedAt=new Date().toISOString();
+  if(k===r.history.length-1){   /* sabse latest entry = abhi ki thermocouple ki state */
+    r.inst=d;r.due=tcNextDueLabel(d,r.freq);if(x.newSrid)r.srid=x.newSrid;r.certNo=x.newCertNo;r.certDate=x.newCertDate;
+  }
+  r.updatedAt=new Date().toISOString();afterTC();note('History entry updated.');window.tcShowHistory(i);
+};
+window.v157TcDel=function(i,k){
+  if(typeof mmsGuardDelete==='function'&&!mmsGuardDelete('tc'))return;
+  var r=tcRecAt(i);if(!r||!r.history||!r.history[k])return;var x=r.history[k];
+  if(!confirm('Delete this replacement history entry ('+D(x.date)+')?'))return;
+  var last=(k===r.history.length-1);
+  if(last&&confirm('This was the latest replacement. Restore the thermocouple to its previous values (ID, install date, due date, certificate)?')){
+    r.inst=x.oldInst||'';r.srid=x.oldSrid||r.srid;r.due=x.oldDue||'';r.certNo=x.oldCertNo||'';r.certDate=x.oldCertDate||'';
+  }
+  r.history.splice(k,1);r.updatedAt=new Date().toISOString();afterTC();note('History entry deleted.');window.tcShowHistory(i);
+};
+/* thermocouple record: pehle history hone par delete block tha - ab reason ke saath delete ho sakta hai */
+window.deleteThermocouple=function(i){
+  if(typeof mmsGuardDelete==='function'&&!mmsGuardDelete('tc'))return;
+  var r=data.tc[i];if(!r)return;var n=(r.history||[]).length;
+  if(!confirm('Delete this thermocouple record'+(n?' and its '+n+' replacement history entr'+(n>1?'ies':'y'):'')+'?'))return;
+  try{var L=JSON.parse(localStorage.getItem('htp_tc_delete_log')||'[]');L.push({at:new Date().toISOString(),furnace:r.furnace,srid:r.srid,loc:r.loc,history:(r.history||[]).length});localStorage.setItem('htp_tc_delete_log',JSON.stringify(L))}catch(e){}
+  data.tc.splice(i,1);data.tc.forEach(function(x,k){x.sno=k+1});
+  try{persist('tc')}catch(e){}try{if(edit.tc===i)edit.tc=null}catch(e){}try{renderThermocoupleTable()}catch(e){}
+  note('Thermocouple record deleted.');
+};
+
+/* ================= CALIBRATION history ================= */
+function calRecAt(i){return (data.cal||[])[i]}
+window.calShowHistory=function(i){
+  var r=calRecAt(i);if(!r)return;var h=r.history||[];
+  var rows=h.map(function(x,k){return {x:x,k:k}}).reverse().map(function(o){var x=o.x;
+    return '<tr><td>'+E(D(x.date))+'</td><td>'+E(x.cert||'-')+'</td><td>'+E(x.lab||'-')+'</td><td>'+(x.oldDate?E(D(x.oldDate)):'-')+'</td>'+
+      '<td><div class="v157-row"><button onclick="v157CalEdit('+i+','+o.k+')">Edit</button><button class="d" onclick="v157CalDel('+i+','+o.k+')">Delete</button></div></td></tr>'}).join('');
+  modal('<h3>📜 Calibration History</h3><div class="v157-sub">'+E(r.name||'')+' | ID: <b>'+E(r.idno||'')+'</b></div>'+
+    '<div class="v157-tw"><table class="v157-t"><thead><tr><th>Calibrated On</th><th>Certificate No.</th><th>Lab</th><th>Previous Date</th><th>Action</th></tr></thead><tbody>'+(rows||'<tr><td colspan="5">No history yet.</td></tr>')+'</tbody></table></div>'+
+    '<div class="v157-act"><button onclick="v157Close()">Close</button></div>');
+};
+window.v157CalEdit=function(i,k){
+  if(typeof mmsGuardEdit==='function'&&!mmsGuardEdit('cal'))return;
+  var r=calRecAt(i);if(!r||!r.history||!r.history[k])return;var x=r.history[k];
+  modal('<h3>✏️ Edit Calibration Entry</h3><div class="v157-sub">'+E(r.name||'')+' | '+E(r.idno||'')+'</div><div class="v157-grid">'+
+    '<label>Calibrated On<input type="date" id="v157_cdt" value="'+E(x.date||'')+'"></label>'+
+    '<label>Certificate No.<input id="v157_ccn" value="'+E(x.cert||'')+'"></label>'+
+    '<label class="w">Calibration Lab<input id="v157_clb" value="'+E(x.lab||'')+'"></label></div>'+
+    '<div class="v157-act"><button onclick="v157CalShow('+i+')">Back</button><button class="p" onclick="v157CalSave('+i+','+k+')">💾 Update Entry</button></div>');
+};
+window.v157CalShow=function(i){window.calShowHistory(i)};
+window.v157CalSave=function(i,k){
+  var r=calRecAt(i);if(!r||!r.history||!r.history[k])return;var x=r.history[k];
+  var d=gv('v157_cdt');if(!isoOk(d))return note('Calibration date required.',true);
+  var cn=gv('v157_ccn');if(!cn)return note('Certificate No. is required (audit traceability).',true);
+  x.date=d;x.cert=cn;x.lab=gv('v157_clb');x.editedAt=new Date().toISOString();
+  if(k===r.history.length-1){
+    r.date=d;r.certNo=cn;r.lab=x.lab;
+    try{r.duedate=calIso(tcAddMonths(parseFlexDate(d),tcFreqMonths(r.freq||'YEARLY')))}catch(e){}
+  }
+  r.updatedAt=new Date().toISOString();afterCal();note('History entry updated.');window.calShowHistory(i);
+};
+window.v157CalDel=function(i,k){
+  if(typeof mmsGuardDelete==='function'&&!mmsGuardDelete('cal'))return;
+  var r=calRecAt(i);if(!r||!r.history||!r.history[k])return;var x=r.history[k];
+  if(!confirm('Delete this calibration history entry ('+D(x.date)+')?'))return;
+  var last=(k===r.history.length-1);
+  if(last&&confirm('This was the latest calibration. Restore the instrument to its previous calibration date / due date / certificate?')){
+    var prev=r.history[k-1]||null;
+    r.date=x.oldDate||'';r.duedate=x.oldDue||'';r.certNo=prev?(prev.cert||''):'';r.lab=prev?(prev.lab||''):(r.lab||'');
+  }
+  r.history.splice(k,1);r.updatedAt=new Date().toISOString();afterCal();note('History entry deleted.');window.calShowHistory(i);
+};
+
+/* ================= MACHINE MASTER: har row par Delete ================= */
+window.v157MmDel=function(no){
+  if(typeof mmsGuardDelete==='function'&&!mmsGuardDelete('mm'))return;
+  var m=MACHINE_MASTER.find(function(x){return String(x.machineNumber).trim()===String(no).trim()});if(!m)return note('Machine not found.',true);
+  if(!confirm('Delete machine '+m.machineNumber+' - '+m.machineName+' from Machine Master?\n\nExisting PM / breakdown / history records are kept.'))return;
+  MACHINE_MASTER.splice(MACHINE_MASTER.indexOf(m),1);
+  try{var rl=JSON.parse(localStorage.getItem('htp7_machine_retired')||'[]');if(rl.indexOf(m.machineNumber)<0)rl.push(m.machineNumber);localStorage.setItem('htp7_machine_retired',JSON.stringify(rl))}catch(e){}
+  MACHINE_MASTER.forEach(function(x,k){x.sno=k+1});
+  try{saveEditableMachineMaster()}catch(e){}
+  try{if(typeof PM_MACHINE_CHECKLIST_MAP!=='undefined'){delete PM_MACHINE_CHECKLIST_MAP[m.machineNumber];if(typeof savePMMachineChecklistMap==='function')savePMMachineChecklistMap()}}catch(e){}
+  try{refreshMachineDependentUI()}catch(e){}
+  try{if(typeof gsSchedule==='function')gsSchedule(1000)}catch(e){}
+  note('Machine deleted from Machine Master.');
+};
+var mmBusy=false;
+function mmAddDel(){
+  if(mmBusy)return;var b=document.getElementById('mmBody');if(!b)return;mmBusy=true;
+  try{
+    b.querySelectorAll('tr').forEach(function(tr){
+      if(tr.querySelector('.v157-mmdel'))return;
+      var eb=tr.querySelector('button[onclick*="editMachineFromMasterList"]');if(!eb)return;
+      var mm=/editMachineFromMasterList\('((?:[^'\\]|\\.)*)'\)/.exec(eb.getAttribute('onclick')||'');if(!mm)return;
+      var no=mm[1].replace(/\\(.)/g,'$1').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'");
+      var d=document.createElement('button');d.type='button';d.className='danger v157-mmdel';d.textContent='🗑️ Delete';
+      d.addEventListener('click',function(){window.v157MmDel(no)});
+      eb.parentNode.appendChild(d);
+    });
+  }catch(e){console.warn('v157 mm',e)}
+  mmBusy=false;
+}
+/* ================= Daily check-sheet list: "Open" ko "Edit" dikhao ================= */
+function relabel(){
+  ['dc_ptm_listbody','dc_dsm_listbody'].forEach(function(id){var b=document.getElementById(id);if(!b)return;
+    b.querySelectorAll('button').forEach(function(x){if(/^\s*Open\s*$/.test(x.textContent))x.textContent='✏️ Edit'})});
+}
+function init(){
+  mmAddDel();relabel();
+  var mb=document.getElementById('mmBody');if(mb&&window.MutationObserver)new MutationObserver(function(){mmAddDel()}).observe(mb,{childList:true});
+  ['dc_ptm_listbody','dc_dsm_listbody'].forEach(function(id){var b=document.getElementById(id);if(b&&window.MutationObserver)new MutationObserver(relabel).observe(b,{childList:true})});
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){setTimeout(init,600)});else setTimeout(init,600);
+setTimeout(init,3000);
+})();
+</script>
+
 </body>
 </html>
