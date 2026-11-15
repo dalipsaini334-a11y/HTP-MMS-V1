@@ -6659,13 +6659,21 @@ async function gsPost(cfg,payload,ackOnly){
  const changes=payload&&payload.changes||[];
  const wanted={},isAdm=!!(session()&&session().role==='Admin');changes.forEach(function(c){if(c.module==='audit'&&!isAdm)return;if(GS_NEWMODS.indexOf(c.module)>=0)return;wanted[c.module+'|'+c.sid]=Number(c.ts||0)});   // naye check-sheet modules ka ack nahi roka jata (purana Code.gs unhe ignore karta hai -> sync atak jata tha)
  const hasAll=function(rows){return Object.keys(wanted).every(function(k){return (rows||[]).some(function(r){return r.module+'|'+r.sid===k&&Number(r.ts||0)>=wanted[k]})})};
+ // Ack timeout par poora sync fail karne ke bajay: jo records ack hue unhe maano, baaki 'unacked' mark karo (gsSync unhe retry karega)
+ const markMissing=function(rows){window.__gsUnacked=window.__gsUnacked||{};Object.keys(wanted).forEach(function(k){if(!(rows||[]).some(function(r){return r.module+'|'+r.sid===k&&Number(r.ts||0)>=wanted[k]}))window.__gsUnacked[k]=1})};
  if(changes.length){
   // 1) baseline  2) POST  3) sirf naye rows (baseline ke baad) poll karke ack - poora data baar-baar download nahi hota
   const baseline=await gsServerMax(cfg);
   await gsFormPost(cfg,payload);
   if(baseline!==null){
-   const ackDeadline=Date.now()+Math.min(150000,60000+changes.length*250);
+   const ackT0=Date.now(),ackDeadline=ackT0+Math.min(60000,20000+changes.length*250);let ackFb=false;
    while(Date.now()<ackDeadline){
+    // Server (Code.gs) purani/barabar ts wala change chup-chap ignore kar deta hai (server par already newer record) - uske liye
+    // 'baseline ke baad naya row' kabhi nahi aata. 12 sec baad ek baar 'since' se check karo: wahan wo record dikh jata hai.
+    if(!ackFb&&since>0&&Date.now()-ackT0>12000){
+     ackFb=true;
+     try{const o2=await gsJsonpPull(cfg,since,20000);if(hasAll(o2.rows))return ackOnly?{ok:true,rows:[],maxSrv:Number(o2.maxSrv||baseline)}:o2}catch(e){}
+    }
     try{
      const o=await gsJsonpPull(cfg,baseline,20000);
      if(hasAll(o.rows)){
@@ -6678,9 +6686,11 @@ async function gsPost(cfg,payload,ackOnly){
   }
   // Fallback: purana tareeka (server ne shayad newer record rakha ho to wo bhi since ke baad dikhega)
   const out=await gsPullRetry(cfg,since);
-  if(hasAll(out.rows))return ackOnly?{ok:true,rows:[],maxSrv:out.maxSrv}:out;
-  throw new Error('Google Sheet write acknowledgement timeout');
+  if(!hasAll(out.rows))markMissing(out.rows);
+  return ackOnly?{ok:true,rows:[],maxSrv:out.maxSrv}:out;
  }
+ // Koi change/report nahi: sirf server se naya data lena hai - bekaar ka iframe POST nahi (har 8 sec me chalta tha)
+ if(!(payload&&payload.reports&&payload.reports.length))return await gsPullRetry(cfg,since);
  await gsFormPost(cfg,payload);
  const deadline=Date.now()+((since===0&&window.__gsLong)?150000:18000);
  let lastErr=null;
@@ -6877,9 +6887,15 @@ async function gsSync(auto){
  const cfg=gsCfg();
  if(!cfg.url||!cfg.token){if(!auto)alert('Please log in first.');return}
  if(!auto)localStorage.removeItem('htp_gs_new_retry');   // Sync Now: naye modules ki koshish turant
+ // WATCHDOG: agar pichla sync 4 min se zyada 'busy' hai to wo atak chuka hai - flag reset karo taaki sync dobara chal sake
+ if(gsBusy&&window.__gsBusySince&&Date.now()-window.__gsBusySince>240000){console.warn('gsSync watchdog: stuck sync reset');gsBusy=false}
  if(gsBusy){window.__gsAgain=true;return}
- if(auto&&typeof edit!=='undefined'&&Object.keys(edit).some(function(k){return edit[k]!==null&&edit[k]!==undefined}))return;
- gsBusy=true;gsStatus('⏳ Syncing…');
+ // Koi record 'Edit' mode me khula ho to auto-sync rukta tha (aur edit band na hone par hamesha ke liye ruk jata tha).
+ // Ab sirf pehle 3 minute rukta hai; uske baad sync chalta rahega.
+ {const editing=typeof edit!=='undefined'&&Object.keys(edit).some(function(k){return edit[k]!==null&&edit[k]!==undefined});
+  if(!editing)window.__gsEditSince=0;
+  else if(auto){if(!window.__gsEditSince)window.__gsEditSince=Date.now();if(Date.now()-window.__gsEditSince<180000)return}}
+ gsBusy=true;window.__gsBusySince=Date.now();window.__gsUnacked={};gsStatus('⏳ Syncing…');
  try{
   gsUsersArr=users();
  gsAuditArr=auditList(); 
@@ -6915,6 +6931,7 @@ async function gsSync(auto){
    const list=gsList(mod),used=new Set(),oldBase=meta.base[mod]||{},nb={};
    const mmDupLocal=[],mmDupSet=(mod==='machineMaster'&&session()&&session().role==='Admin')?gsMmDupGet():{};
    if(GS_NEWMODS.indexOf(mod)>=0&&gsNewHold()){newBase[mod]=Object.assign({},oldBase);return}   // server in modules ko abhi nahi jaanta: 10 min me ek baar hi dobara koshish
+   if(window.__gsSkip&&window.__gsSkip[mod]>Date.now()){newBase[mod]=Object.assign({},oldBase);return}   // is module ko server ne pichli baar ack nahi kiya: 10 min baad dobara
    if(mod==='users'&&!(session()&&session().role==='Admin')){newBase[mod]=Object.assign({},oldBase);return}   // users/roles sirf Admin badal sakta hai
    list.forEach(function(r){
     if(!r||typeof r!=='object')return;
@@ -6961,6 +6978,17 @@ async function gsSync(auto){
    out=await gsPost(cfg,{token:cfg.token,since:meta.since,changes:changes.slice(changes.length-rest)});
   }else if(!changes.length&&!meta.since&&window.__gsFreshOut&&Date.now()-window.__gsFreshOut.at<120000){out=window.__gsFreshOut.out;window.__gsFreshOut=null}
   else out=await gsPost(cfg,{token:cfg.token,since:meta.since,changes:changes});
+  // 2b) jin changes ka server ne ack nahi diya unhe 'bheja hua' mat maano: purana base wapas rakho, wo agli baar dobara jayenge
+  const unackedKeys=Object.keys(window.__gsUnacked||{});
+  if(unackedKeys.length){
+   const bad={};
+   unackedKeys.forEach(function(k){const i=k.indexOf('|'),mod=k.slice(0,i),sid=k.slice(i+1);bad[mod]=1;
+    const ob=(meta.base[mod]||{})[sid];if(!newBase[mod])newBase[mod]={};
+    if(ob)newBase[mod][sid]=ob;else delete newBase[mod][sid];});
+   window.__gsSkip=window.__gsSkip||{};
+   Object.keys(bad).forEach(function(m){window.__gsSkip[m]=Date.now()+60000});
+   console.warn('Server ne ack nahi diya (slow server / lock):',Object.keys(bad).join(', '));
+  }
   // 3) apply remote changes that are newer than local
   const changed=new Set(),applied={};let reverted=0;
   (out.rows||[]).forEach(function(row){
@@ -7007,7 +7035,7 @@ async function gsSync(auto){
   if(dd.length)gsSchedule(1500);
   const t=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
   if(!reverted)window.__gsDirty=false;
-  gsStatus('☁ Synced '+t+' (↑'+changes.length+' ↓'+changed.size+')'+repNote+(window.__gsNewWarn?' · ⚠ Code.gs update karo (naye Daily/Predictive modules server par nahi ja rahe)':''));
+  gsStatus('☁ Synced '+t+' (↑'+changes.length+' ↓'+changed.size+')'+repNote+(window.__gsNewWarn?' · ⚠ Code.gs update karo (naye Daily/Predictive modules server par nahi ja rahe)':'')+(unackedKeys.length?' · ⚠ '+unackedKeys.length+' change abhi server se confirm nahi hue ('+Array.from(new Set(unackedKeys.map(function(k){return k.split('|')[0]}))).join(',')+') - 1 min me dobara try hoga':''));
  }catch(e){
   console.error('Sheet sync failed',e);
   gsStatus('⚠ Sync failed: '+(e&&e.message||e),true);
@@ -7017,7 +7045,7 @@ async function gsSync(auto){
     if(window.__gsFreshTries<=4)gsSchedule(6000);
     if(window.__gsFreshTries===2&&auto)alert('Google Sheet data has not reached this new device yet ('+(e&&e.message||e)+').\n\nCheck your internet connection. The app is retrying automatically, or press Sync Now above.');}}
   if(!auto)alert('Sync failed: '+(e&&e.message||e)+'\n\nCheck your internet connection and press Sync Now again.');
- }finally{gsBusy=false;if(window.__gsAgain){window.__gsAgain=false;gsSchedule(700)}}
+ }finally{gsBusy=false;window.__gsBusySince=0;if(window.__gsAgain){window.__gsAgain=false;gsSchedule(700)}}
 }
 
 // App band karne / background me jaane par: jo changes abhi upload nahi hue unhe navigator.sendBeacon se turant bhej do

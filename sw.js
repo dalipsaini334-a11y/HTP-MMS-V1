@@ -1,5 +1,5 @@
 /* HTP MMS service worker - app shell offline. Version badlo jab files update karo. */
-const CACHE = 'htp-mms-v162-history-edit-delete';
+const CACHE = 'htp-mms-v163-sync-fix';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './favicon-32.png', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', function (e) {
@@ -19,15 +19,17 @@ self.addEventListener('fetch', function (e) {
   if (req.method !== 'GET') return;                       // Google Sheet sync (POST) ko kabhi nahi chhedna
   const url = new URL(req.url);
   if (url.origin !== location.origin) return;             // script.google.com etc. direct network
-  // network-first: online ho to hamesha latest, offline ho to cache
-  e.respondWith(
-    fetch(req).then(function (res) {
+  // network-first (HTTP cache bypass: hamesha latest), par slow/atka network ho to 6 sec baad cache se kholo
+  e.respondWith((function () {
+    const fromCache = function () { return caches.match(req).then(function (m) { return m || caches.match('./index.html'); }); };
+    const net = fetch(req, { cache: 'no-cache' }).then(function (res) {
       if (res && res.ok) { const copy = res.clone(); caches.open(CACHE).then(function (c) { c.put(req, copy); }); }
       return res;
-    }).catch(function () {
-      return caches.match(req).then(function (m) { return m || caches.match('./index.html'); });
-    })
-  );
+    });
+    const timeout = new Promise(function (resolve) { setTimeout(function () { resolve(null); }, 6000); });
+    return Promise.race([net, timeout]).then(function (res) { return res || fromCache().then(function (m) { return m || net; }); })
+      .catch(function () { return fromCache(); });
+  })());
 });
 
 /* Notification par tap karne se app khule / aage aaye */
