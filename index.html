@@ -16602,16 +16602,22 @@ html:not(.aam-tl) .tcm-chip{background:rgba(125,211,252,.15);color:#7dd3fc}
     var pop = document.getElementById('mmsApprPop');
     if (!pop) { fab(); return; }
     var s = S() || {};
-    pop.querySelector('.ap-card').innerHTML =
+    var card = pop.querySelector('.ap-card');
+    var html =
       '<div class="ap-h"><b>🔔 Notifications (' + c.items.length + ')</b><small>' + E(s.u || '') + ' • ' + E(s.role || '') + ' - approvals, corrections aur due alerts (sirf aapke modules ke)</small></div>' +
       '<div class="ap-b">' + (c.items.length ? c.items.map(function (x, i) {
         return '<div class="ap-i"' + (x.al ? ' style="border-left-color:#f59e0b"' : '') + '><div style="font-size:22px">' + x.ico + '</div><div class="ap-t"><div class="ap-m">' + E(x.mod) + '</div><div class="ap-n">' + E(x.t) + '</div><div class="ap-s">' + E(x.sub) + '</div></div>' +
           '<button class="' + (x.al ? 'ap-go' : 'ap-ok') + '" data-i="' + i + '">' + E(x.btn) + '</button></div>';
       }).join('') : '<div class="ap-e">✅ Aapke liye koi notification ya approval pending nahi hai.</div>') + '</div>' +
       '<div class="ap-f"><span class="ap-w">' + (c.mine ? c.mine + ' record aapne banaye hain - dusre login ke approval ka intezaar.' : '&nbsp;') + '</span><span><button class="ap-x" id="apRef">↻ Refresh</button> <button class="ap-x" id="apClose">Close</button></span></div>';
-    pop.querySelectorAll('.ap-ok,.ap-go').forEach(function (b) { b.onclick = function () { var it = ITEMS[Number(b.getAttribute('data-i'))]; if (it) it.run(); }; });
-    pop.querySelector('#apClose').onclick = closePop;
-    pop.querySelector('#apRef').onclick = render;
+    if (card.__h !== html) {
+      var sb = card.querySelector('.ap-b'), sc = sb ? sb.scrollTop : 0;
+      card.__h = html; card.innerHTML = html;
+      pop.querySelectorAll('.ap-ok,.ap-go').forEach(function (b) { b.onclick = function () { var it = ITEMS[Number(b.getAttribute('data-i'))]; if (it) it.run(); }; });
+      pop.querySelector('#apClose').onclick = closePop;
+      pop.querySelector('#apRef').onclick = function () { card.__h = null; render(); };
+      var nb = card.querySelector('.ap-b'); if (nb && sc) nb.scrollTop = sc;
+    }
     fab();
   }
   function openPop() {
@@ -16625,7 +16631,8 @@ html:not(.aam-tl) .tcm-chip{background:rgba(125,211,252,.15);color:#7dd3fc}
     var b = document.getElementById('mmsApprFab');
     if (!b) { b = document.createElement('button'); b.id = 'mmsApprFab'; b.onclick = openPop; document.body.appendChild(b); }
     var n = collect().items.length, show = n > 0 && !!S() && !window.__auditorView && !document.getElementById('mmsApprPop');
-    b.textContent = '🔔 Notifications (' + n + ')'; b.style.display = show ? 'block' : 'none';
+    var tx = '🔔 Notifications (' + n + ')'; if (b.textContent !== tx) b.textContent = tx;
+    var dp = show ? 'block' : 'none'; if (b.style.display !== dp) b.style.display = dp;
   }
   window.mmsOpenApprovals = openPop;
 
@@ -16716,7 +16723,8 @@ function dueCard(){var d=$('#dashboard');if(!d||!ses())return;var c=$('#up1-due'
  try{var ls=$('#dashLowStock');var lv=ls?parseInt(ls.textContent,10)||0:0;tile(lv,'Low stock items','spares',lv>0)}catch(e){}
  try{var hq=hqDueItems();tile(hq.length,'CQI-9 due (SAT/TUS/Oxy)'+(hq.some(function(x){return x.d<0})?' • overdue':''),hq.length?hq[0].m:'satReport',hq.some(function(x){return x.d<0}))}catch(e){}
  try{var a=hqList('amc').filter(function(x){if(!x.endDate)return false;var df=hqDaysTo(x.endDate);return df<=60}).length;tile(a,'AMC contract expiring (60 din)','amc',a>0)}catch(e){}
- c.innerHTML='<h4>📌 Aaj ka kaam / Due list</h4><div class="up1-tiles">'+T.join('')+'</div>';
+ var dh='<h4>📌 Aaj ka kaam / Due list</h4><div class="up1-tiles">'+T.join('')+'</div>';
+ if(c.__h===dh)return;c.__h=dh;c.innerHTML=dh;
  $$('.up1-tile',c).forEach(function(t){t.onclick=function(){goTab(t.getAttribute('data-go'))}})}
 window.dueCardNow=function(){dueCard();setTimeout(dueCard,700)};
 /* 4) Duplicate entry par warning (confirm - user chahe to phir bhi save kar sakta hai) */
@@ -16742,8 +16750,8 @@ function pgWatch(){$$('.panel tbody').forEach(function(tb){if(seen.has(tb))retur
 /* 7) Sync status pill */
 var sy={s:'ok',t:''};
 function pill(){var p=$('#up1-sync');if(!p){p=document.createElement('div');p.id='up1-sync';p.onclick=function(){try{MMS.gsSync(false)}catch(e){}};document.body.appendChild(p)}
- p.style.display=ses()?'block':'none';var off=navigator.onLine===false;p.className=off||sy.s==='bad'?'bad':(sy.s==='wait'?'wait':'');
- p.textContent=off?'⛔ Offline'+(window.__gsDirty?' · changes pending':''):(sy.s==='bad'?'⚠ Sync failed — tap to retry':(sy.s==='wait'?'⏳ Syncing…':(window.__gsRej?'⚠ '+window.__gsRej+' rejected by server':(window.__gsDirty?'● Changes pending — tap to sync':'✓ Synced '+(sy.t||'')))));if(!off&&sy.s==='ok'&&(window.__gsDirty||window.__gsRej))p.className='wait';p.title='Tap: abhi sync karo'}
+ var pd=ses()?'block':'none';if(p.style.display!==pd)p.style.display=pd;var off=navigator.onLine===false;var pc=off||sy.s==='bad'?'bad':(sy.s==='wait'?'wait':'');if(p.className!==pc)p.className=pc;
+ var ptx=off?'⛔ Offline'+(window.__gsDirty?' · changes pending':''):(sy.s==='bad'?'⚠ Sync failed — tap to retry':(sy.s==='wait'?'⏳ Syncing…':(window.__gsRej?'⚠ '+window.__gsRej+' rejected by server':(window.__gsDirty?'● Changes pending — tap to sync':'✓ Synced '+(sy.t||'')))));if(p.textContent!==ptx)p.textContent=ptx;if(!off&&sy.s==='ok'&&(window.__gsDirty||window.__gsRej)&&p.className!=='wait')p.className='wait';if(!p.title)p.title='Tap: abhi sync karo'}
 function syncRead(){var b=$('#mmsSyncBtn');if(!b)return;var m=String(b.textContent||''),bad=/#c0392b|rgb\(192,\s*57,\s*43\)/i.test(b.style.color||'');
  var d=new Date(),hm=('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);
  if(bad)sy.s='bad';else if(/\.\.\.|…|sending|loading|pull|wait/i.test(m)&&!/✓|done|complete|success/i.test(m))sy.s='wait';else{if(sy.s!=='ok'||!sy.t)sy.t=hm;else if(sy.m!==m)sy.t=hm;sy.s='ok'}sy.m=m;pill()}
@@ -19188,7 +19196,7 @@ setTimeout(init,3000);
 <script type="text/mms-defer" id="v158-hub">
 (function(){
 'use strict';
-var TAB='act',HOST=null,OLD=null,OLDSHOW=false,busy=false;
+var TAB='act',HOST=null,OLD=null,OLDSHOW=false,busy=false,EXP={};
 function E(s){return (typeof pmPlanEsc==='function')?pmPlanEsc(s==null?'':s):String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 function FD(x){try{return fmtDate(x)}catch(e){return x||''}}
 function $(id){return document.getElementById(id)}
@@ -19225,13 +19233,15 @@ function build(){
     OLD=sys.querySelector('.card');
     HOST.addEventListener('click',onClick);HOST.addEventListener('change',onChange);HOST.addEventListener('input',onInput);
   }
-  if(OLD)OLD.style.display=OLDSHOW?'':'none';
+  if(OLD)OLD.style.display='none';
 }
 function onClick(e){
   var t=e.target.closest('[data-a]');if(!t)return;var a=t.getAttribute('data-a'),mo=t.getAttribute('data-mo'),no=t.getAttribute('data-no');
   if(a==='tab'){TAB=t.getAttribute('data-t');render();return}
   if(a==='flow'){TAB=t.getAttribute('data-t');render();return}
-  if(a==='old'){OLDSHOW=!OLDSHOW;render();return}
+  if(a==='xl'){var xb=OLD&&OLD.querySelector('button[onclick^="xlExportClick"]');if(xb)xb.click();return}
+  if(a==='det'){var dk=t.getAttribute('data-k');EXP[dk]=!EXP[dk];render();return}
+  if(a==='clr'){if(confirm('Is machine ka is mahine ka plan / actual / technician / remark sab clear karna hai?'))pmPlanClear(mo,no);return}
   if(a==='print'){try{printPMPlan()}catch(x){}return}
   if(a==='csv'){try{exportPMPlanCSV()}catch(x){}return}
   if(a==='start'){pmPlanOpenCheckSheet(mo,no);return}
@@ -19240,7 +19250,10 @@ function onClick(e){
   if(a==='view'){pmPlanOpenSavedCheckSheet(t.getAttribute('data-id'));return}
 }
 function onChange(e){
-  var t=e.target,k=t.getAttribute('data-sel');if(!k)return;
+  var t=e.target,fld=t.getAttribute('data-f');
+  if(fld){pmPlanField(t.getAttribute('data-mo'),t.getAttribute('data-no'),fld,t.value);return}
+  var k=t.getAttribute('data-sel');if(!k)return;
+  if(k==='grade'){var g=$('pmpGrade');if(g){g.value=t.value;}renderPMPlan();return}
   if(k==='fy'){try{pmSetFY(t.value)}catch(x){}return}
   if(k==='mo'){var s=$('pmpMonth');if(s){s.value=t.value;}renderPMPlan();return}
   if(k==='line'){var l=$('pmpLine');if(l){l.value=t.value;}renderPMPlan();return}
@@ -19262,15 +19275,15 @@ function render(){
     list.sort(function(a,b){return rank[a.stage]-rank[b.stage]||(a.days-b.days)});
     var fyOpts='',fys=document.querySelector('.pmFYSel');if(fys)fyOpts=fys.innerHTML;
     var moOpts=PMPLAN_MONTHS.map(function(x){return '<option'+(x===month?' selected':'')+'>'+E(x)+'</option>'}).join('');
-    var lineEl=$('pmpLine'),lineOpts=lineEl?lineEl.innerHTML:'<option value="">All Lines</option>';
+    var lineEl=$('pmpLine'),lineOpts=lineEl?lineEl.innerHTML:'<option value="">All Lines</option>';var gradeEl=$('pmpGrade'),gradeOpts=gradeEl?gradeEl.innerHTML:'<option value="">All Grades</option>';
     var focus=document.activeElement&&document.activeElement.getAttribute&&document.activeElement.getAttribute('data-sel')==='q';
     var tab=function(k,l,n){return '<button type="button" data-a="tab" data-t="'+k+'" class="'+(TAB===k?'on':'')+'">'+l+(n!=null?' ('+n+')':'')+'</button>'};
     var flow=function(bg,k,l,n){return '<button type="button" class="pmh-st" style="background:'+bg+'!important" data-a="flow" data-t="'+k+'"><small>'+l+'</small><b>'+n+'</b></button>'};
     var cards=list.map(function(o){return card(o,month,today)}).join('')||'<div class="pmh-empty">'+(total?'Is filter me koi machine nahi hai.':'Is mahine koi PM scheduled nahi hai.')+'</div>';
     HOST.innerHTML=
      '<div class="pmh-top"><div><h2>Preventive Maintenance</h2><div class="pmh-sub">'+E(month)+' • '+total+' PM scheduled • aaj '+E(FD(today))+'</div></div>'+
-     '<div class="pmh-ctl"><select data-sel="fy" title="Financial Year">'+fyOpts+'</select><select data-sel="mo">'+moOpts+'</select><select data-sel="line">'+lineOpts+'</select><input data-sel="q" placeholder="Search machine" value="'+E(($('pmpSearch')||{}).value||'')+'">'+
-     '<button type="button" data-a="print">🖨 Print</button><button type="button" data-a="csv">⬇ CSV</button><button type="button" data-a="old">'+(OLDSHOW?'▲ Table view band karo':'📋 Table view')+'</button></div></div>'+
+     '<div class="pmh-ctl"><select data-sel="fy" title="Financial Year">'+fyOpts+'</select><select data-sel="mo">'+moOpts+'</select><select data-sel="line">'+lineOpts+'</select><select data-sel="grade">'+gradeOpts+'</select><input data-sel="q" placeholder="Search machine" value="'+E(($('pmpSearch')||{}).value||'')+'">'+
+     '<button type="button" data-a="print">🖨 Print</button><button type="button" data-a="csv">⬇ CSV</button><button type="button" data-a="xl">📥 Excel</button></div></div>'+
      '<div class="pmh-flow">'+flow('#1e3a5f','all','1 Plan',total)+flow('#6b5a14','due','2 Due',c.due+c.overdue)+flow('#1f4f7a','progress','3 In Progress',c.progress)+flow('#4a2e6b','verify','4 Verify',c.verify)+flow('#14532d','done','5 Done',c.done)+'</div>'+
      '<div class="pmh-kpi"><div class="pmh-k"><small>Month compliance</small><b>'+pct+'%</b><div class="pmh-bar"><i style="width:'+pct+'%"></i></div></div>'+
      '<div class="pmh-k"><small>Done on time</small><b style="color:#4ade80">'+c.ontime+'</b></div><div class="pmh-k"><small>Due (7 din)</small><b style="color:#fbbf24">'+c.due+'</b></div>'+
@@ -19278,7 +19291,7 @@ function render(){
      '<div class="pmh-tabs">'+tab('act','⚠ Needs action',all.filter(needs).length)+tab('all','All',total)+tab('overdue','Overdue',c.overdue)+tab('progress','In Progress',c.progress)+tab('verify','Verify',c.verify)+tab('done','Done',c.done)+'</div>'+
      '<div class="pmh-grid">'+cards+'</div>'+
      '<div class="pmh-cap">Flow: Plan → Due alert → Start PM (check sheet me machine pehle se bhari) → Submit → Verify (dusre login se) → Agli PM date apne-aap.</div>';
-    var ls=HOST.querySelector('[data-sel="line"]');if(ls)ls.value=line;
+    var ls=HOST.querySelector('[data-sel="line"]');if(ls)ls.value=line;var gs=HOST.querySelector('[data-sel="grade"]');if(gs)gs.value=grade;
     var fy=HOST.querySelector('[data-sel="fy"]'),fy0=document.querySelector('.pmFYSel');if(fy&&fy0)fy.value=fy0.value;
     if(focus){var qi=HOST.querySelector('[data-sel="q"]');if(qi){qi.focus();try{qi.setSelectionRange(qi.value.length,qi.value.length)}catch(x){}}}
   }catch(err){console.warn('pm hub',err)}
@@ -19294,7 +19307,23 @@ function card(o,month,today){
   else if(s==='progress'){var p=o.tot?Math.round(o.ans/o.tot*100):0;col='#3b82f6';pill='<span class="pmh-pill pmh-ip">🔧 IN PROGRESS '+p+'%</span>';meta='Saved '+E(FD(rec&&rec.date))+' by '+E((rec&&rec.checkedBy)||'-')+' • '+o.ans+'/'+o.tot+' checks';btn=rec?'<button class="pmh-act s" data-a="cont" data-id="'+E(rec.id)+'">Continue ›</button>':''}
   else if(s==='verify'){col='#a855f7';pill='<span class="pmh-pill pmh-vf">🔍 VERIFY PENDING</span>';meta='Done '+E(FD(rec&&rec.date))+' by '+E((rec&&rec.checkedBy)||'-')+(o.notOk?' • '+o.notOk+' point Not OK':'');btn='<button class="pmh-act v" data-a="verify" data-id="'+E(rec?rec.id:'')+'">✔ Verify</button>'}
   else{col='#22c55e';pill='<span class="pmh-pill pmh-ok">✅ COMPLETED'+(r.late>0?' (late '+r.late+'d)':'')+'</span>';meta='Done '+E(FD(r.actual))+(rec&&rec.verifiedBy?' • Verified by '+E(rec.verifiedBy):'')+(r.nextDate?' • Next '+E(FD(r.nextDate)):'');btn=r.pmCheckId?'<button class="pmh-act g" data-a="view" data-id="'+E(r.pmCheckId)+'">View / Print</button>':''}
-  return '<div class="pmh-card"><div class="pmh-l" style="background:'+col+'"></div><div>'+nm+'<div class="pmh-mt">'+meta+'</div>'+pill+strip(m,month,today)+'</div>'+btn+'</div>';
+  var dkey=month+'|'+m.machineNumber,open=!!EXP[dkey];
+  return '<div class="pmh-card"><div class="pmh-l" style="background:'+col+'"></div><div>'+nm+'<div class="pmh-mt">'+meta+'</div>'+pill+strip(m,month,today)+'</div><div class="pmh-rt">'+btn+'<span role="button" tabindex="0" class="pmh-more" data-a="det" data-k="'+E(dkey)+'">'+(open?'▲ Details':'⚙ Details')+'</span></div>'+(open?detail(o,month):'')+'</div>';
+}
+function detail(o,month){
+  var m=o.m,r=o.r,mo=E(month),no=E(m.machineNumber),pm={};try{pm=pmMasterGet(m)||{}}catch(e){}
+  var fld=function(l,h){return '<label class="pmh-f"><span>'+l+'</span>'+h+'</label>'};
+  var at='data-mo="'+mo+'" data-no="'+no+'"';
+  var resch=(r.resch||[]).map(function(z){return FD(z.from)+' → '+FD(z.to)+': '+z.reason}).join(' | ');
+  var sheet=r.pmCheckId?'<button type="button" class="pmh-act s" data-a="view" data-id="'+E(r.pmCheckId)+'">Completed Check Sheet</button>':'<button type="button" class="pmh-act" data-a="start" '+at+'>Open Check Sheet</button>';
+  return '<div class="pmh-det">'+
+    fld('Planned date','<input type="date" data-f="planned" '+at+' value="'+E(r.planned||'')+'">')+
+    fld('Actual date','<input type="date" value="'+E(r.actual||'')+'" readonly>')+
+    fld('Next PM','<input value="'+E(r.nextDate?FD(r.nextDate):'')+'" readonly>')+
+    fld('Technician / Check','<input data-f="tech" '+at+' value="'+E(r.tech||pm.responsible||'')+'">')+
+    fld('Remarks','<input data-f="remark" '+at+' placeholder="Remarks" value="'+E(r.remark||'')+'">')+
+    '<div class="pmh-da">'+sheet+'<button type="button" class="pmh-act g" data-a="clr" '+at+'>Clear</button></div>'+
+    (resch?'<div class="pmh-rs">↻ Rescheduled: '+E(resch)+'</div>':'')+'</div>';
 }
 
 var t=null;
@@ -19387,13 +19416,13 @@ function fyOpts(){var f=document.querySelector('.pmFYSel');return f?f.innerHTML:
 function fySync(root){var f=root.querySelector('[data-k="fy"]'),f0=document.querySelector('.pmFYSel');if(f&&f0)f.value=f0.value}
 function lineOpts(ms){var ls=[];ms.forEach(function(m){if(m.line&&ls.indexOf(m.line)<0)ls.push(m.line)});return ls}
 /* ================= 1. PM MASTER ================= */
-var MH=null,MOLD=null,MOLDSHOW=false,MSEL={},MQ='',MLINE='',MBUSY=false;
+var MH=null,MOLD=null,MOLDSHOW=false,MSEL={},MQ='',MLINE='',MBUSY=false,MSETSEL='';
 function masterBuild(){
   var s=$('pmMaster');if(!s)return false;
   if(!MH||!MH.parentNode){var rules=[].slice.call(s.querySelectorAll('.card.no-print-pmplan'))[0];if(!rules)return false;
     MOLD=rules;MH=document.createElement('div');MH.id='pmxMaster';rules.parentNode.insertBefore(MH,rules);
     MH.addEventListener('click',mClick);MH.addEventListener('change',mChange);MH.addEventListener('input',mInput)}
-  MOLD.style.display=MOLDSHOW?'':'none';return true}
+  MOLD.style.display='none';[].slice.call(s.querySelectorAll('.card.no-print-pmplan')).forEach(function(c){c.style.display='none'});return true}
 function mClick(e){
   var t=e.target.closest('[data-a]');if(!t)return;var a=t.getAttribute('data-a'),no=t.getAttribute('data-no');
   if(a==='freq'){pmMasterField(no,'frequency',t.getAttribute('data-v'));return}
@@ -19401,7 +19430,8 @@ function mClick(e){
   if(a==='dot'){var m2=pmPlanMachines().find(function(x){return x.machineNumber===no});if(!m2)return;var idx=Number(t.getAttribute('data-i')),cur=pmScheduledMonths(m2).map(function(x){return PMPLAN_MONTHS.indexOf(x)+1}),n=idx+1,k=cur.indexOf(n);if(k>=0)cur.splice(k,1);else cur.push(n);cur.sort(function(a,b){return a-b});if(!cur.length)return;pmMasterCustomMonths(no,cur.join(','));return}
   if(a==='gen'){pmGenerateSchedule();return}
   if(a==='spread'){pmSpreadDueDays();return}
-  if(a==='old'){MOLDSHOW=!MOLDSHOW;mRender();return}
+  if(a==='madd'||a==='medit'||a==='mrem'||a==='mlink'){var ms=MH.querySelector('[data-k="msel"]'),src=$('pmpMachineSetup');if(a!=='madd'){if(!ms||!ms.value)return alert('Please select a machine.');if(src)src.value=ms.value}
+    if(a==='madd')pmPlanAddMachine();else if(a==='medit')pmPlanEditMachine();else if(a==='mrem')pmPlanRemoveMachine();else pmPlanAssignChecklist();setTimeout(mRender,300);return}
   if(a==='xl'){var b=MOLD&&[].slice.call(MOLD.querySelectorAll('button')).find(function(x){return /Excel/i.test(x.textContent)});if(b)b.click();return}
   if(a==='all'){var vis=mVisible();var allOn=vis.every(function(m){return MSEL[m.machineNumber]});vis.forEach(function(m){if(allOn)delete MSEL[m.machineNumber];else MSEL[m.machineNumber]=1});mRender();return}
   if(a==='sel'){if(t.checked)MSEL[no]=1;else delete MSEL[no];mRender();return}
@@ -19411,6 +19441,7 @@ function mClick(e){
 function mChange(e){var t=e.target,k=t.getAttribute('data-k');if(!k)return;
   if(k==='fy'){pmSetFY(t.value);return}
   if(k==='line'){MLINE=t.value;mRender();return}
+  if(k==='msel'){MSETSEL=t.value;return}
   if(k==='resp'){pmMasterField(t.getAttribute('data-no'),'responsible',t.value);return}
   if(k==='prio'){pmMasterField(t.getAttribute('data-no'),'priority',t.value);return}}
 function mInput(e){var t=e.target;if(t.getAttribute('data-k')==='q'){MQ=t.value;clearTimeout(mInput._t);mInput._t=setTimeout(mRender,250)}}
@@ -19430,11 +19461,12 @@ function mRender(){
         '<td><input data-k="resp" data-no="'+no+'" value="'+E(p.responsible||'')+'" placeholder="Technician / Team" style="width:130px!important"></td><td><select data-k="prio" data-no="'+no+'">'+pr+'</select></td></tr>'}).join('')||'<tr><td colspan="8" style="text-align:center;padding:20px;color:#8fb0cf">Koi machine nahi mili.</td></tr>';
     var lines=lineOpts(all).map(function(x){return '<option'+(x===MLINE?' selected':'')+'>'+E(x)+'</option>'}).join('');
     MH.innerHTML='<div class="pmx-top"><div><h2>PM Master Schedule</h2><div class="pmx-sub">Har machine ka rule ek jagah: frequency, due day, mahine. Dot dabao = us mahine PM on/off (Custom ban jata hai).</div></div>'+
-      '<div class="pmx-ctl"><button type="button" data-a="xl">⬇ Excel</button><button type="button" data-a="old">'+(MOLDSHOW?'▲ Table view band':'📋 Table view')+'</button><button type="button" class="pri" data-a="gen">⟳ Generate Schedule</button></div></div>'+
+      '<div class="pmx-ctl"><button type="button" data-a="xl">⬇ Excel</button><button type="button" class="pri" data-a="gen">⟳ Generate Schedule</button></div></div>'+
       '<div class="pmx-kpi"><div class="pmx-k"><small>Machines</small><b>'+all.length+'</b></div><div class="pmx-k"><small>Monthly</small><b>'+(cnt.Monthly||0)+'</b></div><div class="pmx-k"><small>Quarterly / Half-Yearly</small><b>'+((cnt.Quarterly||0)+(cnt['Half-Yearly']||0))+'</b></div><div class="pmx-k"><small>Yearly / Custom</small><b>'+((cnt.Yearly||0)+(cnt.Custom||0))+'</b></div></div>'+
       '<div class="pmx-ctl" style="margin-bottom:10px"><select data-k="fy">'+fyOpts()+'</select><select data-k="line"><option value="">All Lines</option>'+lines+'</select><input data-k="q" placeholder="🔎 Search machine" value="'+E(MQ)+'"></div>'+
       '<div class="pmx-tw"><table class="pmx-t"><thead><tr><th><input type="checkbox" data-a="all" '+(allOn?'checked':'')+' style="width:auto!important"></th><th>Machine</th><th>Line / Grade</th><th>Frequency</th><th>Due day</th><th>Mahine (Apr → Mar)</th><th>Responsible</th><th>Priority</th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
       (nsel?'<div class="pmx-bulk"><b>'+nsel+' machine chune</b><select data-k="bfreq">'+FREQ.map(function(f){return '<option>'+f[1]+'</option>'}).join('')+'</select><span>Due day</span><input data-k="bday" type="number" min="1" max="28" value="10"><button type="button" class="pri" data-a="apply" style="margin-left:auto">Apply to selected</button><button type="button" data-a="spread">📅 Spread due dates</button></div>':'<div class="pmx-sub" style="margin-top:8px">Kai machines chun kar ek saath frequency / due day badal sakte ho. <a href="#" data-a="spread" style="color:#93c5fd">Spread due dates</a></div>');
+    (function(){var src=$('pmpMachineSetup'),opts=src?src.innerHTML:'<option value="">-- Select Machine --</option>';MH.insertAdjacentHTML('beforeend','<div class="pmx-setup"><b>Machine / PM setup</b><select data-k="msel">'+opts+'</select><button type="button" data-a="madd">+ Add Machine</button><button type="button" data-a="medit">Edit Machine</button><button type="button" data-a="mrem">Remove Machine</button><button type="button" data-a="mlink">Link Check Sheet</button></div>');var ms=MH.querySelector('[data-k="msel"]');if(ms&&MSETSEL)ms.value=MSETSEL})();
     fySync(MH);
     if(focus){var qi=MH.querySelector('[data-k="q"]');if(qi){qi.focus();try{qi.setSelectionRange(qi.value.length,qi.value.length)}catch(x){}}}
   }catch(err){console.warn('pmx master',err)}
@@ -19446,10 +19478,9 @@ function yearBuild(){
   if(!YH||!YH.parentNode){var tw=s.querySelector('.tablewrap');if(!tw)return false;
     YOLD=[tw];var g=s.querySelector('.pm-guide');if(g)YOLD.push(g);YH=document.createElement('div');YH.id='pmxYear';tw.parentNode.insertBefore(YH,tw);
     YH.addEventListener('click',yClick);YH.addEventListener('change',yChange);YH.addEventListener('input',yInput)}
-  YOLD.forEach(function(x){x.style.display=YOLDSHOW?'':'none'});return true}
+  YOLD.forEach(function(x){x.style.display='none'});return true}
 function yClick(e){var t=e.target.closest('[data-a]');if(!t)return;var a=t.getAttribute('data-a');
   if(a==='cell'){var mo=t.getAttribute('data-mo');var sel=$('pmpMonth');if(sel)sel.value=mo;try{renderPMPlan()}catch(x){}try{showTab('pmMonthly')}catch(x){}return}
-  if(a==='old'){YOLDSHOW=!YOLDSHOW;yRender();return}
   if(a==='print'){try{printPMYearlyCalendar()}catch(x){}return}
   if(a==='xl'){var b=[].slice.call(document.querySelectorAll('#pmYearly button')).find(function(x){return /Excel/i.test(x.textContent)&&!YH.contains(x)});if(b)b.click();return}}
 function yChange(e){var t=e.target,k=t.getAttribute('data-k');if(k==='fy')pmSetFY(t.value);if(k==='line'){YLINE=t.value;yRender()}}
@@ -19476,7 +19507,7 @@ function yRender(){
     var lines=lineOpts(all).map(function(x){return '<option'+(x===YLINE?' selected':'')+'>'+E(x)+'</option>'}).join('');
     var title='';try{title=($('pmYearlyTitle')||{}).textContent||''}catch(x){}
     YH.innerHTML='<div class="pmx-top"><div><h2>Yearly PM Calendar</h2><div class="pmx-sub">'+E(PMPLAN_MONTHS[0])+' – '+E(PMPLAN_MONTHS[11])+' • aaj '+E(td.split('-').reverse().join('-'))+' • cell dabao = us mahine ka PM</div></div>'+
-      '<div class="pmx-ctl"><select data-k="fy">'+fyOpts()+'</select><select data-k="line"><option value="">All Lines</option>'+lines+'</select><input data-k="q" placeholder="🔎 Search" value="'+E(YQ)+'"><button type="button" data-a="print">🖨 Print</button><button type="button" data-a="xl">⬇ Excel</button><button type="button" data-a="old">'+(YOLDSHOW?'▲ Table view band':'📋 Table view')+'</button></div></div>'+
+      '<div class="pmx-ctl"><select data-k="fy">'+fyOpts()+'</select><select data-k="line"><option value="">All Lines</option>'+lines+'</select><input data-k="q" placeholder="🔎 Search" value="'+E(YQ)+'"><button type="button" data-a="print">🖨 Print</button><button type="button" data-a="xl">⬇ Excel</button></div></div>'+
       '<div class="pmx-leg"><span><i style="background:#22c55e"></i>Done</span><span><i style="background:#3b82f6"></i>Planned</span><span><i style="background:#ef4444"></i>Overdue</span><span><i style="background:#fbbf24"></i>Due 7 din</span><span><i style="background:#1f4f7a"></i>In progress</span><span><i style="background:#a855f7"></i>Verify baaki</span><span><i style="background:#35506c"></i>Scheduled nahi</span></div>'+
       '<div class="pmx-tw"><table class="pmx-h"><thead><tr><th style="text-align:left">Machine</th>'+PMPLAN_MONTHS.map(function(mo){return '<th class="'+(mo===nowMo?'now':'')+'">'+E(mo.slice(0,3))+(mo===nowMo?' ●':'')+'</th>'}).join('')+'<th>Year %</th></tr></thead><tbody>'+rows+
       '<tr><td><b style="color:#fff">Month total</b></td>'+tot.map(function(x,i){return '<td class="'+(PMPLAN_MONTHS[i]===nowMo?'now':'')+'" style="color:#cfe2f5">'+x[0]+'/'+x[1]+'</td>'}).join('')+'<td><b style="color:#fff">'+(gt?Math.round(gd/gt*100)+'%':'—')+'</b></td></tr></tbody></table></div>';
@@ -19510,20 +19541,89 @@ function csUpdate(){
     var m=($('pm_machine_no')||{}).value,cb=(($('pm_checked_by')||{}).value||'').trim(),act=(($('pm_action')||{}).value||'').trim();
     var spare=!!(($('pm_tc_select')||{}).value)||!!document.querySelector('#pmSpareParts select')&&[].slice.call(document.querySelectorAll('#pmSpareParts select')).some(function(x){return x.value});
     var done=[!!m,tot>0&&ans===tot,spare,!!cb],first=done.indexOf(false),names=['1 Machine','2 Checkpoints','3 Spares','4 Sign-off'];
-    SB.innerHTML='<div class="pmx-st">'+names.map(function(n,i){return '<button type="button" data-s="'+(i+1)+'" class="'+(done[i]?'dn':(i===first?'on':''))+'">'+(done[i]?'✓ ':'')+n+'</button>'}).join('')+'</div>'+
+    var sbH='<div class="pmx-st">'+names.map(function(n,i){return '<button type="button" data-s="'+(i+1)+'" class="'+(done[i]?'dn':(i===first?'on':''))+'">'+(done[i]?'✓ ':'')+n+'</button>'}).join('')+'</div>'+
       '<div class="pmx-pg"><span>'+ans+' / '+tot+' answered'+(bad?' • '+bad+' Not OK':'')+'</span><b style="color:#fff">'+pct+'%</b></div><div class="pmx-bar"><i style="width:'+pct+'%"></i></div>'+
       (bad&&!act?'<div class="pmx-warn">⚠ '+bad+' point Not OK — action aur target date likhna zaroori hai <button type="button" data-w="1">Action likho</button></div>':'');
-    BAR.innerHTML='<span class="t">'+(m?E(m):'Machine chuno')+' • '+ans+'/'+tot+' checks'+(bad?' • '+bad+' Not OK':'')+'</span><button type="button" data-b="clr">Clear</button><button type="button" class="grn" data-b="save">💾 Save PM Record</button>';
+    if(SB.__h!==sbH){SB.__h=sbH;SB.innerHTML=sbH}
+    var barH='<span class="t">'+(m?E(m):'Machine chuno')+' • '+ans+'/'+tot+' checks'+(bad?' • '+bad+' Not OK':'')+'</span><button type="button" data-b="clr">Clear</button><button type="button" class="grn" data-b="save">💾 Save PM Record</button>';
+    if(BAR.__h!==barH){BAR.__h=barH;BAR.innerHTML=barH}
   }catch(err){console.warn('pmx cs',err)}}
 /* ================= hooks ================= */
 window.pmxAfterYearly=function(){mRender()};
 var _c=window.renderPMCalendar;if(typeof _c==='function')window.pmxAfterCalendar=function(){yRender()};
 window.pmxAfterPlan=function(){clearTimeout(window.__pmxT);window.__pmxT=setTimeout(function(){try{yRender()}catch(e){}},80)};
 var _s=window.showTab;if(typeof _s==='function')window.pmxAfterShowTab=function(id){setTimeout(function(){try{addNav();if(id==='pm'){csBuild();csUpdate()}if(id==='pmMaster')mRender();if(id==='pmYearly')yRender()}catch(e){}},120)};
-setInterval(function(){try{var s=$('pm');if(s&&s.offsetParent)csUpdate()}catch(e){}},2000);
+setInterval(function(){try{if(document.hidden)return;var s=$('pm');if(s&&s.offsetParent)csUpdate()}catch(e){}},4000);
 setTimeout(function(){try{addNav();mRender();yRender();csBuild()}catch(e){console.warn('pmx init',e)}},1200);
 })();
 </script>
 
+
+<!-- v157: module tool bar (Excel / Stock Ledger / Reorder / Labels / Scan / CSV Import) - ek hi sunder strip, har module me same look -->
+<style id="v157ToolbarCss">
+html body main.wrap section.panel>.v154tool{display:flex!important;flex-wrap:wrap;align-items:center;justify-content:flex-start;gap:8px;text-align:left!important;margin:0 0 12px!important;padding:10px 12px;background:linear-gradient(160deg,#143252,#0e2238);border:1px solid #2a4a6b;border-radius:18px;box-shadow:0 6px 18px rgba(5,15,30,.3)}
+html body main.wrap section.panel>.v154tool::before{content:'QUICK TOOLS';flex:0 0 auto;margin:0 6px 0 2px;font:700 10.5px/1 Inter,Roboto,'Segoe UI',system-ui,sans-serif;letter-spacing:.12em;color:#8fb3d6}
+html body main.wrap section.panel>.v154tool>.v156tool{display:contents!important}
+html body main.wrap section.panel>.v156tool{display:flex!important;flex-wrap:wrap;gap:8px;margin:0 0 12px!important;padding:10px 12px;background:linear-gradient(160deg,#143252,#0e2238);border:1px solid #2a4a6b;border-radius:18px;box-shadow:0 6px 18px rgba(5,15,30,.3)}
+html body main.wrap section.panel .v154tool button,html body main.wrap section.panel .v156tool button{flex:0 0 auto;margin:0!important;min-height:38px;padding:7px 14px!important;background:#1d4467!important;color:#e6f0fa!important;border:1px solid #3b6288!important;border-radius:12px!important;font:600 13px/1.2 Inter,Roboto,'Segoe UI',system-ui,sans-serif!important;white-space:nowrap;cursor:pointer;box-shadow:none!important;transition:background .15s,border-color .15s}
+html body main.wrap section.panel .v154tool button:hover,html body main.wrap section.panel .v156tool button:hover{background:#265a88!important;border-color:#5aa5e0!important}
+html body main.wrap section.panel .v154tool button:active,html body main.wrap section.panel .v156tool button:active{transform:translateY(1px)}
+html body main.wrap section.panel .fm-bar{text-align:left;margin:0 0 10px}
+html body main.wrap section.panel .fm-bar .fm-open{background:#1d4467;color:#e6f0fa;border:1px solid #3b6288;border-radius:12px;padding:7px 14px;font:600 13px/1.2 Inter,Roboto,'Segoe UI',system-ui,sans-serif}
+@media (max-width:640px){
+ html body main.wrap section.panel>.v154tool{gap:6px;padding:8px 10px;border-radius:14px}
+ html body main.wrap section.panel>.v154tool::before{flex:0 0 100%;margin:0 0 2px 2px}
+ html body main.wrap section.panel .v154tool button,html body main.wrap section.panel .v156tool button{flex:1 1 calc(50% - 6px);min-width:0;white-space:normal;text-align:center;padding:7px 8px!important}
+}
+@media print{.v154tool,.v156tool{display:none!important}}
+</style>
+<script id="v157ToolbarJs">
+(function(){
+ /* v156 ki alag strip ko v154 wali strip ke andar le aao -> ek hi bar (click handlers same rehte hain, bubbling se) */
+ function unify(){
+  try{document.querySelectorAll('section.panel').forEach(function(s){
+   var a=s.querySelector(':scope>.v154tool'),b=s.querySelector(':scope>.v156tool');
+   if(a&&b&&b.parentNode!==a)a.appendChild(b);
+  })}catch(e){}
+ }
+ var t=null;function later(){clearTimeout(t);t=setTimeout(unify,60)}
+ try{new MutationObserver(later).observe(document.body,{childList:true,subtree:true})}catch(e){}
+ setTimeout(unify,500);setTimeout(unify,2000);setTimeout(unify,5000);
+})();
+</script>
+
+<!-- v158: Quick Tools strip - har module me ek jaisi, barabar grid wali buttons (app ke navy theme me) -->
+<style id="v158ToolbarCss">
+html body main.wrap section.panel>.v154tool.v154tool,html body main.wrap section.panel>.v156tool.v156tool{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:8px!important;align-items:stretch!important;justify-content:stretch!important;text-align:left!important;margin:0 0 14px!important;padding:12px 14px!important;background:linear-gradient(160deg,#143252,#0e2238)!important;border:1px solid #2a4a6b!important;border-radius:18px!important;box-shadow:0 6px 18px rgba(5,15,30,.3)!important}
+html body main.wrap section.panel>.v154tool.v154tool::before{content:'QUICK TOOLS';grid-column:1/-1;display:block;margin:0 0 2px 2px;font:700 10.5px/1 Inter,Roboto,'Segoe UI',system-ui,sans-serif;letter-spacing:.12em;color:#8fb3d6}
+html body main.wrap section.panel>.v154tool.v154tool>.v156tool{display:contents!important}
+html body main.wrap section.panel .v154tool.v154tool button,html body main.wrap section.panel .v154tool.v154tool button.secondary,html body main.wrap section.panel .v156tool.v156tool button,html body main.wrap section.panel .v156tool.v156tool button.secondary{display:flex!important;align-items:center!important;justify-content:center!important;gap:6px;width:100%!important;flex:none!important;min-width:0!important;max-width:none!important;min-height:42px!important;margin:0!important;padding:8px 12px!important;background:#1d4467!important;color:#e6f0fa!important;border:1px solid #3b6288!important;border-radius:12px!important;font:600 13px/1.2 Inter,Roboto,'Segoe UI',system-ui,sans-serif!important;text-align:center!important;white-space:nowrap!important;overflow:hidden;text-overflow:ellipsis;box-shadow:none!important}
+html body main.wrap section.panel .v154tool.v154tool button:hover,html body main.wrap section.panel .v156tool.v156tool button:hover{background:#265a88!important;border-color:#5aa5e0!important}
+html body main.wrap section.panel .v154tool.v154tool button:active,html body main.wrap section.panel .v156tool.v156tool button:active{transform:translateY(1px)}
+@media (max-width:640px){
+ html body main.wrap section.panel>.v154tool.v154tool,html body main.wrap section.panel>.v156tool.v156tool{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px!important;padding:10px!important;border-radius:14px!important}
+ html body main.wrap section.panel .v154tool.v154tool button,html body main.wrap section.panel .v156tool.v156tool button{min-height:40px!important;padding:7px 6px!important;font-size:12.5px!important;white-space:normal!important}
+}
+@media print{.v154tool,.v156tool{display:none!important}}
+</style>
+
+<!-- v160: PM module - ek hi (naya) UI. Purana "Table view" hata diya; uski saari settings naye UI me (Details panel / Machine setup bar) -->
+<style id="v160PmCss">
+#pmMaster .pm-stage,#pmYearly .pm-system .toolbar{display:none!important}
+#pmMaster .card.no-print-pmplan{display:none!important}
+.pmh-rt{display:flex;flex-direction:column;gap:6px;align-items:stretch}
+#pmHub .pmh-grid{align-items:start}
+#pmHub .pmh-more{display:block;text-align:center;background:#12304f;color:#cfe2f5;border:1px solid #24527f;border-radius:9px;padding:7px 11px;font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap;user-select:none}#pmHub .pmh-more:hover{border-color:#5aa5e0}
+.pmh-det{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:9px;align-items:end;padding-top:10px;border-top:1px dashed #24527f}
+#pmHub .pmh-f{display:flex;flex-direction:column;gap:4px;font-size:11px;min-width:0}#pmHub .pmh-f span{color:#8fb0cf!important;font-weight:600}
+.pmh-f input{width:100%!important;background:#12304f!important;color:#e6f0fa!important;border:1px solid #24527f!important;border-radius:8px!important;padding:7px 9px!important;font-size:12px!important;min-height:0!important;height:auto!important}
+.pmh-f input[readonly]{opacity:.7}
+.pmh-da{display:flex;gap:6px;flex-wrap:wrap;grid-column:1/-1}
+.pmh-rs{grid-column:1/-1;font-size:11px;color:#fcd34d}
+.pmx-setup{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px;padding:10px 12px;border:1px solid #24527f;border-radius:12px;background:#10294a}
+.pmx-setup b{font-size:12px;color:#fff;margin-right:4px}
+.pmx-setup select{flex:1 1 230px;min-width:200px;max-width:100%}
+@media (max-width:640px){.pmh-card{grid-template-columns:6px 1fr!important}.pmh-rt{grid-column:2;flex-direction:row;flex-wrap:wrap}.pmx-setup select{flex:1 1 100%}}
+</style>
 </body>
 </html>
