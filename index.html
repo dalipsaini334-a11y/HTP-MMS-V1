@@ -3736,10 +3736,10 @@ function savePMChecklistStore(){localStorage.setItem(PM_CHECKLIST_KEY,JSON.strin
 function normalizePMRows(rows){return (rows||[]).map((r,i)=>({sno:i+1,freq:r.freq||'',activity:r.activity||'',standard:r.standard||'',method:r.method||''}));}
 /* PM Check Sheet: sync / renderAll ke baad bhari hui entries na mitein (PM_DIRTY = user ne kuch bhara hai, abhi save nahi hua) */
 let PM_DIRTY=false,PM_IN_INIT=false;
-['input','change'].forEach(ev=>document.addEventListener(ev,e=>{const t=e.target;if(t&&t.closest&&t.closest('#pmBody'))PM_DIRTY=true},true));
+['input','change'].forEach(ev=>document.addEventListener(ev,e=>{const t=e.target;if(t&&t.closest&&(t.closest('#pmBody')||(t.id&&/^pm_(machine_no|date|date_to|start|end|checked_by|verified_by|plan_month|remark|action|action_status|action_target|tc_select)$/.test(t.id))||t.closest('#pmSpareParts')||t.closest('#pmTcExtra')))PM_DIRTY=true},true));
 document.addEventListener('click',e=>{const t=e.target;if(t&&t.closest&&t.closest('#pmBody .dcx-q'))PM_DIRTY=true},true);
 function pmKeepSnap(){
- if(!PM_DIRTY||!document.getElementById('pmBody'))return null;
+ if((!PM_DIRTY&&(typeof edit==='undefined'||edit.pm===null||edit.pm===undefined))||!document.getElementById('pmBody'))return null;
  return {tpl:(document.getElementById('pm_template')||{}).value,rows:[...document.querySelectorAll('#pmBody tr')].map(tr=>({o:tr.querySelector('.pm-obs')?.value||'',w:tr.querySelector('.pm-work')?.value||'',r:tr.querySelector('.pm-rem')?.value||''})),sp:pmGlobalSpareEntries()};
 }
 function pmKeepRestore(snap){
@@ -3755,8 +3755,9 @@ function initPM(){const keepSnap=pmKeepSnap();try{pmFillPlanMonthSelect();}catch
  let current=t.value;
  t.innerHTML=Object.keys(PM_CHECKLISTS).map(k=>`<option value="${esc(k)}">${esc(k)}</option>`).join('');
  if(current && PM_CHECKLISTS[current])t.value=current;
- let s=document.getElementById('pm_machine_no');
+ let s=document.getElementById('pm_machine_no');const _mv=s.value;
  s.innerHTML='<option value="">Select Machine</option>'+MACHINE_MASTER.map(m=>`<option value="${esc(m.machineNumber)}">${esc(m.machineNumber)} — ${esc(m.machineName)}</option>`).join('');
+ if(_mv&&[...s.options].some(o=>o.value===_mv))s.value=_mv;
  if(!f('pm_date'))setv('pm_date',new Date().toISOString().slice(0,10));
  populatePMTCSelect();
  PM_IN_INIT=true;try{loadPMTemplate();}finally{PM_IN_INIT=false;}pmKeepRestore(keepSnap); renderPMHistory();
@@ -4527,6 +4528,24 @@ function clearUtilityLogForm(){
   edit.utilityLog=null;['mu_log_id','mu_log_location','mu_log_department','mu_log_problem','mu_log_action','mu_log_person','mu_log_next','mu_log_remark','mu_log_hours','mu_log_cost'].forEach(id=>setv(id,''));setv('mu_log_date',utilityToday());setv('mu_log_qty','1');setv('mu_log_activity','Installed');populateUtilityItemSelect('');muRenderSpares([]);
   const b=document.querySelector('#maintUtility .card:nth-of-type(3) .primary');if(b)b.textContent='Save Record';
 }
+function historyFromUtility(r){
+ if(!r||r.type!=='log'||!r.id)return null;
+ const key='UT-'+r.id,existing=data.mh.find(x=>String(x.sourceSr||'')===key);
+ const sp=(Array.isArray(r.spareParts)?r.spareParts:[]).filter(x=>x&&(x.part||x.qty));
+ const isRep=(typeof MU_REPAIR_ACT!=='undefined'&&MU_REPAIR_ACT.includes(r.activity));
+ if(!sp.length&&!isRep){if(existing){data.mh=data.mh.filter(x=>x!==existing);return {removed:true}}return null}
+ const item=utilityItems().find(x=>String(x.id)===String(r.itemId))||{};
+ const mno=String(item.code||r.itemName||item.name||'').trim();
+ const mm=machineMasterInfo(mno)||machineMasterInfo(String(item.name||'').trim());
+ const row={id:existing?.id||('MH-'+Date.now()+'-'+Math.random().toString(36).slice(2,8)),sourceSr:key,machineNo:(mm&&mm.machineNumber)||mno,machine:(mm&&mm.machineName)||item.name||r.itemName||'',year:existing?.year||(mm&&mm.manufacturingYear)||item.installDate&&String(item.installDate).slice(0,4)||'',make:(mm&&mm.make)||item.make||existing?.make||'',
+  date:r.date||new Date().toISOString().slice(0,10),reason:'Maint & Utility - '+(r.activity||'')+(r.problem?': '+r.problem:''),attendedBy:r.person||existing?.attendedBy||'Maintenance Team',
+  action:r.action||(r.activity||'Maintenance'),verifiedBy:'',spares:sp.length?formatSpareParts(sp):'None',bdHours:r.hours||'',cost:r.cost||existing?.cost||0,auto:true,updatedAt:new Date().toISOString()};
+ if(existing){Object.assign(existing,row);return existing}
+ data.mh.push(row);return row;
+}
+function syncHistoryFromUtility(r){try{const row=historyFromUtility(r);if(!row)return false;persist('mh');try{renderHistory()}catch(e){}return true}catch(e){console.warn('Utility -> Machine History',e);return false}}
+function utilityBackfillHistory(){try{if(localStorage.getItem('mmsUtilMhBackfillV1'))return;let n=0;(data.utility||[]).forEach(r=>{if(r&&r.type==='log'&&Array.isArray(r.spareParts)&&r.spareParts.some(x=>x&&(x.part||x.qty))){const k='UT-'+r.id;if(!data.mh.some(x=>String(x.sourceSr||'')===k)){if(historyFromUtility(r))n++}}});if(n){persist('mh');try{renderHistory()}catch(e){}}localStorage.setItem('mmsUtilMhBackfillV1','1')}catch(e){console.warn('util backfill',e)}}
+setTimeout(utilityBackfillHistory,4000);
 function saveUtilityLog(){
  if(!mmsGuardSave('utility'))return;
   utilityNormalizeData();
@@ -4538,7 +4557,7 @@ function saveUtilityLog(){
   const prev=r&&Array.isArray(r.spareParts)?r.spareParts:[];
   if(!mrReconcileSpares(prev,spareParts))return;   // stock check + auto deduct / restore
   const obj={type:'log',id,date,itemId:String(itemId),itemName:item.name,kind:item.kind||'Utility Item',qty:Number(f('mu_log_qty'))||0,uom:uomOf(item),location:(f('mu_log_location')||'').trim(),department:(f('mu_log_department')||'').trim(),activity:f('mu_log_activity')||'Other',problem:(f('mu_log_problem')||'').trim(),action:(f('mu_log_action')||'').trim(),spareParts,spare:formatSpareParts(spareParts),hours:Number(f('mu_log_hours'))||0,cost:Number(f('mu_log_cost'))||0,person:(f('mu_log_person')||'').trim(),nextDate:f('mu_log_next')||'',remark:(f('mu_log_remark')||'').trim()};
-  if(r)Object.assign(r,obj);else data.utility.push(obj);persist('utility');clearUtilityLogForm();renderMaintUtility();alert('Maintenance / repair record saved successfully.'+(spareParts.some(x=>x.spareLink&&!String(x.spareLink).startsWith('unlisted:'))?'\n\nSpare stock auto-updated.':''));
+  if(r)Object.assign(r,obj);else data.utility.push(obj);persist('utility');syncHistoryFromUtility(obj);clearUtilityLogForm();renderMaintUtility();alert('Maintenance / repair record saved successfully.'+(spareParts.some(x=>x.spareLink&&!String(x.spareLink).startsWith('unlisted:'))?'\n\nSpare stock auto-updated.':''));
 }
 function editUtilityLog(i){if(!mmsGuardEdit('utility'))return;
   const a=utilityLogs();const r=a[i];if(!r)return;edit.utilityLog=r.id;setv('mu_log_id',r.id);setv('mu_log_date',r.date);populateUtilityItemSelect(r.itemId);setv('mu_log_qty',r.qty);setv('mu_log_location',r.location);setv('mu_log_department',r.department);setv('mu_log_activity',r.activity);setv('mu_log_problem',r.problem);setv('mu_log_action',r.action);muRenderSpares(Array.isArray(r.spareParts)?r.spareParts:[]);setv('mu_log_hours',r.hours||'');setv('mu_log_cost',r.cost||'');setv('mu_log_person',r.person);setv('mu_log_next',r.nextDate);setv('mu_log_remark',r.remark);
@@ -4549,7 +4568,7 @@ function deleteUtilityLog(i){
  const sp=Array.isArray(r.spareParts)?r.spareParts:[];const hasSp=sp.some(x=>x.spareLink&&!String(x.spareLink).startsWith('unlisted:'));
  if(!confirm('Delete this maintenance/usage record?'+(hasSp?'\n\nUsed spare quantity will be added back to Spare Inventory.':'')))return;
  if(hasSp&&!mrReconcileSpares(sp,[]))return;
- data.utility=data.utility.filter(x=>String(x.id)!==String(r.id));persist('utility');renderMaintUtility();}
+ data.utility=data.utility.filter(x=>String(x.id)!==String(r.id));persist('utility');try{const ex=data.mh.find(x=>String(x.sourceSr||'')==='UT-'+r.id);if(ex){data.mh=data.mh.filter(x=>x!==ex);persist('mh');renderHistory()}}catch(e){}renderMaintUtility();}
 function clearUtilityLogFilters(){['mu_log_filter_item','mu_log_filter_kind','mu_log_search'].forEach(id=>setv(id,''));renderUtilityLogs();}
 function muShowHistory(id){
   setv('mu_log_filter_kind','');setv('mu_log_search','');setv('mu_log_filter_item',id);renderUtilityLogs();
@@ -18022,10 +18041,11 @@ function mountTools(){
   var s=document.getElementById(sec);if(!s||$('.v154tool',s))return;
   var d=document.createElement('div');d.className='v154tool';
   var h='<button type="button" class="secondary" data-t="csv" title="Module ke print format jaisa Excel">⬇ Excel</button>';
-  if(sec==='spares')h+='<button type="button" class="secondary" data-t="ledger">📒 Stock Ledger</button>';
+  if(sec==='spares')h+='<button type="button" class="secondary" data-t="ledger">📒 Stock Ledger</button><button type="button" class="secondary" data-t="adj" title="Spare ka stock haath se badhao / ghatao / physical count se set karo">✏️ Stock Adjust</button>';
+  if(sec==='spares'||sec==='criticalSpares')h+='<button type="button" class="secondary" data-t="unl" title="Modules me use hue Unlisted spares ko Spare List / Critical List me add karo">🆕 Unlisted Spares</button>';
   if(sec==='mm')h+='<button type="button" class="secondary" data-t="labels">🏷 Barcode Labels</button><button type="button" class="secondary" data-t="scan">📷 Scan Machine</button>';
   d.innerHTML=h;d.onclick=function(e){var t=e.target.getAttribute&&e.target.getAttribute('data-t');if(!t)return;
-   if(t==='csv'){if(!(window.v155ExcelFmt&&window.v155ExcelFmt(sec)))exportCsv(sec)}else if(t==='ledger')ledger();else if(t==='labels')labels();
+   if(t==='csv'){if(!(window.v155ExcelFmt&&window.v155ExcelFmt(sec)))exportCsv(sec)}else if(t==='ledger')ledger();else if(t==='adj')stockAdjust();else if(t==='unl')unlistedTool();else if(t==='labels')labels();
    else if(t==='scan')scan(function(txt){if(window.v155MachineView&&window.v155MachineView(txt))return;var i=document.getElementById('mm_search');if(i){i.value=txt;i.dispatchEvent(new Event('input',{bubbles:true}))}})};
   s.insertBefore(d,s.firstChild);
  });
@@ -18050,6 +18070,7 @@ function ledgerRows(sp){
  (data.sparePurchase||[]).forEach(function(r){if(!r||r.status!=='Received'||r.stockAdded===false)return;
    var same=(r.desc===sp.desc&&String(r.spec||'')===String(sp.spec||''));try{same=same||spareLinkKey(r.desc,r.spec)===k}catch(e){}
    if(same)add(r.recDate,'Receipt',(r.fromUnit4?'Unit 4 Store ':'PO '+(r.po||'')+' ')+(r.vendor||''),Number(r.recQty)||Number(r.qty)||0)});
+ (Array.isArray(sp.adj)?sp.adj:[]).forEach(function(a){if(a&&Number(a.delta))add(a.date,'Manual Adjust','✏️ '+(a.reason||'Manual')+(a.note?' - '+a.note:'')+(a.by?' ['+a.by+']':''),Number(a.delta))});
  mv.sort(function(a,b){return String(a.d).localeCompare(String(b.d))});
  var bal=inventoryAvailableQty(sp);for(var i=mv.length-1;i>=0;i--){mv[i].b=Math.round(bal*1000)/1000;bal-=mv[i].q}
  return {mv:mv,open:Math.round(bal*1000)/1000};
@@ -18058,9 +18079,121 @@ function ledger(){
  var L=data.spares||[];if(!L.length)return alert('Spare list khali hai.');
  var m=modal('<h3 style="margin:0 0 8px">📒 Spare Stock Ledger</h3><select id="v154Sp" style="width:100%;padding:8px">'+L.map(function(s,i){return '<option value="'+i+'">'+E((s.code||'')+' '+(s.desc||'')+' '+(s.spec||''))+'</option>'}).join('')+'</select><div id="v154Lg"></div>');
  function draw(){var sp=L[+$('#v154Sp',m).value],r=ledgerRows(sp);
-  $('#v154Lg',m).innerHTML='<div class="v154note" style="font-size:12px;margin-top:6px">Movement: Breakdown, MR, PM, Maint &amp; Utility me use hue spares (issue) aur Received purchase / Unit 4 (receipt). Opening = abhi ke Avail me se piche ki ginti (estimate). Unit: '+E(uomOf(sp))+'</div><table><tr><th>Date</th><th>Type</th><th>Reference</th><th>Qty</th><th>Balance</th></tr><tr><td>—</td><td>Opening (est.)</td><td></td><td></td><td>'+r.open+'</td></tr>'+(r.mv.map(function(x){return '<tr><td>'+E(x.d)+'</td><td>'+x.t+'</td><td>'+E(x.ref)+'</td><td class="'+(x.q<0?'bad':'ok')+'">'+(x.q>0?'+':'')+x.q+'</td><td>'+x.b+'</td></tr>'}).join('')||'<tr><td colspan="5">Koi movement nahi mila</td></tr>')+'</table>'}
+  $('#v154Lg',m).innerHTML='<div class="v154note" style="font-size:12px;margin-top:6px">Movement: Breakdown, MR, PM, Maint &amp; Utility me use hue spares (issue) aur Received purchase / Unit 4 (receipt). Manual Adjust = haath se kiya stock sudhaar (✏️ Stock Adjust). Opening = abhi ke Avail me se piche ki ginti (estimate). Unit: '+E(uomOf(sp))+'</div><table><tr><th>Date</th><th>Type</th><th>Reference</th><th>Qty</th><th>Balance</th></tr><tr><td>—</td><td>Opening (est.)</td><td></td><td></td><td>'+r.open+'</td></tr>'+(r.mv.map(function(x){return '<tr><td>'+E(x.d)+'</td><td>'+x.t+'</td><td>'+E(x.ref)+'</td><td class="'+(x.q<0?'bad':'ok')+'">'+(x.q>0?'+':'')+x.q+'</td><td>'+x.b+'</td></tr>'}).join('')||'<tr><td colspan="5">Koi movement nahi mila</td></tr>')+'</table>'}
  $('#v154Sp',m).onchange=draw;draw();
 }
+
+/* ---------- 5b) MANUAL STOCK ADJUST (spare ki entry haath se) - Stock Ledger me 'Manual Adjust' ke roop me dikhti hai ---------- */
+function stockAdjust(presetId){
+ if(typeof mmsGuardEdit==='function'&&!mmsGuardEdit('spares'))return;
+ var L=data.spares||[];if(!L.length)return alert('Spare list khali hai.');
+ var today=(typeof td==='function'?td():new Date().toISOString().slice(0,10));
+ var pi=0;if(presetId!=null){L.forEach(function(x,i){if(String(x.id)===String(presetId))pi=i})}
+ var m=modal('<h3 style="margin:0 0 8px">✏️ Stock Adjust (Manual)</h3>'+
+  '<div class="v154note" style="font-size:12px;margin-bottom:8px">Stock haath se sudharne ke liye. Har adjust Stock Ledger me <b>Manual Adjust</b> ke naam se dikhega.</div>'+
+  '<label style="font-size:12px">Spare</label><select id="v181Sp" style="width:100%;padding:8px">'+L.map(function(s,i){return '<option value="'+i+'"'+(i===pi?' selected':'')+'>'+E((s.code||'')+' '+(s.desc||'')+' '+(s.spec||''))+'</option>'}).join('')+'</select>'+
+  '<div id="v181Cur" style="margin:8px 0;font-weight:700"></div>'+
+  '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label style="font-size:12px">Kya karna hai</label><select id="v181Mode" style="width:100%;padding:8px"><option value="add">➕ Stock badhao (Add)</option><option value="rem">➖ Stock ghatao (Remove)</option><option value="set">🎯 Physical count se set karo</option></select></div>'+
+  '<div><label style="font-size:12px" id="v181QL">Qty</label><input id="v181Q" type="number" min="0" step="any" style="width:100%;padding:8px"></div>'+
+  '<div><label style="font-size:12px">Date</label><input id="v181D" type="date" value="'+today+'" style="width:100%;padding:8px"></div>'+
+  '<div><label style="font-size:12px">Reason</label><select id="v181R" style="width:100%;padding:8px"><option>Physical count correction</option><option>Opening stock</option><option>Store se mila (bina PO)</option><option>Damaged / Scrap</option><option>Return to store</option><option>Manual issue (entry nahi bani)</option><option>Other</option></select></div></div>'+
+  '<label style="font-size:12px;display:block;margin-top:8px">Note (optional)</label><input id="v181N" style="width:100%;padding:8px" placeholder="Kisko diya / kahan se aaya / kyun badla">'+
+  '<div id="v181Pv" class="v154note" style="font-size:12px;margin:8px 0"></div>'+
+  '<div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" id="v181Save">💾 Save Adjust</button></div>'+
+  '<h4 style="margin:14px 0 4px">Is spare ke Manual Adjust (history)</h4><div id="v181H"></div>');
+ function cur(){return L[+$('#v181Sp',m).value]}
+ function calc(){var sp=cur(),have=inventoryAvailableQty(sp),mode=$('#v181Mode',m).value,q=Number($('#v181Q',m).value);if(!isFinite(q)||q<0)q=NaN;
+  var after=have,delta=NaN;
+  if(!isNaN(q)){if(mode==='add'){delta=q;after=have+q}else if(mode==='rem'){delta=-q;after=have-q}else{delta=q-have;after=q}}
+  return {sp:sp,have:have,mode:mode,q:q,delta:delta,after:Math.round(after*1000)/1000}}
+ function draw(){var c=calc();$('#v181Cur',m).innerHTML='Abhi ka stock: <span style="font-size:18px">'+E(c.have)+' '+E(uomOf(c.sp))+'</span>';
+  $('#v181QL',m).textContent=c.mode==='set'?'Physical count (kul stock)':'Qty ('+uomOf(c.sp)+')';
+  $('#v181Pv',m).innerHTML=isNaN(c.q)?'Qty bharo.':(c.mode==='set'&&c.delta===0?'Koi badlav nahi (stock pehle se barabar).':'Stock <b>'+E(c.have)+'</b> → <b style="color:'+(c.after<0?'#f87171':'#4ade80')+'">'+E(c.after)+'</b> ('+(c.delta>0?'+':'')+E(Math.round(c.delta*1000)/1000)+')');
+  var h=(Array.isArray(c.sp.adj)?c.sp.adj:[]).slice().reverse();
+  $('#v181H',m).innerHTML=h.length?'<table><tr><th>Date</th><th>Change</th><th>Pehle→Baad</th><th>Reason</th><th></th></tr>'+h.map(function(a){return '<tr><td>'+E(a.date)+'</td><td>'+(a.delta>0?'+':'')+E(a.delta)+'</td><td>'+E(a.before)+' → '+E(a.after)+'</td><td>'+E((a.reason||'')+(a.note?' - '+a.note:'')+(a.by?' ['+a.by+']':''))+'</td><td><button type="button" class="danger" data-u="'+E(a.id)+'">↩ Undo</button></td></tr>'}).join('')+'</table><div class="v154note" style="font-size:11px">Galat entry ho to ↩ Undo karo (stock wapas pehle jaisa), phir sahi adjust karo.</div>':'<div class="v154note" style="font-size:12px">Abhi koi manual adjust nahi.</div>'}
+ function done(){try{persist('spares');persist('critical')}catch(e){}try{renderSparePartsTable();renderCriticalTable()}catch(e){}try{if(typeof renderSparePartsTab==='function')renderSparePartsTab()}catch(e){}}
+ function stockMove(sp,delta){ /* delta>0 = stock badhana, delta<0 = ghatana */
+  var d=-delta; /* applyNormalSpareDelta: +use(ghatao) / -restore(badhao) */
+  if(d>0){var chk=normalSpareDeltaCheck(sp.id,d);if(!chk.ok){alert(chk.msg||'Stock kam hai.');return false}}
+  applyNormalSpareDelta(sp.id,d);return true}
+ $('#v181Save',m).onclick=function(){var c=calc();
+  if(isNaN(c.q))return alert('Qty sahi bharo.');
+  if(c.mode!=='set'&&c.q<=0)return alert('Qty 0 se zyada bharo.');
+  if(c.delta===0)return alert('Koi badlav nahi - stock pehle se barabar hai.');
+  if(c.after<0)return alert('Stock minus nahi ho sakta (abhi '+c.have+').');
+  var date=$('#v181D',m).value;if(!date)return alert('Date chuno.');
+  var reason=$('#v181R',m).value,note=$('#v181N',m).value.trim();
+  if(!confirm((c.sp.desc||'')+'\nStock '+c.have+' → '+c.after+' ('+(c.delta>0?'+':'')+Math.round(c.delta*1000)/1000+')\nReason: '+reason+'\n\nSave karein?'))return;
+  if(!stockMove(c.sp,c.delta))return;
+  var who='';try{who=(mmsSession()||{}).u||''}catch(e){}
+  c.sp.adj=Array.isArray(c.sp.adj)?c.sp.adj:[];
+  c.sp.adj.push({id:'A'+Date.now().toString(36),date:date,delta:Math.round(c.delta*1000)/1000,before:c.have,after:c.after,reason:reason,note:note,by:who,at:new Date().toISOString()});
+  c.sp.updatedAt=new Date().toISOString();
+  try{if(typeof audit==='function')audit('SAVE','spares','STOCK ADJUST '+(c.sp.desc||'')+' '+c.have+' -> '+c.after+' ('+reason+')')}catch(e){}
+  done();$('#v181Q',m).value='';$('#v181N',m).value='';draw();alert('✅ Stock adjust ho gaya: '+c.have+' → '+c.after)};
+ m.addEventListener('click',function(e){var id=e.target.getAttribute&&e.target.getAttribute('data-u');if(!id)return;
+  var sp=cur(),a=(sp.adj||[]).filter(function(x){return x.id===id})[0];if(!a)return;
+  if(!confirm('Ye adjust wapas lein?\n'+a.date+' '+(a.delta>0?'+':'')+a.delta+' ('+a.reason+')\nStock '+inventoryAvailableQty(sp)+' → '+Math.round((inventoryAvailableQty(sp)-a.delta)*1000)/1000))return;
+  if(!stockMove(sp,-a.delta))return;
+  sp.adj=sp.adj.filter(function(x){return x.id!==id});sp.updatedAt=new Date().toISOString();
+  try{if(typeof audit==='function')audit('DELETE','spares','STOCK ADJUST UNDO '+(sp.desc||'')+' '+a.delta)}catch(e){}
+  done();draw()});
+ ['v181Sp','v181Mode','v181Q'].forEach(function(i){var el=$('#'+i,m);el.onchange=draw;el.oninput=draw});draw();
+}
+window.v181StockAdjust=stockAdjust;
+
+/* ---------- 5c) UNLISTED SPARES -> Spare List / Critical List me add (purane records bhi us spare se jud jate hain, stock dobara kam nahi hota) ---------- */
+function unlistedScan(){
+ var map={};
+ function key(u){return [u.part,u.spec,u.make].map(function(x){return String(x||'').trim().toLowerCase()}).join('|')}
+ function add(u,mod,qty,ref){if(!u||!String(u.part||'').trim())return;var k=key(u),o=map[k]||(map[k]={k:k,part:String(u.part).trim(),spec:String(u.spec||'').trim(),make:String(u.make||'').trim(),times:0,qty:0,mods:{},refs:[]});o.times++;o.qty+=Number(String(qty==null?'':qty).replace(/[^0-9.\-]/g,''))||0;o.mods[mod]=1;o.refs.push(ref)}
+ (data.bd||[]).forEach(function(r){var u=parseUnlistedSpareLink(r&&r.spareLink);if(u)add(u,'Breakdown',r.qty,{m:'bd',r:r})});
+ (data.mr||[]).forEach(function(r){(Array.isArray(r&&r.spareParts)?r.spareParts:[]).forEach(function(p){var u=parseUnlistedSpareLink(p&&(p.spareLink||p.link));if(u)add(u,'MR',p.qty,{m:'mr',p:p})})});
+ (data.pm||[]).forEach(function(r){(r&&r.entries||[]).forEach(function(e){(Array.isArray(e&&e.spareUsed)?e.spareUsed:[]).forEach(function(p){var u=parseUnlistedSpareLink(p&&p.spareLink);if(u)add(u,'PM',p.qty,{m:'pm',p:p})})})});
+ (data.utility||[]).forEach(function(r){if(!r||r.type!=='log')return;(Array.isArray(r.spareParts)?r.spareParts:[]).forEach(function(p){var u=parseUnlistedSpareLink(p&&p.spareLink);if(u)add(u,'Utility',p.qty,{m:'utility',p:p})})});
+ return Object.keys(map).map(function(k){return map[k]}).sort(function(a,b){return b.times-a.times});
+}
+function unlistedRelink(o,spare){
+ var id=spare.id,touched={};
+ o.refs.forEach(function(x){
+  if(x.m==='bd'){x.r.spareLink='spares:'+id;touched.bd=1}
+  else if(x.m==='mr'||x.m==='utility'){x.p.spareLink='spares:'+id;x.p.spareKind='spares';x.p.spareId=String(id);x.p.part=spare.desc+(spare.spec?' - '+spare.spec:'');touched[x.m]=1}
+  else if(x.m==='pm'){x.p.id=id;x.p.spareLink=id;x.p.spareKind='spares';x.p.desc=spare.desc;x.p.spec=spare.spec||'';touched.pm=1}
+ });
+ Object.keys(touched).forEach(function(k){try{if(k==='pm'&&typeof persistPMWithEvidence==='function')persistPMWithEvidence();persist(k)}catch(e){}});
+}
+function unlistedTool(){
+ if(typeof mmsGuardEdit==='function'&&!mmsGuardEdit('spares'))return;
+ var m=modal('<h3 style="margin:0 0 6px">🆕 Unlisted Spares</h3><div class="v154note" style="font-size:12px;margin-bottom:8px">Jo spares Breakdown / MR / PM / Utility me "Other / Unlisted" se use hue hain. Unhe Spare List ya Critical Spare List me add karo - purane records us spare se jud jayenge (<b>stock dobara kam nahi hoga</b>), aur wo Stock Ledger me bhi dikhne lagenge.</div><div id="v184U"></div>');
+ function draw(){
+  var L=unlistedScan(),box=$('#v184U',m);
+  if(!L.length){box.innerHTML='<div class="v154note" style="font-size:13px">✅ Koi unlisted spare baaki nahi hai.</div>';return}
+  box.innerHTML='<div style="overflow:auto"><table><tr><th>Spare</th><th>Use</th><th>Min</th><th>Max</th><th>Abhi stock</th><th>Unit</th><th>Add</th></tr>'+L.map(function(o,i){
+   return '<tr data-i="'+i+'"><td><b>'+E(o.part)+'</b><br><small>'+E([o.spec,o.make].filter(Boolean).join(' | '))+'</small></td><td>'+o.times+'× / '+Math.round(o.qty*100)/100+'<br><small>'+E(Object.keys(o.mods).join(', '))+'</small></td>'+
+   '<td><input type="number" min="0" step="any" value="1" class="u-min" style="width:62px"></td><td><input type="number" min="1" step="any" value="10" class="u-max" style="width:62px"></td><td><input type="number" min="0" step="any" value="0" class="u-av" style="width:70px"></td>'+
+   '<td><select class="u-uom" style="width:72px">'+(typeof uomOptions==='function'?uomOptions('Nos'):'<option>Nos</option>')+'</select></td>'+
+   '<td style="white-space:nowrap"><button type="button" data-a="sp">➕ Spare List</button> <button type="button" data-a="cr">⭐ Critical + Spare</button></td></tr>'}).join('')+'</table></div>'}
+ m.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('button[data-a]');if(!b)return;
+  var tr=b.closest('tr'),o=unlistedScan()[+tr.getAttribute('data-i')];if(!o)return;
+  var min=Number(tr.querySelector('.u-min').value),max=Number(tr.querySelector('.u-max').value),av=Number(tr.querySelector('.u-av').value),uom=tr.querySelector('.u-uom').value||'Nos';
+  if(!(min>=0)||!(max>0)||!(av>=0))return alert('Min, Max aur stock sahi bharo.');
+  if(min>max)return alert('Min, Max se zyada nahi ho sakta.');
+  if(av>max)return alert('Abhi ka stock Max se zyada nahi ho sakta (Max badhao).');
+  var crit=b.getAttribute('data-a')==='cr',key=spareLinkKey(o.part,o.spec),now=new Date().toISOString(),ex=(data.spares||[]).filter(function(x){return spareLinkKey(x.desc,x.spec)===key})[0];
+  if(ex){if(!confirm('Ye spare Spare List me pehle se hai:\n'+ex.desc+(ex.spec?' - '+ex.spec:'')+'\n\nNaya nahi banega - purane records isi se jod dein?'))return;unlistedRelink(o,ex);draw();return alert('✅ Purane records existing spare se jud gaye.')}
+  if(!confirm(o.part+(o.spec?' - '+o.spec:'')+'\nStock: '+av+' '+uom+'  (Min '+min+', Max '+max+')\n\n'+(crit?'Critical Spare List + Spare List':'Spare List')+' me add karein?'))return;
+  var id=Date.now();
+  if(crit){data.critical.push({id:id,sno:data.critical.length+1,code:'',desc:o.part,spec:o.spec,min:min,max:max,machine:'',loc:'',avail:av,uom:uom,remark:o.make?('Make: '+o.make):'',updatedAt:now});try{syncSpareCriticalMaster(true,'critical')}catch(e){}}
+  else{data.spares.push({id:id,sno:data.spares.length+1,code:'',desc:o.part,spec:o.spec,make:o.make,min:min,max:max,qty:String(av),availableQty:av,uom:uom,loc:'',u4:false,updatedAt:now});persist('spares');try{syncSpareCriticalMaster(true)}catch(e){}}
+  var sp=(data.spares||[]).filter(function(x){return spareLinkKey(x.desc,x.spec)===key})[0];
+  if(!sp)return alert('Spare ban gaya par link nahi ho paya - Spare List check karo.');
+  if(crit&&o.make&&!sp.make){sp.make=o.make;sp.updatedAt=now}
+  unlistedRelink(o,sp);try{persist('spares');persist('critical')}catch(e){}
+  try{renderSparePartsTable();renderCriticalTable()}catch(e){}
+  draw();alert('✅ "'+o.part+'" ab '+(crit?'Critical + Spare List':'Spare List')+' me hai. Purane '+o.times+' record jud gaye.')});
+ draw();
+}
+window.v184Unlisted=unlistedTool;
 
 /* ---------- 6) AUDIT TRAIL old -> new (edit diff) ---------- */
 var shadow={};
@@ -19655,5 +19788,66 @@ html body main.wrap section.panel .v154tool.v154tool button:active,html body mai
 .pmx-setup select{flex:1 1 230px;min-width:200px;max-width:100%}
 @media (max-width:640px){.pmh-card{grid-template-columns:6px 1fr!important}.pmh-rt{grid-column:2;flex-direction:row;flex-wrap:wrap}.pmx-setup select{flex:1 1 100%}}
 </style>
+
+<!-- v183: Spare dropdown -> search wala picker (sab modules: Breakdown, MR, PM, Maint&Utility, Purchase) -->
+<style id="v183PickCss">
+.spare-name,.pm-global-spare-select,#bd_spare_select,#ps_spare{cursor:pointer}
+#v183Pk{position:fixed;inset:0;z-index:100000;background:rgba(4,12,24,.72);display:flex;align-items:flex-start;justify-content:center;padding:4vh 10px 10px}
+#v183Pk .bx{width:100%;max-width:560px;max-height:88vh;display:flex;flex-direction:column;background:linear-gradient(160deg,#143252,#0e2238);border:1px solid #2a4a6b;border-radius:18px;box-shadow:0 14px 40px rgba(0,0,0,.5);color:#e6f0fa;overflow:hidden}
+#v183Pk .hd{display:flex;gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid #2a4a6b}
+#v183Pk .hd input{flex:1;min-width:0;padding:10px 12px;border-radius:12px;border:1px solid #3b6288;background:#0b1b2e;color:#e6f0fa;font:600 15px Inter,Roboto,system-ui,sans-serif}
+#v183Pk .hd button{padding:9px 12px;border-radius:12px;border:1px solid #3b6288;background:#1d4467;color:#e6f0fa;font:600 13px Inter,system-ui,sans-serif;cursor:pointer}
+#v183Pk .ct{padding:6px 14px;font-size:11.5px;color:#8fb3d6}
+#v183Pk .ls{overflow:auto;padding:0 8px 10px;-webkit-overflow-scrolling:touch}
+#v183Pk .it{display:block;width:100%;text-align:left;margin:0 0 4px;padding:9px 12px;border-radius:10px;border:1px solid transparent;background:transparent;color:#e6f0fa;font:500 14px/1.3 Inter,Roboto,system-ui,sans-serif;cursor:pointer;word-break:break-word}
+#v183Pk .it:hover,#v183Pk .it.on{background:#1d4467;border-color:#3b6288}
+#v183Pk .it.cur{border-color:#4ade80}
+#v183Pk .it mark{background:#facc15;color:#10212f;border-radius:3px;padding:0 1px}
+#v183Pk .it.mut{color:#8fb3d6;font-style:italic}
+</style>
+<script id="v183PickJs">
+(function(){
+ var SEL='select.spare-name,select.pm-global-spare-select,select#bd_spare_select,select#ps_spare';
+ function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]})}
+ function norm(s){return String(s||'').toLowerCase()}
+ function hl(t,toks){var h=esc(t);toks.forEach(function(k){if(!k)return;try{h=h.replace(new RegExp('('+k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')(?![^<]*>)','ig'),'<mark>$1</mark>')}catch(e){}});return h}
+ function open(sel,pre){
+  if(document.getElementById('v183Pk'))return;
+  var opts=[].slice.call(sel.options).map(function(o,i){return {i:i,v:o.value,t:(o.textContent||'').trim(),dis:o.disabled}}).filter(function(o){return !o.dis});
+  var ov=document.createElement('div');ov.id='v183Pk';
+  ov.innerHTML='<div class="bx"><div class="hd"><input type="search" id="v183Q" placeholder="🔍 Spare ka naam / spec / code likho…" autocomplete="off"><button type="button" id="v183X">✕</button></div><div class="ct" id="v183C"></div><div class="ls" id="v183L"></div></div>';
+  document.body.appendChild(ov);
+  var q=ov.querySelector('#v183Q'),L=ov.querySelector('#v183L'),C=ov.querySelector('#v183C'),cur=sel.value,active=0,shown=[];
+  function draw(){
+   var toks=norm(q.value).split(/\s+/).filter(Boolean);
+   var hit=opts.filter(function(o){if(!toks.length)return true;if(!o.v)return false;var t=norm(o.t);return toks.every(function(k){return t.indexOf(k)>=0})});
+   var real=hit.filter(function(o){return o.v&&o.v!=='__UNLISTED__'}).length;
+   C.textContent=toks.length?(real+' spare mile'+(real?' (Enter = pehla chuno)':' - spelling chhota karke dekho')):('Kul '+opts.filter(function(o){return o.v&&o.v!=='__UNLISTED__'}).length+' spares - naam likhna shuru karo');
+   shown=hit.slice(0,150);if(active>=shown.length)active=0;
+   L.innerHTML=shown.map(function(o,n){var mut=(!o.v||o.v==='__UNLISTED__');return '<button type="button" class="it'+(n===active?' on':'')+(o.v&&o.v===cur?' cur':'')+(mut?' mut':'')+'" data-n="'+n+'">'+(o.v?hl(o.t,toks):esc(o.t||'-- Clear --'))+'</button>'}).join('')+(hit.length>150?'<div class="ct">… aur '+(hit.length-150)+' hain, naam aur likho</div>':'');
+  }
+  function pick(n){var o=shown[n];if(!o)return;sel.selectedIndex=o.i;close();['input','change'].forEach(function(ev){sel.dispatchEvent(new Event(ev,{bubbles:true}))});try{sel.focus()}catch(e){}}
+  function close(){document.removeEventListener('keydown',kd,true);ov.remove()}
+  function kd(e){
+   if(e.key==='Escape'){e.preventDefault();close()}
+   else if(e.key==='ArrowDown'){e.preventDefault();active=Math.min(shown.length-1,active+1);draw();var a=L.querySelector('.on');if(a)a.scrollIntoView({block:'nearest'})}
+   else if(e.key==='ArrowUp'){e.preventDefault();active=Math.max(0,active-1);draw();var b=L.querySelector('.on');if(b)b.scrollIntoView({block:'nearest'})}
+   else if(e.key==='Enter'&&document.activeElement===q){e.preventDefault();
+    var first=shown.map(function(o,n){return n}).filter(function(n){return shown[n].v&&shown[n].v!=='__UNLISTED__'})[0];pick(q.value.trim()?(first!=null?first:active):active)}
+  }
+  document.addEventListener('keydown',kd,true);
+  q.oninput=function(){active=0;draw()};
+  L.onclick=function(e){var b=e.target.closest&&e.target.closest('.it');if(b)pick(+b.getAttribute('data-n'))};
+  ov.querySelector('#v183X').onclick=close;ov.onclick=function(e){if(e.target===ov)close()};
+  if(pre)q.value=pre;draw();setTimeout(function(){q.focus();if(!pre)q.select()},30);
+ }
+ function target(e){var t=e.target;return t&&t.closest?t.closest(SEL):null}
+ document.addEventListener('mousedown',function(e){var s=target(e);if(s&&!s.disabled){e.preventDefault()}},true);
+ document.addEventListener('click',function(e){var s=target(e);if(!s||s.disabled)return;e.preventDefault();e.stopPropagation();open(s)},true);
+ document.addEventListener('keydown',function(e){if(document.getElementById('v183Pk'))return;var s=document.activeElement;if(!s||!s.matches||!s.matches(SEL)||s.disabled)return;
+  if(e.key==='Enter'||e.key===' '||e.key==='ArrowDown'){e.preventDefault();open(s)}
+  else if(e.key.length===1&&!e.ctrlKey&&!e.metaKey&&!e.altKey){e.preventDefault();open(s,e.key)}},true);
+})();
+</script>
 </body>
 </html>
