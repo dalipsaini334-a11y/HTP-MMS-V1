@@ -1087,13 +1087,14 @@ main.wrap{margin-left:252px;padding:94px 22px 25px;max-width:none}.sidebar-overl
 <div class="form">
 <div class="field"><label>Checklist / Machine Type</label><select id="pm_template" onchange="loadPMTemplate()"></select></div>
 <div class="field"><label>Machine Number</label><select id="pm_machine_no" onchange="pmMachineChanged()"><option value="">Select Machine</option></select></div>
-<div class="field"><label>Start Time</label><input id="pm_start" type="time"></div>
-<div class="field"><label>End Time</label><input id="pm_end" type="time"></div>
-<div class="field"><label>Done Date (From)</label><input id="pm_date" type="date"></div>
-<div class="field"><label>Done Date To <small>(only if PM took more than 1 day)</small></label><input id="pm_date_to" type="date" title="Khali chhodo agar PM ek hi din me hua"></div>
+<div class="field"><label>PM Start Date</label><input id="pm_date" type="date"></div>
+<div class="field"><label>PM Start Time</label><input id="pm_start" type="time"></div>
+<div class="field"><label>PM End Date <small>(khali = same din)</small></label><input id="pm_date_to" type="date" title="Khali chhodo agar PM usi din khatam hua jis din start hua"></div>
+<div class="field"><label>PM End Time</label><input id="pm_end" type="time"></div>
 <div class="field"><label>Checked By</label><input id="pm_checked_by"></div>
 <div class="field"><label>Verified By</label><input id="pm_verified_by" readonly title="Login user ke naam se auto-fill hota hai" placeholder="Auto: login user"></div>
 <div class="field"><label>PM Plan Month</label><select id="pm_plan_month"></select></div>
+<div class="field"><label>Remark</label><input id="pm_remark" placeholder="Koi remark ho to yahan likho (optional)"></div>
 <div class="field"><label>Action for "Not OK" points</label><input id="pm_action" placeholder="kya action liya / lena hai"></div>
 <div class="field"><label>Action Target Date</label><input id="pm_action_target" type="date"></div>
 <div class="field"><label>Action Status</label><select id="pm_action_status"><option>Open</option><option>Closed</option></select></div>
@@ -1965,26 +1966,26 @@ function syncSpareAvailable(r,n){if(!r)return;const unit=String(r.qty||'').repla
 function restoreInventoryQty(list,id,returnQty){
   let r=findById(list,id);if(!r)return false;
   let current=inventoryAvailableQty(r);
-  syncSpareAvailable(r,current+Math.max(0,num(returnQty)));
+  syncSpareAvailable(r,current+Math.max(0,num(returnQty)));r.updatedAt=new Date().toISOString();
   return true;
 }
 function sameId(a,b){return String(a??'')===String(b??'')}
 function findById(list,id){return (list||[]).find(x=>sameId(x.id,id))||null;}
 function restoreCriticalAvail(id,returnQty){
   let r=findById(data.critical,id);if(!r)return false;
-  r.avail=Math.max(0,num(r.avail)+Math.max(0,num(returnQty)));
+  r.avail=Math.max(0,num(r.avail)+Math.max(0,num(returnQty)));r.updatedAt=new Date().toISOString();
   return true;
 }
 function deductInventoryQty(list,id,usedQty){
   let r=findById(list,id);if(!r)return false;
   let current=inventoryAvailableQty(r),use=Math.max(0,num(usedQty));
   if(current<use)return false;
-  syncSpareAvailable(r,current-use);
+  syncSpareAvailable(r,current-use);r.updatedAt=new Date().toISOString();
   return true;
 }
 function deductCriticalAvail(id,usedQty){
   let r=findById(data.critical,id);if(!r)return false;
-  r.avail=Math.max(0,num(r.avail)-usedQty);
+  r.avail=Math.max(0,num(r.avail)-usedQty);r.updatedAt=new Date().toISOString();
   return true;
 }
 function normalizePartText(v){
@@ -3431,6 +3432,7 @@ renderDG = function() {
  '.mc .big{display:flex;gap:7px;margin:4px 0}.mc .big div{flex:1;background:#f1f5f9;border-radius:12px;padding:8px 4px;text-align:center}.mc .big small{display:block;color:#64748b;font-size:9.5px;font-weight:800}.mc .big b{font-size:18px;color:#0b2545}'+
  '.mc .sig{display:flex;gap:8px;margin-top:8px}.mc .sig div{flex:1;border:1px solid #e2e8f0;border-radius:10px;padding:6px 8px;font-size:10px;color:#64748b}.mc .sig b{display:block;color:#0f172a;font-size:12px;margin-top:2px}'+
  '.mc .f{background:#0b2545;color:#cbd5e1;padding:8px 14px;font-size:10px;display:flex;justify-content:space-between}.mc .g{color:#15803d!important}.mc .r{color:#dc2626!important}.mc .o{color:#b45309!important}'+
+ '.mc .cp{border:1px solid #e2e8f0;border-radius:8px;padding:5px 8px;margin-bottom:5px;font-size:11px}.mc .cph{display:flex;gap:6px;align-items:flex-start}.mc .cpn{flex:none;min-width:18px;font-weight:800;color:#64748b}.mc .cpa{flex:1;font-weight:700;color:#0f172a;word-break:break-word}.mc .cps{flex:none;font-weight:800;font-size:10.5px;color:#64748b}.mc .cpx{margin:2px 0 0 24px;color:#475569;word-break:break-word}.mc .cpx i{font-style:normal;font-weight:700;color:#64748b}.mc .cpr{color:#b45309}'+
  '.mc .steps{display:flex;margin:6px 0 8px}.mc .st{flex:1;text-align:center;font-size:9.5px;color:#94a3b8;font-weight:700;position:relative}.mc .st:not(:last-child):after{content:"";position:absolute;top:10px;left:58%;width:84%;height:2px;background:#e2e8f0}.mc .st.d:not(:last-child):after{background:#16a34a}.mc .st i{display:block;position:relative;z-index:1;width:22px;height:22px;border-radius:50%;background:#e2e8f0;margin:0 auto 3px;line-height:22px;font-style:normal;color:#fff;font-size:12px}.mc .st.d{color:#15803d}.mc .st.d i{background:#16a34a}.mc .st.n{color:#b45309}.mc .st.n i{background:#f59e0b}.mc .st.x{color:#dc2626}.mc .st.x i{background:#dc2626}'+
  '.mc .tl{border-left:2px solid #e2e8f0;margin:4px 0 0 8px;padding-left:12px;font-size:11.5px}.mc .tl div{position:relative;margin-bottom:6px;color:#334155}.mc .tl div:before{content:"";position:absolute;left:-18px;top:3px;width:8px;height:8px;border-radius:50%;background:#16a34a}.mc .tl div.n:before{background:#f59e0b}.mc .tl small{color:#64748b;display:block;font-size:10px}';
  function html(sp){
@@ -3442,6 +3444,7 @@ renderDG = function() {
   if(sp.big&&sp.big.length)h+='<div class="big">'+sp.big.map(function(b){return '<div><small>'+E(b.l)+'</small><b class="'+(b.c||'')+'">'+E(b.v)+'</b></div>'}).join('')+'</div>';
   (sp.sections||[]).forEach(function(s){var rows=(s.rows||[]).filter(function(r){return nz(r[1])});if(!rows.length)return;
    h+=(s.t?'<div class="sec">'+E(s.t)+'</div>':'')+rows.map(function(r){return '<div class="row"><span>'+E(r[0])+'</span><b class="'+(r[2]||'')+'">'+E(r[1])+'</b></div>'}).join('')});
+  if(sp.cps&&sp.cps.length){h+='<div class="sec">Checkpoint Details ('+sp.cps.length+')</div>'+sp.cps.map(function(c){var k=c.st==='OK'?'g':(c.st==='Not OK'?'r':'');return '<div class="cp"><div class="cph"><span class="cpn">'+E(c.n)+'</span><span class="cpa">'+E(c.a)+'</span><span class="cps '+k+'">'+E(c.st||'-')+'</span></div>'+(c.std?'<div class="cpx"><i>Standard:</i> '+E(c.std)+'</div>':'')+(c.o?'<div class="cpx"><i>Observation:</i> '+E(c.o)+'</div>':'')+(c.rm?'<div class="cpx cpr"><i>Remark:</i> '+E(c.rm)+'</div>':'')+(c.sp?'<div class="cpx"><i>Spare:</i> '+E(c.sp)+'</div>':'')+'</div>'}).join('')}
   if(sp.tl&&sp.tl.length)h+='<div class="sec">Timeline</div><div class="tl">'+sp.tl.map(function(t){return '<div class="'+(t.n?'n':'')+'">'+E(t.a)+(t.b?'<small>'+E(t.b)+'</small>':'')+'</div>'}).join('')+'</div>';
   if(sp.sig&&sp.sig.length)h+='<div class="sig">'+sp.sig.map(function(s){return '<div>'+E(s[0])+'<b>'+E(s[1]||'-')+'</b></div>'}).join('')+'</div>';
   h+='</div><div class="f"><span>HTP MMS • Auto generated</span><span>'+E(sp.foot||new Date().toLocaleString('en-GB').replace(',',''))+'</span></div></div>';
@@ -3519,7 +3522,8 @@ renderDG = function() {
  B.pm=function(r){var e=r.entries||[],ok=e.filter(function(x){return x.workDone==='OK'}).length,nk=e.filter(function(x){return x.workDone==='Not OK'}).length,na=e.filter(function(x){return x.workDone==='N/A'}).length;
   return{chip:nk?'⚠ '+nk+' NOT OK':'✔ ALL OK',chipC:nk?'#dc2626':'#15803d',sub:(r.template||'')+' • '+fd(r.date),
   big:[{l:'OK',v:String(ok),c:'g'},{l:'NOT OK',v:String(nk),c:nk?'r':''},{l:'N/A',v:String(na)}],
-  sections:[{t:'Check Sheet',rows:[['Machine No.',r.machineNo],['Checklist',r.template],['Start - End',(r.start||'')+(r.end?' - '+r.end:'')],['Action',r.action],['Verification',r.verifiedBy?'Verified':'Verify pending',r.verifiedBy?'g':'o']]}],sig:[['Checked By',r.checkedBy],['Verified By',r.verifiedBy]]}};
+  sections:[{t:'Check Sheet',rows:[['Machine No.',r.machineNo],['Checklist',r.template],['PM Start',(r.date?fd(r.date):'')+(r.start?'  '+r.start:'')],['PM End',(r.end||r.dateTo)?(fd(r.dateTo||r.date)+(r.end?'  '+r.end:'')):''],['Plan Month',r.planMonth],['Remark',r.remark],['Action (Not OK)',r.action],['Action Status',r.action?(r.actionStatus||'Open'):''],['Verification',r.verifiedBy?'Verified':'Verify pending',r.verifiedBy?'g':'o']]}],cps:pmCards(r),sig:[['Checked By',r.checkedBy],['Verified By',r.verifiedBy]]}};
+ function pmCards(r){var rows=[];try{rows=normalizePMRows(r.checklistRows||(PM_CHECKLISTS[r.template]||{}).rows||[])}catch(e){rows=r.checklistRows||[]}var out=[];(rows.length?rows:(r.entries||[])).forEach(function(x,i){var e=(r.entries||[])[i]||{},sp='';try{sp=formatPMSpareParts(e.spareUsed||[]);if(/^none$/i.test(sp))sp=''}catch(z){}out.push({n:(x.sno||i+1),a:x.activity||'',std:x.standard||'',st:e.workDone||'',o:e.observation||'',rm:e.remark||'',sp:sp})});return out}
  B.tc=function(r){return{chip:r.status||'',chipC:'#b45309',sub:'Furnace '+(r.furnace||'')+(r.loc?' • '+r.loc:''),big:[{l:'TYPE',v:r.type||'-'},{l:'FREQUENCY',v:r.freq||'-'},{l:'DUE',v:r.due||'-'}],
   sections:[{t:'Thermocouple',rows:[['Furnace No.',r.furnace],['Location',r.loc],['Serial / ID',r.srid],['Installed',r.inst],['Replacement Due',r.due],['Cert. No.',r.certNo],['Cal. Lab',r.calLab]]}],sig:[]}};
  B.cal=function(r){return{chip:'',sub:(r.name||'')+(r.idno?' • '+r.idno:''),big:[{l:'CALIBRATED',v:fd(r.date)||'-'},{l:'DUE DATE',v:fd(r.duedate)||'-'},{l:'FREQ',v:r.freq||'-'}],
@@ -3880,13 +3884,14 @@ function savePM(){
  const previousPM=edit.pm!==null ? data.pm[edit.pm] : null;
  let editLog=(previousPM&&previousPM.editLog)||[];
  if(previousPM&&String(previousPM.verifiedBy||'').trim()){const why=prompt('This PM record is already verified. Enter the reason for editing (required):','');if(!why||!why.trim())return alert('A verified record cannot be edited without a reason.');editLog=editLog.concat([{at:new Date().toISOString(),reason:why.trim(),verifiedWas:previousPM.verifiedBy}]);}
- let r={id:'PM-'+Date.now(),template,machineNo:f('pm_machine_no'),date:f('pm_date'),dateTo:f('pm_date_to'),start:f('pm_start'),end:f('pm_end'),checkedBy:f('pm_checked_by'),verifiedBy:f('pm_verified_by'),planMonth:f('pm_plan_month'),action:f('pm_action').trim(),actionTarget:f('pm_action_target'),actionStatus:f('pm_action_status')||'Open',editLog,checklistRows:JSON.parse(JSON.stringify(rows)),entries:pmEntries(),savedAt:new Date().toISOString()};
+ let r={id:'PM-'+Date.now(),template,machineNo:f('pm_machine_no'),date:f('pm_date'),dateTo:f('pm_date_to'),start:f('pm_start'),end:f('pm_end'),checkedBy:f('pm_checked_by'),verifiedBy:f('pm_verified_by'),planMonth:f('pm_plan_month'),remark:f('pm_remark').trim(),action:f('pm_action').trim(),actionTarget:f('pm_action_target'),actionStatus:f('pm_action_status')||'Open',editLog,checklistRows:JSON.parse(JSON.stringify(rows)),entries:pmEntries(),savedAt:new Date().toISOString()};
  // Verified By ab save par apne-aap nahi bharta: saving wala 'Checked By' hai. Verify dusra login 'Verify' button se karta hai.
  // Pehle se verified record edit ho raha ho to purana verifier (aur uska proof) waisa hi rehta hai.
  if(previousPM&&String(previousPM.verifiedBy||'').trim()){r.verifiedBy=previousPM.verifiedBy;if(previousPM.verifiedAt)r.verifiedAt=previousPM.verifiedAt}
  else{r.verifiedBy='';delete r.verifiedAt;try{setv('pm_verified_by','')}catch(e){}}
- if(!r.date||!template)return alert('Please select Checklist and Done Date.');
- if(r.dateTo&&r.dateTo<r.date)return alert('"Done Date To" cannot be before "Done Date (From)".');
+ if(!r.date||!template)return alert('Please select Checklist and PM Start Date.');
+ if(r.dateTo&&r.dateTo<r.date)return alert('"PM End Date" PM Start Date se pehle nahi ho sakti.');
+ if(r.start&&r.end&&(!r.dateTo||r.dateTo===r.date)&&r.end<r.start)return alert('PM End Time, Start Time se pehle hai. Agar PM agle din khatam hua to PM End Date bharo.');
  if(r.dateTo&&r.dateTo===r.date)r.dateTo='';
  if(!String(r.machineNo||'').trim())return alert('Machine No. is required.');
  if(String(r.checkedBy||'').trim()&&String(r.checkedBy).trim().toLowerCase()===String(r.verifiedBy||'').trim().toLowerCase())return alert('Checked By and Verified By must be different persons.');
@@ -3919,8 +3924,8 @@ function savePM(){
  alert((linked?'Preventive Maintenance record saved successfully.\n\nPM Check Sheet saved and PM Plan updated successfully.':'Preventive Maintenance record saved successfully.\n\nNote: PM Plan link could not be matched. Please check Machine No. and PM Plan month.')+(pmTcDone?'\n\n'+pmTcDone+' thermocouple replacement(s) date updated automatically (Spare + Critical stock also reduced where selected).':'')+(pmHist?'\n\nMachine History Card updated (spares / thermocouple used in this PM).':'')+(spareDeducted?'\n\nSpare Parts Inventory deducted automatically for the spare(s) used during this PM.':''));
 }
 function pmFillPlanMonthSelect(){const el=document.getElementById('pm_plan_month');if(!el)return;const cur=el.value;el.innerHTML='<option value="">Auto (month of Done Date)</option>'+PMPLAN_MONTHS.map(x=>'<option>'+x+'</option>').join('');el.value=cur;}
-function loadPMRecord(i){let r=data.pm[i];if(!r)return;edit.pm=i;setv('pm_template',r.template);setv('pm_machine_no',r.machineNo);setv('pm_start',r.start);setv('pm_end',r.end);setv('pm_date',r.date);setv('pm_date_to',r.dateTo||'');setv('pm_checked_by',r.checkedBy);pmFillPlanMonthSelect();setv('pm_verified_by',r.verifiedBy);setv('pm_plan_month',r.planMonth||'');setv('pm_action',r.action||'');setv('pm_action_target',r.actionTarget||'');setv('pm_action_status',r.actionStatus||'Open');window.__pmLoadedEntries=r.entries||[];renderPMRows(r.checklistRows||PM_CHECKLISTS[r.template]?.rows||[]);let trs=[...document.querySelectorAll('#pmBody tr')];(r.entries||[]).forEach((e,j)=>{if(!trs[j])return;trs[j].querySelector('.pm-obs').value=e.observation||'';trs[j].querySelector('.pm-work').value=e.workDone||'';trs[j].querySelector('.pm-rem').value=e.remark||'';trs[j].__evidence=Array.isArray(e.evidence)?e.evidence:[];pmRenderEvidenceCell(trs[j],j)});try{pmTcClearExtra();setv('pm_tc_select','');pmTcShowDone(r)}catch(e){}document.getElementById('pm').scrollIntoView({behavior:'smooth'});}
-function clearPM(){PM_DIRTY=false;edit.pm=null;setv('pm_start','');setv('pm_end','');setv('pm_checked_by',(mmsSession()||{}).u||'');setv('pm_verified_by','');pmFillPlanMonthSelect();setv('pm_plan_month','');setv('pm_action','');setv('pm_action_target','');setv('pm_action_status','Open');setv('pm_date',new Date().toISOString().slice(0,10));setv('pm_date_to','');setv('pm_machine_no','');setv('pm_tc_select','');pmTcClearExtra();renderPMGlobalSpares([]);loadPMTemplate();}
+function loadPMRecord(i){let r=data.pm[i];if(!r)return;edit.pm=i;setv('pm_template',r.template);setv('pm_machine_no',r.machineNo);setv('pm_start',r.start);setv('pm_end',r.end);setv('pm_date',r.date);setv('pm_date_to',r.dateTo||'');setv('pm_checked_by',r.checkedBy);pmFillPlanMonthSelect();setv('pm_verified_by',r.verifiedBy);setv('pm_plan_month',r.planMonth||'');setv('pm_remark',r.remark||'');setv('pm_action',r.action||'');setv('pm_action_target',r.actionTarget||'');setv('pm_action_status',r.actionStatus||'Open');window.__pmLoadedEntries=r.entries||[];renderPMRows(r.checklistRows||PM_CHECKLISTS[r.template]?.rows||[]);let trs=[...document.querySelectorAll('#pmBody tr')];(r.entries||[]).forEach((e,j)=>{if(!trs[j])return;trs[j].querySelector('.pm-obs').value=e.observation||'';trs[j].querySelector('.pm-work').value=e.workDone||'';trs[j].querySelector('.pm-rem').value=e.remark||'';trs[j].__evidence=Array.isArray(e.evidence)?e.evidence:[];pmRenderEvidenceCell(trs[j],j)});try{pmTcClearExtra();setv('pm_tc_select','');pmTcShowDone(r)}catch(e){}document.getElementById('pm').scrollIntoView({behavior:'smooth'});}
+function clearPM(){PM_DIRTY=false;edit.pm=null;setv('pm_start','');setv('pm_end','');setv('pm_checked_by',(mmsSession()||{}).u||'');setv('pm_verified_by','');pmFillPlanMonthSelect();setv('pm_remark','');setv('pm_plan_month','');setv('pm_action','');setv('pm_action_target','');setv('pm_action_status','Open');setv('pm_date',new Date().toISOString().slice(0,10));setv('pm_date_to','');setv('pm_machine_no','');setv('pm_tc_select','');pmTcClearExtra();renderPMGlobalSpares([]);loadPMTemplate();}
 function pmDateText(r){r=r||{};return fmtDate(r.date)+((r.dateTo&&r.dateTo>r.date)?' to '+fmtDate(r.dateTo):'')}
 function renderPMHistory(){let b=document.getElementById('pmHistoryBody');if(!b)return;let a=[...data.pm].sort((x,y)=>(y.date||'').localeCompare(x.date||''));b.innerHTML=a.map(r=>{let i=data.pm.indexOf(r);return `<tr><td>${esc(pmDateText(r))}</td><td>${esc(r.template)}</td><td>${esc(r.machineNo||'')}</td><td>${esc(r.start||'')}</td><td>${esc(r.end||'')}</td><td>${esc(r.checkedBy||'')}</td><td>${esc(r.verifiedBy||'')}</td><td><div class="editbar"><button class="secondary" onclick="loadPMRecord(${i})">Edit</button><button class="secondary" onclick="printPM(${i})">Print</button><button class="danger" onclick="delRow('pm',${i})">Delete</button></div></td></tr>`}).join('');}
 function printPM(index){
@@ -3932,7 +3937,7 @@ function printPM(index){
  w.document.write(`<html><head><title>FMT-MNT-04 - ${esc(r.template)}</title><style>
 @page{size:A4 portrait;margin:7mm 0}body{margin:0;background:#fff;color:#000}.pm-exact-page{width:210mm;margin:0 auto;font-family:Arial,Helvetica,sans-serif;font-size:9px}.pm-exact-page *{box-sizing:border-box}.pm-head{border:2px solid #000;border-bottom:0}.pm-head-top{height:31mm;display:grid;grid-template-columns:34mm 1fr;border-bottom:2px solid #000}.logo-cell{display:flex;align-items:center;justify-content:center;border-right:2px solid #000}.logo-cell img{max-width:30mm;max-height:27mm}.pm-company{display:flex;align-items:center;justify-content:center;font-size:21px;font-weight:800}.pm-row{display:grid;border-bottom:1px solid #000}.pm-row.r2{grid-template-columns:40% 30% 30%;height:16mm}.pm-row.r3{grid-template-columns:34% 30% 36%;height:12mm}.pm-row>div{border-right:1px solid #000;padding:3px 4px;font-weight:700;display:flex;align-items:center}.pm-row>div:last-child{border-right:0}.pm-exact-table{width:100%;border-collapse:collapse;table-layout:fixed}.pm-exact-table th,.pm-exact-table td{border:1px solid #000;vertical-align:middle;padding:3px}.pm-exact-table th{font-size:9px;height:18mm;text-align:center}.pm-exact-table td{font-size:8px;text-align:center;height:24mm}.pm-exact-table col:nth-child(1){width:7.3%}.pm-exact-table col:nth-child(2){width:10%}.pm-exact-table col:nth-child(3){width:23%}.pm-exact-table col:nth-child(4){width:12.2%}.pm-exact-table col:nth-child(5){width:12.2%}.pm-exact-table col:nth-child(6){width:12.2%}.pm-exact-table col:nth-child(7){width:12.2%}.pm-exact-table col:nth-child(8){width:11%}.pm-exact-table .activity{text-align:left;font-weight:600}.pm-exact-table .method img{max-width:22mm;max-height:20mm;object-fit:contain;display:block;margin:1mm auto}.pm-exact-foot{border:2px solid #000;border-top:0;height:10mm;display:grid;grid-template-columns:40% 60%;font-weight:700}.pm-exact-foot>div{display:flex;align-items:center;padding:3px 4px;border-right:1px solid #000}.pm-exact-foot>div:last-child{border-right:0}.pm-format-no{border:2px solid #000;border-top:0;height:7mm;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:9px}@media print{body{margin:0}}</style></head><body>
 <div class="pm-exact-page"><div class="pm-head"><div class="pm-head-top"><div class="logo-cell"><img src="${APP_LOGO}"></div><div class="pm-company">Milestone Gears Ltd.</div></div>
-<div class="pm-row r2"><div>Preventive Maintenance Check Sheet</div><div>Start Time<br>${esc(r.start||'')}</div><div>End Time<br>${esc(r.end||'')}</div></div>
+<div class="pm-row r2"><div>Preventive Maintenance Check Sheet</div><div>Start<br>${esc((r.date?fmtDate(r.date):'')+' '+(r.start||''))}</div><div>End<br>${esc((r.end||r.dateTo?fmtDate(r.dateTo||r.date):'')+' '+(r.end||''))}</div></div>
 <div class="pm-row r3"><div>M/C NAME:- ${esc(r.template==='CHARGE WAGON MACHINE'?'CHARGE WAGON MACHINE':r.template)}</div><div>M/C. No.:- ${esc(r.machineNo||'')}</div><div>Done Date:- ${esc(pmDateText(r)||'')}</div></div></div>
 <table class="pm-exact-table"><colgroup><col><col><col><col><col><col><col><col></colgroup><thead><tr><th>S.No.</th><th>Freq.</th><th>Activity<br>(Electrical + Mechanical)</th><th>Standard</th><th>Method</th><th>Observation</th><th>Work Done</th><th>Remark</th></tr></thead><tbody>${body}</tbody></table>
 <div style="border:2px solid #000;border-top:0;padding:3px 4px;font-weight:700">SPARE PART USED: ${esc(formatPMSpareParts((r.entries||[])[0]?.spareUsed||[]))}</div><div class="pm-exact-foot"><div>CHECKED BY- ${esc(r.checkedBy||'')}</div><div>VERIFIED BY- ${esc(r.verifiedBy||'')}</div></div><div class="pm-format-no">FMT-MNT-04 REV NO: 00 DATE: 18.07.2014</div></div><script>window.onload=()=>window.print()<\/script></body></html>`);w.document.close();
@@ -6396,13 +6401,13 @@ function gsReport(mod,mk){
  }else if(mod==='pm'){
   const a=data.pm.filter(inMonth).sort(function(x,y){return (x.date||'').localeCompare(y.date||'')});
   rep.title='PREVENTIVE MAINTENANCE CHECK SHEET';rep.sub='MONTH: '+label;rep.footer=(window.mmsDocTxt||function(x){return x})('FMT-MNT-04 REV NO: 00 DATE: 18.07.2014');
-  rep.headers=['Done Date','M/C Name','M/C No.','Start Time','End Time','S.No.','Freq.','Activity','Standard','Observation','Work Done','Remark','Spare Part Used','Checked By','Verified By'];
+  rep.headers=['Start Date','M/C Name','M/C No.','Start Time','End Date','End Time','S.No.','Freq.','Activity','Standard','Observation','Work Done','Remark','Spare Part Used','Checked By','Verified By'];
   a.forEach(function(r){
    const crow=normalizePMRows(r.checklistRows||(PM_CHECKLISTS[r.template]||{}).rows||[]);
    const spare=formatPMSpareParts(((r.entries||[])[0]||{}).spareUsed||[]);
    (crow.length?crow:[{}]).forEach(function(x,i){
     const e=(r.entries||[])[i]||{};
-    rep.rows.push([pmDateText(r),r.template,r.machineNo||'',r.start||'',r.end||'',x.sno||i+1,x.freq||'',x.activity||'',x.standard||'',e.observation||'',e.workDone||'',e.remark||'',i===0?spare:'',r.checkedBy||'',r.verifiedBy||'']);
+    rep.rows.push([fmtDate(r.date),r.template,r.machineNo||'',r.start||'',fmtDate(r.dateTo||r.date),r.end||'',x.sno||i+1,x.freq||'',x.activity||'',x.standard||'',e.observation||'',e.workDone||'',e.remark||'',i===0?spare:'',r.checkedBy||'',r.verifiedBy||'']);
    });
   });
   rep.summary=[['Total PM Sheets',a.length]];
@@ -7087,6 +7092,16 @@ async function gsDiag(){
  }catch(e){gsStatus('⚠ Check failed: '+(e&&e.message||e),true);alert('Check failed: '+(e&&e.message||e))}
 }
 function gsClockOff(){try{const o=Number(localStorage.getItem('htp_gs_clock_off')||0);return isFinite(o)&&Math.abs(o)<7*864e5?o:0}catch(e){return 0}}
+/* STOCK DELTA-MERGE: spares/critical ki qty ek hi record hai; server par 'naya timestamp jeetta hai', isliye kisi device ka use (stock kam) dusre
+   device ke purane record se chupchap mit jata tha. Ab agar server ka record hamare local badlav ko hata de, to hamara 'kitna kam/zyada hua' (delta)
+   server ki qty par dobara lagakar wapas push hota hai. Base = pichle sync ke baad ki qty (localStorage). */
+const GS_QB_KEY='htp_gs_qtybase_v1';
+function gsQbLoad(){try{const o=JSON.parse(localStorage.getItem(GS_QB_KEY)||'null');if(o&&typeof o==='object')return o}catch(e){}return {}}
+function gsQtyOf(mod,r){return mod==='critical'?Math.max(0,num(r&&r.avail)):inventoryAvailableQty(r)}
+function gsQtySet(mod,r,n){n=Math.max(0,n);if(mod==='critical')r.avail=n;else syncSpareAvailable(r,n)}
+function gsQbSave(QB,skip){try{['spares','critical'].forEach(function(mod){const m=QB[mod]||{},out={};gsList(mod).forEach(function(r){if(!r||typeof r!=='object')return;const sid=gsSidOf(r);if(!sid)return;
+  if((skip[mod+'|'+sid]||(window.__gsSkip&&window.__gsSkip[mod]>Date.now()))&&m[sid]!==undefined)out[sid]=m[sid];else out[sid]=(QB.__m&&QB.__m[mod+'|'+sid]!==undefined)?QB.__m[mod+'|'+sid]:gsQtyOf(mod,r)});QB[mod]=out});
+  const w={spares:QB.spares,critical:QB.critical};localStorage.setItem(GS_QB_KEY,JSON.stringify(w))}catch(e){console.warn('qtybase',e)}}
 async function gsSync(auto){
  if(!session())return;
  const cfg=gsCfg();
@@ -7195,7 +7210,7 @@ async function gsSync(auto){
    console.warn('Server ne ack nahi diya (slow server / lock):',Object.keys(bad).join(', '));
   }
   // 3) apply remote changes that are newer than local
-  const changed=new Set(),applied={};let reverted=0;
+  const changed=new Set(),applied={};let reverted=0;const QB=gsQbLoad();QB.__m={};let qbMerged=0;
   (out.rows||[]).forEach(function(row){
    if(GS_ALL.indexOf(row.module)<0)return;
    const nb=newBase[row.module]||(newBase[row.module]={});
@@ -7212,10 +7227,15 @@ async function gsSync(auto){
     let rec;try{rec=JSON.parse(row.json)}catch(e){return}
     if(row.module==='machineMaster'&&rec&&typeof rec==='object'&&!rec._sid)rec._sid=row.sid;
     if(idx>=0)gsAff(aff,row.module,gsRecMonth(row.module,list[idx]));
+    let qbForce=false;
+    if(idx>=0&&(row.module==='spares'||row.module==='critical')&&rec&&typeof rec==='object'){
+     try{const q=gsQtyOf(row.module,list[idx]),bq=(QB[row.module]||{})[row.sid],rq=gsQtyOf(row.module,rec);
+      if(bq!==undefined&&q!==bq&&rq!==q){const m=Math.max(0,rq+(q-bq));gsQtySet(row.module,rec,m);QB.__m[row.module+'|'+row.sid]=rq;qbForce=true;qbMerged++;console.warn('Stock delta-merge',row.module,row.sid,'local',q,'base',bq,'server',rq,'->',m)}}catch(e){console.warn('qty merge',e)}
+    }
     if(idx>=0)list[idx]=rec;else list.push(rec);
     const rmk=gsRecMonth(row.module,rec);gsAff(aff,row.module,rmk);
-    nb[row.sid]={h:gsHash(gsClean(rec)),ts:row.ts,m:rmk||''};changed.add(row.module);
-    (applied[row.module]=applied[row.module]||new Set()).add(row.sid);
+    nb[row.sid]={h:qbForce?'':gsHash(gsClean(rec)),ts:row.ts,m:rmk||''};changed.add(row.module);
+    if(!qbForce)(applied[row.module]=applied[row.module]||new Set()).add(row.sid);
    }
   });
   window.__gsRej=reverted;   // sirf is sync me roke gaye changes (pichli baar ke nahi) - agla sync saaf ho to badge hat jata hai
@@ -7224,6 +7244,7 @@ async function gsSync(auto){
   changed.forEach(gsPersist);
   const since2=out.maxSrv||meta.since;
   localStorage.setItem(GS_META_KEY,JSON.stringify({since:since2,base:newBase,pend:gsAffToJson(aff),lastOk:new Date().toISOString(),repAt:meta.repAt||0}));
+  {const sk={};unackedKeys.forEach(function(k){sk[k]=1});gsQbSave(QB,sk);if(qbMerged)gsSchedule(1500)}
    await gsNewCheck(cfg,changes);
   if(changed.has('users')){try{populatePermUserSelect()}catch(e){}const cs=session();if(cs&&!users().some(function(x){return x.u===cs.u})){alert('Your account was removed by Admin. Please login again.');logout()}}
   if(changed.size){try{hydratePMEvidence()}catch(e){}try{mmsQuiet(renderAll)}catch(e){console.warn('renderAll after sync',e)}gsRebaseline(applied)}
@@ -16375,6 +16396,12 @@ html:not(.aam-tl) .tcm-chip{background:rgba(125,211,252,.15);color:#7dd3fc}
       FIELDS.forEach(function (k) {
         if (sv[k] === cv[k]) return;
         var win, text = (k === 'code' || k === 'loc');
+        if (k === 'avail' && source !== 'critical') {
+          /* STOCK: Spare Inventory hi asli (canonical) source hai. Sync ke baad Critical ki purani/stale avail
+             'critical ne badla' samajh kar spare ka stock wapas badha deti thi. Ab spare ki qty hi jeetti hai. */
+          if (cv.avail !== sv.avail) { c.avail = sv.avail; c.updatedAt = now; ch = true; }
+          return;
+        }
         if (source === 'critical') win = 'c';
         else {
           var sCh = base ? sv[k] !== base[k] : null, cCh = base ? cv[k] !== base[k] : null;
