@@ -2862,7 +2862,7 @@ function renderCalibrationTable(){
   let sm=document.getElementById('calSummary');
   if(sm){const chip=(t,n,c)=>`<span style="padding:6px 12px;border-radius:20px;font-weight:bold;border:2px solid ${c};color:${c}">${t}: ${n}</span>`;
     sm.innerHTML=data.cal.length?chip('⚠ Overdue',cnt[0],'#b91c1c')+chip('⏰ Due in 30 days',cnt[1],'#b45309')+chip('✅ OK',cnt[2],'#15803d')+(cnt[3]?chip('No due date',cnt[3],'#6b7280'):''):'';}
-  let a=calSorted(data.cal.filter(r=>(calFocus!=='attn'||calInfo(r).rank<=1)&&(!q||Object.values(r).join(' ').toLowerCase().includes(q))));
+  let a=data.cal.filter(r=>(calFocus!=='attn'||calInfo(r).rank<=1)&&(!q||Object.values(r).join(' ').toLowerCase().includes(q)));a=calFocus==='attn'?calSorted(a):a.slice().sort((x,y)=>(num(x.sno)-num(y.sno))||(data.cal.indexOf(x)-data.cal.indexOf(y)));
   let fb=document.getElementById('calFocusBar');
   if(fb){fb.style.display=calFocus==='attn'?'block':'none';fb.innerHTML=calFocus==='attn'?`<b>Sirf Overdue + agle 30 din me due instruments</b> dikha rahe hain (${a.length}). <button class="secondary" onclick="calClearFocus()">Sab instruments dikhao</button>`:'';}
   body.innerHTML=a.map(r=>{let idx=data.cal.indexOf(r),i=calInfo(r),hn=(r.history||[]).length;return `<tr${i.dnu?' style="background:#fee2e2"':''}><td>${esc(r.sno)}</td><td>${esc(r.name)}</td><td>${esc(r.make)}</td><td>${esc(r.idno)}${r.certNo?'<br><small>Cert: '+esc(r.certNo)+(r.nabl==='Yes'?' · NABL':'')+'</small>':'<br><small style="color:#b91c1c">Cert: missing</small>'}</td><td>${esc(r.range)}</td><td>${esc(r.lc)}</td><td>${esc(r.location)}</td><td>${esc(fmtDate(r.date))}</td><td>${esc(fmtDate(r.duedate))}</td><td style="${i.dnu?'background:#991b1b;color:#fff;font-weight:bold':calStatusStyle(i.st)}">${i.dnu?'⛔ ':''}${esc(calStatusText(i))}</td><td class="editbar"><button class="secondary" onclick="calMarkDone(${idx})">✅ Calibrated</button>${hn?`<button class="secondary" onclick="calShowHistory(${idx})">📜 History (${hn})</button>`:''}<button class="secondary" onclick="editCalibration(${idx})">Edit</button><button class="danger" onclick="deleteCalibration(${idx})">Delete</button></td></tr>`}).join('')||'<tr><td colspan="11">No instruments found.</td></tr>';
@@ -17225,7 +17225,7 @@ function pgApply(tb){try{
  if(rows.length===1){var td=rows[0].cells&&rows[0].cells[0];if(td&&/^No .*found\.?$/i.test(td.textContent.trim())&&!$('.up1-btn',td)){td.appendChild(document.createElement('br'));var bt=document.createElement('button');bt.className='up1-btn';bt.type='button';bt.style.marginTop='6px';
   if(/critical/i.test(td.textContent)){bt.textContent='🔄 Spare Inventory se link / sync karo';bt.onclick=function(){try{syncSpareCriticalMaster(true);renderAll();toast('Critical list Spare Inventory se sync ki gayi')}catch(e){toast('Sync nahi hua: '+e.message,true)}}}
   else{bt.textContent='➕ Upar form bharkar Save karo';bt.onclick=function(){window.scrollTo({top:0,behavior:'smooth'})}}td.appendChild(bt)}}
- if(rows.length<=MIN||tb.closest('.pm-yearly-table')||st.all){rows.forEach(function(r){r.classList.remove('up1-h')});if(pg)pg.remove();return}
+ if(rows.length<=MIN||tb.id==='calBody'||tb.id==='spBody'||tb.closest('.pm-yearly-table')||st.all){rows.forEach(function(r){r.classList.remove('up1-h')});if(pg)pg.remove();return}
  if(st.n!==rows.length){st.p=0;st.n=rows.length}var pages=Math.ceil(rows.length/PG);if(st.p>=pages)st.p=pages-1;
  rows.forEach(function(r,i){r.classList.toggle('up1-h',i<st.p*PG||i>=(st.p+1)*PG)});
  if(!pg){pg=document.createElement('div');pg.className='up1-pager';host.parentNode.insertBefore(pg,host.nextSibling)}
@@ -19279,7 +19279,7 @@ function pgApply(tb){
   if(shown>=rows.length){tb.__v156m.style.display='none'}else{tb.__v156m.style.display='';tb.__v156m.firstChild.textContent='⬇ Aur '+Math.min(PG,rows.length-shown)+' dikhao ('+(rows.length-shown)+' baaki)'}}
  paint();
 }
-function pgScan(){PGSEL.forEach(function(s){var tb=$(s);if(!tb)return;var f=tb.firstElementChild,n=tb.children.length;if(tb.__v156f===f&&tb.__v156n===n)return;tb.__v156f=f;tb.__v156n=n;pgApply(tb)})}
+function pgScan(){return;PGSEL.forEach(function(s){var tb=$(s);if(!tb)return;var f=tb.firstElementChild,n=tb.children.length;if(tb.__v156f===f&&tb.__v156n===n)return;tb.__v156f=f;tb.__v156n=n;pgApply(tb)})}
 
 /* ---------- 10) PHOTOS (MR / Breakdown) — sirf isi phone me save (Google Sheet sync me nahi) ---------- */
 var PHK='htp_v156_photos',pend={mr:[],bd:[]};
