@@ -5098,17 +5098,70 @@ function pmPlanNextDate(date,machine){
   return '';
 }
 function pmPlanOpenCheckSheet(month,machineNo){try{PM_PLAN_LINK_CONTEXT={month:month||'',machineNo:machineNo||''};localStorage.setItem('htp7_pm_plan_link_context',JSON.stringify(PM_PLAN_LINK_CONTEXT));showTab('pm');setTimeout(()=>{const machineEl=document.getElementById('pm_machine_no'),dateEl=document.getElementById('pm_date');if(machineEl){machineEl.value=machineNo||'';machineEl.dispatchEvent(new Event('change',{bubbles:true}));}if(dateEl){const d=pmDueDate(month,pmMasterGet({machineNumber:machineNo}).dueDay);dateEl.value=d||new Date().toISOString().slice(0,10);}edit.pm=null;if(typeof loadPMTemplate==='function')loadPMTemplate();},50);}catch(e){console.error(e);alert('Could not open the PM Check Sheet.');}}
+/* ===== PM Plan <-> Check Sheet: sahi plan-month chuno (Oct ka PM Nov me hua to bhi Oct wale plan se jude), verify ke baad plan update ho ===== */
+function pmPlanMonthOfKey(k){return String(k).split('__')[0].replace(/_/g,' ')}
+function pmPlanPickMonth(r,ctx,machineNo){
+  const dm=new Date(r.date+'T00:00:00').toLocaleString('en-US',{month:'long',year:'numeric'});
+  if(r.planMonth)return r.planMonth;
+  if(ctx&&ctx.machineNo&&String(ctx.machineNo).trim()===machineNo&&ctx.month)return ctx.month;
+  try{
+    const mach=(pmPlanMachines().find(m=>m.machineNumber===machineNo))||{machineNumber:machineNo};
+    const sched=pmScheduledMonths(mach);
+    // 1) yeh sheet pehle se kisi plan-month se juda hai -> wahi rakho (scheduled mahina pehle)
+    const linked=Object.keys(pmPlanData||{}).filter(k=>k.split('__')[1]===machineNo&&pmPlanData[k]&&pmPlanData[k].pmCheckId===r.id).map(pmPlanMonthOfKey);
+    if(linked.length){const s=linked.filter(m=>sched.includes(m));return (s[0]||linked[0])}
+    // 2) PM ki date ka mahina scheduled nahi hai -> pichla sabse naya scheduled mahina jo abhi complete nahi hai (max 6 mahine peeche)
+    const di=PMPLAN_MONTHS.indexOf(dm);
+    if(di>=0&&!sched.includes(dm)){
+      for(let i=di-1;i>=Math.max(0,di-6);i--){const mo=PMPLAN_MONTHS[i];if(!sched.includes(mo))continue;if(pmPlanStatus(pmPlanGet(mo,mach))!=='Completed')return mo}
+    }
+  }catch(e){}
+  return dm;
+}
+let PM_REPAIR_BUSY=false;
+function pmPlanRepairStuck(){
+  if(PM_REPAIR_BUSY)return 0;PM_REPAIR_BUSY=true;let fixed=0,recChanged=false;
+  try{
+    (data.pm||[]).forEach(function(rec){
+      const machineNo=String(rec&&rec.machineNo||'').trim();if(!machineNo||!rec.date||!rec.id)return;
+      const ent=Array.isArray(rec.entries)?rec.entries:[];
+      const complete=String(rec.checkedBy||'').trim()&&String(rec.verifiedBy||'').trim()&&ent.length&&!ent.some(function(e){return !e.workDone});
+      if(!complete)return;
+      if(rec.partial){rec.partial=false;recChanged=true}
+      const keys=Object.keys(pmPlanData||{}).filter(function(k){return k.split('__')[1]===machineNo&&pmPlanData[k]&&pmPlanData[k].pmCheckId===rec.id});
+      const stale=keys.filter(function(k){return pmPlanData[k].partial===true});
+      if(!stale.length)return;
+      stale.forEach(function(k){
+        const mo=pmPlanMonthOfKey(k),fy=pmFYOfLabel(mo);if(!fy)return;
+        pmWithFY(fy,function(){
+          const mach=(pmPlanMachines().find(function(m){return m.machineNumber===machineNo}))||{machineNumber:machineNo};
+          // galat mahine (jo is machine ke liye scheduled nahi) me bana link saaf karo
+          keys.forEach(function(k2){
+            if(k2===k)return;const d2=pmPlanData[k2],mo2=pmPlanMonthOfKey(k2);
+            let sch=[];try{const fy2=pmFYOfLabel(mo2);sch=fy2?pmWithFY(fy2,function(){return pmScheduledMonths(mach)}):[]}catch(e){}
+            if(!sch.includes(mo2)){d2.actual='';d2.nextDate='';d2.partial=false;d2.late=0;d2.tech='';d2.work='';d2.remark='';d2.pmCheckId='';d2.scheduled=false;pmPlanData[k2]=d2;localStorage.setItem(PMPLAN_KEY,JSON.stringify(pmPlanData))}
+          });
+          rec.planMonth=mo;recChanged=true;
+          pmPlanLinkFromCheckSheet(rec,{machineNo:machineNo,month:mo});fixed++;
+        });
+      });
+    });
+    if(recChanged){try{persistPMWithEvidence()}catch(e){try{persist('pm')}catch(x){}}}
+  }catch(e){console.warn('pmPlanRepairStuck',e)}
+  finally{PM_REPAIR_BUSY=false}
+  return fixed;
+}
 function pmPlanOpenSavedCheckSheet(checkId){const idx=data.pm.findIndex(r=>r.id===checkId);if(idx<0)return alert('Saved PM Check Sheet record not found.');printPM(idx);}
 // PM Check Sheet ki date jis FY ki ho, usi FY ke PM Plan se link ho
 function pmPlanLinkFromCheckSheet(r,linkContext){
-  const run=()=>{if(!r||!String(r.machineNo||'').trim()||!r.date)return false;const ctx=linkContext||{};const machineNo=String(r.machineNo).trim();const month=r.planMonth||((ctx.machineNo&&String(ctx.machineNo).trim()===machineNo&&ctx.month)?ctx.month:new Date(r.date+'T00:00:00').toLocaleString('en-US',{month:'long',year:'numeric'}));if(!PMPLAN_MONTHS.includes(month))return false;const machine=pmPlanMachines().find(m=>m.machineNumber===machineNo)||{machineNumber:machineNo};const meaningful=(r.entries||[]).filter(e=>String(e.observation||'').trim()||String(e.workDone||'').trim()||String(e.remark||'').trim());const workDone=meaningful.map((e,i)=>{const a=[];if(e.observation)a.push('Obs: '+e.observation);if(e.workDone)a.push('Work: '+e.workDone);if(e.remark)a.push('Remark: '+e.remark);return a.length?'#'+(i+1)+' '+a.join(' | '):''}).filter(Boolean).join(' ; ');const val=pmPlanGet(month,machine);val.partial=!!r.partial;if(r.partial){val.actual='';val.nextDate='';val.late=0;}else{val.actual=r.date;val.nextDate=pmPlanNextDate(r.date,machine);val.late=(val.planned&&r.date>val.planned)?Math.round((new Date(r.date)-new Date(val.planned))/864e5):0;}val.tech=String(r.checkedBy||'').trim()||val.tech;val.work=workDone||(r.partial?'PM Check Sheet Partial':'PM Check Sheet Completed');val.remark=(String(r.verifiedBy||'').trim()?('Verified By: '+r.verifiedBy):val.remark)+(r.action?(' | Action: '+r.action+(r.actionTarget?' (target '+fmtDate(r.actionTarget)+')':'')+' ['+(r.actionStatus||'Open')+']'):'');val.pmCheckId=r.id||('PM-'+r.date+'-'+machineNo);val.scheduled=true;pmPlanSave(month,machine,val);renderPMPlan();renderPMYearlyPlan();return true;};
+  const run=()=>{if(!r||!String(r.machineNo||'').trim()||!r.date)return false;const ctx=linkContext||{};const machineNo=String(r.machineNo).trim();const month=pmPlanPickMonth(r,ctx,machineNo);if(!PMPLAN_MONTHS.includes(month))return false;const machine=pmPlanMachines().find(m=>m.machineNumber===machineNo)||{machineNumber:machineNo};const meaningful=(r.entries||[]).filter(e=>String(e.observation||'').trim()||String(e.workDone||'').trim()||String(e.remark||'').trim());const workDone=meaningful.map((e,i)=>{const a=[];if(e.observation)a.push('Obs: '+e.observation);if(e.workDone)a.push('Work: '+e.workDone);if(e.remark)a.push('Remark: '+e.remark);return a.length?'#'+(i+1)+' '+a.join(' | '):''}).filter(Boolean).join(' ; ');const val=pmPlanGet(month,machine);val.partial=!!r.partial;if(r.partial){val.actual='';val.nextDate='';val.late=0;}else{val.actual=r.date;val.nextDate=pmPlanNextDate(r.date,machine);val.late=(val.planned&&r.date>val.planned)?Math.round((new Date(r.date)-new Date(val.planned))/864e5):0;}val.tech=String(r.checkedBy||'').trim()||val.tech;val.work=workDone||(r.partial?'PM Check Sheet Partial':'PM Check Sheet Completed');val.remark=(String(r.verifiedBy||'').trim()?('Verified By: '+r.verifiedBy):val.remark)+(r.action?(' | Action: '+r.action+(r.actionTarget?' (target '+fmtDate(r.actionTarget)+')':'')+' ['+(r.actionStatus||'Open')+']'):'');val.pmCheckId=r.id||('PM-'+r.date+'-'+machineNo);val.scheduled=true;if(!r.planMonth){r.planMonth=month;try{persistPMWithEvidence()}catch(e){try{persist('pm')}catch(x){}}}pmPlanSave(month,machine,val);renderPMPlan();renderPMYearlyPlan();return true;};
   let fy=null;
   try{const label=(linkContext&&linkContext.month)||new Date(r.date+'T00:00:00').toLocaleString('en-US',{month:'long',year:'numeric'});fy=pmFYOfLabel(label)}catch(e){}
   return (fy&&fy!==pmFYStart())?pmWithFY(fy,run):run();
 }
 function exportPMPlanCSV(){const month=f('pmpMonth')||PMPLAN_MONTHS[0],rows=pmPlanMachines().filter(m=>pmScheduledMonths(m).includes(month));const out=[['Sr.','Machine No.','Machine Name','Line','Grade','Frequency','Planned Date','Actual Date','Next PM','Status','Technician','Remarks'],...rows.map((m,i)=>{const r=pmPlanGet(month,m);return [i+1,m.machineNumber,m.machineName,m.line,m.grade,pmMasterGet(m).frequency,r.planned,r.actual,r.nextDate,pmPlanStatus(r),r.tech,r.remark]})];const csv=out.map(a=>a.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\n');const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='PM_Work_Register_'+month.replace(/\s+/g,'_')+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
 function printPMPlan(){const month=f('pmpMonth')||PMPLAN_MONTHS[0],rows=pmPlanMachines().filter(m=>pmScheduledMonths(m).includes(month)).map((m,i)=>({m,r:pmPlanGet(month,m),s:pmPlanStatus(pmPlanGet(month,m))}));const e=v=>String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');const body=rows.map((x,i)=>`<tr><td>${i+1}</td><td>${e(x.m.machineNumber)}</td><td>${e(x.m.machineName)}</td><td>${e(pmMasterGet(x.m).frequency)}</td><td>${e(x.r.planned)}</td><td>${e(x.r.actual)}</td><td>${e(x.r.nextDate)}</td><td>${e(x.s)}</td><td>${e(x.r.tech)}</td><td>${e(x.r.remark)}</td></tr>`).join('');const w=window.open('','_blank','width=1200,height=800');if(!w)return alert('Please allow pop-ups to print PM Plan.');w.document.write(`<!doctype html><html><head><title>PM Work Register - ${e(month)}</title><style>@page{size:A4 landscape;margin:8mm}body{font-family:Arial;font-size:9px}.title{text-align:center;font-size:18px;font-weight:bold}.sub{text-align:center;font-size:13px;font-weight:bold;margin:4px 0 10px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #000;padding:4px;text-align:center}th{background:#eee}.doc-footer{margin-top:8px;border-top:1px solid #000;padding-top:4px;text-align:center;font-size:9px;font-weight:bold}</style></head><body><div class="title">Milestone Gears Ltd. UNIT-7</div><div class="sub">PREVENTIVE MAINTENANCE MONTHLY WORK REGISTER — ${e(month)}</div><table><thead><tr><th>Sr.</th><th>Machine</th><th>Machine Name</th><th>Frequency</th><th>Planned</th><th>Actual</th><th>Next PM</th><th>Status</th><th>Technician</th><th>Remarks</th></tr></thead><tbody>${body||'<tr><td colspan="10">No scheduled PM</td></tr>'}</tbody></table><div class="doc-footer">FMT-MNT-03-, REV NO: 00 DATE :- 18.07.2014</div><script>window.onload=()=>window.print()<\/script></body></html>`);w.document.close();}
-function initPMPlan(){pmPlanEnsureMaster();pmPlanMonthInit();pmPlanMachineSetupOptions();pmPlanSyncSchedules();renderPMYearlyPlan();renderPMPlan();}
+function initPMPlan(){pmPlanEnsureMaster();try{pmPlanRepairStuck()}catch(e){console.warn('pmPlanRepairStuck',e)}pmPlanMonthInit();pmPlanMachineSetupOptions();pmPlanSyncSchedules();renderPMYearlyPlan();renderPMPlan();}
 function printMachineMaster(){
   let q=(f('mm_search')||'').toLowerCase(),dept=f('mm_dept_filter')||'';
   let a=(typeof getSortedMachinesForDisplay==='function'?getSortedMachinesForDisplay():MACHINE_MASTER).filter(m=>(!dept||m.department===dept)&&(!q||Object.values(m).join(' ').toLowerCase().includes(q)));
