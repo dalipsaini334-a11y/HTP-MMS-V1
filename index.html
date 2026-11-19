@@ -2174,7 +2174,7 @@ function populateBDSpareSelect(selectedLink=null){
 function bdSpareSelectPicked(){
   let sel=document.getElementById('bd_spare_select');if(!sel)return;
   if(!sel.value){setv('bd_spare','');return;}
-  if(sel.value==='__UNLISTED__'){const u=promptUnlistedSpare();if(!u){sel.value='';setv('bd_spare','');return;}const link=makeUnlistedSpareLink(u);addUnlistedOption(sel,link,u);setv('bd_spare',unlistedSpareLabel(u));if(!(f('bd_qty')||'').trim())setv('bd_qty','1');return;}
+  if(sel.value==='__UNLISTED__'){mmsUnlistedModal(null,function(u){if(!u){sel.value='';setv('bd_spare','');return;}const link=makeUnlistedSpareLink(u);addUnlistedOption(sel,link,u);setv('bd_spare',unlistedSpareLabel(u));if(!(f('bd_qty')||'').trim())setv('bd_qty','1');});return;}
   if(String(sel.value).startsWith('unlisted:')){const u=parseUnlistedSpareLink(sel.value);if(!u){sel.value='';setv('bd_spare','');return;}setv('bd_spare',unlistedSpareLabel(u));if(!(f('bd_qty')||'').trim())setv('bd_qty','1');return;}
   let [kind,...rest]=String(sel.value).split(':');
   let id=rest.join(':');
@@ -3807,7 +3807,7 @@ function addPMGlobalSpareRow(item=null,focus=true){
  row.innerHTML=`<select class="pm-global-spare-select"><option value="">-- Select Spare Used --</option>${pmSpareOptionList(selected)}<option value="__UNLISTED__">Other / Unlisted Spare</option></select><input class="pm-global-spare-qty" type="number" min="0.01" step="0.01" placeholder="Qty" value="${escAttr(item?.qty||'')}"><button type="button" class="danger" onclick="this.parentElement.remove()">Remove</button>`;
  box.appendChild(row);
  const sel=row.querySelector('.pm-global-spare-select');if(selected)sel.value=selected;
- sel.addEventListener('change',()=>{if(sel.value==='__UNLISTED__'){const u=promptUnlistedSpare();if(!u){sel.value='';return;}const link=makeUnlistedSpareLink(u);addUnlistedOption(sel,link,u);if(!row.querySelector('.pm-global-spare-qty').value)row.querySelector('.pm-global-spare-qty').value='1';}else{const rec=findById(data.spares,sel.value);if(rec)row.querySelector('.pm-global-spare-qty').focus();}});
+ sel.addEventListener('change',()=>{if(sel.value==='__UNLISTED__'){mmsUnlistedModal(null,function(u){if(!u){sel.value='';return;}const link=makeUnlistedSpareLink(u);addUnlistedOption(sel,link,u);if(!row.querySelector('.pm-global-spare-qty').value)row.querySelector('.pm-global-spare-qty').value='1';});}else{const rec=findById(data.spares,sel.value);if(rec)row.querySelector('.pm-global-spare-qty').focus();}});
  if(focus)sel.focus();
 }
 function pmGlobalSpareEntries(){
@@ -4082,8 +4082,8 @@ function addSparePartRow(part='',qty='',focus=true,spareLink=''){
 }
 function handleMRSpareSelect(sel){
   if(!sel)return;
-  if(sel.value==='__UNLISTED__'){const u=promptUnlistedSpare();if(!u){sel.value='';updateSpareLegacyFields();return;}const link=makeUnlistedSpareLink(u);addUnlistedOption(sel,link,u);const row=sel.closest('.spare-row');if(row&&!row.querySelector('.spare-qty').value)row.querySelector('.spare-qty').value='1';
-    try{mrOfferRegisterUnlisted(sel,u)}catch(e){console.warn('Unlisted register offer skipped',e)}}
+  if(sel.value==='__UNLISTED__'){mmsUnlistedModal(null,function(u){if(!u){sel.value='';updateSpareLegacyFields();return;}const link=makeUnlistedSpareLink(u);addUnlistedOption(sel,link,u);const row=sel.closest('.spare-row');if(row&&!row.querySelector('.spare-qty').value)row.querySelector('.spare-qty').value='1';
+    try{updateSpareLegacyFields()}catch(e){}try{mrOfferRegisterUnlisted(sel,u)}catch(e){console.warn('Unlisted register offer skipped',e)}});return;}
 }
 function mmsCanSaveQuiet(k){const s=mmsSession();if(!s)return false;if(s.role==='Admin')return true;const rec=mmsCurrentUserRecord();const perms=(rec&&rec.perms)||mmsDefaultPermsForRole(s.role);return !!(perms[k]&&perms[k].save)}
 // Unlisted part chunne ke baad: Spare Parts List aur/ya Critical Spare List me bhi add karna hai ya nahi (permission ke hisab se)
@@ -19903,6 +19903,60 @@ html body main.wrap section.panel .v154tool.v154tool button:active,html body mai
  document.addEventListener('keydown',function(e){if(document.getElementById('v183Pk'))return;var s=document.activeElement;if(!s||!s.matches||!s.matches(SEL)||s.disabled)return;
   if(e.key==='Enter'||e.key===' '||e.key==='ArrowDown'){e.preventDefault();open(s)}
   else if(e.key.length===1&&!e.ctrlKey&&!e.metaKey&&!e.altKey){e.preventDefault();open(s,e.key)}},true);
+})();
+</script>
+<style id="v187UnlCss">
+#v187Unl{position:fixed;inset:0;z-index:100002;background:rgba(4,12,24,.75);display:flex;align-items:center;justify-content:center;padding:12px;backdrop-filter:blur(3px)}
+#v187Unl .bx{width:100%;max-width:460px;max-height:92vh;overflow:auto;background:linear-gradient(160deg,#143252,#0e2238);border:1px solid #2a4a6b;border-radius:20px;box-shadow:0 18px 50px rgba(0,0,0,.55);color:#e6f0fa;font-family:Inter,Roboto,system-ui,sans-serif}
+#v187Unl .hd{padding:16px 18px 10px;border-bottom:1px solid #2a4a6b}
+#v187Unl .hd b{font-size:17px;display:block}#v187Unl .hd span{font-size:12px;color:#8fb3d6}
+#v187Unl .bd{padding:14px 18px 6px}
+#v187Unl label{display:block;margin:0 0 4px;font-size:12px;font-weight:700;color:#9cc2e6;letter-spacing:.2px}
+#v187Unl label i{color:#f87171;font-style:normal}
+#v187Unl input,#v187Unl textarea{width:100%;box-sizing:border-box;margin:0 0 12px;padding:11px 12px;border-radius:12px;border:1px solid #3b6288;background:#0b1b2e;color:#e6f0fa;font:600 15px Inter,Roboto,system-ui,sans-serif;outline:none}
+#v187Unl input:focus,#v187Unl textarea:focus{border-color:#60a5fa;box-shadow:0 0 0 3px rgba(96,165,250,.25)}
+#v187Unl textarea{min-height:56px;resize:vertical;font-weight:500}
+#v187Unl .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:420px){#v187Unl .row2{grid-template-columns:1fr}}
+#v187Unl .err{display:none;margin:0 0 12px;padding:10px 12px;border-radius:12px;background:rgba(248,113,113,.14);border:1px solid #f87171;color:#fecaca;font-size:13px;line-height:1.4;white-space:pre-line}
+#v187Unl .err.on{display:block}
+#v187Unl .ft{display:flex;gap:10px;justify-content:flex-end;padding:8px 18px 16px}
+#v187Unl .ft button{padding:11px 20px;border-radius:12px;border:1px solid #3b6288;background:#1d4467;color:#e6f0fa;font:700 14px Inter,system-ui,sans-serif;cursor:pointer}
+#v187Unl .ft button.pri{background:linear-gradient(135deg,#2563eb,#1d4ed8);border-color:#3b82f6}
+</style>
+<script id="v187UnlJs">
+(function(){
+ window.mmsUnlistedModal=function(existing,cb){
+  const old=document.getElementById('v187Unl');if(old)old.remove();
+  const ov=document.createElement('div');ov.id='v187Unl';
+  const e=existing||{};
+  ov.innerHTML='<div class="bx" role="dialog" aria-modal="true"><div class="hd"><b>🆕 Add Unlisted Spare</b><span>Ye spare abhi Spare / Critical list me nahi hai</span></div>'
+   +'<div class="bd"><label>Spare Part Name / Description <i>*</i></label><input id="v187n" autocomplete="off" placeholder="e.g. Proximity Sensor M18">'
+   +'<div class="err" id="v187e"></div>'
+   +'<div class="row2"><div><label>Specification / Part No.</label><input id="v187s" autocomplete="off" placeholder="optional"></div>'
+   +'<div><label>Make / Manufacturer</label><input id="v187m" autocomplete="off" placeholder="optional"></div></div>'
+   +'<label>Remark</label><textarea id="v187r" placeholder="optional"></textarea></div>'
+   +'<div class="ft"><button type="button" id="v187c">Cancel</button><button type="button" class="pri" id="v187ok">✔ Add Spare</button></div></div>';
+  document.body.appendChild(ov);
+  const q=function(id){return document.getElementById(id)};
+  q('v187n').value=e.part||'';q('v187s').value=e.spec||'';q('v187m').value=e.make||'';q('v187r').value=e.remark||'';
+  let done=false;
+  function close(v){if(done)return;done=true;ov.remove();document.removeEventListener('keydown',key,true);try{cb(v)}catch(x){console.error(x)}}
+  function showErr(t){const el=q('v187e');el.textContent=t;el.classList.toggle('on',!!t)}
+  function submit(){
+   const part=q('v187n').value.trim();
+   if(!part){showErr('Spare part name zaroori hai.');q('v187n').focus();return}
+   let ex=null;try{ex=findExistingSpareForUnlisted(part)}catch(x){}
+   if(ex){const r=ex.record;showErr('Ye spare pehle se '+(ex.kind==='critical'?'Critical Spare Register':'Spare List')+' me hai:\n'+(r.desc||part)+(r.spec?' - '+r.spec:'')+'\nList se wahi select karo.');return}
+   close({part:part,spec:q('v187s').value.trim(),make:q('v187m').value.trim(),remark:q('v187r').value.trim()});
+  }
+  function key(ev){if(ev.key==='Escape'){ev.stopPropagation();close(null)}else if(ev.key==='Enter'&&ev.target&&ev.target.tagName!=='TEXTAREA'){ev.preventDefault();ev.stopPropagation();submit()}}
+  document.addEventListener('keydown',key,true);
+  q('v187c').onclick=function(){close(null)};q('v187ok').onclick=submit;
+  q('v187n').addEventListener('input',function(){showErr('')});
+  ov.addEventListener('mousedown',function(ev){if(ev.target===ov)close(null)});
+  setTimeout(function(){q('v187n').focus()},30);
+ };
 })();
 </script>
 </body>
