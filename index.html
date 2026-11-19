@@ -8263,9 +8263,19 @@ setTimeout(() => {
             <div class="head">Milestone Gears Ltd. UNIT-7</div>
             <div class="head2">SPARE PART PURCHASE PLANNING & RECEIPT REGISTER</div>
             <div class="utility-help"><b>Process:</b> Requirement (Low Stock / Breakdown) ➜ PR Raised (PR No.) ➜ PO Created by Store (PO No.) ➜ PO Sent to Vendor ➜ Material Received (stock auto-update).<br><b>Unit 4 Store:</b> jo part Unit 4 ke Maintenance Store se milta hai uska PR/PO nahi banta - zaroorat par le aao aur <b>🏭 Unit 4 se aaya (direct entry)</b> dabao, seedha Received me chala jayega aur stock Inventory me add ho jayega. (Requirement / PR / PO list me pehle se entry ho aur part abhi laye nahi to uski row par <b>🏭 Unit 4 se lana hai</b> dabao - wo \"Unit 4 se Lana Hai\" list me rahega, le aane par <b>✅ Unit 4 se aa gaya</b> dabao.) Spare Inventory me part par "Unit 4 Store se milta hai = Haan" laga do to wo low stock par Requirement list me aayega hi nahi.</div>
+            <div id="purTabs" class="purPipe"></div>
+            <div class="purBar">
+                <button class="primary" onclick="purNew()">➕ New Requirement</button>
+                <button class="secondary" onclick="purchaseUnit4Direct()">🏭 Unit 4 se aaya (direct entry)</button>
+                <button class="secondary" onclick="printPurchaseRegister()">🖨️ Print This List</button>
+                <button class="secondary" onclick="printPurchaseRegister('ALL')">🖨️ Print All</button>
+                <span class="purView"><button type="button" id="purVCards" onclick="purSetView('cards')">▦ Cards</button><button type="button" id="purVTable" onclick="purSetView('table')">☰ Table</button></span>
+            </div>
+            <div id="purFormWrap" style="display:none">
             <div class="form">
                 <input type="hidden" id="pur_id">
-                <div class="field"><label>Sr. No.</label><input id="pur_sno" type="number"></div>
+                <div class="field wide purSecH">📝 Step 1 · Requirement</div>
+                <div class="field"><label>Sr. No. (auto)</label><input id="pur_sno" type="number"></div>
                 <div class="field"><label>Part Description / Name <b>*</b></label><input id="pur_desc" placeholder="e.g. Bearing 6205 / Contactor"></div>
                 <div class="field"><label>Specification / Part No.</label><input id="pur_spec" placeholder="e.g. 6205-2Z/C3"></div>
                 <div class="field"><label>Quantity Needed <b>*</b></label><input id="pur_qty" type="number" min="0" step="any" value="1"></div>
@@ -8275,34 +8285,36 @@ setTimeout(() => {
                 <div class="field"><label>Machine / Breakdown Ref.</label><input id="pur_ref" placeholder="e.g. SQF - 01 / breakdown date"></div>
                 <div class="field"><label>Requirement Date</label><input id="pur_req_date" type="date"></div>
                 <div class="field"><label>Stage / Status</label><select id="pur_status" onchange="purchaseStatusChanged()"><option value="Planned">1. Requirement (PR not raised)</option><option value="PR Raised">2. PR Raised</option><option value="PO Created">3. PO Created (by Store)</option><option value="Sent to Vendor">4. PO Sent to Vendor</option><option value="Unit 4 Pending">4B. Unit 4 se lana hai (abhi laye nahi)</option><option value="Received">5. Material Received</option><option value="Cancelled">Cancelled</option></select></div>
-                <div class="field"><label>PR Number</label><input id="pur_pr_no" placeholder="PR number"></div>
-                <div class="field"><label>PR Date</label><input id="pur_pr_date" type="date"></div>
-                <div class="field"><label>PO Number</label><input id="pur_po" placeholder="PO-2026-XXXX"></div>
-                <div class="field"><label>PO Date</label><input id="pur_po_date" type="date"></div>
-                <div class="field"><label>Vendor / Supplier Name</label><input id="pur_vendor" placeholder="Supplier firm name"></div>
-                <div class="field"><label>PO Sent to Vendor On</label><input id="pur_sent_date" type="date"></div>
-                <div class="field"><label>Expected Delivery Date</label><input id="pur_exp_date" type="date"></div>
-                <div class="field"><label>Material Received Date</label><input id="pur_rec_date" type="date"></div>
-                <div class="field"><label>Quantity Received</label><input id="pur_rec_qty" type="number" min="0" step="any" placeholder="0"></div>
-                <div class="field"><label>Total Cost (₹)</label><input id="pur_cost" type="number" min="0" step="0.01" placeholder="0.00"></div>
-                <div class="field"><label>Challan / Invoice No.</label><input id="pur_challan" placeholder="Vendor challan / invoice"></div>
+                <div class="field wide purSecH pf pf-pr">📄 Step 2 · PR (Purchase Requisition)</div>
+                <div class="field pf pf-pr"><label>PR Number</label><input id="pur_pr_no" placeholder="PR number"></div>
+                <div class="field pf pf-pr"><label>PR Date</label><input id="pur_pr_date" type="date"></div>
+                <div class="field wide purSecH pf pf-po">🧾 Step 3 · PO (Store ne banaya)</div>
+                <div class="field pf pf-po"><label>PO Number</label><input id="pur_po" placeholder="PO-2026-XXXX"></div>
+                <div class="field pf pf-po"><label>PO Date</label><input id="pur_po_date" type="date"></div>
+                <div class="field wide purSecH pf pf-sent">🚚 Step 4 · Vendor ko PO bheja</div>
+                <div class="field pf pf-sent"><label>Vendor / Supplier Name</label><input id="pur_vendor" placeholder="Supplier firm name"></div>
+                <div class="field pf pf-sent"><label>PO Sent to Vendor On</label><input id="pur_sent_date" type="date"></div>
+                <div class="field pf pf-sent"><label>Expected Delivery Date</label><input id="pur_exp_date" type="date"></div>
+                <div class="field wide purSecH pf pf-rec">✅ Step 5 · Material Received</div>
+                <div class="field pf pf-rec"><label>Material Received Date</label><input id="pur_rec_date" type="date"></div>
+                <div class="field pf pf-rec"><label>Quantity Received</label><input id="pur_rec_qty" type="number" min="0" step="any" placeholder="0"></div>
+                <div class="field pf pf-rec"><label>Total Cost (₹)</label><input id="pur_cost" type="number" min="0" step="0.01" placeholder="0.00"></div>
+                <div class="field pf pf-rec"><label>Challan / Invoice No.</label><input id="pur_challan" placeholder="Vendor challan / invoice"></div>
                 <div class="field wide"><label>Remark / Indent Note</label><input id="pur_remark" placeholder="Machine reference or additional notes"></div>
                 <div class="actions wide">
                     <button class="primary" onclick="savePurchaseRecord()">Save Purchase Record</button>
-                    <button class="secondary" onclick="clearPurchaseForm()">Clear</button>
-                    <button class="secondary" onclick="purchaseUnit4Direct()">🏭 Unit 4 se aaya (direct entry)</button>
-                    <button class="secondary" onclick="printPurchaseRegister()">🖨️ Print This List</button>
-                    <button class="secondary" onclick="printPurchaseRegister('ALL')">🖨️ Print All</button>
+                    <button class="secondary" onclick="clearPurchaseForm();purFormStage();purCloseForm()">✖ Cancel</button>
                 </div>
+            </div>
             </div>
         </div>
         <div class="card">
-            <div id="purTabs" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px"></div>
             <div class="utility-help" id="purTabHelp"></div>
             <div class="toolbar">
                 <input id="pur_search" placeholder="Search in this list (part, PO, vendor, remark...)" oninput="renderPurchaseTable()">
                 <span id="purCount" style="font-weight:bold;align-self:center"></span>
             </div>
+            <div id="purCards" class="purCards"></div>
             <div class="tablewrap">
                 <table class="tbl">
                     <thead id="purHead"></thead>
@@ -8318,6 +8330,8 @@ setTimeout(() => {
 // 3. Purchase Module Functions
 let editPurchaseIndex = null;
 let purTab = 'Planned';
+let purView = 'cards';
+try { const v = localStorage.getItem('htp_pur_view'); if (v === 'table' || v === 'cards') purView = v; } catch (e) { }
 
 function nextPurchaseSno() {
     let list = Array.isArray(data.sparePurchase) ? data.sparePurchase : [];
@@ -8335,12 +8349,13 @@ function clearPurchaseForm() {
     setv('pur_status', 'Planned');
     setv('pur_req_date', new Date().toISOString().slice(0, 10));
     setv('pur_rec_date', '');
-    let btn = document.querySelector('#sparePurchase .primary');
+    let btn = document.querySelector('#purFormWrap .primary');
     if (btn) btn.textContent = 'Save Purchase Record';
 }
 
 function purchaseStatusChanged() {
     let st = f('pur_status');
+    try { purFormStage(); } catch (e) { }
     const today = new Date().toISOString().slice(0, 10);
     const fill = (id) => { let e = document.getElementById(id); if (e && !e.value) e.value = today; };
     if (st === 'PR Raised') fill('pur_pr_date');
@@ -8354,10 +8369,10 @@ function purchaseStatusChanged() {
 }
 
 // Received hone par stock Spare Inventory me add karna (pehle save ke andar tha, ab quick "Mark Received" bhi yahi use karta hai)
-function purchaseAddToInventory(r) {
+function purchaseAddToInventory(r, forced) {
     let addedToInventory = false;
     r.stockAdded = false;
-    if (confirm(`Material Received: "${r.desc}" - ${r.recQty} qty.\n\nAdd this qty to the Spare Parts Inventory automatically?\n\nOK = Yes, add stock\nCancel = No (if you have already added the stock to the Inventory / Critical Register yourself - otherwise it will be double counted)`)) {
+    if (forced !== undefined ? forced : confirm(`Material Received: "${r.desc}" - ${r.recQty} qty.\n\nAdd this qty to the Spare Parts Inventory automatically?\n\nOK = Yes, add stock\nCancel = No (if you have already added the stock to the Inventory / Critical Register yourself - otherwise it will be double counted)`)) {
         // Inventory/Critical sync jis rule se part ko pehchanta hai (spareLinkKey) wahi yahan use karo, warna "6205-2Z" aur "6205 2Z" alag part ban jate the
         const pKey = spareLinkKey(r.desc, r.spec);
         let existingSpare = (data.spares || []).find(s => spareLinkKey(s.desc, s.spec) === pKey)
@@ -8467,6 +8482,7 @@ function savePurchaseRecord() {
     renderPurchaseTable();
     if (typeof renderSparePartsTable === 'function') renderSparePartsTable();
 
+    purCloseForm();
     alert('Purchase record saved successfully.' + (addedToInventory ? '\n\nSpare stock successfully updated in Inventory!' : ''));
 }
 
@@ -8549,6 +8565,84 @@ function purSort(st, a) {
     return a;
 }
 function purSetTab(st) { purTab = st; renderPurchaseTable(); }
+// ===== v189: Purchase UI - workflow pipeline + record cards + stage-wise form =====
+const PUR_FLOW = ['Planned', 'PR Raised', 'PO Created', 'Sent to Vendor', 'Received'];
+function purSetView(v) { purView = v; try { localStorage.setItem('htp_pur_view', v); } catch (e) { } renderPurchaseTable(); }
+function purPipeHtml(counts) {
+    const step = (t, n) => {
+        const on = t.st === purTab, idx = PUR_FLOW.indexOf(t.st);
+        return `<button type="button" class="purStep${on ? ' on' : ''}" style="--c:${t.color}" onclick="purSetTab('${t.st}')">` +
+            `<span class="n">${idx + 1}</span><span class="ic">${t.icon}</span><span class="lb">${t.label}</span><span class="ct">${counts[t.st] || 0}</span></button>`;
+    };
+    const side = (t) => `<button type="button" class="purSide${t.st === purTab ? ' on' : ''}" style="--c:${t.color}" onclick="purSetTab('${t.st}')">${t.icon} ${t.label} <b>${counts[t.st] || 0}</b></button>`;
+    return '<div class="purFlow">' + PUR_FLOW.map(st => step(PUR_TABS.find(t => t.st === st))).join('<span class="purArr">➜</span>') + '</div>' +
+        '<div class="purSides">' + side(PUR_TABS.find(t => t.st === 'Unit 4 Pending')) + side(PUR_TABS.find(t => t.st === 'Cancelled')) + '</div>';
+}
+function purFormStage() {
+    const st = (document.getElementById('pur_status') || {}).value || 'Planned';
+    const lvl = { 'Planned': 0, 'Unit 4 Pending': 0, 'PR Raised': 1, 'PO Created': 2, 'Sent to Vendor': 3, 'Received': 4, 'Cancelled': 0 }[st] || 0;
+    const need = { pr: 1, po: 2, sent: 3, rec: 4 };
+    document.querySelectorAll('#sparePurchase .pf').forEach(el => {
+        const k = (el.className.match(/pf-(pr|po|sent|rec)/) || [])[1];
+        el.style.display = (k && need[k] <= lvl) ? '' : 'none';
+    });
+}
+function purOpenForm() {
+    const w = document.getElementById('purFormWrap'); if (!w) return;
+    w.style.display = ''; purFormStage();
+    setTimeout(() => { try { w.scrollIntoView({ behavior: 'smooth', block: 'start' }); const d = document.getElementById('pur_desc'); if (d) d.focus({ preventScroll: true }); } catch (e) { } }, 30);
+}
+function purCloseForm() { const w = document.getElementById('purFormWrap'); if (w) w.style.display = 'none'; }
+function purNew() {
+    if (typeof mmsGuardSave === 'function' && !mmsGuardSave('sparePurchase')) return;
+    clearPurchaseForm(); purOpenForm();
+}
+function purCardHtml(r, i) {
+    const stage = purStatusOf(r), si = PUR_FLOW.indexOf(stage), def = PUR_TABS.find(t => t.st === stage) || PUR_TABS[0];
+    const today = purToday();
+    const urg = r.urgency === 'Critical Breakdown' ? '<span class="purBadge crit">🔴 Critical Breakdown</span>' : r.urgency === 'Urgent' ? '<span class="purBadge urg">🟠 Urgent</span>' : '';
+    const src = r.source ? `<span class="purBadge src">${esc(r.source)}</span>` : '';
+    const auto = r.auto ? '<span class="purBadge src">⚙ Auto</span>' : '';
+    const seg = PUR_FLOW.map((st, k) => `<i class="${si >= 0 && k <= si ? 'done' : ''}${k === si ? ' cur' : ''}" title="${esc((PUR_TABS.find(t => t.st === st) || {}).label)}"></i>`).join('');
+    const line = (k, v) => v ? `<div class="purL"><span>${k}</span><b>${v}</b></div>` : '';
+    let det = '';
+    if (r.refInfo) det += line('Ref', esc(r.refInfo));
+    if (stage === 'Planned' || stage === 'Unit 4 Pending') det += line('Required on', esc(fmtDate(r.reqDate || '')));
+    if (stage === 'Unit 4 Pending') det += line('Unit 4 se lana hai', esc(fmtDate(r.u4Date || '')));
+    if (si >= 1 || r.prNo) det += line('PR', esc(r.prNo || '') + (r.prDate ? ' · ' + esc(fmtDate(r.prDate)) : ''));
+    if (si >= 2 || r.po) det += line('PO', esc(r.po || '') + ((r.poDate || r.ordDate) ? ' · ' + esc(fmtDate(r.poDate || r.ordDate)) : ''));
+    if (si >= 2 && r.vendor) det += line('Vendor', esc(r.vendor));
+    if (si >= 3) det += line('Sent', esc(fmtDate(r.sentDate || '')));
+    if (stage === 'Sent to Vendor' && r.expDate) {
+        const late = r.expDate < today;
+        det += line('Expected', esc(fmtDate(r.expDate)) + (late ? ' <span class="purBadge crit">⏰ Late</span>' : ''));
+    }
+    if (stage === 'Received') {
+        det += line('Received', esc(fmtDate(r.recDate || '')) + ' · ' + esc(String(r.recQty || r.qty)) + ' ' + esc(purUom(r)));
+        if (r.challan) det += line('Challan', esc(r.challan));
+        if (num(r.cost) > 0) det += line('Cost', '₹ ' + esc(String(r.cost)));
+        if (r.fromUnit4) det += line('From', 'Unit 4 Store');
+    }
+    if (r.remark) det += `<div class="purRem">${esc(String(r.remark).slice(0, 160))}${String(r.remark).length > 160 ? '…' : ''}</div>`;
+    const nxt = {
+        'Planned': ['purchaseMarkPR', '📄 PR Raised', 'Agla step: PR Number daalo'],
+        'PR Raised': ['purchaseMarkPO', '🧾 PO Created', 'Agla step: Store se PO Number lo'],
+        'PO Created': ['purchaseMarkSent', '🚚 Sent to Vendor', 'Agla step: vendor ko PO bhejo'],
+        'Sent to Vendor': ['purchaseMarkReceived', '✅ Mark Received', 'Maal aane par Received karo'],
+        'Unit 4 Pending': ['purchaseFromUnit4', '✅ Unit 4 se aa gaya', 'Maal le aao to Received karo'],
+        'Cancelled': ['purchaseReplan', '↩ Re-plan', 'Wapas Requirement me lao']
+    }[stage];
+    let btns = nxt ? `<button type="button" class="purNext" style="--c:${def.color}" onclick="${nxt[0]}(${i})">${nxt[1]}</button>` : '';
+    let more = '';
+    if (['Planned', 'PR Raised', 'PO Created'].includes(stage)) more += `<button type="button" class="secondary" title="Part Unit 4 Maintenance Store se lana hai" onclick="purchaseMarkUnit4Pending(${i})">🏭 Unit 4</button>`;
+    if (stage === 'Unit 4 Pending') more += `<button type="button" class="secondary" onclick="purchaseReplan(${i})">↩ Requirement</button>`;
+    more += `<button type="button" class="secondary" onclick="editPurchaseRecord(${i})">✏️ Edit</button><button type="button" class="danger" onclick="deletePurchaseRecord(${i})">🗑</button>`;
+    return `<div class="purCard" style="--c:${def.color}"><div class="purTop"><span class="purSr">#${esc(r.sno ?? '')}</span>${urg}${src}${auto}</div>` +
+        `<div class="purMain"><div class="purTitle"><b>${esc(r.desc)}</b>${r.spec ? `<small>${esc(r.spec)}</small>` : ''}</div><div class="purQty"><b>${esc(String(r.qty))}</b><small>${esc(purUom(r))}</small></div></div>` +
+        (si >= 0 ? `<div class="purSeg">${seg}</div>` : '') + `<div class="purDet">${det}</div>` +
+        `<div class="purFoot">${nxt ? `<div class="purHint">${nxt[2]}</div>` : ''}<div class="purAct">${btns}${more}</div></div></div>`;
+}
+
 
 function renderPurchaseTable() {
     let body = document.getElementById('purBody'), head = document.getElementById('purHead');
@@ -8570,13 +8664,24 @@ function renderPurchaseTable() {
         return `<button type="button" onclick="purSetTab('${t.st}')" style="padding:9px 12px;border-radius:10px;font-weight:bold;cursor:pointer;border:2px solid ${t.color};` +
             `background:${on ? t.color : '#fff'};color:${on ? '#fff' : t.color}">${t.icon} ${t.label} <span style="background:${on ? 'rgba(255,255,255,.25)' : '#eee'};color:${on ? '#fff' : '#333'};border-radius:20px;padding:1px 8px;margin-left:4px">${counts[t.st]}</span></button>`;
     };
-    if (tabsEl) tabsEl.innerHTML = PUR_TABS.filter(t => t.st !== 'Cancelled').map(tabBtn).join('<span style="align-self:center;color:#94a3b8;font-weight:bold">➜</span>') +
-        `<span style="margin-left:auto">${tabBtn(PUR_TABS.find(t => t.st === 'Cancelled'))}</span>`;
+    if (tabsEl) tabsEl.innerHTML = purPipeHtml(counts);
     let tabDef = PUR_TABS.find(t => t.st === purTab);
     setText('purTabHelp', tabDef.help);
 
     let q = (f('pur_search') || '').toLowerCase();
     let a = purSort(purTab, all.filter(r => purStatusOf(r) === purTab && (!q || Object.values(r).join(' ').toLowerCase().includes(q))));
+    try { purFormStage(); } catch (e) { }
+    { const cardsEl = document.getElementById('purCards'), tw = document.querySelector('#sparePurchase .tablewrap');
+      const vc = document.getElementById('purVCards'), vt = document.getElementById('purVTable');
+      if (vc) vc.className = purView === 'cards' ? 'on' : ''; if (vt) vt.className = purView === 'table' ? 'on' : '';
+      if (purView === 'cards' && cardsEl) {
+        if (tw) tw.style.display = 'none'; cardsEl.style.display = '';
+        cardsEl.innerHTML = a.map(r => purCardHtml(r, all.indexOf(r))).join('') || `<div class="purEmpty">${q ? 'Is search me koi record nahi mila.' : 'Is list me abhi koi record nahi hai.'}</div>`;
+        setText('purCount', a.length + ' record(s)');
+        return;
+      }
+      if (cardsEl) cardsEl.style.display = 'none'; if (tw) tw.style.display = '';
+    }
     let cols = PUR_COLS[purTab];
     head.innerHTML = '<tr><th>Sr.No.</th>' + cols.map(c => `<th>${c[0]}</th>`).join('') + '<th>Action</th></tr>';
 
@@ -8603,123 +8708,183 @@ function purFinish(tab) {
     if (typeof persist === 'function') persist('sparePurchase');
     purTab = tab; renderPurchaseTable();
 }
+// ===== v195: har step ka popup - part ki poori detail + us step ke saare fields ek saath =====
+function purInvInfo(r) {
+    try {
+        const pKey = spareLinkKey(r.desc, r.spec);
+        const sp = (data.spares || []).find(x => spareLinkKey(x.desc, x.spec) === pKey);
+        if (!sp) return '';
+        return 'Available ' + inventoryAvailableQty(sp) + ' ' + purUom(sp) + (sp.min ? ' · Min ' + sp.min : '') + (sp.max ? ' · Max ' + sp.max : '');
+    } catch (e) { return ''; }
+}
+function purSummaryHtml(r) {
+    const row = (k, v, wide) => v ? `<div class="pmR${wide ? ' w' : ''}"><span>${k}</span><b>${v}</b></div>` : '';
+    const stage = purStatusOf(r), si = PUR_FLOW.indexOf(stage);
+    const dot = PUR_FLOW.map((st, k) => `<i class="${k <= si ? 'd' : ''}${k === si ? ' c' : ''}"><em>${esc((PUR_TABS.find(t => t.st === st) || {}).label)}</em></i>`).join('');
+    const urg = r.urgency && r.urgency !== 'Normal' ? ` <span class="pmTag ${r.urgency === 'Critical Breakdown' ? 'r' : 'o'}">${esc(r.urgency)}</span>` : '';
+    return `<div class="pmSum"><div class="pmPart"><div><b>${esc(r.desc)}</b>${r.spec ? `<small>${esc(r.spec)}</small>` : ''}</div><div class="pmQ"><b>${esc(String(r.qty))}</b><small>${esc(purUom(r))}</small></div></div>` +
+        `<div class="pmFlow">${dot}</div><div class="pmGrid">` +
+        row('Sr. No.', '#' + esc(String(r.sno ?? '')) + urg) + row('Source', esc(r.source || '')) + row('Required on', esc(fmtDate(r.reqDate || ''))) + row('Ref', esc(r.refInfo || '')) +
+        row('PR', r.prNo ? esc(r.prNo) + (r.prDate ? ' · ' + esc(fmtDate(r.prDate)) : '') : '') +
+        row('PO', r.po ? esc(r.po) + ((r.poDate || r.ordDate) ? ' · ' + esc(fmtDate(r.poDate || r.ordDate)) : '') : '') +
+        row('Vendor', esc(r.vendor || '')) + row('Sent on', esc(fmtDate(r.sentDate || ''))) + row('Expected', esc(fmtDate(r.expDate || ''))) +
+        row('Stock (Inventory)', esc(purInvInfo(r))) + row('Remark', esc(r.remark || ''), true) + `</div></div>`;
+}
+// cfg: {title, icon, color, rec, fields:[{id,label,type,value,req,ph,half,hint,list}], ok, onOk(values) -> string(error) | undefined}
+function purStepModal(cfg) {
+    const old = document.getElementById('v195Pm'); if (old) old.remove();
+    const ov = document.createElement('div'); ov.id = 'v195Pm';
+    const fld = f => {
+        const lab = `<label for="pm_${f.id}">${esc(f.label)}${f.req ? ' <i>*</i>' : ''}</label>`;
+        if (f.type === 'check') return `<div class="pmF w"><label class="pmChk"><input type="checkbox" id="pm_${f.id}"${f.value ? ' checked' : ''}> <span>${esc(f.label)}</span></label>${f.hint ? `<small>${esc(f.hint)}</small>` : ''}</div>`;
+        const inp = f.type === 'textarea' ? `<textarea id="pm_${f.id}" placeholder="${esc(f.ph || '')}">${esc(f.value ?? '')}</textarea>`
+            : `<input id="pm_${f.id}" type="${f.type || 'text'}" ${f.type === 'number' ? 'min="0" step="any" ' : ''}${f.list ? 'list="pm_dl_' + f.id + '" ' : ''}placeholder="${esc(f.ph || '')}" value="${esc(f.value ?? '')}" autocomplete="off">` +
+              (f.list ? `<datalist id="pm_dl_${f.id}">${f.list.map(x => `<option value="${esc(x)}">`).join('')}</datalist>` : '');
+        return `<div class="pmF${f.half ? '' : ' w'}">${lab}${inp}${f.hint ? `<small>${esc(f.hint)}</small>` : ''}</div>`;
+    };
+    ov.innerHTML = `<div class="pmBox" role="dialog" aria-modal="true" style="--c:${cfg.color || '#2563eb'}"><div class="pmHd"><span>${cfg.icon || ''}</span><div><b>${esc(cfg.title)}</b>${cfg.sub ? `<small>${esc(cfg.sub)}</small>` : ''}</div></div>` +
+        `<div class="pmBd">${cfg.rec ? purSummaryHtml(cfg.rec) : ''}${cfg.note ? `<div class="pmNote">${cfg.note}</div>` : ''}<div class="pmForm">${cfg.fields.map(fld).join('')}</div><div class="pmErr" id="pmErr"></div></div>` +
+        `<div class="pmFt"><button type="button" id="pmCancel">Cancel</button><button type="button" class="pri" id="pmOk">${esc(cfg.ok || 'Save')}</button></div></div>`;
+    document.body.appendChild(ov);
+    const q = id => document.getElementById('pm_' + id);
+    let done = false;
+    const close = () => { if (done) return; done = true; ov.remove(); document.removeEventListener('keydown', key, true); };
+    const err = t => { const e = document.getElementById('pmErr'); e.textContent = t || ''; e.classList.toggle('on', !!t); };
+    const submit = () => {
+        const v = {};
+        for (const f of cfg.fields) {
+            const el = q(f.id); const val = f.type === 'check' ? el.checked : String(el.value || '').trim();
+            if (f.req && !val) { err(f.label + ' zaroori hai.'); el.focus(); return; }
+            if (f.type === 'number' && val !== '' && num(val) <= 0 && f.req) { err(f.label + ' 0 se bada hona chahiye.'); el.focus(); return; }
+            v[f.id] = val;
+        }
+        const m = cfg.onOk(v);
+        if (typeof m === 'string' && m) { err(m); return; }
+        close();
+    };
+    const key = ev => { if (ev.key === 'Escape') { ev.stopPropagation(); close(); } else if (ev.key === 'Enter' && ev.target && ev.target.tagName === 'INPUT' && ev.target.type !== 'checkbox') { ev.preventDefault(); ev.stopPropagation(); submit(); } };
+    document.addEventListener('keydown', key, true);
+    document.getElementById('pmCancel').onclick = close; document.getElementById('pmOk').onclick = submit;
+    ov.addEventListener('mousedown', ev => { if (ev.target === ov) close(); });
+    setTimeout(() => { const first = ov.querySelector('.pmForm input:not([type=date]),.pmForm textarea') || ov.querySelector('.pmForm input'); if (first) first.focus(); }, 40);
+    return { err, close };
+}
+function purToast(m) {
+    let t = document.getElementById('v195Toast');
+    if (!t) { t = document.createElement('div'); t.id = 'v195Toast'; document.body.appendChild(t); }
+    t.textContent = m; t.className = 'on'; clearTimeout(purToast.t); purToast.t = setTimeout(() => { t.className = ''; }, 3200);
+}
+const purOk = d => /^\d{4}-\d{2}-\d{2}$/.test(d || '');
 // 1) Requirement -> PR Raised
 function purchaseMarkPR(i) {
     if (!purCanEdit()) return;
     let r = data.sparePurchase[i]; if (!r) return;
-    let no = prompt('PR Number (PR banne par jo number mila):', r.prNo || ''); if (no === null) return;
-    no = no.trim(); if (!no) return alert('PR Number is required.');
-    let d = purAskDate('PR Date', r.prDate || purToday()); if (d === null) return;
-    r.status = 'PR Raised'; r.prNo = no; r.prDate = d; r.updatedAt = new Date().toISOString();
-    purFinish('PR Raised');
+    purStepModal({ title: 'PR Raised', sub: 'Step 1 ➜ 2 · PR banne par details bharo', icon: '📄', color: '#7c3aed', rec: r, ok: '✔ PR Raised karo',
+        fields: [{ id: 'no', label: 'PR Number', req: 1, value: r.prNo || '', ph: 'PR banne par jo number mila', half: 1 }, { id: 'date', label: 'PR Date', type: 'date', req: 1, value: r.prDate || purToday(), half: 1 }],
+        onOk: v => { if (!purOk(v.date)) return 'PR Date sahi bharo.';
+            r.status = 'PR Raised'; r.prNo = v.no; r.prDate = v.date; r.updatedAt = new Date().toISOString(); purFinish('PR Raised'); } });
 }
 // 2) PR Raised -> PO Created (Store ne PO banaya)
 function purchaseMarkPO(i) {
     if (!purCanEdit()) return;
     let r = data.sparePurchase[i]; if (!r) return;
-    let no = prompt('PO Number (Store ne PO banaya to jo number mila):', r.po || ''); if (no === null) return;
-    no = no.trim(); if (!no) return alert('PO Number is required.');
-    let d = purAskDate('PO Date', r.poDate || r.ordDate || purToday()); if (d === null) return;
-    let v = prompt('Vendor / Supplier name (leave blank if unknown):', r.vendor || ''); if (v === null) return;
-    r.status = 'PO Created'; r.po = no; r.poDate = d; r.ordDate = d; if (v.trim()) r.vendor = v.trim(); r.updatedAt = new Date().toISOString();
-    purFinish('PO Created');
+    purStepModal({ title: 'PO Created', sub: 'Step 2 ➜ 3 · Store ne PO banaya', icon: '🧾', color: '#0e7490', rec: r, ok: '✔ PO Created karo',
+        fields: [{ id: 'no', label: 'PO Number', req: 1, value: r.po || '', ph: 'PO-2026-XXXX', half: 1 }, { id: 'date', label: 'PO Date', type: 'date', req: 1, value: r.poDate || r.ordDate || purToday(), half: 1 },
+            { id: 'vendor', label: 'Vendor / Supplier (pata ho to)', value: r.vendor || '', ph: 'Supplier firm name' }],
+        onOk: v => { if (!purOk(v.date)) return 'PO Date sahi bharo.';
+            r.status = 'PO Created'; r.po = v.no; r.poDate = v.date; r.ordDate = v.date; if (v.vendor) r.vendor = v.vendor; r.updatedAt = new Date().toISOString(); purFinish('PO Created'); } });
 }
 // 3) PO Created -> Sent to Vendor
 function purchaseMarkSent(i) {
     if (!purCanEdit()) return;
     let r = data.sparePurchase[i]; if (!r) return;
-    let po = r.po || '';
-    if (!po) { po = prompt('PO Number:', ''); if (po === null) return; po = po.trim(); if (!po) return alert('PO Number is required.'); }
-    let v = prompt('Vendor / Supplier name (PO sent to):', r.vendor || ''); if (v === null) return;
-    v = v.trim(); if (!v) return alert('Vendor Name is required.');
-    let d = purAskDate('PO Vendor ko kab bheja', r.sentDate || purToday()); if (d === null) return;
-    let e = prompt('Expected Delivery Date (YYYY-MM-DD, leave blank if unknown):', r.expDate || ''); if (e === null) return;
-    e = e.trim(); if (e && !/^\d{4}-\d{2}-\d{2}$/.test(e)) { alert('Expected date format was invalid, so it was left blank.'); e = ''; }
-    r.status = 'Sent to Vendor'; r.po = po; r.vendor = v; r.sentDate = d; r.expDate = e; r.updatedAt = new Date().toISOString();
-    purFinish('Sent to Vendor');
+    purStepModal({ title: 'PO Sent to Vendor', sub: 'Step 3 ➜ 4 · PO vendor ko bhej diya', icon: '🚚', color: '#b45309', rec: r, ok: '✔ Sent to Vendor karo',
+        fields: [{ id: 'po', label: 'PO Number', req: 1, value: r.po || '', half: 1 }, { id: 'vendor', label: 'Vendor / Supplier Name', req: 1, value: r.vendor || '', ph: 'PO kisko bheja', half: 1 },
+            { id: 'sent', label: 'PO Vendor ko kab bheja', type: 'date', req: 1, value: r.sentDate || purToday(), half: 1 }, { id: 'exp', label: 'Expected Delivery Date', type: 'date', value: r.expDate || '', hint: 'Pata na ho to khali chhodo', half: 1 }],
+        onOk: v => { if (!purOk(v.sent)) return 'Sent date sahi bharo.';
+            r.status = 'Sent to Vendor'; r.po = v.po; r.vendor = v.vendor; r.sentDate = v.sent; r.expDate = purOk(v.exp) ? v.exp : ''; r.updatedAt = new Date().toISOString(); purFinish('Sent to Vendor'); } });
 }
 // 4) Sent to Vendor -> Received (+ optional stock add in Spare Inventory)
 function purchaseMarkReceived(i) {
     if (!purCanEdit()) return;
     let r = data.sparePurchase[i]; if (!r) return;
-    let d = purAskDate('Material Received Date', r.recDate || purToday()); if (d === null) return;
-    let q = prompt('Quantity Received:', String(r.recQty > 0 ? r.recQty : r.qty)); if (q === null) return;
-    let rq = num(q); if (rq <= 0) rq = num(r.qty);
-    let ch = prompt('Challan / Invoice No. (optional):', r.challan || ''); if (ch === null) return;
-    let c = prompt('Total Cost in ₹ (optional):', r.cost > 0 ? String(r.cost) : ''); if (c === null) return;
-    let wasReceived = purStatusOf(r) === 'Received';
-    r.status = 'Received'; r.recDate = d; r.recQty = rq; r.challan = ch.trim(); r.cost = num(c); r.updatedAt = new Date().toISOString();
-    let added = false;
-    if (!wasReceived) added = purchaseAddToInventory(r);
-    purFinish('Received');
-    if (typeof renderSparePartsTable === 'function') renderSparePartsTable();
-    if (added) alert('Moved to the Received list.\n\nSpare stock updated in the Inventory.');
+    purStepModal({ title: 'Material Received', sub: 'Step 4 ➜ 5 · maal company me aa gaya', icon: '✅', color: '#15803d', rec: r, ok: '✔ Received karo',
+        fields: [{ id: 'date', label: 'Material Received Date', type: 'date', req: 1, value: r.recDate || purToday(), half: 1 }, { id: 'qty', label: 'Quantity Received (' + purUom(r) + ')', type: 'number', req: 1, value: String(r.recQty > 0 ? r.recQty : r.qty), half: 1 },
+            { id: 'ch', label: 'Challan / Invoice No.', value: r.challan || '', ph: 'optional', half: 1 }, { id: 'cost', label: 'Total Cost (₹)', type: 'number', value: r.cost > 0 ? String(r.cost) : '', ph: 'optional', half: 1 },
+            { id: 'stock', type: 'check', label: 'Ye qty Spare Inventory me stock me add karo', value: true, hint: 'Agar stock aap pehle hi Inventory me add kar chuke ho to tick hata do (double count nahi hoga).' }],
+        onOk: v => { if (!purOk(v.date)) return 'Received date sahi bharo.';
+            let wasReceived = purStatusOf(r) === 'Received';
+            r.status = 'Received'; r.recDate = v.date; r.recQty = num(v.qty); r.challan = v.ch; r.cost = num(v.cost); r.updatedAt = new Date().toISOString();
+            let added = false;
+            if (!wasReceived) added = purchaseAddToInventory(r, !!v.stock);
+            purFinish('Received');
+            if (typeof renderSparePartsTable === 'function') renderSparePartsTable();
+            purToast(added ? '✅ Received list me gaya · Inventory stock update ho gaya' : '✅ Received list me gaya'); } });
 }
 // Unit 4 Maintenance Store se part lana: PR/PO/Vendor ke bina seedha Received (internal transfer) + stock Inventory me add
-// Part Unit 4 Store se lana hai par abhi laye nahi -> "Unit 4 se Lana Hai" list (Qty/date/slip tab poochhe jayenge jab le aaoge)
+// Part Unit 4 Store se lana hai par abhi laye nahi -> "Unit 4 se Lana Hai" list
 function purchaseMarkUnit4Pending(i) {
     if (!purCanEdit()) return;
     let r = data.sparePurchase[i]; if (!r) return;
-    let q = prompt('How much Qty is to be brought from the Unit 4 Store?\n(' + r.desc + (r.spec ? ' - ' + r.spec : '') + ')', String(r.qty)); if (q === null) return;
-    let rq = num(q); if (rq <= 0) return alert('Quantity must be greater than 0.');
-    let n = prompt('Note (optional) - jaise kis se baat hui / kab tak laoge:', ''); if (n === null) return;
-    r.status = 'Unit 4 Pending'; r.qty = rq; r.u4Date = purToday();
-    if (n.trim()) r.remark = ((r.remark || '') + ' | Unit 4: ' + n.trim()).replace(/^ \| /, '');
-    r.updatedAt = new Date().toISOString();
-    purFinish('Unit 4 Pending');
+    purStepModal({ title: 'Unit 4 se Lana Hai', sub: 'Part Unit 4 Maintenance Store se milega (PR/PO nahi banta)', icon: '🏭', color: '#be185d', rec: r, ok: '✔ Unit 4 list me daalo',
+        fields: [{ id: 'qty', label: 'Kitni Qty Unit 4 se lani hai (' + purUom(r) + ')', type: 'number', req: 1, value: String(r.qty), half: 1 }, { id: 'note', label: 'Note (optional)', ph: 'kis se baat hui / kab tak laoge', half: 1 }],
+        onOk: v => { r.status = 'Unit 4 Pending'; r.qty = num(v.qty); r.u4Date = purToday();
+            if (v.note) r.remark = ((r.remark || '') + ' | Unit 4: ' + v.note).replace(/^ \| /, '');
+            r.updatedAt = new Date().toISOString(); purFinish('Unit 4 Pending'); } });
 }
 function purchaseFromUnit4(i) {
     if (!purCanEdit()) return;
     let r = data.sparePurchase[i]; if (!r) return;
-    let q = prompt('How much Qty was / will be brought from the Unit 4 Store?\n(' + r.desc + (r.spec ? ' - ' + r.spec : '') + ', required: ' + r.qty + ')', String(r.qty)); if (q === null) return;
-    let rq = num(q); if (rq <= 0) return alert('Quantity must be greater than 0.');
-    let d = purAskDate('Unit 4 se material mila (date)', purToday()); if (d === null) return;
-    let slip = prompt('Unit 4 Transfer Slip / Gate Pass / Issue Slip No. (optional):', r.challan || ''); if (slip === null) return;
-    let by = prompt('Who issued / brought it at Unit 4 (optional):', ''); if (by === null) return;
-    r.status = 'Received'; r.fromUnit4 = true; r.source = r.source || 'Unit 4 Store';
-    r.vendor = 'Unit 4 Maintenance Store'; r.recDate = d; r.recQty = rq; r.challan = slip.trim(); r.cost = 0;
-    r.remark = ((r.remark || '') + ' | Unit 4 Store se transfer' + (by.trim() ? ' (' + by.trim() + ')' : '')).replace(/^ \| /, '');
-    r.updatedAt = new Date().toISOString();
-    let added = purchaseAddToInventory(r);
-    purFinish('Received');
-    if (typeof renderSparePartsTable === 'function') renderSparePartsTable();
-    if (added) alert('Material from the Unit 4 Store moved to the Received list.\n\nSpare stock updated in the Inventory.');
+    purStepModal({ title: 'Unit 4 se aa gaya', sub: 'Maal Unit 4 Store se le aaye', icon: '✅', color: '#be185d', rec: r, ok: '✔ Received karo',
+        fields: [{ id: 'qty', label: 'Qty mili (' + purUom(r) + ') · required ' + r.qty, type: 'number', req: 1, value: String(r.qty), half: 1 }, { id: 'date', label: 'Unit 4 se material mila (date)', type: 'date', req: 1, value: purToday(), half: 1 },
+            { id: 'slip', label: 'Transfer Slip / Gate Pass / Issue Slip No.', value: r.challan || '', ph: 'optional', half: 1 }, { id: 'by', label: 'Kisne issue kiya / laya', ph: 'optional', half: 1 },
+            { id: 'stock', type: 'check', label: 'Ye qty Spare Inventory me stock me add karo', value: true }],
+        onOk: v => { if (!purOk(v.date)) return 'Date sahi bharo.';
+            r.status = 'Received'; r.fromUnit4 = true; r.source = r.source || 'Unit 4 Store';
+            r.vendor = 'Unit 4 Maintenance Store'; r.recDate = v.date; r.recQty = num(v.qty); r.challan = v.slip; r.cost = 0;
+            r.remark = ((r.remark || '') + ' | Unit 4 Store se transfer' + (v.by ? ' (' + v.by + ')' : '')).replace(/^ \| /, '');
+            r.updatedAt = new Date().toISOString();
+            let added = purchaseAddToInventory(r, !!v.stock);
+            purFinish('Received');
+            if (typeof renderSparePartsTable === 'function') renderSparePartsTable();
+            purToast(added ? '✅ Unit 4 se Received · Inventory stock update ho gaya' : '✅ Unit 4 se Received'); } });
 }
 // Direct entry: part Unit 4 Store se le aaye (koi Requirement / PR / PO nahi) -> seedha Received + stock Inventory me add
 function purchaseUnit4Direct() {
     if (!purCanEdit()) return;
     if (!Array.isArray(data.sparePurchase)) data.sparePurchase = [];
-    let name = prompt('Unit 4 se jo part laye uska naam likho (Inventory me se dhoondhunga):', ''); if (name === null) return;
-    name = name.trim(); if (!name) return alert('Part name is required.');
-    const toks = normalizePartText(name).split(' ').filter(Boolean);
-    let hits = (data.spares || []).filter(s => { const t = normalizePartText((s.desc || '') + ' ' + (s.spec || '') + ' ' + (s.make || '')); return toks.every(k => t.includes(k)); });
-    let desc = name, spec = '';
-    if (hits.length === 1) { desc = hits[0].desc; spec = hits[0].spec || ''; }
-    else if (hits.length > 1) {
-        const list = hits.slice(0, 15);
-        let n = prompt('Which part? Enter the number:\n\n' + list.map((s, k) => (k + 1) + '. ' + s.desc + (s.spec ? ' - ' + s.spec : '') + (s.make ? ' (' + s.make + ')' : '')).join('\n') + (hits.length > 15 ? '\n...more matches exist, enter a fuller name and try again' : ''), '1'); if (n === null) return;
-        const pick = list[num(n) - 1]; if (!pick) return alert('Galat number.');
-        desc = pick.desc; spec = pick.spec || '';
-    } else if (!confirm('"' + name + '" was not found in the Spare Inventory.\n\nOK = Treat as a new part and enter it with this name (it will also be added to the Inventory)\nCancel = stop')) return;
-    let q = prompt('How much Qty was brought from Unit 4? (unit: same as in Spare Inventory)', '1'); if (q === null) return;
-    let rq = num(q); if (rq <= 0) return alert('Quantity must be greater than 0.');
-    let d = purAskDate('Kab layi gayi (date)', purToday()); if (d === null) return;
-    let slip = prompt('Unit 4 Transfer Slip / Gate Pass No. (optional):', ''); if (slip === null) return;
-    let by = prompt('Who issued / brought it (optional):', ''); if (by === null) return;
-    let ref = prompt('Kis machine / kaam ke liye (optional):', ''); if (ref === null) return;
-    const now = new Date().toISOString();
-    let r = {
-        id: 'pur-u4-' + Date.now(), sno: nextPurchaseSno(), desc, spec, qty: rq, urgency: 'Normal', source: 'Unit 4 Store', refInfo: ref.trim(),
-        reqDate: d, status: 'Received', prNo: '', prDate: '', po: '', poDate: '', ordDate: '', sentDate: '', expDate: '',
-        vendor: 'Unit 4 Maintenance Store', fromUnit4: true, recDate: d, recQty: rq, cost: 0, challan: slip.trim(),
-        remark: 'Unit 4 Store se transfer' + (by.trim() ? ' (' + by.trim() + ')' : ''), updatedAt: now
-    };
-    r.uom = purUom(r);
-    data.sparePurchase.push(r);
-    let added = purchaseAddToInventory(r);
-    purFinish('Received');
-    if (typeof renderSparePartsTable === 'function') renderSparePartsTable();
-    alert('Unit 4 Store entry saved in the Received list.' + (added ? '\n\nSpare stock updated in the Inventory.' : ''));
+    const lab = s => s.desc + (s.spec ? ' - ' + s.spec : '') + (s.make ? ' (' + s.make + ')' : '');
+    const list = (data.spares || []).map(lab);
+    const m = purStepModal({ title: 'Unit 4 se aaya (direct entry)', sub: 'Koi Requirement / PR / PO nahi - seedha Received', icon: '🏭', color: '#be185d', ok: '✔ Received me save karo',
+        note: 'Part ka naam likho ya list me se chuno. List me nahi hai to naya part ban jayega (Inventory me bhi add hoga).',
+        fields: [{ id: 'name', label: 'Part ka naam', req: 1, ph: 'Type karke dhoondho...', list: list },
+            { id: 'qty', label: 'Qty (Inventory wali unit me)', type: 'number', req: 1, value: '1', half: 1 }, { id: 'date', label: 'Kab layi gayi', type: 'date', req: 1, value: purToday(), half: 1 },
+            { id: 'slip', label: 'Transfer Slip / Gate Pass No.', ph: 'optional', half: 1 }, { id: 'by', label: 'Kisne issue kiya / laya', ph: 'optional', half: 1 },
+            { id: 'ref', label: 'Kis machine / kaam ke liye', ph: 'optional' },
+            { id: 'stock', type: 'check', label: 'Ye qty Spare Inventory me stock me add karo', value: true }],
+        onOk: v => {
+            if (!purOk(v.date)) return 'Date sahi bharo.';
+            const name = v.name;
+            let hit = (data.spares || []).filter(s => lab(s) === name);
+            if (!hit.length) { const toks = normalizePartText(name).split(' ').filter(Boolean);
+                hit = (data.spares || []).filter(s => { const t = normalizePartText((s.desc || '') + ' ' + (s.spec || '') + ' ' + (s.make || '')); return toks.every(k => t.includes(k)); }); }
+            let desc = name, spec = '';
+            if (hit.length === 1) { desc = hit[0].desc; spec = hit[0].spec || ''; }
+            else if (hit.length > 1) return hit.length + ' parts match hue - list me se poora part chuno (ya naam aur specific likho).';
+            else if (!window.__pur4New || window.__pur4New !== name) { window.__pur4New = name; return '"' + name + '" Inventory me nahi mila. Naya part banana hai to "Save" dobara dabao.'; }
+            const now = new Date().toISOString(), rq = num(v.qty);
+            let r = { id: 'pur-u4-' + Date.now(), sno: nextPurchaseSno(), desc, spec, qty: rq, urgency: 'Normal', source: 'Unit 4 Store', refInfo: v.ref,
+                reqDate: v.date, status: 'Received', prNo: '', prDate: '', po: '', poDate: '', ordDate: '', sentDate: '', expDate: '',
+                vendor: 'Unit 4 Maintenance Store', fromUnit4: true, recDate: v.date, recQty: rq, cost: 0, challan: v.slip,
+                remark: 'Unit 4 Store se transfer' + (v.by ? ' (' + v.by + ')' : ''), updatedAt: now };
+            r.uom = purUom(r);
+            window.__pur4New = null;
+            data.sparePurchase.push(r);
+            let added = purchaseAddToInventory(r, !!v.stock);
+            purFinish('Received');
+            if (typeof renderSparePartsTable === 'function') renderSparePartsTable();
+            purToast(added ? '✅ Unit 4 entry Received list me · Inventory stock update ho gaya' : '✅ Unit 4 entry Received list me save ho gayi');
+        } });
 }
 function purchaseReplan(i) {
     if (!purCanEdit()) return;
@@ -8757,9 +8922,9 @@ function editPurchaseRecord(i) {
     setv('pur_rec_qty', r.recQty);
     setv('pur_cost', r.cost);
     setv('pur_remark', r.remark);
-    let btn = document.querySelector('#sparePurchase .primary');
+    let btn = document.querySelector('#purFormWrap .primary');
     if (btn) btn.textContent = 'Update Purchase Record';
-    document.getElementById('sparePurchase').scrollIntoView({ behavior: 'smooth' });
+    purOpenForm();
 }
 
 function deletePurchaseRecord(i) {
@@ -20153,5 +20318,89 @@ html body main.wrap section.panel .v154tool.v154tool button:active,html body mai
  };
 })();
 </script>
+<style id="v189PurCss">
+#sparePurchase .purFlow{display:flex!important;align-items:stretch;gap:6px;flex-wrap:wrap!important;margin:6px 0 8px}
+#sparePurchase .purArr{align-self:center;color:#7f9bb8;font-weight:800}
+#sparePurchase .purStep{flex:1 1 130px;min-width:118px;display:grid;grid-template-columns:auto 1fr auto;grid-template-areas:"n lb ct" "ic ic ic";align-items:center;gap:2px 8px;padding:10px 12px;border-radius:14px;border:2px solid var(--c);background:#fff;color:var(--c);font:700 13px Inter,system-ui,sans-serif;cursor:pointer;text-align:left;transition:.15s}
+#sparePurchase .purStep .n{grid-area:n;width:22px;height:22px;border-radius:50%;background:var(--c);color:#fff;display:grid;place-items:center;font-size:12px}
+#sparePurchase .purStep .ic{grid-area:ic;font-size:20px;line-height:1}
+#sparePurchase .purStep .lb{grid-area:lb}
+#sparePurchase .purStep .ct{grid-area:ct;font-size:20px;font-weight:800}
+#sparePurchase .purStep.on{background:var(--c);color:#fff;box-shadow:0 6px 16px rgba(0,0,0,.22);transform:translateY(-2px)}
+#sparePurchase .purStep.on .n{background:#fff;color:var(--c)}
+#sparePurchase .purSides{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+#sparePurchase .purSide{padding:6px 12px;border-radius:999px;border:1.5px solid var(--c);background:#fff;color:var(--c);font:700 12.5px Inter,system-ui,sans-serif;cursor:pointer}
+#sparePurchase .purSide.on{background:var(--c);color:#fff}
+#sparePurchase .purBar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:4px 0 10px}
+#sparePurchase .purView{margin-left:auto;display:inline-flex;border:1.5px solid #2a4a6b;border-radius:10px;overflow:hidden}
+#sparePurchase .purView{flex-direction:row!important;flex-wrap:nowrap!important;width:auto!important}#sparePurchase .purView button{border:0;border-radius:0;margin:0;width:auto!important;min-width:0!important;max-width:none!important;min-height:0!important;flex:none!important;padding:8px 12px;background:#fff;color:#143252;font-weight:700;cursor:pointer}
+#sparePurchase .purView button.on{background:#143252;color:#fff}
+#sparePurchase .purSecH{font-weight:800;color:#143252;border-bottom:2px solid #dbe4ea;padding:6px 0 2px;margin-top:4px}
+#sparePurchase #purFormWrap{border:2px solid #2a4a6b;border-radius:16px;padding:10px 12px;margin:6px 0 12px;background:rgba(20,50,82,.04)}
+#sparePurchase .purCards{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px;margin-top:8px}
+#sparePurchase .purEmpty{grid-column:1/-1;padding:26px;text-align:center;color:#6b7c8d;border:2px dashed #c3d0dc;border-radius:14px}
+#sparePurchase .purCard{display:flex;flex-direction:column;gap:8px;padding:12px 14px;border-radius:16px;background:linear-gradient(160deg,#143252,#0e2238);border:1px solid #2a4a6b;border-top:4px solid var(--c);color:#e6f0fa;box-shadow:0 6px 16px rgba(5,15,30,.25)}
+#sparePurchase .purTop{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+#sparePurchase .purSr{font-weight:800;color:#9cc2e6;font-size:12px}
+#sparePurchase .purBadge{padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;background:rgba(255,255,255,.12);color:#cfe3f6}
+#sparePurchase .purBadge.crit{background:rgba(248,113,113,.2);color:#fecaca}
+#sparePurchase .purBadge.urg{background:rgba(251,146,60,.2);color:#fed7aa}
+#sparePurchase .purMain{display:flex;gap:10px;justify-content:space-between;align-items:flex-start}
+#sparePurchase .purTitle b{display:block;font-size:15px;color:#fff;word-break:break-word}
+#sparePurchase .purTitle small{display:block;color:#9cc2e6;margin-top:2px}
+#sparePurchase .purQty{text-align:right;flex:none}
+#sparePurchase .purQty b{display:block;font-size:24px;line-height:1;color:#fff}
+#sparePurchase .purQty small{color:#9cc2e6}
+#sparePurchase .purSeg{display:flex;gap:4px}
+#sparePurchase .purSeg i{flex:1;height:6px;border-radius:3px;background:rgba(255,255,255,.15)}
+#sparePurchase .purSeg i.done{background:var(--c)}
+#sparePurchase .purSeg i.cur{box-shadow:0 0 0 2px rgba(255,255,255,.55)}
+#sparePurchase .purDet{display:grid;gap:3px;font-size:12.5px}
+#sparePurchase .purL{display:flex;justify-content:space-between;gap:10px}
+#sparePurchase .purL span{color:#9cc2e6}
+#sparePurchase .purL b{font-weight:600;text-align:right;word-break:break-word}
+#sparePurchase .purRem{margin-top:3px;padding:6px 8px;border-radius:8px;background:rgba(255,255,255,.07);font-size:12px;color:#cfe3f6}
+#sparePurchase .purFoot{margin-top:auto;display:grid;gap:6px;border-top:1px solid rgba(255,255,255,.12);padding-top:8px}
+#sparePurchase .purHint{font-size:11.5px;color:#9cc2e6}
+#sparePurchase .purAct{display:flex;gap:6px;flex-wrap:wrap}
+#sparePurchase .purNext{flex:1 1 100%;padding:10px 12px;border-radius:12px;border:0;background:var(--c);color:#fff;font:800 14px Inter,system-ui,sans-serif;cursor:pointer;filter:brightness(1.15)}
+#sparePurchase .purAct .secondary,#sparePurchase .purAct .danger{padding:7px 10px;font-size:12.5px}
+@media(max-width:560px){#sparePurchase .purStep{flex:1 1 44%}#sparePurchase .purArr{display:none}#sparePurchase .purCards{grid-template-columns:1fr}}
+</style>
+<style id="v195PmCss">
+#v195Pm{position:fixed;inset:0;z-index:100003;background:rgba(4,12,24,.78);display:flex;align-items:center;justify-content:center;padding:12px;backdrop-filter:blur(3px)}
+#v195Pm .pmBox{width:100%;max-width:560px;max-height:94vh;display:flex;flex-direction:column;background:linear-gradient(160deg,#143252,#0e2238);border:1px solid #2a4a6b;border-radius:20px;box-shadow:0 18px 50px rgba(0,0,0,.55);color:#e6f0fa;font-family:Inter,Roboto,system-ui,sans-serif;overflow:hidden}
+#v195Pm .pmHd{display:flex;gap:12px;align-items:center;padding:14px 18px;background:var(--c);color:#fff}
+#v195Pm .pmHd>span{font-size:28px;line-height:1}#v195Pm .pmHd b{display:block;font-size:18px}#v195Pm .pmHd small{display:block;opacity:.9;font-size:12.5px;margin-top:2px}
+#v195Pm .pmBd{padding:14px 18px 4px;overflow:auto}
+#v195Pm .pmSum{border:1px solid #2a4a6b;border-radius:14px;background:rgba(255,255,255,.05);padding:10px 12px;margin-bottom:12px}
+#v195Pm .pmPart{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+#v195Pm .pmPart b{display:block;font-size:16px;color:#fff;word-break:break-word}#v195Pm .pmPart small{display:block;color:#9cc2e6;margin-top:2px}
+#v195Pm .pmQ{text-align:right;flex:none}#v195Pm .pmQ b{font-size:26px;line-height:1}#v195Pm .pmQ small{color:#9cc2e6}
+#v195Pm .pmFlow{display:flex;gap:4px;margin:10px 0 18px}
+#v195Pm .pmFlow i{flex:1;height:6px;border-radius:3px;background:rgba(255,255,255,.15);position:relative}
+#v195Pm .pmFlow i.d{background:var(--c)}#v195Pm .pmFlow i.c{box-shadow:0 0 0 2px rgba(255,255,255,.55)}
+#v195Pm .pmFlow em{position:absolute;top:9px;left:0;font-style:normal;font-size:9.5px;color:#9cc2e6;white-space:nowrap}
+#v195Pm .pmGrid{display:grid;grid-template-columns:1fr 1fr;gap:4px 14px;font-size:12.5px}
+#v195Pm .pmR{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dashed rgba(255,255,255,.12);padding:3px 0}
+#v195Pm .pmR.w{grid-column:1/-1}#v195Pm .pmR span{color:#9cc2e6;flex:none}#v195Pm .pmR b{font-weight:600;text-align:right;word-break:break-word}
+#v195Pm .pmTag{padding:1px 7px;border-radius:999px;font-size:10.5px;font-weight:700}#v195Pm .pmTag.r{background:rgba(248,113,113,.22);color:#fecaca}#v195Pm .pmTag.o{background:rgba(251,146,60,.22);color:#fed7aa}
+#v195Pm .pmNote{margin:0 0 10px;padding:8px 10px;border-radius:10px;background:rgba(96,165,250,.12);font-size:12.5px;color:#cfe3f6}
+#v195Pm .pmForm{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px}
+#v195Pm .pmF.w{grid-column:1/-1}
+#v195Pm label{display:block;margin:0 0 4px;font-size:12px;font-weight:700;color:#9cc2e6}#v195Pm label i{color:#f87171;font-style:normal}
+#v195Pm input:not([type=checkbox]),#v195Pm textarea{width:100%;box-sizing:border-box;padding:10px 12px;border-radius:12px;border:1px solid #3b6288;background:#0b1b2e;color:#e6f0fa;font:600 15px Inter,Roboto,system-ui,sans-serif;outline:none}
+#v195Pm input:focus,#v195Pm textarea:focus{border-color:#60a5fa;box-shadow:0 0 0 3px rgba(96,165,250,.25)}
+#v195Pm .pmF small{display:block;margin-top:3px;font-size:11px;color:#8fb3d6}
+#v195Pm .pmChk{display:flex;gap:8px;align-items:center;font-size:13.5px;color:#e6f0fa;cursor:pointer}#v195Pm .pmChk input{width:18px;height:18px}
+#v195Pm .pmErr{display:none;margin:12px 0 4px;padding:9px 12px;border-radius:12px;background:rgba(248,113,113,.14);border:1px solid #f87171;color:#fecaca;font-size:13px}
+#v195Pm .pmErr.on{display:block}
+#v195Pm .pmFt{display:flex;gap:10px;justify-content:flex-end;padding:10px 18px 16px}
+#v195Pm .pmFt button{padding:11px 20px;border-radius:12px;border:1px solid #3b6288;background:#1d4467;color:#e6f0fa;font:700 14px Inter,system-ui,sans-serif;cursor:pointer}
+#v195Pm .pmFt button.pri{background:var(--c);border-color:transparent;color:#fff;filter:brightness(1.1)}
+#v195Toast{position:fixed;left:50%;bottom:92px;transform:translateX(-50%) translateY(20px);z-index:100004;background:#14532d;color:#fff;padding:10px 18px;border-radius:999px;font:700 13.5px Inter,system-ui,sans-serif;opacity:0;pointer-events:none;transition:.25s;box-shadow:0 8px 24px rgba(0,0,0,.4);max-width:92vw;text-align:center}
+#v195Toast.on{opacity:1;transform:translateX(-50%)}
+@media(max-width:520px){#v195Pm .pmForm,#v195Pm .pmGrid{grid-template-columns:1fr}#v195Pm .pmFlow em{display:none}#v195Pm .pmFlow{margin-bottom:10px}}
+</style>
 </body>
 </html>
