@@ -18021,6 +18021,7 @@ st.textContent=
 '#v154Dash .v154c h3{margin:0;font-size:13px;font-weight:700;color:#fff}#v154Dash .v154c small{display:block;margin-top:2px;font-size:9px;color:#84939c}'+
 '#v154Dash .v154c .mini-nav{border:0;background:#edf5f5;color:#0f766e;border-radius:16px;padding:4px 14px;font-size:12px;cursor:pointer;white-space:nowrap}'+
 '#v154Dash .v154c table{color:#e6f0fa}#v154Dash .v154c th,#v154Dash .v154c td{border-color:rgba(255,255,255,.14)}#v154Dash .v154c th{background:rgba(255,255,255,.08);color:#b9d3ec}'+
+'#v154Dash .v154c .v187svg{display:block;width:100%;max-width:640px;height:auto;margin:6px auto 10px}#v154Dash .v154c table.v187pw{table-layout:auto;margin:4px 0 8px;font-size:12.5px}#v154Dash .v154c table.v187pw th,#v154Dash .v154c table.v187pw td{padding:6px 8px;text-align:center;white-space:nowrap}#v154Dash .v154c table.v187pw td:first-child,#v154Dash .v154c table.v187pw th:first-child{text-align:left;font-weight:700}#v154Dash .v154c table.v187pw tr:nth-child(even) td{background:rgba(255,255,255,.04)}'+
 '#v154Dash .v154c .bad{color:#fca5a5}#v154Dash .v154c .warn{color:#fcd34d}#v154Dash .v154c .ok{color:#86efac}#v154Dash .v154c .v154note{color:#b9d3ec!important}#v154Dash .v154c b{color:#e6f0fa}'+
 '#v153SBtn,#v154Dk{display:none!important}'+
 '.v154chip{display:inline-block;margin:3px 4px 3px 0;padding:6px 10px;border-radius:999px;background:#e0f2fe;color:#0c4a6e;font:700 12px Arial;cursor:pointer;border:0}'+
@@ -18282,10 +18283,11 @@ function powerCard(){
  try{
   var B=(data.hpsebBill||[]).filter(function(r){return r.date}).slice().sort(function(a,b){return String(a.date).localeCompare(String(b.date))}).slice(-8).map(function(r){return pwCalcBill(r)});
   if(B.length){
-   var mx=Math.max.apply(null,B.map(function(c){return Number(c.total)||0}))||1,bw=40,H=90,svg='<svg viewBox="0 0 '+(B.length*(bw+10)+10)+' '+(H+34)+'" style="width:100%;max-width:560px">';
-   B.forEach(function(c,i){var v=Number(c.total)||0,bh=Math.round(v/mx*H),x=10+i*(bw+10);svg+='<rect x="'+x+'" y="'+(H-bh+6)+'" width="'+bw+'" height="'+bh+'" fill="#2dd4bf"/><text x="'+(x+bw/2)+'" y="'+(H+20)+'" font-size="9" text-anchor="middle" fill="#b9d3ec">'+monLbl(String(c.date))+'</text><text x="'+(x+bw/2)+'" y="'+(H-bh+2)+'" font-size="8" text-anchor="middle" fill="#e6f0fa">'+(v/1e5).toFixed(1)+'L</text>'});
+   var mx=Math.max.apply(null,B.map(function(c){return Number(c.total)||0}))||1,bw=38,gp=22,TOP=22,H=96,W=B.length*(bw+gp)+gp,svg='<svg class="v187svg" viewBox="0 0 '+W+' '+(TOP+H+26)+'" preserveAspectRatio="xMidYMid meet">';
+   svg+='<line x1="6" x2="'+(W-6)+'" y1="'+(TOP+H)+'" y2="'+(TOP+H)+'" stroke="rgba(255,255,255,.25)"/>';
+   B.forEach(function(c,i){var v=Number(c.total)||0,bh=Math.max(2,Math.round(v/mx*H)),x=gp+i*(bw+gp),y=TOP+H-bh;svg+='<rect x="'+x+'" y="'+y+'" width="'+bw+'" height="'+bh+'" rx="5" fill="'+(i===B.length-1?'#2dd4bf':'#14919b')+'"/><text x="'+(x+bw/2)+'" y="'+(y-6)+'" font-size="11" font-weight="700" text-anchor="middle" fill="#e6f0fa">'+(v/1e5).toFixed(1)+'L</text><text x="'+(x+bw/2)+'" y="'+(TOP+H+17)+'" font-size="11" text-anchor="middle" fill="#b9d3ec">'+monLbl(String(c.date))+'</text>'});
    svg+='</svg>';
-   h+='<b style="font-size:12px">HPSEBL Total Bill (₹ Lac)</b>'+svg+'<table><tr><th>Month</th><th>Units</th><th>PF</th></tr>'+B.map(function(c){var pf=Number(c.pf)||0,cl=pf&&pf<0.9?'bad':(pf&&pf<0.95?'warn':'ok');return '<tr><td>'+monLbl(String(c.date))+'</td><td>'+Math.round(c.units||0)+'</td><td class="'+cl+'">'+(pf?pf.toFixed(3):'—')+'</td></tr>'}).join('')+'</table><div class="v154note" style="font-size:11px;color:#84939c">PF colour (indicative): 0.90 se kam = laal, 0.90-0.95 = peela, 0.95+ = hara. Asli penalty/incentive HPSEBL bill ke hisaab se dekho.</div>';
+   h+='<b style="font-size:12px">HPSEBL Total Bill (₹ Lac)</b>'+svg+'<table class="v187pw"><tr><th>Month</th><th>Bill (₹ Lac)</th><th>Units</th><th>PF</th></tr>'+B.map(function(c){var pf=Number(c.pf)||0,cl=pf&&pf<0.9?'bad':(pf&&pf<0.95?'warn':'ok');return '<tr><td>'+monLbl(String(c.date))+'</td><td>'+((Number(c.total)||0)/1e5).toFixed(2)+'</td><td>'+Math.round(c.units||0).toLocaleString('en-IN')+'</td><td class="'+cl+'">'+(pf?pf.toFixed(3):'—')+'</td></tr>'}).join('')+'</table><div class="v154note" style="font-size:11px;color:#84939c">PF colour (indicative): 0.90 se kam = laal, 0.90-0.95 = peela, 0.95+ = hara. Asli penalty/incentive HPSEBL bill ke hisaab se dekho.</div>';
   }else h+='<div class="v154note" style="font-size:12px">HPSEBL Bill ka data nahi mila.</div>';
  }catch(e){h+='<div class="v154note">Bill trend load nahi hua.</div>'}
  try{
@@ -18295,7 +18297,7 @@ function powerCard(){
    var f=function(o){return o.hrs>0?o.ltr/o.hrs:null};
    var all=[];rows.forEach(function(r){[f(r.s),f(r.c)].forEach(function(v){if(v)all.push(v)})});var av=all.length?all.reduce(function(a,b){return a+b},0)/all.length:0;
    var cell=function(o){var v=f(o);return '<td>'+(Math.round(o.hrs*10)/10)+' h / '+Math.round(o.ltr)+' L</td><td class="'+(v&&av&&v>av*1.3?'bad':'')+'">'+(v?v.toFixed(1):'—')+'</td>'};
-   h+='<b style="font-size:12px;display:block;margin-top:8px">DG: Diesel Litre / Running Hour</b><table><tr><th>Month</th><th colspan="2">DG-01</th><th colspan="2">DG-02</th></tr>'+rows.map(function(r){return '<tr><td>'+monLbl(r.m+'-01')+'</td>'+cell(r.s)+cell(r.c)+'</tr>'}).join('')+'</table><div class="v154note" style="font-size:11px;color:#84939c">Laal = average se 30% zyada L/hr (diesel leakage / engine check).</div>';
+   h+='<b style="font-size:12px;display:block;margin-top:8px">DG: Diesel Litre / Running Hour</b><table class="v187pw v187dg"><tr><th rowspan="2">Month</th><th colspan="2">DG-01</th><th colspan="2">DG-02</th></tr><tr><th>Hrs / Ltr</th><th>L/hr</th><th>Hrs / Ltr</th><th>L/hr</th></tr>'+rows.map(function(r){return '<tr><td>'+monLbl(r.m+'-01')+'</td>'+cell(r.s)+cell(r.c)+'</tr>'}).join('')+'</table><div class="v154note" style="font-size:11px;color:#84939c">Laal = average se 30% zyada L/hr (diesel leakage / engine check).</div>';
   }
  }catch(e){}
  return h+'</div>';
