@@ -3435,25 +3435,41 @@ renderDG = function() {
  '.mc .cp{border:1px solid #e2e8f0;border-radius:8px;padding:5px 8px;margin-bottom:5px;font-size:11px}.mc .cph{display:flex;gap:6px;align-items:flex-start}.mc .cpn{flex:none;min-width:18px;font-weight:800;color:#64748b}.mc .cpa{flex:1;font-weight:700;color:#0f172a;word-break:break-word}.mc .cps{flex:none;font-weight:800;font-size:10.5px;color:#64748b}.mc .cpx{margin:2px 0 0 24px;color:#475569;word-break:break-word}.mc .cpx i{font-style:normal;font-weight:700;color:#64748b}.mc .cpr{color:#b45309}'+
  '.mc .steps{display:flex;margin:6px 0 8px}.mc .st{flex:1;text-align:center;font-size:9.5px;color:#94a3b8;font-weight:700;position:relative}.mc .st:not(:last-child):after{content:"";position:absolute;top:10px;left:58%;width:84%;height:2px;background:#e2e8f0}.mc .st.d:not(:last-child):after{background:#16a34a}.mc .st i{display:block;position:relative;z-index:1;width:22px;height:22px;border-radius:50%;background:#e2e8f0;margin:0 auto 3px;line-height:22px;font-style:normal;color:#fff;font-size:12px}.mc .st.d{color:#15803d}.mc .st.d i{background:#16a34a}.mc .st.n{color:#b45309}.mc .st.n i{background:#f59e0b}.mc .st.x{color:#dc2626}.mc .st.x i{background:#dc2626}'+
  '.mc .tl{border-left:2px solid #e2e8f0;margin:4px 0 0 8px;padding-left:12px;font-size:11.5px}.mc .tl div{position:relative;margin-bottom:6px;color:#334155}.mc .tl div:before{content:"";position:absolute;left:-18px;top:3px;width:8px;height:8px;border-radius:50%;background:#16a34a}.mc .tl div.n:before{background:#f59e0b}.mc .tl small{color:#64748b;display:block;font-size:10px}';
- function html(sp){
+ function html(sp,op){
+  op=op||null;var cont=!!(op&&op.part>1),last=!op||op.part===op.parts;
   var c=sp.c||['#0b2545','#13579b'],logo='';try{logo=window.APP_LOGO||(typeof APP_LOGO!=='undefined'?APP_LOGO:'')}catch(e){}
   var h='<div class="mc" style="--ac:'+c[1]+';--bg:linear-gradient(135deg,'+c[0]+','+c[1]+')">'+
    '<div class="co">'+(logo?'<img src="'+logo+'" alt=""/>':'')+'<div class="n">MILESTONE GEARS LTD.<small>Unit-7 • HT Plant Maintenance</small></div><div class="d">'+E(sp.tag1||'Report')+'<br/><b>'+E(sp.tag2||'')+'</b></div></div>'+
-   '<div class="h"><div class="ic">'+(sp.icon||'⚙️')+'</div><div><div class="t">'+E(sp.title)+'</div><div class="s">'+E(sp.sub||'')+'</div></div>'+(sp.chip?'<div class="pill" style="color:'+(sp.chipC||'#0b2545')+'">'+E(sp.chip)+'</div>':'')+'</div><div class="b">';
+   (cont?'<div class="h" style="padding:8px 14px"><div class="ic" style="width:30px;height:30px;line-height:30px;font-size:16px">'+(sp.icon||'⚙️')+'</div><div><div class="t" style="font-size:13.5px">'+E(sp.title)+'</div><div class="s">'+E(sp.sub||'')+'</div></div><div class="pill" style="color:#0b2545">Page '+op.part+'/'+op.parts+'</div></div>':'<div class="h"><div class="ic">'+(sp.icon||'⚙️')+'</div><div><div class="t">'+E(sp.title)+'</div><div class="s">'+E(sp.sub||'')+'</div></div>'+(op&&op.parts>1?'<div class="pill" style="color:#0b2545">Page 1/'+op.parts+'</div>':(sp.chip?'<div class="pill" style="color:'+(sp.chipC||'#0b2545')+'">'+E(sp.chip)+'</div>':''))+'</div>')+'<div class="b">';
+  if(cont){}else{
   if(sp.steps){h+='<div class="steps">'+sp.steps.map(function(s,i){return '<div class="st '+s.k+'"><i>'+(s.k==='d'?'✓':s.k==='x'?'✕':(i+1))+'</i>'+E(s.l)+'</div>'}).join('')+'</div>'}
   if(sp.big&&sp.big.length)h+='<div class="big">'+sp.big.map(function(b){return '<div><small>'+E(b.l)+'</small><b class="'+(b.c||'')+'">'+E(b.v)+'</b></div>'}).join('')+'</div>';
   (sp.sections||[]).forEach(function(s){var rows=(s.rows||[]).filter(function(r){return nz(r[1])});if(!rows.length)return;
    h+=(s.t?'<div class="sec">'+E(s.t)+'</div>':'')+rows.map(function(r){return '<div class="row"><span>'+E(r[0])+'</span><b class="'+(r[2]||'')+'">'+E(r[1])+'</b></div>'}).join('')});
-  if(sp.cps&&sp.cps.length){h+='<div class="sec">Checkpoint Details ('+sp.cps.length+')</div>'+sp.cps.map(function(c){var k=c.st==='OK'?'g':(c.st==='Not OK'?'r':'');return '<div class="cp"><div class="cph"><span class="cpn">'+E(c.n)+'</span><span class="cpa">'+E(c.a)+'</span><span class="cps '+k+'">'+E(c.st||'-')+'</span></div>'+(c.std?'<div class="cpx"><i>Standard:</i> '+E(c.std)+'</div>':'')+(c.o?'<div class="cpx"><i>Observation:</i> '+E(c.o)+'</div>':'')+(c.rm?'<div class="cpx cpr"><i>Remark:</i> '+E(c.rm)+'</div>':'')+(c.sp?'<div class="cpx"><i>Spare:</i> '+E(c.sp)+'</div>':'')+'</div>'}).join('')}
-  if(sp.tl&&sp.tl.length)h+='<div class="sec">Timeline</div><div class="tl">'+sp.tl.map(function(t){return '<div class="'+(t.n?'n':'')+'">'+E(t.a)+(t.b?'<small>'+E(t.b)+'</small>':'')+'</div>'}).join('')+'</div>';
-  if(sp.sig&&sp.sig.length)h+='<div class="sig">'+sp.sig.map(function(s){return '<div>'+E(s[0])+'<b>'+E(s[1]||'-')+'</b></div>'}).join('')+'</div>';
+  }
+  var cpl=sp.cps||[];if(op&&op.parts>1)cpl=cpl.slice(op.from,op.to);
+  if(cpl.length){h+='<div class="sec">Checkpoint Details ('+(op&&op.parts>1?(op.from+1)+'-'+op.to+' / '+sp.cps.length:sp.cps.length)+')</div>'+cpl.map(function(c){var k=c.st==='OK'?'g':(c.st==='Not OK'?'r':'');return '<div class="cp"><div class="cph"><span class="cpn">'+E(c.n)+'</span><span class="cpa">'+E(c.a)+'</span><span class="cps '+k+'">'+E(c.st||'-')+'</span></div>'+(c.std?'<div class="cpx"><i>Standard:</i> '+E(c.std)+'</div>':'')+(c.o?'<div class="cpx"><i>Observation:</i> '+E(c.o)+'</div>':'')+(c.rm?'<div class="cpx cpr"><i>Remark:</i> '+E(c.rm)+'</div>':'')+(c.sp?'<div class="cpx"><i>Spare:</i> '+E(c.sp)+'</div>':'')+'</div>'}).join('')}
+  if(last&&sp.tl&&sp.tl.length)h+='<div class="sec">Timeline</div><div class="tl">'+sp.tl.map(function(t){return '<div class="'+(t.n?'n':'')+'">'+E(t.a)+(t.b?'<small>'+E(t.b)+'</small>':'')+'</div>'}).join('')+'</div>';
+  if(last&&sp.sig&&sp.sig.length)h+='<div class="sig">'+sp.sig.map(function(s){return '<div>'+E(s[0])+'<b>'+E(s[1]||'-')+'</b></div>'}).join('')+'</div>';
   h+='</div><div class="f"><span>HTP MMS • Auto generated</span><span>'+E(sp.foot||new Date().toLocaleString('en-GB').replace(',',''))+'</span></div></div>';
   return h;
  }
- function render(sp){
+function planPages(sp){
+  var n=(sp.cps||[]).length;if(n<=8)return [null];
+  var host=document.createElement('div');host.style.cssText='position:fixed;left:-9999px;top:0;width:'+W+'px';host.innerHTML='<style>'+CSS+'</style>'+html(sp);document.body.appendChild(host);
+  var mc=host.querySelector('.mc'),top0=mc.getBoundingClientRect().top,cps=[].slice.call(host.querySelectorAll('.cp')).map(function(e){var r=e.getBoundingClientRect();return {t:r.top-top0,h:r.height+5}});
+  var sg=host.querySelector('.sig'),tl=host.querySelector('.tl'),tail=(sg?sg.getBoundingClientRect().height+8:0)+(tl?tl.getBoundingClientRect().height+30:0),f=host.querySelector('.f'),fh=f?f.getBoundingClientRect().height:34;host.remove();
+  var LIM=980,first=cps.length?cps[0].t:300,chunks=[],i=0,base=first+fh+4;
+  while(i<n){var cap=LIM-(chunks.length?150+fh:base),used=0,j=i;while(j<n&&(used+cps[j].h<=cap||j===i)){used+=cps[j].h;j++}chunks.push([i,j]);i=j}
+  var lastUsed=0;for(var k=chunks[chunks.length-1][0];k<n;k++)lastUsed+=cps[k].h;
+  if((chunks.length>1?150+fh:base)+lastUsed+tail>LIM+120)chunks.push([n,n]);
+  if(chunks.length===1)return [null];
+  return chunks.map(function(c,x){return {part:x+1,parts:chunks.length,from:c[0],to:c[1]}});
+ }
+ function render(sp,op){
   return new Promise(function(res,rej){
    try{
-    var body=html(sp),host=document.createElement('div');host.style.cssText='position:fixed;left:-9999px;top:0;width:'+W+'px';host.innerHTML='<style>'+CSS+'</style>'+body;document.body.appendChild(host);
+    var body=html(sp,op),host=document.createElement('div');host.style.cssText='position:fixed;left:-9999px;top:0;width:'+W+'px';host.innerHTML='<style>'+CSS+'</style>'+body;document.body.appendChild(host);
     var H=Math.ceil(host.querySelector('.mc').getBoundingClientRect().height)+2;host.remove();
     var svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'"><foreignObject x="0" y="0" width="'+W+'" height="'+H+'"><div xmlns="http://www.w3.org/1999/xhtml"><style>'+CSS+'</style>'+body+'</div></foreignObject></svg>';
     var img=new Image();img.onload=function(){try{var S=2,cv=document.createElement('canvas');cv.width=W*S;cv.height=H*S;var cx=cv.getContext('2d');cx.fillStyle='#fff';cx.fillRect(0,0,cv.width,cv.height);cx.drawImage(img,0,0,cv.width,cv.height);cv.toBlob(function(b){b?res(b):rej(new Error('toBlob'))},'image/png')}catch(e){rej(e)}};
@@ -3473,18 +3489,20 @@ renderDG = function() {
  window.mmsCardShowSpec=function(sp){
   var old=document.getElementById('mmsCardBox');if(old)old.remove();
   var box=document.createElement('div');box.id='mmsCardBox';box.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:100001;overflow:auto;padding:10px;display:flex;align-items:flex-start;justify-content:center';
-  box.innerHTML='<div style="background:#fff;border-radius:14px;padding:10px;max-width:460px;width:100%;margin:auto"><div id="mmsCardImg" style="text-align:center;font-size:13px;color:#475569;padding:30px 0">⏳ Card ban raha hai…</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button id="mmsCardWa" class="primary" style="background:#128c4a;border-color:#25d366;color:#fff;flex:1" disabled>📤 WhatsApp par bhejo</button><button id="mmsCardDl" class="secondary" disabled>⬇ Image</button><button class="secondary" id="mmsCardX">Band karo</button></div></div>';
+  box.innerHTML='<div style="background:#fff;border-radius:14px;padding:10px;max-width:460px;width:100%;margin:auto"><div id="mmsCardImg" style="text-align:center;font-size:13px;color:#475569;padding:30px 0">⏳ Card ban raha hai…</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button id="mmsCardWa" class="primary" style="background:#128c4a;border-color:#25d366;color:#fff;flex:1" disabled>📤 WhatsApp par bhejo</button><button id="mmsCardDl" class="secondary" disabled>⬇ Image(s)</button><button class="secondary" id="mmsCardX">Band karo</button></div></div>';
   document.body.appendChild(box);
   document.getElementById('mmsCardX').onclick=function(){box.remove()};
-  render(sp).then(function(blob){
-   var url=URL.createObjectURL(blob),name=fname(sp),file=null;try{file=new File([blob],name,{type:'image/png'})}catch(e){}
-   document.getElementById('mmsCardImg').innerHTML='<img src="'+url+'" style="width:100%;border-radius:10px;border:1px solid #e2e8f0">';
+  var plan=[null];try{plan=planPages(sp)}catch(e){console.warn('planPages',e)}
+  Promise.all(plan.map(function(op){return render(sp,op)})).then(function(blobs){
+   var base=fname(sp).replace(/\.png$/,''),names=blobs.map(function(b,k){return blobs.length>1?base+'_p'+(k+1)+'.png':base+'.png'}),files=[];
+   blobs.forEach(function(b,k){try{files.push(new File([b],names[k],{type:'image/png'}))}catch(e){}});
+   document.getElementById('mmsCardImg').innerHTML=blobs.map(function(b,k){return '<img src="'+URL.createObjectURL(b)+'" style="width:100%;border-radius:10px;border:1px solid #e2e8f0;'+(k?'margin-top:8px':'')+'">'}).join('')+(blobs.length>1?'<div style="font-size:12px;color:#475569;margin-top:6px">📄 '+blobs.length+' pages - WhatsApp par ek saath share honge</div>':'');
    var wa=document.getElementById('mmsCardWa'),d=document.getElementById('mmsCardDl');wa.disabled=false;d.disabled=false;
-   d.onclick=function(){dl(blob,name)};
+   d.onclick=function(){blobs.forEach(function(b,k){setTimeout(function(){dl(b,names[k])},k*400)})};
    wa.onclick=function(){
     var txt=sp.title+' — '+(sp.sub||'');
-    if(file&&navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){navigator.share({files:[file],title:sp.title,text:txt}).catch(function(e){if(e&&e.name==='AbortError')return;dl(blob,name);window.open('https://wa.me/?text='+encodeURIComponent(toText(sp)),'_blank')});return}
-    dl(blob,name);setTimeout(function(){window.open('https://wa.me/?text='+encodeURIComponent(toText(sp)),'_blank');alert('Card image download ho gayi. WhatsApp me Attach (📎) → Gallery / Photos se wo image chun kar bhejo.')},600);
+    if(files.length===blobs.length&&navigator.share&&navigator.canShare&&navigator.canShare({files:files})){navigator.share({files:files,title:sp.title,text:txt}).catch(function(e){if(e&&e.name==='AbortError')return;d.onclick();window.open('https://wa.me/?text='+encodeURIComponent(toText(sp)),'_blank')});return}
+    d.onclick();setTimeout(function(){window.open('https://wa.me/?text='+encodeURIComponent(toText(sp)),'_blank');alert('Card image(s) download ho gayi. WhatsApp me Attach (📎) → Gallery / Photos se chun kar bhejo.')},600+blobs.length*400);
    };
   }).catch(function(e){
    var bx=document.getElementById('mmsCardImg');if(bx)bx.innerHTML='Card image nahi ban payi. <button class="primary" id="mmsCardTxt">Text message bhejo</button>';
@@ -3813,7 +3831,9 @@ function loadPMTemplate(){
  renderPMRows(PM_CHECKLISTS[key]?.rows||[]);
 }
 function pmEntries(){const spareUsed=pmGlobalSpareEntries();return [...document.querySelectorAll('#pmBody tr')].map((tr,i)=>({observation:tr.querySelector('.pm-obs')?.value||'',workDone:tr.querySelector('.pm-work')?.value||'',remark:tr.querySelector('.pm-rem')?.value||'',spareUsed:i===0?spareUsed:[]}));}
-function formatPMSpareParts(parts){return (parts||[]).filter(x=>x?.desc||x?.qty).map(x=>`${x.desc||''}${x.qty!==undefined&&x.qty!==''?' (Qty: '+x.qty+')':''}`).join(', ')||'None';}
+function spUnitFor(x){try{if(!x)return '';if(x.uom)return String(x.uom);const L=String(x.spareLink||x.id||'').replace(/^spares:/,'');let sp=L&&!/^unlisted:/.test(L)?(data.spares||[]).find(s=>String(s.id)===L):null;if(!sp){const nm=String(x.desc||x.part||'').split(' - ')[0].trim().toLowerCase();if(nm)sp=(data.spares||[]).find(s=>String(s.desc||'').trim().toLowerCase()===nm)}return sp?uomOf(sp):''}catch(e){return ''}}
+function spQtyU(x){const q=x.qty;if(q===undefined||q===''||q===null)return '';const u=spUnitFor(x);return u&&!/[A-Za-z]/.test(String(q))?q+' '+u:String(q)}
+function formatPMSpareParts(parts){return (parts||[]).filter(x=>x?.desc||x?.qty).map(x=>`${x.desc||''}${x.qty!==undefined&&x.qty!==''?' (Qty: '+spQtyU(x)+')':''}`).join(', ')||'None';}
 function pmSpareTotals(entries){
  const totals={};
  (Array.isArray(entries)?entries:[]).forEach(e=>{
@@ -4101,7 +4121,7 @@ function mrOfferRegisterUnlisted(sel,u){
   return true;
 }
 function ensureSpareRow(){const box=document.getElementById('mrSpareParts');if(box&&!box.querySelector('.spare-row'))addSparePartRow('', '', false)}
-function formatSpareParts(parts){return (parts||[]).filter(x=>x.part||x.qty).map(x=>`${x.part}${x.qty!==''?' (Qty: '+x.qty+')':''}`).join(', ')}
+function formatSpareParts(parts){return (parts||[]).filter(x=>x.part||x.qty).map(x=>`${x.part}${x.qty!==''?' (Qty: '+spQtyU(x)+')':''}`).join(', ')}
 function formatSpareQty(parts){return (parts||[]).filter(x=>x.part||x.qty).map(x=>x.qty||'').join(', ')}
 function updateSpareLegacyFields(){const parts=sparePartsFromForm();setv('mr_spare',formatSpareParts(parts));setv('mr_qty',formatSpareQty(parts))}
 function legacySpareParts(r){
@@ -6364,9 +6384,9 @@ function gsReport(mod,mk){
  }else if(mod==='bd'){
   const a=data.bd.filter(inMonth).sort(function(x,y){return (x.date||'').localeCompare(y.date||'')});
   rep.title='DAILY BREAKDOWN REGISTER';rep.sub='Unit- 7   |   MONTH :- '+label;
-  rep.groups=[['S.no',1],['Date',1],['Machine Detail',1],['Breakdown Reason',1],['B/D Type (E/M)',1],['Department/ Section',1],['Breakdown Time',3],['Action Taken',1],['Spare Part Detail',2],['Attended By',1],['Status',1]];
-  rep.headers=['','','','','','','From','To','Breakdown Hours','','Spare Parts Used','Qty','',''];
-  rep.rows=a.map(function(r,i){return [i+1,fmtDate(r.date),r.machine,r.reason,r.type,r.section,r.from,r.to,num(r.hours).toFixed(2),r.action,r.spare,r.qty,r.attended,r.status]});
+  rep.groups=[['S.no',1],['Date',1],['Machine Detail',1],['Breakdown Reason',1],['B/D Type (E/M)',1],['Department/ Section',1],['Breakdown Time',3],['Action Taken',1],['Spare Part Detail',3],['Attended By',1],['Status',1]];
+  rep.headers=['','','','','','','From','To','Breakdown Hours','','Spare Parts Used','Qty','Unit','',''];
+  rep.rows=a.map(function(r,i){return [i+1,fmtDate(r.date),r.machine,r.reason,r.type,r.section,r.from,r.to,num(r.hours).toFixed(2),r.action,r.spare,r.qty,(r.qty!==undefined&&r.qty!==''?spUnitFor({spareLink:r.spareLink,desc:r.spare,uom:r.uom}):''),r.attended,r.status]});
   rep.summary=[['TOTAL TIME',a.reduce(function(s,r){return s+num(r.hours)},0).toFixed(2)+' HRS']];
   rep.footer=(window.mmsDocTxt||function(x){return x})('FMT-MNT-08, Rev.-00, Date- 18.07.2014');
  }else if(mod==='mr'){
@@ -6390,21 +6410,21 @@ function gsReport(mod,mk){
  }else if(mod==='utility'&&mk!=='*'){
   const a=utilityLogs().filter(inMonth).sort(function(x,y){return (x.date||'').localeCompare(y.date||'')});
   rep.title='Maint & Utility Usage / Maintenance History';rep.sub='MONTH: '+label;
-  rep.headers=['Sr.No.','Date','Item','Qty','Location','Department','Activity','Problem / Observation','Action Taken','Done By','Next Date','Remark'];
-  rep.rows=a.map(function(r,i){return [i+1,fmtDate(r.date),r.itemName||utilityItemName(r.itemId),r.qty,r.location,r.department,r.activity,r.problem,r.action,r.person,fmtDate(r.nextDate),r.remark]});
+  rep.headers=['Sr.No.','Date','Item','Qty','Unit','Location','Department','Activity','Problem / Observation','Action Taken','Done By','Next Date','Remark'];
+  rep.rows=a.map(function(r,i){return [i+1,fmtDate(r.date),r.itemName||utilityItemName(r.itemId),r.qty,(r.uom||((utilityItems().find(function(x){return String(x.id)===String(r.itemId)})||{}).uom)||''),r.location,r.department,r.activity,r.problem,r.action,r.person,fmtDate(r.nextDate),r.remark]});
  }else if(mod==='utility'){
   const a=utilityItems();
   rep.title='Maint & Utility Item Master';
-  rep.headers=['Sr.No.','Item Code','Item Name','Category','Make','Specification','Qty','Location','Status','Remark'];
-  rep.rows=a.map(function(r,i){return [i+1,r.code,r.name,r.category,r.make,r.spec,r.qty,r.location,r.status,r.remark]});
+  rep.headers=['Sr.No.','Item Code','Item Name','Category','Make','Specification','Qty','Unit','Location','Status','Remark'];
+  rep.rows=a.map(function(r,i){return [i+1,r.code,r.name,r.category,r.make,r.spec,r.qty,uomOf(r),r.location,r.status,r.remark]});
  }else if(mod==='spares'){
   rep.title='SPARE PARTS INVENTORY & MASTER LIST';
-  rep.headers=['Sr.No.','Item Code','Part Description','Part Specification','Make','Min Qty','Max Qty','Available Qty','Status','Location'];
-  rep.rows=data.spares.map(function(r,i){return [i+1,r.code,r.desc,r.spec,r.make,r.min,r.max,inventoryAvailableQty(r),spareStatus(r),r.loc]});
+  rep.headers=['Sr.No.','Item Code','Part Description','Part Specification','Make','Min Qty','Max Qty','Available Qty','Unit','Status','Location'];
+  rep.rows=data.spares.map(function(r,i){return [i+1,r.code,r.desc,r.spec,r.make,r.min,r.max,inventoryAvailableQty(r),uomOf(r),spareStatus(r),r.loc]});
  }else if(mod==='critical'){
   rep.title=(window.mmsDocTxt||function(x){return x})('CRITICAL SPARES LEVEL MONITORING REGISTER (FMT-MNT-11)');rep.footer=(window.mmsDocTxt||function(x){return x})('FMT-MNT-11 REV NO: 01 DATE: 30.10.2014');
-  rep.headers=['S.No','Item Code','Part Description','Specification','Min Qty','Max Qty','M/c No.','Location','Avail Qty','Status','Remark'];
-  rep.rows=data.critical.map(function(r,i){return [i+1,r.code,r.desc,r.spec,r.min,r.max,r.machine,r.loc,r.avail,criticalStatus(r),r.remark]});
+  rep.headers=['S.No','Item Code','Part Description','Specification','Min Qty','Max Qty','M/c No.','Location','Avail Qty','Unit','Status','Remark'];
+  rep.rows=data.critical.map(function(r,i){return [i+1,r.code,r.desc,r.spec,r.min,r.max,r.machine,r.loc,r.avail,uomOf(r),criticalStatus(r),r.remark]});
  }else if(mod==='tc'){
   rep.title=(window.mmsDocTxt||function(x){return x})('THERMOCOUPLE REPLACEMENT PLAN & AUDIT CONTROL (FMT-HT-70)');rep.footer=(window.mmsDocTxt||function(x){return x})('FMT-MNT-01, REV NO: 01, DATE: 22.04.2022','tc');
   rep.headers=['Sl.No.','Furnace No.','Location','Type','Sr.No/ID','Replacement Frequency','Installation Date','Replacement Date','Status'];
@@ -6456,9 +6476,9 @@ function gsReport(mod,mk){
  }else if(mod==='sparePurchase'){
   const a=data.sparePurchase||[];
   rep.title='SPARE PART PURCHASE PLANNING & RECEIPT REGISTER';
-  rep.headers=['Sr.No.','Part Description','Specification','Qty','Urgency','Source','Machine / Ref','Req. Date','Stage','PR No.','PR Date','PO No.','PO Date','Vendor','Sent On','Expected Delivery','Received Date','Qty Received','Challan / Invoice','Cost (Rs)','Remark'];
+  rep.headers=['Sr.No.','Part Description','Specification','Qty','Unit','Urgency','Source','Machine / Ref','Req. Date','Stage','PR No.','PR Date','PO No.','PO Date','Vendor','Sent On','Expected Delivery','Received Date','Qty Received','Challan / Invoice','Cost (Rs)','Remark'];
   const stg=function(r){return r.status==='Ordered'?(r.vendor?'Sent to Vendor':'PO Created'):(r.status||'Planned')};
-  rep.rows=a.map(function(r,i){return [i+1,r.desc,r.spec,r.qty,r.urgency,r.source||'',r.refInfo||'',fmtDate(r.reqDate),stg(r),r.prNo||'',fmtDate(r.prDate),r.po||'',fmtDate(r.poDate||r.ordDate),r.vendor||'',fmtDate(r.sentDate),fmtDate(r.expDate),(stg(r)==='Received'?fmtDate(r.recDate):''),(stg(r)==='Received'?r.recQty:''),r.challan||'',(r.cost>0?Number(r.cost).toFixed(2):''),r.remark]});
+  rep.rows=a.map(function(r,i){return [i+1,r.desc,r.spec,r.qty,purUom(r),r.urgency,r.source||'',r.refInfo||'',fmtDate(r.reqDate),stg(r),r.prNo||'',fmtDate(r.prDate),r.po||'',fmtDate(r.poDate||r.ordDate),r.vendor||'',fmtDate(r.sentDate),fmtDate(r.expDate),(stg(r)==='Received'?fmtDate(r.recDate):''),(stg(r)==='Received'?r.recQty:''),r.challan||'',(r.cost>0?Number(r.cost).toFixed(2):''),r.remark]});
   rep.summary=[['Total',a.length],['Requirement (PR pending)',a.filter(function(x){return stg(x)==='Planned'}).length],['PR Raised',a.filter(function(x){return stg(x)==='PR Raised'}).length],['PO Created',a.filter(function(x){return stg(x)==='PO Created'}).length],['Sent to Vendor (material awaited)',a.filter(function(x){return stg(x)==='Sent to Vendor'}).length],['Unit 4 se Lana Hai (pending)',a.filter(function(x){return stg(x)==='Unit 4 Pending'}).length],['Received',a.filter(function(x){return stg(x)==='Received'}).length]];
  }else if(mod==='powerCost'||mod==='hpsebBill'){
   pwFillReport(rep,mod);
@@ -7121,6 +7141,7 @@ function gsQtySet(mod,r,n){n=Math.max(0,n);if(mod==='critical')r.avail=n;else sy
 function gsQbSave(QB,skip){try{['spares','critical'].forEach(function(mod){const m=QB[mod]||{},out={};gsList(mod).forEach(function(r){if(!r||typeof r!=='object')return;const sid=gsSidOf(r);if(!sid)return;
   if((skip[mod+'|'+sid]||(window.__gsSkip&&window.__gsSkip[mod]>Date.now()))&&m[sid]!==undefined)out[sid]=m[sid];else out[sid]=(QB.__m&&QB.__m[mod+'|'+sid]!==undefined)?QB.__m[mod+'|'+sid]:gsQtyOf(mod,r)});QB[mod]=out});
   const w={spares:QB.spares,critical:QB.critical};localStorage.setItem(GS_QB_KEY,JSON.stringify(w))}catch(e){console.warn('qtybase',e)}}
+window.mmsConflictBackup=function(){try{const a=JSON.parse(localStorage.getItem('htp_gs_conflicts_v1')||'[]');const b=new Blob([JSON.stringify(a,null,1)],{type:'application/json'});const u=document.createElement('a');u.href=URL.createObjectURL(b);u.download='htp_sync_conflict_backup.json';u.click();return a.length}catch(e){return 0}};
 async function gsSync(auto){
  if(!session())return;
  const cfg=gsCfg();
@@ -7205,6 +7226,40 @@ async function gsSync(auto){
    newBase[mod]=nb;
   });
   assigned.forEach(gsPersist);
+  // 1b) STALE-DEVICE GUARD: push se pehle server ka haal dekho. Jo record server par is device ke base ke baad kisi aur ne badla/banaya
+  // hai, usko purani local copy se overwrite nahi karte (server wala rakhte hain; local copy backup me save hoti hai).
+  let guardOut=null;
+  if(changes.length&&meta.since){
+   gsStatus('⏳ Checking server…');
+   guardOut=await gsPost(cfg,{token:cfg.token,since:meta.since,changes:[]});   // fail ho to sync ruk jata hai (kuch overwrite nahi hota)
+   const srv={};(guardOut&&guardOut.rows||[]).forEach(function(rw){const k=rw.module+'|'+rw.sid;if(!srv[k]||Number(rw.ts)>=Number(srv[k].ts))srv[k]=rw});
+   const GS_SRVWINS=['machineMaster','users','apprCfg','printFmt','dcMeta','dcTpl','docCtl'];
+   const keep=[],kept=[];let nConf=0,nReSid=0;const bk=[];const persistMods=new Set();
+   changes.forEach(function(c){
+    const k=c.module+'|'+c.sid,s0=srv[k];
+    if(!s0||Number(s0.ts)<=Number(c.bts||0)){keep.push(c);return}          // server par is record me koi nayi badlav nahi: push theek hai
+    const nbm=newBase[c.module]||(newBase[c.module]={}),ob=(meta.base[c.module]||{})[c.sid];
+    if(c.deleted){
+     if(s0.deleted){nbm[c.sid]=ob||nbm[c.sid];return}                       // dono ne delete kiya: kuch bhejna nahi
+     nConf++;if(ob)nbm[c.sid]=ob;else delete nbm[c.sid];return}              // kisi ne edit kiya hai: delete mat bhejo, server ka record wapas aayega
+    if(!s0.deleted&&gsHash(gsClean(JSON.parse(s0.json||'{}')))===gsHash(c.json)){if(ob)nbm[c.sid]=ob;else delete nbm[c.sid];return}   // same data
+    nConf++;
+    const lst=gsList(c.module),li=lst.findIndex(function(r){return r&&gsSidOf(r)===c.sid});
+    if(c.module==='spares'||c.module==='critical'){if(ob)nbm[c.sid]=ob;else delete nbm[c.sid];return}   // stock: step 3 ka delta-merge qty sambhal leta hai
+    if(!ob&&!s0.deleted&&li>=0&&GS_SRVWINS.indexOf(c.module)<0){             // naya local record, par same sid par server par alag record: dono rakho
+     const ns='x'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+     lst[li]._sid=ns;persistMods.add(c.module);nReSid++;
+     c.sid=ns;c.bts=0;keep.push(c);delete nbm[k.split('|')[1]];c.json=gsClean(lst[li]);nbm[ns]={h:gsHash(c.json),ts:now,m:gsRecMonth(c.module,lst[li])||''};return}
+    if(li>=0||!ob)bk.push({module:c.module,sid:c.sid,at:new Date().toISOString(),json:c.json});   // local copy backup
+    if(ob)nbm[c.sid]=ob;else delete nbm[c.sid];
+   });
+   changes.length=0;keep.forEach(function(c){changes.push(c)});
+   persistMods.forEach(gsPersist);
+   if(bk.length){try{const old=JSON.parse(localStorage.getItem('htp_gs_conflicts_v1')||'[]');localStorage.setItem('htp_gs_conflicts_v1',JSON.stringify(old.concat(bk).slice(-300)))}catch(e){}}
+   window.__gsConf={n:nConf,resid:nReSid,bk:bk.length};
+   if(nConf)console.warn('Stale guard: '+nConf+' conflicting change(s) not pushed, '+nReSid+' re-keyed, '+bk.length+' backed up');
+   if(nConf&&auto!==undefined)setTimeout(function(){try{toast('⚠ '+nConf+' record(s) server par newer the - unka naya data rakha gaya (aapki purani copy backup me)')}catch(e){}},400);
+  }
   // 2) push + pull
   // Bade data par ek saath push fail ho jata tha (timeout) - isliye 80-80 records ke batch me bhejte hain.
   const GS_BATCH=80;let out;
@@ -7216,6 +7271,7 @@ async function gsSync(auto){
    const rest=changes.length%GS_BATCH||GS_BATCH;
    out=await gsPost(cfg,{token:cfg.token,since:meta.since,changes:changes.slice(changes.length-rest)});
   }else if(!changes.length&&!meta.since&&window.__gsFreshOut&&Date.now()-window.__gsFreshOut.at<120000){out=window.__gsFreshOut.out;window.__gsFreshOut=null}
+  else if(!changes.length&&guardOut)out=guardOut;
   else out=await gsPost(cfg,{token:cfg.token,since:meta.since,changes:changes});
   // 2b) jin changes ka server ne ack nahi diya unhe 'bheja hua' mat maano: purana base wapas rakho, wo agli baar dobara jayenge
   const unackedKeys=Object.keys(window.__gsUnacked||{});
@@ -7280,7 +7336,7 @@ async function gsSync(auto){
   if(dd.length)gsSchedule(1500);
   const t=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
   if(!reverted)window.__gsDirty=false;
-  gsStatus('☁ Synced '+t+' (↑'+changes.length+' ↓'+changed.size+')'+repNote+(window.__gsNewWarn?' · ⚠ Code.gs update karo (naye Daily/Predictive modules server par nahi ja rahe)':'')+(unackedKeys.length?' · ⚠ '+unackedKeys.length+' change abhi server se confirm nahi hue ('+Array.from(new Set(unackedKeys.map(function(k){return k.split('|')[0]}))).join(',')+') - 1 min me dobara try hoga':''));
+  gsStatus('☁ Synced '+t+' (↑'+changes.length+' ↓'+changed.size+')'+repNote+(window.__gsConf&&window.__gsConf.n?' · ⚠ '+window.__gsConf.n+' record(s) server ke newer rakhe':'')+(window.__gsNewWarn?' · ⚠ Code.gs update karo (naye Daily/Predictive modules server par nahi ja rahe)':'')+(unackedKeys.length?' · ⚠ '+unackedKeys.length+' change abhi server se confirm nahi hue ('+Array.from(new Set(unackedKeys.map(function(k){return k.split('|')[0]}))).join(',')+') - 1 min me dobara try hoga':''));
  }catch(e){
   console.error('Sheet sync failed',e);
   gsStatus('⚠ Sync failed: '+(e&&e.message||e),true);
@@ -8283,7 +8339,7 @@ const PUR_COLS = (function () {
             }], remark],
         'Unit 4 Pending': [desc, spec, qty('Qty Lani Hai'), urg, ['Machine / Ref', (r) => esc(r.refInfo || '—')], ['Unit 4 se lana tay hua', (r) => esc(fmtDate(r.u4Date)) || '—'], waiting((r) => r.u4Date), remark],
         Received:         [desc, spec, ['Qty Ordered', (r) => esc(r.qty) + ' ' + esc(purUom(r))], pr, po, ['Vendor / Received From', (r) => r.fromUnit4 ? '<b>🏭 Unit 4 Store</b>' : esc(r.vendor || '—')], ['Received Date', (r) => esc(fmtDate(r.recDate)) || '—'], ['Qty Received', (r) => `<b>${esc(r.recQty)}</b> ${esc(purUom(r))}`], ['Cost (₹)', (r) => r.cost > 0 ? '₹' + Number(r.cost).toFixed(2) : '—'], ['Challan / Invoice / Transfer Slip', (r) => esc(r.challan || '—')], remark],
-        Cancelled:        [desc, spec, ['Qty', (r) => esc(r.qty)], src, pr, po, remark]
+        Cancelled:        [desc, spec, ['Qty', (r) => esc(r.qty) + ' ' + esc(purUom(r))], src, pr, po, remark]
     };
 })();
 function purSort(st, a) {
@@ -12770,9 +12826,9 @@ html body main.wrap .dashboard-footer span{color:#4a5a69!important}
     }
   };
   REG.bd = {
-    h: ['Date', 'Machine Detail', 'Breakdown Reason', 'B/D Type (E/M)', 'Department/ Section', 'From', 'To', 'Breakdown Hours', 'Action Taken', 'Spare Parts Used', 'Qty', 'Attended By', 'Status'],
+    h: ['Date', 'Machine Detail', 'Breakdown Reason', 'B/D Type (E/M)', 'Department/ Section', 'From', 'To', 'Breakdown Hours', 'Action Taken', 'Spare Parts Used', 'Qty', 'Unit', 'Attended By', 'Status'],
     sum: ['hours'], sumH: { 'Breakdown Hours': 'hours' },
-    v: function (r) { return [fd(r.date), r.machine, r.reason, r.type, r.section, r.from, r.to, gn(r.hours).toFixed(2), r.action, r.spare, r.qty, r.attended, r.status]; }
+    v: function (r) { return [fd(r.date), r.machine, r.reason, r.type, r.section, r.from, r.to, gn(r.hours).toFixed(2), r.action, r.spare, r.qty, (r.qty !== undefined && r.qty !== '' ? S(function () { return spUnitFor({ spareLink: r.spareLink, desc: r.spare, uom: r.uom }); }, '') : ''), r.attended, r.status]; }
   };
   REG.mr = {
     h: ['Sr. No.', 'Status', 'Request Date / Time', 'Machine', 'Machine No.', 'Section', 'Problem', 'Request By', 'Received By', 'Maint. Date/Time', 'Observation', 'Action Taken', 'Spare', 'Handover', 'Total Time', 'History Card'],
