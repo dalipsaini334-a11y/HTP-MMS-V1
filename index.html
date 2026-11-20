@@ -15103,8 +15103,11 @@ setInterval(sync,2500);
   function hasNum(v) { return v !== undefined && v !== null && v !== '' && isFinite(Number(v)); }
   function pad2(n) { return (n < 10 ? '0' : '') + n; }
   /* default value: date ke liye 'today', time ke liye 'now' bhi chalta hai */
+  function optsOf(d) { try { if (d.src && window.FM3) { var l = FM3.srcOpts(d.src); if (l.length) return l; } } catch (e) { } return d.options || []; }
+  function ensureOpt(e, v) { if (e && e.tagName === 'SELECT' && v && ![].slice.call(e.options).some(function (o) { return o.value === v; })) { var o = document.createElement('option'); o.textContent = v; e.appendChild(o); } }
   function defVal(d) {
     var v = (d.def === undefined || d.def === null) ? '' : String(d.def), n = new Date();
+    if (d.type === 'text' && v.toLowerCase() === 'user') { try { return (window.mmsPersonName && mmsPersonName(false)) || (mmsSession() || {}).u || ''; } catch (e) { return ''; } }
     if (d.type === 'date' && v.toLowerCase() === 'today') return n.getFullYear() + '-' + pad2(n.getMonth() + 1) + '-' + pad2(n.getDate());
     if (d.type === 'time' && v.toLowerCase() === 'now') return pad2(n.getHours()) + ':' + pad2(n.getMinutes());
     return v;
@@ -15125,7 +15128,7 @@ setInterval(sync,2500);
   }
   function fieldHtml(k, d) {
     var inp, id = fid(k, d.id), ph = d.hint ? ' placeholder="' + esc(d.hint) + '"' : '';
-    if (d.type === 'select') inp = '<select id="' + id + '"><option value=""></option>' + (d.options || []).map(function (o) { return '<option>' + esc(o) + '</option>'; }).join('') + '</select>';
+    if (d.type === 'select') inp = '<select id="' + id + '"><option value=""></option>' + optsOf(d).map(function (o) { return '<option>' + esc(o) + '</option>'; }).join('') + '</select>';
     else if (d.type === 'textarea') inp = '<textarea id="' + id + '"' + ph + '></textarea>';
     else if (d.type === 'number') inp = '<input id="' + id + '" type="number" step="any"' + (hasNum(d.min) ? ' min="' + esc(d.min) + '"' : '') + (hasNum(d.max) ? ' max="' + esc(d.max) + '"' : '') + ph + '>';
     else inp = '<input id="' + id + '" type="' + (d.type === 'date' ? 'date' : (d.type === 'time' ? 'time' : 'text')) + '"' + ph + '>';
@@ -15245,7 +15248,7 @@ setInterval(sync,2500);
     if (typeof mmsGuardSave === 'function' && !mmsGuardSave(M.perm)) return;
     var cf = JSON.parse(JSON.stringify(row.get() || {})), cur = cf[d.id] || '', v;
     if (d.type === 'select') {
-      var o = d.options || []; v = prompt(d.label + ' - choose a number (blank = remove):\n' + o.map(function (x, i) { return (i + 1) + ') ' + x; }).join('\n'), cur ? String(o.indexOf(cur) + 1) : '');
+      var o = optsOf(d); v = prompt(d.label + ' - choose a number (blank = remove):\n' + o.map(function (x, i) { return (i + 1) + ') ' + x; }).join('\n'), cur ? String(o.indexOf(cur) + 1) : '');
       if (v === null) return; v = v.trim(); if (v !== '') { var n = parseInt(v, 10); if (!(n >= 1 && n <= o.length)) return alert('Galat number.'); v = o[n - 1]; }
     } else {
       v = prompt(dispLabel(d) + (d.type === 'date' ? ' (YYYY-MM-DD)' : (d.type === 'time' ? ' (HH:MM)' : (d.type === 'number' ? ' (number)' : ''))) + ':', cur || defVal(d)); if (v === null) return; v = v.trim();
@@ -15320,7 +15323,7 @@ setInterval(sync,2500);
     setTimeout(function () {
       var rec = lookup(M, ref); if (!rec) return;
       activeEdit[k] = rec;
-      mcfg(k, false).custom.forEach(function (d) { var e = $(fid(k, d.id)); if (e) e.value = (rec.cf && rec.cf[d.id]) || ''; });
+      mcfg(k, false).custom.forEach(function (d) { var e = $(fid(k, d.id)); if (e) { var cv = (rec.cf && rec.cf[d.id]) || ''; ensureOpt(e, cv); e.value = cv; } });
     }, 80);
   }
 
@@ -17851,7 +17854,7 @@ if(typeof _gs==='function')window.gsStatus=function(msg,bad){try{if(!bad&&/Synce
     liveMod(k);
     fixBlk(k);
   }
-  function post() { try { I().LIST.forEach(function (m) { if (!I().MOD[m[0]].cell) { try { postMod(m[0]); } catch (e) { console.warn('FM2', m[0], e); } } }); } catch (e) { console.warn(e); } tablePostAll(); }
+  function post() { try { I().LIST.forEach(function (m) { if (!I().MOD[m[0]].cell) { try { postMod(m[0]); } catch (e) { console.warn('FM2', m[0], e); } } }); } catch (e) { console.warn(e); } tablePostAll(); try { if (window.FM3) FM3.refreshSrc(); } catch (e) { } }
   function tablePost(k) {
     var c = C(k), r = role();
     I().tablesOf(k).forEach(function (t) {
@@ -17901,6 +17904,7 @@ if(typeof _gs==='function')window.gsStatus=function(msg,bad){try{if(!bad&&/Synce
         if (s.maxLen && v.length > Number(s.maxLen)) return nm + ' zyada se zyada ' + s.maxLen + ' akshar ki ho sakti hai.';
       }
       if (kd === 'date' && s.noFuture) { var n0 = new Date(), td = n0.getFullYear() + '-' + ('0' + (n0.getMonth() + 1)).slice(-2) + '-' + ('0' + n0.getDate()).slice(-2); if (v > td) return nm + ' me aage ki date allowed nahi hai.'; }
+      var cmE = (window.FM3 && FM3.cmpErr) ? FM3.cmpErr(s, v, nm, function (id) { return val(k, id); }, fs) : ''; if (cmE) return cmE;
       if (f.cust && s.unique) {
         var dup = arr.some(function (r) { return r !== act && r && r.cf && norm(r.cf[f.id]) === norm(v); });
         if (dup) return nm + ' = "' + v + '" pehle se maujood hai (duplicate allowed nahi).';
@@ -17927,7 +17931,7 @@ if(typeof _gs==='function')window.gsStatus=function(msg,bad){try{if(!bad&&/Synce
     document.body.appendChild(m);
     m.addEventListener('click', function (ev) { if (ev.target === m) return close(); var t = ev.target.closest('[data-a]'); if (t) act(t.getAttribute('data-a'), t.getAttribute('data-x'), t.getAttribute('data-y')); });
     m.addEventListener('change', function (ev) { var id = ev.target.id; if (id === 'fm2Mod') { cur = ev.target.value; ed = null; render(); } else if (id === 'f2Type' || id === 'f2Ins') typeToggle(ev.target); });
-    m.addEventListener('input', function (ev) { if (ev.target.id === 'fm2Q') { q = ev.target.value; fillMods(); } else if (ev.target.id === 'f2Formula') fchk(); });
+    m.addEventListener('input', function (ev) { if (ev.target.id === 'fm2Q') { q = ev.target.value; fillMods(); } else if (ev.target.id === 'f2Formula') fchk(); else if (ev.target.id === 'fm2FS') { var qv = norm(ev.target.value); [].slice.call(document.querySelectorAll('#fm2Body .fm2-item')).forEach(function (it) { it.style.display = (!qv || norm(it.textContent).indexOf(qv) >= 0) ? '' : 'none'; }); } });
     return m;
   }
   function fillMods() {
@@ -17942,6 +17946,7 @@ if(typeof _gs==='function')window.gsStatus=function(msg,bad){try{if(!bad&&/Synce
     if (s.req) b += badge('required', 'r'); if (s.reqIf && s.reqIf.f) b += badge('req if ' + nm(s.reqIf.f) + '=' + s.reqIf.v, 'r');
     if (s.showIf && s.showIf.f) b += badge('show if ' + nm(s.showIf.f) + '=' + s.showIf.v, 'o');
     if (s.unique) b += badge('unique', 'o'); if (s.noFuture) b += badge('no future', 'o');
+    if (s.cmp && s.cmp.f) b += badge('compare ' + s.cmp.op + ' ' + nm(s.cmp.f), 'o'); if (f.cust && f.d.src && window.FM3) b += badge('linked list', 'p');
     if ((s.min !== undefined && s.min !== '') || (s.max !== undefined && s.max !== '')) b += badge('min/max', 'o');
     if ((s.warnAbove !== undefined && s.warnAbove !== '') || (s.warnBelow !== undefined && s.warnBelow !== '')) b += badge('warn limit', 'o');
     if (s.minLen || s.maxLen) b += badge('length', 'o');
@@ -17952,15 +17957,15 @@ if(typeof _gs==='function')window.gsStatus=function(msg,bad){try{if(!bad&&/Synce
   }
   function render() {
     var body = $('fm2Body'); if (!body) return; fillMods();
-    var tb = [['fields', '📝 Form fields'], ['cols', '📊 Columns'], ['logic', 'ƒ Logic'], ['tools', '🛠 Tools']];
+    var tb = [['fields', '📝 Fields'], ['cols', '📊 Columns'], ['logic', 'ƒ Logic'], ['ins', '📈 Insights'], ['hist', '🕘 History'], ['tools', '🛠 Tools']];
     $('fm2Tabs').innerHTML = tb.map(function (t) { return '<button type="button" data-a="tab" data-x="' + t[0] + '" class="' + (tab === t[0] && !ed ? 'on' : '') + '">' + t[1] + '</button>'; }).join('');
     var h = '<div class="fm2-note">Har badlav ke liye Admin PIN / password poocha jayega. Field hatane par purana data delete nahi hota.</div>';
-    if (ed) h += editHtml(); else if (tab === 'fields') h += fieldsHtml(); else if (tab === 'cols') h += colsHtml(); else if (tab === 'logic') h += logicHtml(); else h += toolsHtml();
+    if (ed) h += editHtml(); else if (tab === 'fields') h += fieldsHtml(); else if (tab === 'cols') h += colsHtml(); else if (tab === 'logic') h += logicHtml(); else if (tab === 'ins' && window.FM3) h += FM3.insHtml(cur); else if (tab === 'hist' && window.FM3) h += FM3.histHtml(cur); else h += toolsHtml();
     body.innerHTML = h; if (ed) typeToggle(); else body.scrollTop = body.scrollTop;
   }
   function fieldsHtml() {
     var k = cur, c = C(k), M = I().MOD[k], fs = allFields(k), h = '';
-    h += '<div class="fm2-bar"><button type="button" class="pri" data-a="new">➕ Add new field</button></div>';
+    h += '<div class="fm2-bar"><button type="button" class="pri" data-a="new">➕ Add new field</button></div>'; if (window.FM3) h += FM3.quickHtml();
     if (M.cell) h += '<div class="fm-note fm2-note">Is module me nayi field table ke column ki tarah aati hai; cell par click karke value bharo. Order / rules / auto-calc / role access is module me nahi lagte.</div>';
     h += '<div class="fm2-list">';
     if (!fs.length) h += '<div class="fm2-note">Is module ka form screen par nahi mila. Module kholkar dobara aao.</div>';
@@ -18004,7 +18009,7 @@ if(typeof _gs==='function')window.gsStatus=function(msg,bad){try{if(!bad&&/Synce
     var F = I(), opts = F.LIST.filter(function (m) { return $(m[2]) && m[0] !== cur && !F.MOD[m[0]].cell; }).map(function (m) { return '<option value="' + m[0] + '">' + esc(m[1]) + '</option>'; }).join('');
     return '<div class="fm2-box"><h5>Copy new fields to another module</h5><div class="fm2-row"><select id="f2Copy">' + opts + '</select><button type="button" data-a="copyto">Copy</button></div><small>Is module ki nayi fields (rules ke saath) dusre module me bhi bann jayengi.</small></div>' +
       '<div class="fm2-box"><h5>Field order</h5><button type="button" data-a="resetord">Reset built-in order to original</button></div>' +
-      '<div class="fm2-box"><h5>Backup / Restore settings of this module</h5><textarea id="f2Json" rows="5" placeholder="Export dabao, ya yahan JSON paste karke Import dabao"></textarea><div class="fm2-row"><button type="button" data-a="exp">Export</button><button type="button" data-a="imp">Import</button></div><small>Import is module ke fields / rules ko replace karta hai.</small></div>';
+      '<div class="fm2-box"><h5>Backup / Restore settings of this module</h5><textarea id="f2Json" rows="5" placeholder="Export dabao, ya yahan JSON paste karke Import dabao"></textarea><div class="fm2-row"><button type="button" data-a="exp">Export</button><button type="button" data-a="imp">Import</button></div><small>Import is module ke fields / rules ko replace karta hai.</small></div>' + (window.FM3 ? FM3.toolsHtml() : '');
   }
   /* ----- edit form ----- */
   function V(id) { var e = $(id); return e ? String(e.value || '').trim() : ''; }
@@ -18024,6 +18029,7 @@ if(typeof _gs==='function')window.gsStatus=function(msg,bad){try{if(!bad&&/Synce
       h += '<div class="fm2-g">' + fl('Field name', '<input id="f2Label" maxlength="40" value="' + esc(d.label || '') + '" placeholder="e.g. Operator Name">') +
         fl('Type', '<select id="f2Type">' + types.map(function (t) { return '<option value="' + t[0] + '"' + (tv === t[0] ? ' selected' : '') + '>' + t[1] + '</option>'; }).join('') + '</select>') + '</div>';
       h += fl('Dropdown options (comma se alag)', '<input id="f2Opts" placeholder="A, B, C" value="' + esc((d.options || []).join(', ')) + '">', 'f2OptsW');
+      h += fl('Dropdown source (linked list)', '<select id="f2Src"><option value="">Own list (upar likhe options)</option>' + (window.FM3 ? FM3.srcList() : []).map(function (z) { return '<option value="' + z[0] + '"' + (d.src === z[0] ? ' selected' : '') + '>' + esc(z[1]) + '</option>'; }).join('') + '</select><small>Linked list master data se live aati hai (naya machine / employee / spare add hote hi dropdown me aa jata hai).</small>', 'f2SrcW');
       h += '<div id="f2CalcW" class="fm2-box"><h5>ƒ Formula</h5><textarea id="f2Formula" rows="2" placeholder="[Qty] * [Rate]">' + esc(toLabels(k, d.formula || '')) + '</textarea><div class="fm2-ops">' + ['+', '-', '*', '/', '(', ')', ','].map(function (o) { return '<button type="button" data-a="ins" data-x="' + o + '">' + o + '</button>'; }).join('') + '</div><div id="f2Chk" class="fm2-chk"></div><div class="fm2-row"><select id="f2Ins"><option value="">+ Insert field…</option>' +
         allFields(k).filter(function (x) { return x.id !== d.id; }).map(function (x) { return '<option value="' + esc(x.label) + '">' + esc(x.label) + '</option>'; }).join('') + '</select><input id="f2Dec" type="number" min="0" max="6" placeholder="decimals (2)" value="' + esc(d.dec == null ? '' : d.dec) + '"></div>' +
         '<small>Fields ko [Name] likho. + − × ÷ ( ) chalte hain. Functions: ROUND(x,2) MIN MAX ABS SUM AVG IF(cond,a,b) DAYS(date1,date2) HRS(time1,time2). Value form me live aati hai aur save hoti hai.</small></div>';
@@ -18033,7 +18039,7 @@ if(typeof _gs==='function')window.gsStatus=function(msg,bad){try{if(!bad&&/Synce
     h += '<div class="fm2-box" id="f2RulesW"><h5>✅ Rules</h5>';
     if (!cell) {
       h += '<div class="fm2-checks"><label><input type="checkbox" id="f2Req"' + (s.req ? ' checked' : '') + '> Required</label>' + (cust ? '<label id="f2UniqW"><input type="checkbox" id="f2Uniq"' + (s.unique ? ' checked' : '') + '> Unique (no duplicate)</label>' : '') + '<label id="f2NoFutW"><input type="checkbox" id="f2NoFut"' + (s.noFuture ? ' checked' : '') + '> No future date</label></div>';
-      h += '<div class="fm2-cond"><span>Required only if</span>' + condHtml('f2RI', k, ed.id, s.reqIf) + '</div><div class="fm2-cond"><span>Show only if</span>' + condHtml('f2SI', k, ed.id, s.showIf) + '</div>';
+      h += '<div class="fm2-cond"><span>Required only if</span>' + condHtml('f2RI', k, ed.id, s.reqIf) + '</div><div class="fm2-cond"><span>Show only if</span>' + condHtml('f2SI', k, ed.id, s.showIf) + '</div>' + (window.FM3 ? FM3.cmpHtml(allFields(k), ed.id, s.cmp) : '');
     } else h += '<div class="fm2-checks"><label><input type="checkbox" id="f2Req"' + (s.req ? ' checked' : '') + '> Required</label></div>';
     h += '<div class="fm2-g" id="f2NumW">' + fl('Min', '<input id="f2Min" type="number" step="any" value="' + esc(s.min == null ? '' : s.min) + '">') + fl('Max', '<input id="f2Max" type="number" step="any" value="' + esc(s.max == null ? '' : s.max) + '">') +
       fl('Warn above', '<input id="f2WA" type="number" step="any" value="' + esc(s.warnAbove == null ? '' : s.warnAbove) + '">') + fl('Warn below', '<input id="f2WB" type="number" step="any" value="' + esc(s.warnBelow == null ? '' : s.warnBelow) + '">') + '</div>';
@@ -18051,10 +18057,10 @@ if(typeof _gs==='function')window.gsStatus=function(msg,bad){try{if(!bad&&/Synce
     var t = $('f2Type') ? $('f2Type').value : ''; if ($('f2Ins') && $('f2Ins').value) { var fe = $('f2Formula'); if (fe) fe.value += (fe.value && !/\s$/.test(fe.value) ? ' ' : '') + '[' + $('f2Ins').value + ']'; $('f2Ins').value = ''; }
     var cust = ed && ed.mode !== 'builtin', kd = cust ? ({ number: 'num', calc: 'num', date: 'date', text: 'text', textarea: 'text' }[t] || '') : ed.kd;
     var sh = function (id, on) { if ($(id)) $(id).style.display = on ? '' : 'none'; };
-    sh('f2OptsW', t === 'select'); sh('f2CalcW', t === 'calc'); sh('f2UnitW', t === 'number' || t === 'calc'); sh('f2DefW', t !== 'calc');
+    sh('f2OptsW', t === 'select'); sh('f2SrcW', t === 'select'); sh('f2CalcW', t === 'calc'); sh('f2UnitW', t === 'number' || t === 'calc'); sh('f2DefW', t !== 'calc');
     sh('f2NumW', kd === 'num'); sh('f2TxtW', kd === 'text'); sh('f2NoFutW', kd === 'date'); sh('f2UniqW', t !== 'calc');
     fchk();
-    if ($('f2Def')) $('f2Def').placeholder = t === 'date' ? 'YYYY-MM-DD ya today' : (t === 'time' ? 'HH:MM ya now' : 'optional');
+    if ($('f2Def')) $('f2Def').placeholder = t === 'date' ? 'YYYY-MM-DD ya today' : (t === 'time' ? 'HH:MM ya now' : (t === 'text' ? 'optional · user = login ka naam' : 'optional'));
   }
   function fmErr(x) {
     var m = { extra: 'Do values ke beech + - * / jaisa operator likho. Jaise [KWH] / [KVAH]', end: 'Formula adhura hai. Aakhir me value ya field chahiye.', close: 'Bracket ( ) poore karo.', open: 'Function ke baad ( ) lagao, jaise SUM([A], [B]).', fn: 'Function ka naam galat hai. Chalte hain: ROUND MIN MAX ABS SUM AVG IF DAYS HRS.', bad: 'Formula me galat character hai.', tok: 'Formula me galat jagah operator / bracket hai.' };
@@ -18071,8 +18077,8 @@ if(typeof _gs==='function')window.gsStatus=function(msg,bad){try{if(!bad&&/Synce
   function collectRules(o, cell) {
     var nv = function (id) { var v = V(id); return v === '' ? '' : Number(v); };
     o.req = Ck('f2Req'); o.min = nv('f2Min'); o.max = nv('f2Max'); o.warnAbove = nv('f2WA'); o.warnBelow = nv('f2WB'); o.minLen = nv('f2MinL') || ''; o.maxLen = nv('f2MaxL') || '';
-    if (!cell) { o.noFuture = Ck('f2NoFut'); o.unique = Ck('f2Uniq'); o.reqIf = readCond('f2RI'); o.showIf = readCond('f2SI'); var acc = {}; [].slice.call(document.querySelectorAll('#fm2Modal select[data-role]')).forEach(function (s) { if (s.value !== 'edit') acc[s.getAttribute('data-role')] = s.value; }); o.acc = acc; }
-    ['min', 'max', 'warnAbove', 'warnBelow', 'minLen', 'maxLen', 'noFuture', 'unique', 'reqIf', 'showIf', 'req'].forEach(function (p) { if (o[p] === '' || o[p] === false || o[p] == null) delete o[p]; });
+    if (!cell) { o.noFuture = Ck('f2NoFut'); o.unique = Ck('f2Uniq'); o.reqIf = readCond('f2RI'); o.showIf = readCond('f2SI'); o.cmp = window.FM3 ? FM3.readCmp() : null; var acc = {}; [].slice.call(document.querySelectorAll('#fm2Modal select[data-role]')).forEach(function (s) { if (s.value !== 'edit') acc[s.getAttribute('data-role')] = s.value; }); o.acc = acc; }
+    ['min', 'max', 'warnAbove', 'warnBelow', 'minLen', 'maxLen', 'noFuture', 'unique', 'reqIf', 'showIf', 'cmp', 'req'].forEach(function (p) { if (o[p] === '' || o[p] === false || o[p] == null) delete o[p]; });
     if (o.acc && !Object.keys(o.acc).length) delete o.acc; return o;
   }
   function saveEdit() {
@@ -18082,10 +18088,11 @@ if(typeof _gs==='function')window.gsStatus=function(msg,bad){try{if(!bad&&/Synce
     if (cust) {
       var label = V('f2Label'), type = V('f2Type'), opts = V('f2Opts').split(',').map(function (x) { return x.trim(); }).filter(Boolean), def = V('f2Def'), unit = V('f2Unit'), nl = norm(label);
       if (!label) return alert('Field ka naam likho.');
-      if (type === 'yesno') { type = 'select'; opts = ['Yes', 'No']; }
+      var rawType = type; if (type === 'yesno') { type = 'select'; opts = ['Yes', 'No']; }
       if (c.custom.some(function (x) { return x.id !== ed.id && norm(x.label) === nl; }) || builtinOrdered(k).some(function (x) { return norm(x.label) === nl; }) || F.colList(k).some(function (x) { return x.n === nl || (c.clabels[x.n] && norm(c.clabels[x.n]) === nl); })) return alert('A field / column with this name already exists.');
       var formula = '';
-      if (type === 'select') { if (opts.length < 2) return alert('Dropdown ke liye kam se kam 2 options likho.'); if (def && opts.indexOf(def) < 0) return alert('Default value must be one of the options.'); } else opts = [];
+      var src = (rawType === 'select' && window.FM3) ? V('f2Src') : '';
+      if (type === 'select') { if (!src && opts.length < 2) return alert('Dropdown ke liye kam se kam 2 options likho (ya linked list chuno).'); if (def && !src && opts.indexOf(def) < 0) return alert('Default value must be one of the options.'); } else opts = [];
       if (type === 'calc') {
         var tr = toIds(k, V('f2Formula')); if (!tr.s.trim()) return alert('Formula likho.'); if (tr.bad) return alert('Formula me "' + tr.bad + '" naam ki field nahi mili.');
         if (ed.id && tr.s.indexOf('{' + ed.id + '}') >= 0) return alert('Formula apni hi field ko use nahi kar sakta.');
@@ -18095,14 +18102,14 @@ if(typeof _gs==='function')window.gsStatus=function(msg,bad){try{if(!bad&&/Synce
       if (type === 'date' && def && def.toLowerCase() !== 'today' && !/^\d{4}-\d{2}-\d{2}$/.test(def)) return alert('Default date YYYY-MM-DD ho ya "today" likho.');
       if (type === 'time' && def && def.toLowerCase() !== 'now' && !/^([01]\d|2[0-3]):[0-5]\d$/.test(def)) return alert('Default time HH:MM ho ya "now" likho.');
       if (type === 'date' || type === 'time') def = /^(today|now)$/i.test(def) ? def.toLowerCase() : def;
-      props = { label: label, type: type, options: opts, def: def, hint: V('f2Hint'), unit: unit, wide: Ck('f2Wide'), inTable: Ck('f2Tbl'), inPrint: Ck('f2Prn'), formula: formula, dec: V('f2Dec') === '' ? '' : Number(V('f2Dec')) };
+      props = { label: label, type: type, options: opts, def: def, hint: V('f2Hint'), unit: unit, wide: Ck('f2Wide'), inTable: Ck('f2Tbl'), inPrint: Ck('f2Prn'), formula: formula, dec: V('f2Dec') === '' ? '' : Number(V('f2Dec')), src: src };
       if (type === 'calc') { delete chk.unique; }
     }
     guard().then(function (ok) {
       if (!ok) return; var cc = I().mcfg(k, true), note;
       if (cust) {
         var ex = ed.id ? cc.custom.filter(function (x) { return x.id === ed.id; })[0] : null;
-        if (ex) { ['req', 'min', 'max', 'warnAbove', 'warnBelow', 'minLen', 'maxLen', 'noFuture', 'unique', 'reqIf', 'showIf', 'acc'].forEach(function (p) { delete ex[p]; }); Object.assign(ex, props, chk); note = 'field edited: ' + props.label; }
+        if (ex) { ['req', 'min', 'max', 'warnAbove', 'warnBelow', 'minLen', 'maxLen', 'noFuture', 'unique', 'reqIf', 'showIf', 'cmp', 'acc'].forEach(function (p) { delete ex[p]; }); Object.assign(ex, props, chk); note = 'field edited: ' + props.label; }
         else { var o = Object.assign({ id: 'f' + Date.now().toString(36) + Math.floor(Math.random() * 99) }, props, chk); if (!o.req) o.req = false; cc.custom.push(o); note = 'field added: ' + props.label; }
       } else { cc.bset = cc.bset || {}; var fo0 = (cc.bset[ed.id] || {}).formula; if (fo0) chk.formula = fo0; if (Object.keys(chk).length) cc.bset[ed.id] = chk; else delete cc.bset[ed.id]; note = 'field settings: ' + ed.id; }
       ed = null; I().saveCfg(k + ' ' + note); render();
@@ -18124,6 +18131,7 @@ if(typeof _gs==='function')window.gsStatus=function(msg,bad){try{if(!bad&&/Synce
     if (a === 'new') { ed = { mode: 'new', d: { inTable: true, inPrint: true } }; return render(); }
     if (a === 'set') { var d0 = C(k).custom.filter(function (d) { return d.id === x; })[0]; ed = d0 ? { mode: 'custom', id: x, d: d0 } : { mode: 'builtin', id: x }; return render(); }
     if (a === 'save') return saveEdit();
+    if (window.FM3 && FM3.act && FM3.act(a, x, y, k)) return;
     if (a === 'hide' && C(k).hidden.indexOf(x) < 0 && !confirm('This field will be hidden from the screen.\nIf this is required for saving, saving may be blocked. Continue?')) return;
     if (a === 'delcf') { var dd = C(k).custom.filter(function (d) { return d.id === x; })[0]; if (!dd || !confirm('"' + dd.label + '" field will be deleted. Continue?\nValues entered in old entries will be hidden from the screen.')) return; }
     if (a === 'imp' && !confirm('Is module ki nayi fields / rules replace ho jayengi. Continue?')) return;
@@ -18169,7 +18177,7 @@ if(typeof _gs==='function')window.gsStatus=function(msg,bad){try{if(!bad&&/Synce
         src.forEach(function (d) {
           if (tc.custom.some(function (z) { return norm(z.label) === norm(d.label); })) return; var o = JSON.parse(JSON.stringify(d)); o.id = idmap[d.id];
           if (o.type === 'calc') { var okc = true; o.formula = String(o.formula || '').replace(/\{([^}]+)\}/g, function (_, id) { if (!idmap[id]) { okc = false; return ''; } return '{' + idmap[id] + '}'; }); if (!okc) return; }
-          ['reqIf', 'showIf'].forEach(function (p) { if (o[p]) { if (idmap[o[p].f]) o[p].f = idmap[o[p].f]; else delete o[p]; } }); tc.custom.push(o);
+          ['reqIf', 'showIf', 'cmp'].forEach(function (p) { if (o[p]) { if (idmap[o[p].f]) o[p].f = idmap[o[p].f]; else delete o[p]; } }); tc.custom.push(o);
         });
         F.saveCfg(k + ' fields copied to ' + t); alert('Copy ho gaya.');
       }
@@ -18198,8 +18206,325 @@ if(typeof _gs==='function')window.gsStatus=function(msg,bad){try{if(!bad&&/Synce
     '.cf-block{background:transparent!important;border:0!important;border-radius:0!important;padding:0!important;margin:0!important}.cf-title{display:none!important}.cf-block .form{padding:0 16px 16px!important}.fm2-ft{font-size:12px;color:#37506a;margin:5px 0;line-height:1.45}.cf-block .cf-field{background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important;margin:0!important}.cf-edit{background:rgba(20,184,166,.14)!important}';
   document.head.appendChild(st);
 
-  window.FM2 = { open: openMgr, post: post, check: check, has: has, eval: evalExpr, fmt: fmtRes, param: param, ovr: ovr };
+  window.FM2 = { open: openMgr, post: post, check: check, has: has, eval: evalExpr, fmt: fmtRes, param: param, ovr: ovr, render: function () { render(); }, go: function (k, t) { cur = k; tab = t || 'fields'; ed = null; render(); } };
   [800, 3200].forEach(function (t) { setTimeout(post, t); });
+})();
+</script>
+
+<script>
+/* ===== FIELD MANAGER 3 (Admin): History + Undo, Insights / Health check, Linked dropdowns, Compare rule,
+   Quick-add fields, All-modules backup (file), printable Field Register =====
+   FM1/FM2 ki config (data.printFmt '_fieldcfg') hi use hoti hai. History alag record '_fieldcfg_hist' me (sheet sync se sab devices par). */
+(function () {
+  'use strict';
+  if (window.FM3) return;
+  var $ = function (id) { return document.getElementById(id); };
+  var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+  var norm = function (s) { return String(s == null ? '' : s).replace(/\s+/g, ' ').trim().toLowerCase(); };
+  var I = function () { return window.__FMI; };
+  var HID = 'fieldcfg-hist-v1', HKEY = '_fieldcfg_hist', HMAX = 25, HCAP = 40000;
+  var last = null, histAll = false;
+
+  /* ---------- linked dropdown sources ---------- */
+  var SRC = { machines: 'Machine Master (Machine No.)', employees: 'Employees (Unit-VII)', spares: 'Spare Parts list' };
+  function srcList() { return Object.keys(SRC).map(function (k) { return [k, SRC[k]]; }); }
+  function srcOpts(s) {
+    var out = [], seen = {};
+    function add(v) { v = String(v == null ? '' : v).replace(/\s+/g, ' ').trim(); if (v && !seen[v]) { seen[v] = 1; out.push(v); } }
+    try {
+      if (s === 'machines') { (typeof MACHINE_MASTER !== 'undefined' && Array.isArray(MACHINE_MASTER) ? MACHINE_MASTER : []).forEach(function (m) { add(m && m.machineNumber); }); }
+      else if (s === 'employees') { users().forEach(function (u) { if (u && u.emp && u.emp.name) add(u.emp.name); }); out.sort(); }
+      else if (s === 'spares') { (data.spares || []).forEach(function (p) { if (p) add((p.code ? p.code + ' - ' : '') + (p.desc || '')); }); }
+    } catch (e) { }
+    return out;
+  }
+  function refreshSrc() {
+    var F = I(); if (!F) return;
+    F.LIST.forEach(function (m) {
+      var k = m[0], c = F.mcfg(k, false);
+      c.custom.forEach(function (d) {
+        if (!d.src || d.type !== 'select') return;
+        var e = $(F.fid(k, d.id)); if (!e || e.tagName !== 'SELECT') return;
+        var list = srcOpts(d.src); if (!list.length) list = (d.options || []).slice();
+        var have = [].slice.call(e.options).map(function (o) { return o.value; }).filter(Boolean), cur = e.value;
+        if (cur && list.indexOf(cur) < 0) list = list.concat([cur]);
+        if (have.join('|') === list.join('|')) return;
+        e.innerHTML = '<option value=""></option>' + list.map(function (o) { return '<option>' + esc(o) + '</option>'; }).join('');
+        e.value = cur;
+      });
+    });
+  }
+  document.addEventListener('focusin', function (ev) { var t = ev.target; if (t && t.tagName === 'SELECT' && /^cf__/.test(t.id || '')) refreshSrc(); }, true);
+  document.addEventListener('click', function () { setTimeout(function () { try { refreshSrc(); } catch (e) { } }, 150); }, true);
+
+  /* ---------- compare rule ---------- */
+  var OPT = { '>=': 'greater than or equal to', '<=': 'less than or equal to', '>': 'greater than', '<': 'less than', '==': 'equal to', '!=': 'not equal to' };
+  function cmpHtml(fs, selfId, cm) {
+    var ops = [['', '— no compare —'], ['>=', '≥  greater or equal'], ['<=', '≤  less or equal'], ['>', '>  greater than'], ['<', '<  less than'], ['==', '=  equal to'], ['!=', '≠  not equal to']];
+    return '<div class="fm2-cond"><span>Must be</span><select id="f2CmpO">' + ops.map(function (o) { return '<option value="' + o[0] + '"' + (cm && cm.op === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select><select id="f2CmpF"><option value="">— field —</option>' +
+      (fs || []).filter(function (f) { return f.id !== selfId; }).map(function (f) { return '<option value="' + esc(f.id) + '"' + (cm && cm.f === f.id ? ' selected' : '') + '>' + esc(f.label) + '</option>'; }).join('') + '</select></div>' +
+      '<small>Jaise "PM End Date ≥ PM Start Date". Date / time / number / text sab par chalta hai. Raat 12 paar wale time (night shift) par ≥ rule mat lagao.</small>';
+  }
+  function readCmp() { var o = $('f2CmpO'), f = $('f2CmpF'); if (!o || !f || !o.value || !f.value) return null; return { f: f.value, op: o.value }; }
+  function cmpErr(s, v, nm, get, fs) {
+    var cm = s && s.cmp; if (!cm || !cm.f || !OPT[cm.op]) return '';
+    var ov = String(get(cm.f) || '').trim(); v = String(v || '').trim(); if (!ov || !v) return '';
+    var lab = (fs.filter(function (q) { return q.id === cm.f; })[0] || { label: 'other field' }).label;
+    var iso = /^\d{4}-\d{2}-\d{2}$/, tm = /^\d{1,2}:\d{2}$/, a = v, b = ov, ok;
+    if (tm.test(a) && tm.test(b)) { a = ('0' + a).slice(-5); b = ('0' + b).slice(-5); }
+    else if (!(iso.test(a) && iso.test(b))) { var an = Number(a), bn = Number(b); if (isFinite(an) && isFinite(bn)) { a = an; b = bn; } else { a = a.toLowerCase(); b = b.toLowerCase(); } }
+    switch (cm.op) { case '>=': ok = a >= b; break; case '<=': ok = a <= b; break; case '>': ok = a > b; break; case '<': ok = a < b; break; case '==': ok = a === b; break; default: ok = a !== b; }
+    return ok ? '' : nm + ' must be ' + OPT[cm.op] + ' "' + lab + '" (' + ov + ').';
+  }
+
+  /* ---------- quick-add templates ---------- */
+  var Q = [
+    ['shift', 'Shift (A / B / C)', { label: 'Shift', type: 'select', options: ['A', 'B', 'C'] }],
+    ['doneby', 'Done By (employee list)', { label: 'Done By', type: 'select', options: [], src: 'employees' }],
+    ['apprby', 'Approved By (employee list)', { label: 'Approved By', type: 'select', options: [], src: 'employees' }],
+    ['machine', 'Machine No. (Machine Master)', { label: 'Machine No.', type: 'select', options: [], src: 'machines' }],
+    ['spare', 'Spare Part (Spare list)', { label: 'Spare Part', type: 'select', options: [], src: 'spares' }],
+    ['remark', 'Remark (long text)', { label: 'Remark', type: 'textarea', options: [], wide: true }],
+    ['cost', 'Cost (₹)', { label: 'Cost', type: 'number', options: [], unit: '₹', min: 0 }],
+    ['dt', 'Downtime (hrs)', { label: 'Downtime', type: 'number', options: [], unit: 'hrs', min: 0 }],
+    ['sev', 'Severity (Low / Medium / High / Critical)', { label: 'Severity', type: 'select', options: ['Low', 'Medium', 'High', 'Critical'] }],
+    ['wo', 'Work Order No. (unique)', { label: 'Work Order No.', type: 'text', options: [], unique: true }],
+    ['ecode', 'E-Code', { label: 'E-Code', type: 'text', options: [] }],
+    ['target', 'Target Date', { label: 'Target Date', type: 'date', options: [] }],
+    ['safety', 'Safety Checked? (Yes / No)', { label: 'Safety Checked?', type: 'select', options: ['Yes', 'No'] }],
+    ['entby', 'Entered By (login name auto)', { label: 'Entered By', type: 'text', options: [], def: 'user' }]
+  ];
+  function quickHtml() {
+    return '<div class="fm2-box" style="margin-bottom:8px"><h5>⚡ Quick add (ready-made fields)</h5><div class="fm2-row"><select id="fm3QA">' + Q.map(function (q) { return '<option value="' + q[0] + '">' + esc(q[1]) + '</option>'; }).join('') + '</select><button type="button" data-a="qa">Add</button></div><small>Field turant ban jati hai; baad me ⚙ Settings se rules / order badal sakte ho.</small></div>' +
+      '<input id="fm2FS" placeholder="🔍 Search field in this module" autocomplete="off" style="width:100%;margin-bottom:8px">';
+  }
+
+  /* ---------- history (record: data.printFmt key _fieldcfg_hist) ---------- */
+  function modsJson() { var F = I(), r = F && F.getRec(false); return r ? JSON.stringify(r.mods || {}) : '{}'; }
+  function who() { try { return (window.mmsPersonName && mmsPersonName(false)) || (mmsSession() || {}).u || 'admin'; } catch (e) { return 'admin'; } }
+  function histRec(create) {
+    if (!Array.isArray(data.printFmt)) { if (!create) return null; data.printFmt = []; }
+    var a = data.printFmt;
+    for (var i = 0; i < a.length; i++) if (a[i] && a[i].key === HKEY) return a[i];
+    if (!create) return null;
+    var r = { id: HID, key: HKEY, items: [], ts: Date.now() }; a.push(r); return r;
+  }
+  function pushHist(note, before, after) {
+    var F = I(), k0 = String(note || '').split(' ')[0], k = F.MOD[k0] ? k0 : '', bo, ao;
+    try { bo = JSON.parse(before); ao = JSON.parse(after); } catch (e) { return; }
+    var b = k ? (bo[k] === undefined ? null : JSON.stringify(bo[k])) : before;
+    if (k && b === (ao[k] === undefined ? null : JSON.stringify(ao[k]))) return;
+    var h = histRec(true); h.items = h.items || [];
+    h.items.unshift({ t: Date.now(), by: who(), n: String(note || '').slice(0, 140), k: k, b: b });
+    while (h.items.length && (h.items.length > HMAX || JSON.stringify(h.items).length > HCAP)) h.items.pop();
+    h.ts = Date.now();
+  }
+  function hook() {
+    var F = I(); if (!F || F.__h3) return !!(F && F.__h3);
+    F.__h3 = 1; var orig = F.saveCfg; if (last === null) last = modsJson();
+    F.saveCfg = function (note) {
+      try { var after = modsJson(); if (last !== null && last !== after) pushHist(note, last, after); last = after; } catch (e) { console.warn('FM3 hist', e); }
+      return orig.apply(this, arguments);
+    };
+    return true;
+  }
+  var tries = 0, iv = setInterval(function () { if (hook() || ++tries > 80) clearInterval(iv); }, 500);
+  if (window.FM2 && FM2.open) { var o0 = FM2.open; FM2.open = function () { try { hook(); last = modsJson(); histAll = false; } catch (e) { } return o0.apply(this, arguments); }; }
+
+  function fmtT(t) { try { return new Date(t).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; } }
+  function histHtml(k) {
+    var h = histRec(false), items = (h && h.items) || [], F = I(), h2 = '';
+    h2 += '<div class="fm2-note">Har badlav se pehle ki halat yahan save hoti hai (last ' + HMAX + '). "Restore" dabane par us module ki settings us badlav se pehle wali halat me aa jati hain (uske baad ke badlav bhi hatenge). Restore khud bhi history me aata hai, to wapas undo ho sakta hai. Purana record / data kabhi delete nahi hota.</div>';
+    h2 += '<div class="fm2-bar"><button type="button" data-a="histall">' + (histAll ? 'Sirf is module ki history' : 'Saare modules ki history') + '</button> <button type="button" class="del" data-a="hclear">Clear history</button></div><div class="fm2-list">';
+    var shown = 0;
+    items.forEach(function (e, i) {
+      if (!histAll && e.k && e.k !== k) return; if (!histAll && !e.k) return;
+      shown++;
+      var mn = e.k && F.MOD[e.k] ? F.MOD[e.k].label : 'All modules';
+      h2 += '<div class="fm2-item"><div class="fm2-t"><b>' + esc(e.n) + '</b><div><i class="fm2-b g">' + esc(fmtT(e.t)) + '</i><i class="fm2-b">' + esc(e.by || '') + '</i>' + (histAll ? '<i class="fm2-b p">' + esc(mn) + '</i>' : '') + '</div></div><div class="fm2-bt"><button type="button" data-a="undo" data-x="' + i + '">↩ Restore before this</button></div></div>';
+    });
+    if (!shown) h2 += '<div class="fm2-note" style="padding:10px">Abhi koi history nahi. Ab se har badlav yahan dikhega.</div>';
+    return h2 + '</div>';
+  }
+  function undo(i) {
+    var h = histRec(false), e = h && h.items[i], F = I(); if (!e) return;
+    if (!confirm('"' + e.n + '"\n\nIs badlav se pehle wali halat wapas laani hai?\n(Is module ke uske baad ke badlav bhi hat jayenge.)')) return;
+    F.guard().then(function (ok) {
+      if (!ok) return; var r = F.getRec(true); r.mods = r.mods || {};
+      try { if (e.k) { if (e.b === null) delete r.mods[e.k]; else r.mods[e.k] = JSON.parse(e.b); } else r.mods = JSON.parse(e.b); } catch (x) { return alert('Restore nahi ho paya (record kharab hai).'); }
+      F.saveCfg((e.k || 'all') + ' restored to before: ' + e.n); FM2.render();
+    });
+  }
+
+  /* ---------- insights / health check ---------- */
+  function idMap(k) {
+    var F = I(), c = F.mcfg(k, false), m = {}, bl = [];
+    try { bl = F.builtinFields(k); } catch (e) { }
+    bl.forEach(function (f) { m[f.id] = c.labels[f.id] || f.label; });
+    c.custom.forEach(function (d) { m[d.id] = d.label; });
+    return { m: m, builtinLoaded: bl.length > 0 };
+  }
+  function recsOf(k) {
+    try { if (k === 'mm') return (typeof MACHINE_MASTER !== 'undefined' && Array.isArray(MACHINE_MASTER)) ? MACHINE_MASTER : []; var a = I().MOD[k].arr(); return Array.isArray(a) ? a : []; } catch (e) { return []; }
+  }
+  function fstats(k, d) {
+    var arr = recsOf(k), n = arr.length, filled = 0, vals = {};
+    arr.forEach(function (r) { var v = r && r.cf && r.cf[d.id]; if (v !== undefined && v !== null && v !== '') { filled++; vals[v] = (vals[v] || 0) + 1; } });
+    return { n: n, filled: filled, vals: vals };
+  }
+  function issues(k) {
+    var F = I(), c = F.mcfg(k, false), out = [], im = idMap(k), M = F.MOD[k];
+    function missing(id) { return !im.m[id] && (im.builtinLoaded || /^f[0-9a-z]{6,}/.test(id)); }
+    var seen = {};
+    function chkRefs(label, s) {
+      if (s.reqIf && s.reqIf.f && missing(s.reqIf.f)) out.push({ lv: 'bad', t: '"' + label + '": "Required only if" wali field ab nahi hai.' });
+      if (s.showIf && s.showIf.f && missing(s.showIf.f)) out.push({ lv: 'bad', t: '"' + label + '": "Show only if" wali field ab nahi hai.' });
+      if (s.cmp && s.cmp.f && missing(s.cmp.f)) out.push({ lv: 'bad', t: '"' + label + '": compare rule wali field ab nahi hai.' });
+    }
+    c.custom.forEach(function (d) {
+      var nl = norm(d.label); if (seen[nl]) out.push({ lv: 'warn', t: 'Duplicate naam: "' + d.label + '".' }); seen[nl] = 1;
+      chkRefs(d.label, d);
+      if (d.type === 'calc') String(d.formula || '').replace(/\{([^}]+)\}/g, function (_, id) { if (missing(id)) out.push({ lv: 'bad', t: '"' + d.label + '" ka formula ek hatayi hui field use kar raha hai.' }); return ''; });
+      if (d.type === 'select' && !d.src && (!d.options || d.options.length < 2)) out.push({ lv: 'warn', t: '"' + d.label + '" dropdown me options kam hain.' });
+      if (d.type === 'select' && d.src && !srcOpts(d.src).length) out.push({ lv: 'warn', t: '"' + d.label + '" ki linked list (' + SRC[d.src] + ') abhi khali hai.' });
+      if (d.req && d.showIf && d.showIf.f) out.push({ lv: 'info', t: '"' + d.label + '" required bhi hai aur "Show only if" bhi: chhupi hone par required nahi mani jayegi.' });
+      var st = fstats(k, d);
+      if (st.n >= 10 && st.filled === 0 && !M.cell) out.push({ lv: 'info', t: '"' + d.label + '" ' + st.n + ' records me ek baar bhi nahi bhari gayi (use nahi ho rahi?).' });
+      if (d.type === 'select') {
+        var list = d.src ? srcOpts(d.src) : (d.options || []), outv = Object.keys(st.vals).filter(function (v) { return list.length && list.indexOf(v) < 0; });
+        if (outv.length) out.push({ lv: 'info', t: '"' + d.label + '": ' + outv.length + ' purani value(s) ab list me nahi hain (' + outv.slice(0, 3).join(', ') + (outv.length > 3 ? '…' : '') + ').' });
+      }
+      if (d.unique) { var dup = Object.keys(st.vals).filter(function (v) { return st.vals[v] > 1; }); if (dup.length) out.push({ lv: 'warn', t: '"' + d.label + '" Unique hai par ' + dup.length + ' value(s) pehle se repeat hain.' }); }
+    });
+    Object.keys(c.bset || {}).forEach(function (id) {
+      var s = c.bset[id], lab = im.m[id] || id; chkRefs(lab, s);
+      if (s.req && c.hidden.indexOf(id) >= 0) out.push({ lv: 'bad', t: '"' + lab + '" Required hai par screen se hatayi (hidden) hui hai: save block ho sakta hai.' });
+    });
+    return out;
+  }
+  function ruleCount(k) {
+    var c = I().mcfg(k, false), n = Object.keys(c.bset || {}).length;
+    c.custom.forEach(function (d) { if (d.req || d.unique || d.noFuture || d.reqIf || d.showIf || d.cmp || d.acc || d.min !== undefined || d.max !== undefined || d.warnAbove !== undefined || d.warnBelow !== undefined) n++; });
+    return n;
+  }
+  function insHtml(k) {
+    var F = I(), c = F.mcfg(k, false), h = '', M = F.MOD[k], n = recsOf(k).length;
+    h += '<div class="fm2-note">Is module me ' + (M.cell ? 'table rows' : 'saved records') + ': <b>' + n + '</b> · nayi fields: <b>' + c.custom.length + '</b> · rules wali fields: <b>' + ruleCount(k) + '</b></div>';
+    if (c.custom.length) {
+      h += '<div class="fm2-box"><h5>📊 Nayi fields kitni bhari ja rahi hain</h5>';
+      c.custom.forEach(function (d) {
+        var st = fstats(k, d), pc = st.n ? Math.round(st.filled * 100 / st.n) : 0, top = Object.keys(st.vals).sort(function (a, b) { return st.vals[b] - st.vals[a]; })[0];
+        h += '<div style="margin:7px 0"><div style="display:flex;justify-content:space-between;font-size:12px"><b>' + esc(d.label) + '</b><span>' + (st.n ? st.filled + ' / ' + st.n + ' (' + pc + '%)' : 'no records') + '</span></div><div style="height:7px;background:#e8eef3;border-radius:4px;overflow:hidden;margin-top:3px"><div style="height:100%;width:' + pc + '%;background:' + (pc >= 80 ? '#15803d' : pc >= 40 ? '#d97706' : '#dc2626') + '"></div></div>' +
+          (top !== undefined ? '<small>Sabse zyada: ' + esc(top) + ' (' + st.vals[top] + ') · alag values: ' + Object.keys(st.vals).length + '</small>' : '') + '</div>';
+      });
+      h += '</div>';
+    }
+    var is = issues(k);
+    h += '<div class="fm2-box" style="margin-top:8px"><h5>🩺 Health check — ' + esc(M.label) + '</h5>';
+    h += is.length ? is.map(function (x) { return '<div class="fm2-chk ' + (x.lv === 'bad' ? 'bad' : x.lv === 'warn' ? '' : 'ok') + '" style="' + (x.lv === 'warn' ? 'color:#a15c00' : '') + '">' + (x.lv === 'bad' ? '✖ ' : x.lv === 'warn' ? '⚠ ' : 'ℹ ') + esc(x.t) + '</div>'; }).join('') : '<div class="fm2-chk ok">✔ Koi problem nahi mili.</div>';
+    h += '</div>';
+    h += '<div class="fm2-box" style="margin-top:8px"><h5>🗂 Saare modules ek nazar me</h5><div style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><tr style="text-align:left;color:#65727d"><th>Module</th><th>Fields</th><th>Rules</th><th>Issues</th><th></th></tr>';
+    var any = 0;
+    F.LIST.forEach(function (m) {
+      var cc = F.mcfg(m[0], false), nI = 0; try { nI = issues(m[0]).filter(function (x) { return x.lv !== 'info'; }).length; } catch (e) { }
+      var nr = ruleCount(m[0]), hid = cc.hidden.length + cc.hcols.length; if (!cc.custom.length && !nr && !nI && !hid) return; any++;
+      h += '<tr style="border-top:1px solid #eef2f4"><td>' + esc(m[1]) + '</td><td>' + cc.custom.length + '</td><td>' + nr + '</td><td style="color:' + (nI ? '#b91c1c' : '#15803d') + ';font-weight:800">' + nI + '</td><td><button type="button" data-a="goto" data-x="' + m[0] + '">Open</button></td></tr>';
+    });
+    if (!any) h += '<tr><td colspan="5" style="padding:8px;color:#65727d">Abhi kisi module me nayi field / rule nahi hai.</td></tr>';
+    return h + '</table></div></div>';
+  }
+
+  /* ---------- tools: all-modules backup + printable register ---------- */
+  function toolsHtml() {
+    return '<div class="fm2-box"><h5>💾 Saare modules ki Field settings (file)</h5><div class="fm2-row"><button type="button" data-a="dlall">⬇ Download backup (.json)</button><button type="button" data-a="impall">⬆ File se Import</button></div><input type="file" id="fm3File" accept=".json,application/json" style="display:none"><small>Naye phone / dusre app copy me saari fields, rules, order, naam badlav ek saath le jane ke liye. Import un modules ki settings replace karta hai jo file me hain (history me Restore se wapas ho sakta hai).</small></div>' +
+      '<div class="fm2-box"><h5>📄 Field Register (print / audit)</h5><button type="button" data-a="fprint">🖨 Print Field Register</button><small>Saare modules ki nayi fields, rules, formula, role access aur hatayi hui fields ka ek printable record.</small></div>';
+  }
+  function dlAll() {
+    var r = I().getRec(false), o = { fm3: 1, app: 'HTP MMS Field Manager', at: new Date().toISOString(), mods: r ? r.mods : {} };
+    var a = document.createElement('a'), d = new Date(), ds = d.getFullYear() + ('0' + (d.getMonth() + 1)).slice(-2) + ('0' + d.getDate()).slice(-2);
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(o)], { type: 'application/json' })); a.download = 'htp-field-settings-' + ds + '.json';
+    document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 800);
+  }
+  function impAll(file) {
+    var F = I(), rd = new FileReader();
+    rd.onload = function () {
+      var o; try { o = JSON.parse(String(rd.result)); } catch (e) { return alert('File sahi nahi hai (JSON nahi padh paya).'); }
+      if (!o || o.fm3 !== 1 || !o.mods || typeof o.mods !== 'object') return alert('Yeh Field Manager ki backup file nahi lagti.');
+      var ks = Object.keys(o.mods).filter(function (k) { return F.MOD[k] && o.mods[k] && typeof o.mods[k] === 'object'; });
+      if (!ks.length) return alert('File me kisi module ki settings nahi mili.');
+      if (!confirm(ks.length + ' module(s) ki field settings file se replace hongi:\n\n' + ks.map(function (k) { return '• ' + F.MOD[k].label; }).join('\n') + '\n\nContinue?')) return;
+      F.guard().then(function (ok) {
+        if (!ok) return; var r = F.getRec(true); r.mods = r.mods || {};
+        ks.forEach(function (k) { var m = o.mods[k]; r.mods[k] = { custom: Array.isArray(m.custom) ? m.custom : [], hidden: Array.isArray(m.hidden) ? m.hidden : [], hcols: Array.isArray(m.hcols) ? m.hcols : [], labels: m.labels && typeof m.labels === 'object' ? m.labels : {}, clabels: m.clabels && typeof m.clabels === 'object' ? m.clabels : {}, bset: m.bset && typeof m.bset === 'object' ? m.bset : {}, border: Array.isArray(m.border) ? m.border : [], params: m.params && typeof m.params === 'object' ? m.params : {} }; });
+        F.saveCfg('all modules config imported from file (' + ks.length + ')'); FM2.render(); alert('Import ho gaya.');
+      });
+    };
+    rd.readAsText(file);
+  }
+  function ruleText(s, nm) {
+    var p = [];
+    if (s.req) p.push('Required'); if (s.reqIf && s.reqIf.f) p.push('Required if ' + nm(s.reqIf.f) + ' = ' + s.reqIf.v); if (s.showIf && s.showIf.f) p.push('Show if ' + nm(s.showIf.f) + ' = ' + s.showIf.v);
+    if (s.unique) p.push('Unique'); if (s.noFuture) p.push('No future date');
+    if (s.min !== undefined && s.min !== '') p.push('Min ' + s.min); if (s.max !== undefined && s.max !== '') p.push('Max ' + s.max);
+    if (s.warnAbove !== undefined && s.warnAbove !== '') p.push('Warn > ' + s.warnAbove); if (s.warnBelow !== undefined && s.warnBelow !== '') p.push('Warn < ' + s.warnBelow);
+    if (s.minLen) p.push('Min length ' + s.minLen); if (s.maxLen) p.push('Max length ' + s.maxLen);
+    if (s.cmp && s.cmp.f && OPT[s.cmp.op]) p.push('Must be ' + OPT[s.cmp.op] + ' ' + nm(s.cmp.f));
+    if (s.acc) Object.keys(s.acc).forEach(function (r) { p.push(r + ': ' + s.acc[r]); });
+    return p.join('; ');
+  }
+  function printReg() {
+    var F = I(), rows = [], now = new Date();
+    F.LIST.forEach(function (m) {
+      var k = m[0], c = F.mcfg(k, false), im = idMap(k), nm = function (id) { return im.m[id] || id; };
+      c.custom.forEach(function (d) {
+        var t = F.typeName(d) + (d.src ? ' → ' + SRC[d.src] : '') + (d.unit ? ' (' + d.unit + ')' : '');
+        var f = d.type === 'calc' ? String(d.formula || '').replace(/\{([^}]+)\}/g, function (_, id) { return '[' + nm(id) + ']'; }) : '';
+        rows.push([m[1], d.label, 'New · ' + t, ruleText(d, nm), f || (d.def ? 'Default: ' + d.def : '')]);
+      });
+      Object.keys(c.bset || {}).forEach(function (id) { var s = c.bset[id], rt = ruleText(s, nm); if (rt || s.formula) rows.push([m[1], nm(id), 'Built-in', rt, s.formula ? String(s.formula).replace(/\{([^}]+)\}/g, function (_, x) { return '[' + nm(x) + ']'; }) : '']); });
+      c.hidden.forEach(function (id) { rows.push([m[1], nm(id), 'Built-in', 'REMOVED from screen', '']); });
+      Object.keys(c.labels || {}).forEach(function (id) { rows.push([m[1], nm(id), 'Built-in', 'Renamed', '']); });
+    });
+    var h = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Field Register</title><style>body{font:12px Arial,sans-serif;margin:18px;color:#000}h2{margin:0 0 4px}table{border-collapse:collapse;width:100%;margin-top:10px}th,td{border:1px solid #000;padding:4px 6px;text-align:left;vertical-align:top}th{background:#e8eef3}@media print{body{margin:6mm}}</style></head><body><h2>HTP MMS — Field Register</h2><div>Printed: ' + esc(now.toLocaleString('en-GB')) + ' · By: ' + esc(who()) + '</div><table><tr><th>#</th><th>Module</th><th>Field</th><th>Type</th><th>Rules / Access</th><th>Formula / Default</th></tr>' +
+      (rows.length ? rows.map(function (r, i) { return '<tr><td>' + (i + 1) + '</td>' + r.map(function (x) { return '<td>' + esc(x) + '</td>'; }).join('') + '</tr>'; }).join('') : '<tr><td colspan="6">Koi custom field / rule nahi hai.</td></tr>') + '</table></body></html>';
+    var w = window.open('', '_blank'); if (!w) return alert('Popup block hai. Browser me popup allow karo.');
+    w.document.write(h); w.document.close(); w.focus(); setTimeout(function () { try { w.print(); } catch (e) { } }, 400);
+  }
+
+  /* ---------- actions (FM2 ke act() se call hota hai) ---------- */
+  function act(a, x, y, k) {
+    var F = I();
+    if (a === 'histall') { histAll = !histAll; FM2.render(); return true; }
+    if (a === 'undo') { undo(+x); return true; }
+    if (a === 'hclear') {
+      if (!confirm('Poori field-settings history clear karni hai?\n(Field settings par koi asar nahi padta.)')) return true;
+      F.guard().then(function (ok) { if (!ok) return; var h = histRec(false); if (h) { h.items = []; h.ts = Date.now(); try { persist('printFmt'); } catch (e) { } try { if (typeof gsSchedule === 'function') gsSchedule(600); } catch (e) { } } FM2.render(); });
+      return true;
+    }
+    if (a === 'goto') { FM2.go(x, 'fields'); return true; }
+    if (a === 'dlall') { dlAll(); return true; }
+    if (a === 'impall') { var fi = $('fm3File'); if (fi) { fi.value = ''; fi.click(); } return true; }
+    if (a === 'fprint') { printReg(); return true; }
+    if (a === 'qa') {
+      var id = ($('fm3QA') || {}).value, q = Q.filter(function (z) { return z[0] === id; })[0]; if (!q) return true;
+      var c0 = F.mcfg(k, false), dup = c0.custom.some(function (z) { return norm(z.label) === norm(q[2].label); }) || F.builtinFields(k).some(function (z) { return norm(c0.labels[z.id] || z.label) === norm(q[2].label); });
+      if (dup) { alert('"' + q[2].label + '" naam ki field / column is module me pehle se hai. Pehle usko rename karo ya dusri field chuno.'); return true; }
+      F.guard().then(function (ok) {
+        if (!ok) return; var c = F.mcfg(k, true), o = JSON.parse(JSON.stringify(q[2]));
+        o.id = 'f' + Date.now().toString(36) + Math.floor(Math.random() * 99); o.inTable = true; o.inPrint = true; if (o.min === undefined) delete o.min; if (!o.unique) delete o.unique;
+        c.custom.push(o); F.saveCfg(k + ' field added (quick): ' + o.label); FM2.render();
+      });
+      return true;
+    }
+    return false;
+  }
+  document.addEventListener('change', function (ev) { var t = ev.target; if (t && t.id === 'fm3File' && t.files && t.files[0]) impAll(t.files[0]); }, true);
+
+  var st = document.createElement('style');
+  st.textContent = '#fm2Modal .fm2-tabs button{padding:9px 2px;font-size:11px}#fm2Modal .fm2-box table button{padding:3px 8px}';
+  document.head.appendChild(st);
+
+  window.FM3 = { srcOpts: srcOpts, srcList: srcList, refreshSrc: refreshSrc, cmpHtml: cmpHtml, readCmp: readCmp, cmpErr: cmpErr, quickHtml: quickHtml, histHtml: histHtml, insHtml: insHtml, toolsHtml: toolsHtml, act: act, issues: issues };
 })();
 </script>
 
