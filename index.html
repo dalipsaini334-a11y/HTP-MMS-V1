@@ -12141,11 +12141,12 @@ function xlCapture(code){
   finally{window.open=oo;window.print=op;window.alert=oa;window.confirm=oc}
   try{if(html&&window.FieldManager&&FieldManager.xform)html=FieldManager.xform(html)}catch(e){}
   try{if(html&&window.mmsDocApply)html=window.mmsDocApply(html,'html')}catch(e){}
+  var fromWin=!!html;
   if(!html){
     var m=/^\s*([A-Za-z0-9_]+)/.exec(code),cid=m&&XL_CONT[m[1]],el=cid&&document.getElementById(cid);
     if(el)html=el.innerHTML;
   }
-  return {html:html,alerted:alerted};
+  return {html:html,alerted:alerted,fromWin:fromWin};
 }
 
 /* ---------- 2) HTML -> sheet model ---------- */
@@ -12234,15 +12235,16 @@ function zipStore(files){
 }
 function colName(n){var s='';n++;while(n>0){var m=(n-1)%26;s=String.fromCharCode(65+m)+s;n=Math.floor((n-1)/26)}return s}
 function esc(s){return String(s).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g,'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
-var ST={def:0,title:1,sub:2,th:3,td:4,tdl:5,tdb:6,note:7,footer:8,d1:9,d2:10,d3:11,d4:12};
+var ST={def:0,title:1,sub:2,th:3,td:4,tdl:5,tdb:6,note:7,footer:8,d1:9,d2:10,d3:11,d4:12,title2:13,footer2:14,tdbc:15};
 function sheetXml(m){
-  var x='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><sheetViews><sheetView workbookViewId="0" showGridLines="0"/></sheetViews><sheetFormatPr defaultRowHeight="15"/><cols>';
+  var x='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><sheetViews><sheetView workbookViewId="0" showGridLines="0"/></sheetViews><sheetFormatPr defaultRowHeight="15"/><cols>';
   for(var i=0;i<m.ncols;i++)x+='<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+m.widths[i].toFixed(1)+'" customWidth="1"/>';
   x+='</cols><sheetData>';
   m.rows.forEach(function(r,ri){
     var rn=ri+1;
-    if(r.blank||(!r.cells&&r.text===undefined)){x+='<row r="'+rn+'"/>';return}
-    var attr=r.style==='title'?' ht="28" customHeight="1"':'';
+    var hh=m.rowHt&&m.rowHt[rn]?' ht="'+m.rowHt[rn]+'" customHeight="1"':'';
+    if(r.blank||(!r.cells&&r.text===undefined)){x+='<row r="'+rn+'"'+hh+'/>';return}
+    var attr=hh||(r.style==='title'?' ht="28" customHeight="1"':'');
     x+='<row r="'+rn+'"'+attr+'>';
     if(r.text!==undefined){
       var s=ST[r.style]||0;x+='<c r="A'+rn+'" s="'+s+'" t="inlineStr"><is><t xml:space="preserve">'+esc(r.text)+'</t></is></c>';
@@ -12259,16 +12261,16 @@ function sheetXml(m){
   });
   x+='</sheetData>';
   if(m.merges.length){x+='<mergeCells count="'+m.merges.length+'">';m.merges.forEach(function(g){x+='<mergeCell ref="'+colName(g.c1)+(g.r1+1)+':'+colName(g.c2)+(g.r2+1)+'"/>'});x+='</mergeCells>'}
-  x+='<pageMargins left="0.3" right="0.3" top="0.4" bottom="0.4" header="0.2" footer="0.2"/><pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/></worksheet>';
+  x+=(m.fitH?'<printOptions horizontalCentered="1"/>':'')+'<pageMargins left="0.3" right="0.3" top="0.4" bottom="0.4" header="0.2" footer="0.2"/><pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="'+(m.fitH?1:0)+'"/>'+(m.drawing?'<drawing r:id="rId1"/>':'')+'</worksheet>';
   return x;
 }
 var STYLES='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
 +'<numFmts count="4"><numFmt numFmtId="164" formatCode="0.0"/><numFmt numFmtId="165" formatCode="0.00"/><numFmt numFmtId="166" formatCode="0.000"/><numFmt numFmtId="167" formatCode="0.0000"/></numFmts>'
-+'<fonts count="5"><font><sz val="10"/><name val="Arial"/></font><font><b/><sz val="14"/><name val="Arial"/></font><font><b/><sz val="10"/><name val="Arial"/></font><font><i/><sz val="9"/><name val="Arial"/></font><font><b/><sz val="11"/><name val="Arial"/></font></fonts>'
++'<fonts count="7"><font><sz val="10"/><name val="Arial"/></font><font><b/><sz val="14"/><name val="Arial"/></font><font><b/><sz val="10"/><name val="Arial"/></font><font><i/><sz val="9"/><name val="Arial"/></font><font><b/><sz val="11"/><name val="Arial"/></font><font><b/><sz val="18"/><name val="Arial"/></font><font><b/><sz val="9"/><name val="Arial"/></font></fonts>'
 +'<fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFD9D9D9"/><bgColor indexed="64"/></patternFill></fill></fills>'
 +'<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color auto="1"/></left><right style="thin"><color auto="1"/></right><top style="thin"><color auto="1"/></top><bottom style="thin"><color auto="1"/></bottom><diagonal/></border></borders>'
 +'<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
-+'<cellXfs count="13">'
++'<cellXfs count="16">'
 +'<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'
 +'<xf numFmtId="0" fontId="1" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>'
 +'<xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>'
@@ -12282,6 +12284,9 @@ var STYLES='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet x
 +'<xf numFmtId="165" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>'
 +'<xf numFmtId="166" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>'
 +'<xf numFmtId="167" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>'
++'<xf numFmtId="0" fontId="5" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>'
++'<xf numFmtId="0" fontId="6" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>'
++'<xf numFmtId="165" fontId="2" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>'
 +'</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
 function buildXlsx(model,sheetName){
   var nm=esc(String(sheetName||'Sheet1').replace(/[\[\]:*?\/\\]/g,' ').trim().slice(0,31)||'Sheet1');
@@ -12296,6 +12301,479 @@ function buildXlsx(model,sheetName){
   return zipStore(files);
 }
 
+/* ---------- 3b) MTTR / MTBF: print jaisa layout (title+logo, 3 native Excel charts, table, footer) ---------- */
+function xlMttrBuild(html){
+  var doc=new DOMParser().parseFromString(html,'text/html');
+  var tbl=doc.querySelector('.mttr-print-table');if(!tbl||!tbl.rows.length)return null;
+  var titleEl=doc.querySelector('.mttr-print-title'),footEl=doc.querySelector('.mttr-print-footer');
+  var title=titleEl?xlText(titleEl):'Breakdown Trends Unit 7',foot=footEl?xlText(footEl):'';
+  var head=Array.prototype.map.call(tbl.rows[0].cells,function(c){return xlText(c)});
+  var n=head.length-1;if(n<2)return null;                       /* months + TARGET */
+  var LC=7,C0=8,NC=C0+n;                                         /* label col H, data cols I.., spacer col G */
+  var TOP=3,TOPN=15,BOT=19;                                      /* 1-based rows: top charts 3-17, table 19.. */
+  var rows=[],merges=[],rowHt={};
+  function put(r,c,text,style){(rows[r-1]=rows[r-1]||{cells:[]}).cells.push({c:c,text:text,style:style})}
+  /* title row (bordered across the full width) */
+  rows[0]={cells:[]};rowHt[1]=42;
+  for(var c=0;c<NC;c++)put(1,c,c===0?title:'','title2');
+  merges.push({r1:0,c1:0,r2:0,c2:NC-1});
+  rowHt[2]=6;rowHt[BOT-1]=6;
+  /* table */
+  var trs=Array.prototype.slice.call(tbl.rows),tr0=BOT,byLabel={};
+  trs.forEach(function(tr,i){
+    var r=tr0+i;rowHt[r]=25;
+    Array.prototype.forEach.call(tr.cells,function(td,j){
+      var t=xlText(td),isTh=td.tagName==='TH';
+      var st=isTh?'th':(j===0||/label/i.test(td.className||''))?'tdb':(td.firstElementChild&&/^(B|STRONG)$/.test(td.firstElementChild.tagName))?'tdbc':'td';
+      put(r,j===0?LC:C0+j-1,t,st);
+    });
+    if(i>0)byLabel[xlText(tr.cells[0]).toUpperCase()]=r;
+  });
+  var lastR=tr0+trs.length-1;
+  /* footer */
+  var fr=lastR+2;rowHt[fr-1]=6;rowHt[fr]=16;
+  for(c=0;c<NC;c++)put(fr,c,c===0?foot:'','footer2');
+  merges.push({r1:fr-1,c1:0,r2:fr-1,c2:NC-1});
+  for(var i=0;i<fr;i++)rows[i]=rows[i]||{blank:true};
+  var widths=[];for(c=0;c<NC;c++)widths[c]=c<6?15.5:(c===6?1.5:(c===LC?24:(c===NC-1?9.2:7.8)));
+  var model={rows:rows,merges:merges,ncols:NC,widths:widths,rowHt:rowHt,fitH:1,drawing:true};
+  /* charts: sheet ke table cells ko hi source banate hain */
+  var sn=String(title||'Report').replace(/[\[\]:*?\/\\]/g,' ').trim().slice(0,31)||'Sheet1',q="'"+sn.replace(/'/g,"''")+"'";
+  var catRef=q+'!$'+colName(C0)+'$'+tr0+':$'+colName(C0+n-1)+'$'+tr0;
+  function mk(label,key,fmt,o){
+    var r=byLabel[label];if(!r)return null;var vals=[];
+    for(var k=0;k<n;k++){var cell=rows[r-1].cells.filter(function(x){return x.c===C0+k})[0];var t=cell?cell.text:'';vals.push(/^-?\d+(\.\d+)?$/.test(t)?parseFloat(t):null)}
+    return xlBarChart({title:o.title,key:key,fmt:fmt,cats:head.slice(1),vals:vals,catRef:catRef,valRef:q+'!$'+colName(C0)+'$'+r+':$'+colName(C0+n-1)+'$'+r,labels:o.labels,trend:o.trend,legend:o.legend});
+  }
+  var charts=[mk('MTTR','MTTR','0.00',{title:'MTTR'}),mk('B/D %AGE','B/D %AGE','0.00',{title:'Breakdown Percentage %',labels:1,trend:1,legend:1}),mk('MTBF','MTBF','0',{title:'MTBF'})];
+  if(charts.some(function(x){return !x}))return null;
+  /* logo (print wale title ka hi image) */
+  var logo=null,im=titleEl&&titleEl.querySelector('img'),m=im&&/^data:image\/(png|jpe?g);base64,(.+)$/i.exec(im.getAttribute('src')||'');
+  if(m){try{var bin=atob(m[2]),b=new Uint8Array(bin.length);for(var z=0;z<bin.length;z++)b[z]=bin.charCodeAt(z);
+    var w=0,h=0;if(/png/i.test(m[1])&&b.length>24){w=(b[16]<<24|b[17]<<16|b[18]<<8|b[19])>>>0;h=(b[20]<<24|b[21]<<16|b[22]<<8|b[23])>>>0}
+    var bw=648000,bh=504000,cx=bw,cy=bh;if(w&&h){var s=Math.min(bw/w,bh/h);cx=Math.round(w*s);cy=Math.round(h*s)}
+    logo={bytes:b,ext:/png/i.test(m[1])?'png':'jpeg',cx:cx,cy:cy}}catch(e){}}
+  var A=[{c1:0,r1:TOP-1,c2:6,r2:TOP-1+TOPN},{c1:C0-1,r1:TOP-1,c2:NC,r2:TOP-1+TOPN},{c1:0,r1:tr0-1,c2:6,r2:lastR}];
+  return {model:model,sheetName:sn,charts:charts,anchors:A,logo:logo};
+}
+function xlBarChart(o){
+  var NS='xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"';
+  function tx(sz,b,col){return '<c:txPr><a:bodyPr/><a:lstStyle/><a:p><a:pPr><a:defRPr sz="'+sz+'" b="'+b+'"><a:solidFill><a:srgbClr val="'+col+'"/></a:solidFill><a:latin typeface="Arial"/></a:defRPr></a:pPr><a:endParaRPr lang="en-US"/></a:p></c:txPr>'}
+  var cat='<c:strCache><c:ptCount val="'+o.cats.length+'"/>'+o.cats.map(function(t,i){return '<c:pt idx="'+i+'"><c:v>'+esc(t)+'</c:v></c:pt>'}).join('')+'</c:strCache>';
+  var val='<c:numCache><c:formatCode>'+o.fmt+'</c:formatCode><c:ptCount val="'+o.vals.length+'"/>'+o.vals.map(function(v,i){return v===null?'':'<c:pt idx="'+i+'"><c:v>'+v+'</c:v></c:pt>'}).join('')+'</c:numCache>';
+  var line='<a:ln w="9525"><a:solidFill><a:srgbClr val="BFBFBF"/></a:solidFill></a:ln>',sc=null;
+  try{var mx=Math.max.apply(null,o.vals.filter(function(v){return v!==null}).concat([0]));sc=(typeof mttrNice==='function')?mttrNice(mx):null;if(sc&&!(sc.max>0&&sc.step>0))sc=null}catch(e){sc=null}
+  var x='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><c:chartSpace '+NS+'><c:roundedCorners val="0"/><c:chart>'
+  +'<c:title><c:tx><c:rich><a:bodyPr/><a:lstStyle/><a:p><a:pPr><a:defRPr sz="1400" b="0"><a:solidFill><a:srgbClr val="595959"/></a:solidFill><a:latin typeface="Arial"/></a:defRPr></a:pPr><a:r><a:rPr lang="en-US" sz="1400" b="0"><a:solidFill><a:srgbClr val="595959"/></a:solidFill><a:latin typeface="Arial"/></a:rPr><a:t>'+esc(o.title)+'</a:t></a:r></a:p></c:rich></c:tx><c:overlay val="0"/></c:title><c:autoTitleDeleted val="0"/>'
+  +'<c:plotArea><c:layout/><c:barChart><c:barDir val="col"/><c:grouping val="clustered"/><c:varyColors val="0"/><c:ser><c:idx val="0"/><c:order val="0"/><c:tx><c:v>'+esc(o.key)+'</c:v></c:tx>'
+  +'<c:spPr><a:solidFill><a:srgbClr val="4F81BD"/></a:solidFill></c:spPr><c:invertIfNegative val="0"/>'
+  +(o.labels?'<c:dLbls><c:numFmt formatCode="'+o.fmt+'" sourceLinked="0"/><c:spPr><a:noFill/><a:ln><a:noFill/></a:ln></c:spPr>'+tx(1000,0,'404040')+'<c:dLblPos val="outEnd"/><c:showLegendKey val="0"/><c:showVal val="1"/><c:showCatName val="0"/><c:showSerName val="0"/><c:showPercent val="0"/><c:showBubbleSize val="0"/></c:dLbls>':'')
+  +(o.trend?'<c:trendline><c:spPr><a:ln w="19050"><a:solidFill><a:srgbClr val="000000"/></a:solidFill></a:ln></c:spPr><c:trendlineType val="linear"/><c:dispRSqr val="0"/><c:dispEq val="0"/></c:trendline>':'')
+  +'<c:cat><c:strRef><c:f>'+esc(o.catRef)+'</c:f>'+cat+'</c:strRef></c:cat><c:val><c:numRef><c:f>'+esc(o.valRef)+'</c:f>'+val+'</c:numRef></c:val></c:ser><c:gapWidth val="150"/><c:axId val="50010"/><c:axId val="50020"/></c:barChart>'
+  +'<c:catAx><c:axId val="50010"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="b"/><c:numFmt formatCode="General" sourceLinked="0"/><c:majorTickMark val="none"/><c:minorTickMark val="none"/><c:tickLblPos val="nextTo"/><c:spPr>'+line+'</c:spPr>'+tx(800,0,'404040')+'<c:crossAx val="50020"/><c:crosses val="autoZero"/><c:auto val="1"/><c:lblAlgn val="ctr"/><c:lblOffset val="100"/><c:noMultiLvlLbl val="0"/></c:catAx>'
+  +'<c:valAx><c:axId val="50020"/><c:scaling><c:orientation val="minMax"/>'+(sc?'<c:max val="'+sc.max+'"/>':'')+'<c:min val="0"/></c:scaling><c:delete val="0"/><c:axPos val="l"/><c:majorGridlines><c:spPr>'+line+'</c:spPr></c:majorGridlines><c:numFmt formatCode="General" sourceLinked="0"/><c:majorTickMark val="none"/><c:minorTickMark val="none"/><c:tickLblPos val="nextTo"/><c:spPr><a:ln><a:noFill/></a:ln></c:spPr>'+tx(1000,0,'595959')+'<c:crossAx val="50010"/><c:crosses val="autoZero"/><c:crossBetween val="between"/>'+(sc?'<c:majorUnit val="'+sc.step+'"/>':'')+'</c:valAx>'
+  +'<c:dTable><c:showHorzBorder val="1"/><c:showVertBorder val="1"/><c:showOutline val="1"/><c:showKeys val="1"/>'+'<c:spPr><a:ln w="9525"><a:solidFill><a:srgbClr val="BFBFBF"/></a:solidFill></a:ln></c:spPr>'+tx(800,0,'404040')+'</c:dTable></c:plotArea>'
+  +(o.legend?'<c:legend><c:legendPos val="r"/><c:overlay val="0"/>'+tx(900,0,'595959')+'</c:legend>':'')
+  +'<c:plotVisOnly val="1"/><c:dispBlanksAs val="gap"/></c:chart><c:spPr><a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill><a:ln w="9525"><a:solidFill><a:srgbClr val="000000"/></a:solidFill></a:ln></c:spPr></c:chartSpace>';
+  return x;
+}
+function xlMttrXlsx(p){
+  var XD='xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart"';
+  function pt(t,c,r,o1,o2){return '<xdr:'+t+'><xdr:col>'+c+'</xdr:col><xdr:colOff>'+(o1||0)+'</xdr:colOff><xdr:row>'+r+'</xdr:row><xdr:rowOff>'+(o2||0)+'</xdr:rowOff></xdr:'+t+'>'}
+  var d='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><xdr:wsDr '+XD+'>',drel='',ct='';
+  p.charts.forEach(function(cx,i){
+    var a=p.anchors[i],id=i+1;
+    d+='<xdr:twoCellAnchor editAs="oneCell">'+pt('from',a.c1,a.r1)+pt('to',a.c2,a.r2)+'<xdr:graphicFrame macro=""><xdr:nvGraphicFramePr><xdr:cNvPr id="'+(id+1)+'" name="Chart '+id+'"/><xdr:cNvGraphicFramePr/></xdr:nvGraphicFramePr><xdr:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/></xdr:xfrm><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/chart"><c:chart r:id="rId'+id+'"/></a:graphicData></a:graphic></xdr:graphicFrame><xdr:clientData/></xdr:twoCellAnchor>';
+    drel+='<Relationship Id="rId'+id+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart" Target="../charts/chart'+id+'.xml"/>';
+    ct+='<Override PartName="/xl/charts/chart'+id+'.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/>';
+  });
+  if(p.logo){
+    d+='<xdr:oneCellAnchor>'+pt('from',0,0,66675,60000)+'<xdr:ext cx="'+p.logo.cx+'" cy="'+p.logo.cy+'"/><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="9" name="Logo"/><xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr><xdr:blipFill><a:blip r:embed="rId4"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill><xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="'+p.logo.cx+'" cy="'+p.logo.cy+'"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic><xdr:clientData/></xdr:oneCellAnchor>';
+    drel+='<Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image1.'+p.logo.ext+'"/>';
+  }
+  d+='</xdr:wsDr>';
+  var H='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>',RS='<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">';
+  var files=[
+   {name:'[Content_Types].xml',data:H+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Default Extension="jpeg" ContentType="image/jpeg"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/><Override PartName="/xl/drawings/drawing1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>'+ct+'</Types>'},
+   {name:'_rels/.rels',data:H+RS+'<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'},
+   {name:'xl/workbook.xml',data:H+'<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="'+esc(p.sheetName)+'" sheetId="1" r:id="rId1"/></sheets></workbook>'},
+   {name:'xl/_rels/workbook.xml.rels',data:H+RS+'<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>'},
+   {name:'xl/styles.xml',data:STYLES},
+   {name:'xl/worksheets/sheet1.xml',data:sheetXml(p.model)},
+   {name:'xl/worksheets/_rels/sheet1.xml.rels',data:H+RS+'<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing1.xml"/></Relationships>'},
+   {name:'xl/drawings/drawing1.xml',data:d},
+   {name:'xl/drawings/_rels/drawing1.xml.rels',data:H+RS+drel+'</Relationships>'}
+  ];
+  p.charts.forEach(function(cx,i){files.push({name:'xl/charts/chart'+(i+1)+'.xml',data:cx})});
+  if(p.logo)files.push({name:'xl/media/image1.'+p.logo.ext,data:p.logo.bytes});
+  return zipStore(files);
+}
+
+/* ---------- 3c) GEO ENGINE: print layout ko render karke (geometry se) same cell-grid/borders/colors/logo ke saath xlsx ---------- */
+var GEO_PG={A3:[1587,1123,8],A4:[1123,794,9],A5:[794,559,11],Letter:[1056,816,1],Legal:[1344,816,5]};
+function geoLen(s){var m=/^(-?[\d.]+)(mm|cm|in|px|pt)?$/.exec(String(s||'').trim());if(!m)return null;var v=parseFloat(m[1]),u=m[2]||'px';return u==='mm'?v*96/25.4:u==='cm'?v*96/2.54:u==='in'?v*96:u==='pt'?v*96/72:v}
+function geoPageInfo(html){
+  var inf={name:'A4',land:false,w:1123,h:794,mL:38,mT:38,paper:9},m=/@page\s*\{([^}]*)\}/i.exec(html);
+  if(m){
+    var sz=/size\s*:\s*([^;}]+)/i.exec(m[1]);
+    if(sz){
+      var t=sz[1].trim().split(/\s+/),nm=null,land=/landscape/i.test(sz[1]),lens=[];
+      t.forEach(function(x){if(GEO_PG[x]||GEO_PG[x.charAt(0).toUpperCase()+x.slice(1).toLowerCase()])nm=GEO_PG[x]?x:x.charAt(0).toUpperCase()+x.slice(1).toLowerCase();var l=geoLen(x);if(l!==null&&/[a-z]/i.test(x))lens.push(l)});
+      if(lens.length>=2){inf.w=Math.max(lens[0],lens[1]);inf.h=Math.min(lens[0],lens[1]);inf.land=lens[0]>=lens[1];inf.paper=9;inf.sizePx=[lens[0],lens[1]]}
+      else{inf.name=nm||'A4';var g=GEO_PG[inf.name];inf.w=g[0];inf.h=g[1];inf.paper=g[2];inf.land=land}
+    }
+    var mg=/margin\s*:\s*([^;}]+)/i.exec(m[1]);
+    if(mg){var a=mg[1].trim().split(/\s+/).map(geoLen).filter(function(v){return v!==null});if(a.length){inf.mT=a[0];inf.mL=a.length>1?a[1]:a[0]}}
+  }
+  var pw=inf.sizePx?inf.sizePx[0]:(inf.land?inf.w:inf.h);inf.cw=Math.max(300,Math.round(pw-2*inf.mL));
+  return inf;
+}
+function geoPrepare(html){
+  html=String(html).replace(/<script[\s\S]*?<\/script>/gi,'').replace(/@media\s+print/gi,'@media all').replace(/\sonload\s*=\s*("[^"]*"|'[^']*')/gi,'');
+  return html;
+}
+function geoRender(html,cw,css){
+  return new Promise(function(resolve,reject){
+    var f=document.createElement('iframe');
+    f.setAttribute('aria-hidden','true');
+    f.style.cssText='position:fixed;left:-30000px;top:0;border:0;width:'+cw+'px;height:1200px;pointer-events:none';
+    var done=false,fin=function(){if(done)return;done=true;
+      var d=f.contentDocument,w=f.contentWindow,imgs=[].slice.call(d.images||[]);
+      Promise.all(imgs.map(function(im){return im.decode?im.decode().catch(function(){}):Promise.resolve()})).then(function(){
+        var fp=(d.fonts&&d.fonts.ready)?d.fonts.ready:Promise.resolve();return fp.catch(function(){})}).then(function(){resolve({frame:f,doc:d,win:w})})};
+    f.onload=function(){setTimeout(fin,60)};
+    setTimeout(function(){if(!done){try{fin()}catch(e){reject(e)}}},5000);
+    document.body.appendChild(f);
+    var doc=f.contentDocument;doc.open();
+    var h=html;
+    if(css){h=/<head[^>]*>/i.test(h)?h.replace(/<head[^>]*>/i,function(x){return x+css}):'<head>'+css+'</head>'+h}
+    doc.write(h);doc.close();
+  });
+}
+function geoCol(v){
+  if(!v)return null;var m=/rgba?\(\s*([\d.]+)[ ,]+([\d.]+)[ ,]+([\d.]+)(?:[ ,\/]+([\d.]+%?))?\s*\)/.exec(v);if(!m)return null;
+  var a=m[4]===undefined?1:(/%$/.test(m[4])?parseFloat(m[4])/100:parseFloat(m[4]));if(!(a>0))return null;
+  function mx(c){c=parseFloat(c);c=Math.round(c*a+255*(1-a));return ('0'+Math.max(0,Math.min(255,c)).toString(16)).slice(-2)}
+  return (mx(m[1])+mx(m[2])+mx(m[3])).toUpperCase();
+}
+function geoBorder(c,S){
+  var w=parseFloat(c['border'+S+'Width']),st=c['border'+S+'Style'],col=geoCol(c['border'+S+'Color']);
+  if(!(w>0)||st==='none'||st==='hidden'||!col)return null;
+  var s=st==='double'?'double':st==='dashed'?'dashed':st==='dotted'?'dotted':(w>=3?'thick':w>=1.8?'medium':'thin');
+  return {s:s,c:col};
+}
+function geoCollect(doc,win,inf){
+  var items=[],media=[];
+  var BLK=/^(block|flex|grid|table|list-item|flow-root|table-.*)$/;
+  function rc(r){return {x:r.left+win.pageXOffset,y:r.top+win.pageYOffset,w:r.width,h:r.height}}
+  function css(el){return win.getComputedStyle(el)}
+  function txt(el){
+    var t=(el.innerText!==undefined?el.innerText:el.textContent)||'';
+    t=t.replace(/\u00a0/g,' ').replace(/[ \t\r\f\v]+/g,' ').split('\n').map(function(l){return l.trim()}).join('\n').replace(/\n{3,}/g,'\n\n').trim();
+    return t.slice(0,32000);
+  }
+  function fontOf(c){
+    var fam=(c.fontFamily||'Arial').split(',')[0].replace(/["']/g,'').trim();
+    if(/^(sans-serif|system-ui|-apple-system|ui-sans-serif|BlinkMacSystemFont)$/i.test(fam)||!fam)fam='Arial';
+    else if(/^(serif|ui-serif)$/i.test(fam))fam='Times New Roman';else if(/^(monospace|ui-monospace)$/i.test(fam))fam='Courier New';
+    var sz=Math.max(5,Math.round(parseFloat(c.fontSize)*0.75*2)/2);
+    return {n:fam,sz:sz,b:(parseInt(c.fontWeight,10)||400)>=600||c.fontWeight==='bold',i:c.fontStyle==='italic'||c.fontStyle==='oblique',u:/underline/.test(c.textDecorationLine||c.textDecoration||''),c:geoCol(c.color)||'000000'};
+  }
+  function boxStyle(c){return {fill:geoCol(c.backgroundColor),b:{t:geoBorder(c,'Top'),r:geoBorder(c,'Right'),b:geoBorder(c,'Bottom'),l:geoBorder(c,'Left')}}}
+  function hasDeco(s){return !!(s.fill||s.b.t||s.b.r||s.b.b||s.b.l)}
+  function push(r,text,c,kind,extra){
+    if(r.w<0.6||r.h<0.6)return;
+    var s=boxStyle(c),it={x:r.x,y:r.y,w:r.w,h:r.h,text:text,kind:kind,fill:s.fill,b:s.b};
+    if(kind!=='decor'){
+      var dc=(extra&&extra.dom)||c;if(extra)delete extra.dom;
+      it.font=fontOf(dc);var ta=c.textAlign;it.ha=(ta==='center')?'center':(ta==='right'||ta==='end')?'right':'left';
+      if(dc!==c&&(dc.textAlign==='center'||dc.textAlign==='right'))it.ha=dc.textAlign;
+      var va=c.verticalAlign;it.va=(kind==='cell')?(va==='top'?'top':(va==='bottom'||va==='baseline')?'bottom':'center'):'center';
+      if(/flex/.test(c.display)&&c.flexDirection!=='column'&&c.flexDirection!=='column-reverse'){
+        var jc=c.justifyContent,ai=c.alignItems;
+        if(jc==='center')it.ha='center';else if(/end|right/.test(jc))it.ha='right';
+        it.va=(ai==='flex-start'||ai==='start')?'top':(ai==='flex-end'||ai==='end')?'bottom':'center';
+      }else if(/grid/.test(c.display)){if(c.justifyItems==='center')it.ha='center';else if(/end|right/.test(c.justifyItems))it.ha='right'}
+      it.wrap=!/nowrap|pre$/.test(c.whiteSpace||'');
+      var pl=parseFloat(c.paddingLeft)||0;if(it.ha==='left'&&pl>=10)it.ind=Math.min(6,Math.round(pl/9));
+      if(kind==='block'&&text.indexOf('\n')>=0&&it.h>it.font.sz/0.75*2.6)it.va='top';
+    }
+    if(extra)for(var k in extra)it[k]=extra[k];
+    items.push(it);
+  }
+  function domStyle(el,c){
+    var cur=el,cc=c;
+    for(var d=0;d<4;d++){
+      var kids=[].slice.call(cur.childNodes).filter(function(n){return !(n.nodeType===3&&!n.textContent.replace(/[\s\u00a0]+/g,''))&&!(n.nodeType===1&&/^(BR|IMG|SVG|SCRIPT|STYLE)$/i.test(n.tagName))});
+      if(kids.length===1&&kids[0].nodeType===1){cur=kids[0];cc=css(cur)}else break;
+    }
+    return cc;
+  }
+  function textUnion(el){
+    var tw=doc.createTreeWalker(el,4,null,false),n,u=null;
+    while((n=tw.nextNode())){if(!n.textContent.replace(/[\s\u00a0]+/g,''))continue;var rg=doc.createRange();rg.selectNodeContents(n);var q=rg.getBoundingClientRect();if(q.width<=0)continue;
+      u=u?{l:Math.min(u.l,q.left),r:Math.max(u.r,q.right)}:{l:q.left,r:q.right}}
+    return u;
+  }
+  function exMedia(el,r){
+    var ms=[].slice.call(el.querySelectorAll('img,svg')).filter(function(m){var mc=css(m);return mc.position!=='absolute'&&mc.position!=='fixed'&&mc.display!=='none'});
+    if(!ms.length)return r;var tu=textUnion(el);if(!tu)return r;
+    var L=r.x,Rr=r.x+r.w;
+    ms.forEach(function(m){var mr=rc(m.getBoundingClientRect());
+      if(mr.x+mr.w<=tu.l+win.pageXOffset+2&&mr.x+mr.w>L)L=mr.x+mr.w;
+      else if(mr.x>=tu.r+win.pageXOffset-2&&mr.x<Rr)Rr=mr.x});
+    return Rr-L>5?{x:L,y:r.y,w:Rr-L,h:r.h}:r;
+  }
+  function mediaIn(el){
+    [].slice.call(el.querySelectorAll('img,svg,canvas')).forEach(function(m){
+      if(m.parentNode&&m.parentNode.closest&&m.parentNode.closest('svg')&&m.tagName.toLowerCase()!=='svg')return;
+      if(m.tagName.toLowerCase()==='svg'&&m.parentNode&&m.parentNode.closest&&m.parentNode.closest('svg'))return;
+      addMedia(m);
+    });
+  }
+  function addMedia(m){
+    var c=css(m);if(c.display==='none'||c.visibility==='hidden'||parseFloat(c.opacity)===0)return;
+    var r=rc(m.getBoundingClientRect());if(r.w<2||r.h<2)return;
+    var t=m.tagName.toLowerCase();if(t==='img'&&!(m.naturalWidth>0))return;
+    media.push({el:m,t:t,x:r.x,y:r.y,w:r.w,h:r.h,fit:c.objectFit});
+  }
+  function isBlockLevel(ch,parentHasText){
+    var d=css(ch).display;if(d==='none')return false;
+    if(BLK.test(d))return true;
+    if((d==='inline-block'||d==='inline-flex'||d==='inline-grid'||d==='inline-table')&&!parentHasText)return true;
+    return false;
+  }
+  function hasDirectText(el){for(var n=el.firstChild;n;n=n.nextSibling){if(n.nodeType===3&&n.textContent.replace(/[\s\u00a0]+/g,''))return true}return false}
+  function walk(el){
+    if(el.nodeType!==1)return;
+    var tag=el.tagName;
+    if(/^(STYLE|SCRIPT|HEAD|TITLE|META|LINK|NOSCRIPT|BR|COLGROUP|COL|TEMPLATE|OPTION)$/.test(tag))return;
+    var tl=tag.toLowerCase();
+    if(tl==='img'||tl==='svg'||tl==='canvas'){addMedia(el);return}
+    var c=css(el);if(c.display==='none'||c.visibility==='hidden')return;
+    var r=rc(el.getBoundingClientRect());
+    if(c.display==='table-caption'){push(r,txt(el),c,'block');return}
+    if(c.display==='table-row'&&boxStyle(c).fill)push(r,'',c,'decor');
+    if(tag!=='TD'&&tag!=='TH'&&(tag==='TABLE'||/^table/.test(c.display))){
+      if(tag==='TABLE'){var sD=boxStyle(c);if(hasDeco(sD)&&c.borderCollapse!=='collapse')push(r,'',c,'decor')}
+      [].slice.call(el.children).forEach(walk);return;
+    }
+    if(tag==='TD'||tag==='TH'){
+      if(el.querySelector('table')){push(r,'',c,'decor');[].slice.call(el.childNodes).forEach(function(n){if(n.nodeType===1)walk(n)});return}
+      var t=txt(el),num=false;
+      if(/^-?(0|[1-9]\d{0,11})(\.\d{1,4})?$/.test(t))num=true;
+      if(t)r=exMedia(el,r);
+      push(r,t,c,'cell',{num:num,dom:domStyle(el,c)});mediaIn(el);return;
+    }
+    if(!/^(inline)$/.test(c.display)||true){
+      var pt=hasDirectText(el),kids=[].slice.call(el.children).filter(function(k){var kt=k.tagName.toLowerCase();return kt!=='br'&&kt!=='img'&&kt!=='svg'&&kt!=='canvas'&&!/^(STYLE|SCRIPT)$/i.test(k.tagName)});
+      var blockKid=kids.some(function(k){return isBlockLevel(k,pt)});
+      var sD2=boxStyle(c);
+      if(!blockKid){
+        /* leaf */
+        var t2=txt(el);
+        if(/^(UL|OL)$/.test(tag))t2=t2;
+        if(tag==='LI'&&el.parentNode&&/^(UL|OL)$/.test(el.parentNode.tagName)&&c.listStyleType!=='none'){
+          if(el.parentNode.tagName==='OL'){var ix=[].slice.call(el.parentNode.children).indexOf(el)+1;t2=ix+'. '+t2}else t2='\u2022 '+t2;
+        }
+        if(t2){
+          r=exMedia(el,r);
+        }
+        if(t2||hasDeco(sD2))push(r,t2,c,'block',{dom:domStyle(el,c)});
+        mediaIn(el);
+        return;
+      }
+      /* container */
+      if(hasDeco(sD2)&&tag!=='BODY'&&tag!=='HTML')push(r,'',c,'decor');
+      [].slice.call(el.childNodes).forEach(function(n){
+        if(n.nodeType===3){
+          if(n.textContent.replace(/[\s\u00a0]+/g,'')){
+            var rg=doc.createRange();rg.selectNodeContents(n);var rr=rc(rg.getBoundingClientRect());
+            var tt=n.textContent.replace(/\u00a0/g,' ').replace(/\s+/g,' ').trim();
+            push(rr,tt,c,'block');
+          }
+        }else if(n.nodeType===1)walk(n);
+      });
+    }
+  }
+  walk(doc.body);
+  return {items:items,media:media};
+}
+function geoSnap(vals,tol){
+  var a=vals.slice().sort(function(x,y){return x-y}),reps=[];
+  a.forEach(function(v){if(!reps.length||v-reps[reps.length-1]>tol)reps.push(v)});
+  return reps;
+}
+function geoIdx(reps,v){
+  var lo=0,hi=reps.length-1;
+  while(lo<hi){var mid=(lo+hi+1)>>1;if(reps[mid]<=v+0.0001)lo=mid;else hi=mid-1}
+  /* nearest */
+  if(lo<reps.length-1&&Math.abs(reps[lo+1]-v)<Math.abs(v-reps[lo]))lo++;
+  return lo;
+}
+function geoModel(col){
+  var items=col.items,TOL=1.3,xs=[],ys=[];
+  items.forEach(function(it){xs.push(it.x,it.x+it.w);ys.push(it.y,it.y+it.h)});
+  if(!items.length)return null;
+  var rx=geoSnap(xs,TOL),ry=geoSnap(ys,TOL);
+  /* bahut lambi row ko todo (Excel max 409pt) */
+  for(var i=ry.length-1;i>0;i--){var gap=ry[i]-ry[i-1];if(gap>420){var n=Math.ceil(gap/380);for(var k=n-1;k>=1;k--)ry.splice(i,0,ry[i-1]+gap*k/n)}}
+  var NC=rx.length-1,NR=ry.length-1;
+  if(NC<1||NR<1||NC>250||NR*NC>400000)return {tooBig:true};
+  var cells={},merges=[],occ={};
+  function cell(r,c){var k=r+','+c;return cells[k]||(cells[k]={r:r,c:c,s:{}})}
+  items.forEach(function(it){
+    var c0=geoIdx(rx,it.x),c1=geoIdx(rx,it.x+it.w),r0=geoIdx(ry,it.y),r1=geoIdx(ry,it.y+it.h);
+    if(c1<=c0)c1=Math.min(NC,c0+1);if(r1<=r0)r1=Math.min(NR,r0+1);
+    if(c0>=NC||r0>=NR||c1<=c0||r1<=r0)return;
+    var leaf=it.kind!=='decor';
+    for(var r=r0;r<r1;r++)for(var c=c0;c<c1;c++){
+      var ce=cell(r,c);
+      if(it.fill)ce.s.fill=it.fill;
+      var bd=ce.s.b||(ce.s.b={});
+      if(it.b.t&&r===r0)bd.t=it.b.t;if(it.b.b&&r===r1-1)bd.b=it.b.b;if(it.b.l&&c===c0)bd.l=it.b.l;if(it.b.r&&c===c1-1)bd.r=it.b.r;
+      if(leaf){ce.s.font=it.font;ce.s.ha=it.ha;ce.s.va=it.va;ce.s.wrap=it.wrap;if(it.ind)ce.s.ind=it.ind;else delete ce.s.ind;if(!(r===r0&&c===c0)){ce.v=undefined;ce.num=false}}
+    }
+    if(leaf){
+      var tl=cell(r0,c0);
+      if(it.text!==''||tl.v===undefined){if(it.text!==''||!tl.v){tl.v=it.text;tl.num=!!it.num}}
+      if((r1-r0)*(c1-c0)>1){
+        /* purane overlapping merge hatao */
+        var kill={};for(r=r0;r<r1;r++)for(c=c0;c<c1;c++){var o=occ[r+','+c];if(o!==undefined)kill[o]=1}
+        Object.keys(kill).forEach(function(id){var m=merges[id];if(!m)return;for(var rr=m.r1;rr<=m.r2;rr++)for(var cc=m.c1;cc<=m.c2;cc++)delete occ[rr+','+cc];merges[id]=null});
+        var id=merges.length;merges.push({r1:r0,c1:c0,r2:r1-1,c2:c1-1});
+        for(r=r0;r<r1;r++)for(c=c0;c<c1;c++)occ[r+','+c]=id;
+      }
+    }
+  });
+  merges=merges.filter(function(m){return m});
+  var widths=[],heights=[];
+  for(var a=0;a<NC;a++)widths.push(Math.max(0.5,(rx[a+1]-rx[a])/7));
+  for(a=0;a<NR;a++)heights.push(Math.max(2,Math.min(409,(ry[a+1]-ry[a])*0.75)));
+  return {cells:cells,merges:merges,widths:widths,heights:heights,rx:rx,ry:ry,NC:NC,NR:NR};
+}
+/* ---- styles registry ---- */
+function geoStyles(m){
+  var fonts=[],fontIx={},fills=[],fillIx={},borders=[],borderIx={},xfs=[],xfIx={},nfs=['0.0','0.00','0.000','0.0000'];
+  function reg(arr,ix,key,xml){if(ix[key]===undefined){ix[key]=arr.length;arr.push(xml)}return ix[key]}
+  function fontXml(f){return '<font>'+(f.b?'<b/>':'')+(f.i?'<i/>':'')+(f.u?'<u/>':'')+'<sz val="'+f.sz+'"/><color rgb="FF'+f.c+'"/><name val="'+esc(f.n)+'"/></font>'}
+  reg(fonts,fontIx,'d','<font><sz val="10"/><name val="Arial"/></font>');
+  fills.push('<fill><patternFill patternType="none"/></fill>','<fill><patternFill patternType="gray125"/></fill>');fillIx.none=0;
+  borders.push('<border><left/><right/><top/><bottom/><diagonal/></border>');borderIx.none=0;
+  xfs.push('<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>');xfIx['0']=0;
+  function side(n,b){return b?'<'+n+' style="'+b.s+'"><color rgb="FF'+b.c+'"/></'+n+'>':'<'+n+'/>'}
+  function xfFor(s,num,dp){
+    var f=s.font,fk=f?[f.n,f.sz,f.b,f.i,f.u,f.c].join('|'):'d',fid=reg(fonts,fontIx,fk,f?fontXml(f):'');if(!f)fid=0;
+    var fl=s.fill?reg(fills,fillIx,s.fill,'<fill><patternFill patternType="solid"><fgColor rgb="FF'+s.fill+'"/><bgColor indexed="64"/></patternFill></fill>'):0;
+    var b=s.b||{},bk=[b.l,b.r,b.t,b.b].map(function(x){return x?x.s+x.c:'-'}).join('|'),bid=bk==='-|-|-|-'?0:reg(borders,borderIx,bk,'<border>'+side('left',b.l)+side('right',b.r)+side('top',b.t)+side('bottom',b.b)+'<diagonal/></border>');
+    var nf=(num&&dp>0&&dp<=4)?163+dp:0;
+    var key=[fid,fl,bid,s.ha||'',s.va||'',s.wrap?1:0,s.ind||0,nf].join('|');
+    if(xfIx[key]===undefined){
+      xfIx[key]=xfs.length;
+      xfs.push('<xf numFmtId="'+nf+'" fontId="'+fid+'" fillId="'+fl+'" borderId="'+bid+'" xfId="0"'+(nf?' applyNumberFormat="1"':'')+' applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment'+(s.ha?' horizontal="'+s.ha+'"':'')+(s.va?' vertical="'+s.va+'"':'')+(s.wrap?' wrapText="1"':'')+(s.ind?' indent="'+s.ind+'"':'')+'/></xf>');
+    }
+    return xfIx[key];
+  }
+  var map={};
+  Object.keys(m.cells).forEach(function(k){
+    var ce=m.cells[k],v=ce.v,num=false,dp=0;
+    if(ce.num&&typeof v==='string'){num=true;dp=(v.split('.')[1]||'').length}
+    map[k]=xfFor(ce.s,num,dp);
+  });
+  var xml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="4">'+nfs.map(function(f,i){return '<numFmt numFmtId="'+(164+i)+'" formatCode="'+f+'"/>'}).join('')+'</numFmts>'
+   +'<fonts count="'+fonts.length+'">'+fonts.join('')+'</fonts><fills count="'+fills.length+'">'+fills.join('')+'</fills><borders count="'+borders.length+'">'+borders.join('')+'</borders>'
+   +'<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="'+xfs.length+'">'+xfs.join('')+'</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+  return {xml:xml,map:map};
+}
+function geoSheetXml(m,st,inf,hasDrawing){
+  var x='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><sheetViews><sheetView workbookViewId="0" showGridLines="0"/></sheetViews><sheetFormatPr defaultRowHeight="15"/><cols>';
+  for(var i=0;i<m.NC;i++)x+='<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+m.widths[i].toFixed(2)+'" customWidth="1"/>';
+  x+='</cols><sheetData>';
+  var byRow={};Object.keys(m.cells).forEach(function(k){var ce=m.cells[k];(byRow[ce.r]=byRow[ce.r]||[]).push(ce)});
+  for(var r=0;r<m.NR;r++){
+    x+='<row r="'+(r+1)+'" ht="'+m.heights[r].toFixed(2)+'" customHeight="1">';
+    (byRow[r]||[]).sort(function(a,b){return a.c-b.c}).forEach(function(ce){
+      var ref=colName(ce.c)+(r+1),s=st.map[ce.r+','+ce.c],v=ce.v;
+      if(v===undefined||v===''||v===null)x+='<c r="'+ref+'" s="'+s+'"/>';
+      else if(ce.num&&/^-?(0|[1-9]\d{0,11})(\.\d{1,4})?$/.test(v))x+='<c r="'+ref+'" s="'+s+'"><v>'+v+'</v></c>';
+      else x+='<c r="'+ref+'" s="'+s+'" t="inlineStr"><is><t xml:space="preserve">'+esc(v)+'</t></is></c>';
+    });
+    x+='</row>';
+  }
+  x+='</sheetData>';
+  if(m.merges.length){x+='<mergeCells count="'+m.merges.length+'">';m.merges.forEach(function(g){x+='<mergeCell ref="'+colName(g.c1)+(g.r1+1)+':'+colName(g.c2)+(g.r2+1)+'"/>'});x+='</mergeCells>'}
+  var mm=function(px){return Math.max(0.1,(px/96)).toFixed(2)};
+  x+='<printOptions horizontalCentered="1"/><pageMargins left="'+mm(inf.mL)+'" right="'+mm(inf.mL)+'" top="'+mm(inf.mT)+'" bottom="'+mm(inf.mT)+'" header="0.2" footer="0.2"/><pageSetup paperSize="'+inf.paper+'" orientation="'+(inf.land?'landscape':'portrait')+'" fitToWidth="1" fitToHeight="0"/>'+(hasDrawing?'<drawing r:id="rId1"/>':'')+'</worksheet>';
+  return x;
+}
+async function geoRaster(md){
+  var sc=2,x=md.x,y=md.y,w=md.w,h=md.h,img=null,el=md.el;
+  if(md.t==='img'){
+    img=el;
+    if(md.fit==='contain'||md.fit==='scale-down'||md.fit==='none'){
+      var nw=el.naturalWidth,nh=el.naturalHeight,s=Math.min(w/nw,h/nh);if(md.fit==='none')s=1;if(md.fit==='scale-down')s=Math.min(1,s);
+      var dw=nw*s,dh=nh*s;x+=(w-dw)/2;y+=(h-dh)/2;w=dw;h=dh;
+    }
+  }else if(md.t==='svg'){
+    var cl=el.cloneNode(true);cl.setAttribute('xmlns','http://www.w3.org/2000/svg');cl.setAttribute('width',md.w);cl.setAttribute('height',md.h);
+    if(!cl.getAttribute('viewBox')&&el.getAttribute('width')&&el.getAttribute('height'))cl.setAttribute('viewBox','0 0 '+parseFloat(el.getAttribute('width'))+' '+parseFloat(el.getAttribute('height')));
+    var ff=el.ownerDocument.defaultView.getComputedStyle(el).fontFamily;cl.setAttribute('style',(cl.getAttribute('style')||'')+';font-family:'+ff.replace(/"/g,"'"));
+    var xml=new XMLSerializer().serializeToString(cl);
+    img=new Image();await new Promise(function(ok,no){img.onload=ok;img.onerror=no;img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(xml)});
+  }else img=el;
+  var W=Math.max(2,Math.min(2400,Math.round(w*sc))),H=Math.max(2,Math.min(2400,Math.round(h*sc)));
+  var cv=document.createElement('canvas');cv.width=W;cv.height=H;var cx=cv.getContext('2d');
+  cx.drawImage(img,0,0,W,H);
+  var blob=await new Promise(function(ok){cv.toBlob(ok,'image/png')});if(!blob)return null;
+  var buf=new Uint8Array(await blob.arrayBuffer());
+  return {bytes:buf,x:x,y:y,w:w,h:h,key:(md.t==='img'?el.src:'')+'|'+W+'x'+H};
+}
+function geoDrawing(m,imgs){
+  var XD='xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"';
+  var d='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><xdr:wsDr '+XD+'>',rel='',files=[],uniq={},n=0;
+  imgs.forEach(function(im,i){
+    var ci=geoIdx(m.rx,im.x);if(m.rx[ci]>im.x+0.5&&ci>0)ci--;var ri=geoIdx(m.ry,im.y);if(m.ry[ri]>im.y+0.5&&ri>0)ri--;
+    ci=Math.min(ci,m.NC-1);ri=Math.min(ri,m.NR-1);
+    var ox=Math.max(0,Math.round((im.x-m.rx[ci])*9525)),oy=Math.max(0,Math.round((im.y-m.ry[ri])*9525)),cx=Math.round(im.w*9525),cy=Math.round(im.h*9525);
+    var id=uniq[im.key];if(id===undefined){id=uniq[im.key]=++n;files.push({name:'xl/media/image'+id+'.png',data:im.bytes});}
+    var rid='rId'+(i+1);rel+='<Relationship Id="'+rid+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image'+id+'.png"/>';
+    d+='<xdr:oneCellAnchor><xdr:from><xdr:col>'+ci+'</xdr:col><xdr:colOff>'+ox+'</xdr:colOff><xdr:row>'+ri+'</xdr:row><xdr:rowOff>'+oy+'</xdr:rowOff></xdr:from><xdr:ext cx="'+cx+'" cy="'+cy+'"/><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="'+(i+2)+'" name="Picture '+(i+1)+'"/><xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr><xdr:blipFill><a:blip r:embed="'+rid+'"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill><xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="'+cx+'" cy="'+cy+'"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic><xdr:clientData/></xdr:oneCellAnchor>';
+  });
+  d+='</xdr:wsDr>';
+  return {xml:d,rel:rel,files:files};
+}
+async function xlGeoBuild(html,opts){
+  opts=opts||{};var inf=geoPageInfo(html),prep=geoPrepare(html),ctx=null;
+  try{
+    ctx=await geoRender(prep,inf.cw,opts.css);
+    var col=geoCollect(ctx.doc,ctx.win,inf);
+    var m=geoModel(col);if(!m||m.tooBig)return null;
+    var imgs=[];
+    for(var i=0;i<col.media.length;i++){try{var r=await geoRaster(col.media[i]);if(r)imgs.push(r)}catch(e){console.warn('geo image skip',e)}}
+    var st=geoStyles(m),dr=imgs.length?geoDrawing(m,imgs):null;
+    /* title = pehla text */
+    var first=col.items.filter(function(it){return it.kind!=='decor'&&it.text})[0],title=first?first.text.split('\n')[0].trim():'Report';
+    var sn=title.replace(/[\[\]:*?\/\\]/g,' ').trim().slice(0,31)||'Sheet1';
+    var H='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>',RS='<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">';
+    var files=[
+     {name:'[Content_Types].xml',data:H+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'+(dr?'<Override PartName="/xl/drawings/drawing1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>':'')+'</Types>'},
+     {name:'_rels/.rels',data:H+RS+'<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'},
+     {name:'xl/workbook.xml',data:H+'<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="'+esc(sn)+'" sheetId="1" r:id="rId1"/></sheets></workbook>'},
+     {name:'xl/_rels/workbook.xml.rels',data:H+RS+'<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>'},
+     {name:'xl/styles.xml',data:st.xml},
+     {name:'xl/worksheets/sheet1.xml',data:geoSheetXml(m,st,inf,!!dr)}
+    ];
+    if(dr){
+      files.push({name:'xl/worksheets/_rels/sheet1.xml.rels',data:H+RS+'<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing1.xml"/></Relationships>'});
+      files.push({name:'xl/drawings/drawing1.xml',data:dr.xml});
+      files.push({name:'xl/drawings/_rels/drawing1.xml.rels',data:H+RS+dr.rel+'</Relationships>'});
+      dr.files.forEach(function(f){files.push(f)});
+    }
+    return {blob:zipStore(files),title:title,rows:m.NR,cols:m.NC};
+  }finally{if(ctx&&ctx.frame)ctx.frame.remove()}
+}
+
+window.xlGeoDebug={geoPageInfo:geoPageInfo,geoPrepare:geoPrepare,geoRender:geoRender,geoCollect:geoCollect,geoModel:geoModel};
 /* ---------- 4) public API + buttons ---------- */
 function xlDownload(blob,fname){
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fname;document.body.appendChild(a);a.click();
@@ -12304,19 +12782,44 @@ function xlDownload(blob,fname){
 function xlBuildFromCode(code){
   var cap=xlCapture(code);
   if(!cap.html||!cap.html.trim())return {error:cap.alerted||'Is module me abhi export karne ke liye kuch nahi hai.'};
+  if(/^\s*printMTTRReport\s*\(/.test(code)){
+    try{var mp=xlMttrBuild(cap.html);if(mp)return {blob:xlMttrXlsx(mp),title:mp.sheetName,model:mp.model}}catch(e){console.error('mttr xlsx (generic par fallback)',e)}
+  }
   var model=xlSheetFromHtml(cap.html);
   if(!model.rows.length)return {error:'Export karne ke liye koi data nahi mila.'};
   var title=(model.rows.filter(function(r){return r.text!==undefined})[0]||{}).text||'Report';
   return {blob:buildXlsx(model,title),title:title,model:model};
 }
 window.xlBuildFromCode=xlBuildFromCode;
+async function xlBuildAsync(code){
+  var cap=xlCapture(code);
+  if(!cap.html||!cap.html.trim())return {error:cap.alerted||'Is module me abhi export karne ke liye kuch nahi hai.'};
+  if(/^\s*printMTTRReport\s*\(/.test(code)){
+    try{var mp=xlMttrBuild(cap.html);if(mp)return {blob:xlMttrXlsx(mp),title:mp.sheetName}}catch(e){console.error('mttr xlsx',e)}
+  }else if(cap.fromWin){
+    try{var g=await xlGeoBuild(cap.html);if(g)return {blob:g.blob,title:g.title}}catch(e){console.warn('print-layout xlsx (generic par fallback)',e)}
+  }
+  if(!cap.fromWin&&!/^\s*printMTTRReport/.test(code)){
+    try{
+      var css=[].map.call(document.querySelectorAll('style'),function(z){return z.textContent}).join('\n');
+      var g2=await xlGeoBuild('<!doctype html><html><head><style>body{margin:0;background:#fff}'+css+'</style></head><body>'+cap.html+'</body></html>');
+      if(g2)return {blob:g2.blob,title:g2.title};
+    }catch(e){console.warn('container print-layout xlsx (generic par fallback)',e)}
+  }
+  var model=xlSheetFromHtml(cap.html);
+  if(!model.rows.length)return {error:'Export karne ke liye koi data nahi mila.'};
+  var title=(model.rows.filter(function(r){return r.text!==undefined})[0]||{}).text||'Report';
+  return {blob:buildXlsx(model,title),title:title};
+}
+window.xlBuildAsync=xlBuildAsync;
 window.xlExportClick=function(btn){
   var code=btn.getAttribute('data-xl');
-  var r=xlBuildFromCode(code);
-  if(r.error)return alert(r.error);
-  var safe=r.title.replace(/[^A-Za-z0-9]+/g,'_').replace(/^_+|_+$/g,'').slice(0,40)||'Report';
-  var d=new Date(),ds=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
-  xlDownload(r.blob,'HTP_'+safe+'_'+ds+'.xlsx');
+  xlBuildAsync(code).then(function(r){
+    if(r.error)return alert(r.error);
+    var safe=r.title.replace(/[^A-Za-z0-9]+/g,'_').replace(/^_+|_+$/g,'').slice(0,40)||'Report';
+    var d=new Date(),ds=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
+    xlDownload(r.blob,'HTP_'+safe+'_'+ds+'.xlsx');
+  }).catch(function(e){console.error(e);alert('Excel banane me dikkat aayi: '+(e&&e.message||e))});
 };
 function inject(){
   Array.prototype.forEach.call(document.querySelectorAll('button[onclick]'),function(b){
