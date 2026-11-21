@@ -21346,7 +21346,7 @@ function attArr(){try{if(!Array.isArray(data.att))data.att=[];return data.att}ca
 function load(){
  DB={};
  attArr().forEach(function(x){if(!x||!x.date||!x.name)return;if(!(x.status||x.shift||x.timeIn||x.timeOut||x.ot||x.remark))return;
-  (DB[x.date]||(DB[x.date]={}))[x.name]={s:x.status||'',sh:x.shift||'',i:x.timeIn||'',o:x.timeOut||'',ot:x.ot||'',r:x.remark||''}});
+  (DB[x.date]||(DB[x.date]={}))[x.name]={s:x.status||'',sh:x.shift||'',i:x.timeIn||'',o:x.timeOut||'',ot:x.ot||'',r:x.remark||'',u:x.unl?1:0}});
 }
 /* purani device-local attendance ek baar sync wale 'att' module me chali jaye */
 function migrateLegacy(){
@@ -21357,8 +21357,8 @@ function migrateLegacy(){
 }
 function findRec(d,n){var a=attArr();for(var i=0;i<a.length;i++){if(a[i]&&a[i].date===d&&a[i].name===n)return i}return -1}
 function upsert(d,n,r){
- var a=attArr(),i=findRec(d,n),rec={id:d+'|'+n,date:d,name:n,status:r.s||'',shift:r.sh||'',timeIn:r.i||'',timeOut:r.o||'',ot:r.ot||'',remark:r.r||''};
- if(i>=0){var o=a[i];if(o.status===rec.status&&o.shift===rec.shift&&o.timeIn===rec.timeIn&&o.timeOut===rec.timeOut&&String(o.ot)===String(rec.ot)&&o.remark===rec.remark)return;rec.id=o.id||rec.id;if(o._sid)rec._sid=o._sid;a[i]=rec}else a.push(rec);
+ var a=attArr(),i=findRec(d,n),rec={id:d+'|'+n,date:d,name:n,status:r.s||'',shift:r.sh||'',timeIn:r.i||'',timeOut:r.o||'',ot:r.ot||'',remark:r.r||'',unl:r.u?1:0};
+ if(i>=0){var o=a[i];if(o.status===rec.status&&o.shift===rec.shift&&o.timeIn===rec.timeIn&&o.timeOut===rec.timeOut&&String(o.ot)===String(rec.ot)&&o.remark===rec.remark&&!!o.unl===!!rec.unl)return;rec.id=o.id||rec.id;if(o._sid)rec._sid=o._sid;a[i]=rec}else a.push(rec);
 }
 function save(){try{persist('att');return true}catch(e){toast('⚠ Save nahi hua');return false}}
 function toast(m){var t=$('#empxToast');if(!t){t=document.createElement('div');t.id='empxToast';document.body.appendChild(t)}t.textContent=m;t.className='on';clearTimeout(toast.t);toast.t=setTimeout(function(){t.className=''},2200)}
@@ -21369,7 +21369,9 @@ function emps(){try{return empAllRows().filter(function(r){return /maint/i.test(
 function filt(rows,dept,q){q=String(q||'').toLowerCase();return rows.filter(function(r){if(dept&&r.dept!==dept)return false;return !q||[r.disp,r.name,r.dept,r.desig].join(' ').toLowerCase().indexOf(q)>=0})}
 function rec(d,n){return DB[d]&&DB[d][n]||null}
 function eff(d,n){var r=rec(d,n);if(r&&r.s)return r.s;return isSun(d)?'WO':''}
+function isLocked(d,n){var r=rec(d,n);return !!(r&&r.s&&!r.u)}
 function setRec(d,n,patch){if(!canEdit()){toast('Sirf Admin / Supervisor attendance bhar sakte hain');return false}
+ if(!isAdmin()&&isLocked(d,n)){toast('🔒 Attendance lock hai — sirf Admin badal sakta hai ya allow kare');return false}
  if(d>ymd(new Date())){toast('Aage ki date ki attendance nahi bhar sakte');return false}
  var day=DB[d]||(DB[d]={}),r=day[n]||(day[n]={});Object.keys(patch).forEach(function(k){r[k]=patch[k]});
  upsert(d,n,r);
@@ -21453,6 +21455,11 @@ html body main.wrap #empList table.em th.sun{background:#0b2545!important}
 #empList table.em td.sun,#empList table.em td.tt{background:var(--cd2)}
 #empList table.em th.sun{background:#0b2545}
 #empList table.em td.tt{font-weight:800}
+#empList .lk{grid-column:1/-1;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:11.5px;color:var(--mu);border-top:1px dashed var(--bd);padding-top:6px}
+html body main.wrap #empList .lk>button.ul{min-height:32px!important;padding:4px 10px!important;border-radius:8px!important;border:1.5px solid #e8710a!important;background:transparent!important;color:#e8710a!important;font-weight:700!important;font-size:12px!important;margin:0!important;width:auto!important}
+html body main.wrap #empList table.em td.mc:not([style]){background:var(--cd)!important;color:var(--tx)!important}
+html body main.wrap #empList table.em td.nm{background:var(--cd)!important;color:var(--tx)!important}
+#empList table.em td.mc{border-color:rgba(255,255,255,.25)}
 #empList .legend{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 2px;font-size:11px}
 #empxToast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#0b2545;color:#fff;padding:9px 16px;border-radius:999px;font-size:13px;font-weight:700;z-index:100020;opacity:0;pointer-events:none;transition:opacity .2s}#empxToast.on{opacity:1}
 @media(max-width:640px){#empList .er{grid-template-columns:1fr auto}#empList .es{grid-column:1/-1;order:3}#empList .etabs>button.xs .lb{font-size:11px}}
@@ -21512,18 +21519,20 @@ function renderDay(){
  var keepD=($('#attDept',p)||{}).value||'',keepQ=($('#attQ',p)||{}).value||'';
  var all=emps(),rows=filt(all,keepD,keepQ),fut=curDate>ymd(new Date()),ce=canEdit()&&!fut,c=cnt(rows,curDate);
  var h='<div class="ebar"><button type="button" class="g" data-act="dprev">◀</button><div class="edate">'+fmt(curDate)+' ('+dayName(curDate)+')</div><button type="button" class="g" data-act="dnext">▶</button><input type="date" id="attDate" max="'+ymd(new Date())+'" value="'+curDate+'"><button type="button" class="g" data-act="dtoday">Aaj</button></div>'+
- '<div class="ebar">'+deptSel('attDept',all,keepD)+'<input id="attQ" placeholder="Naam search..." value="'+E(keepQ)+'">'+(ce?'<button type="button" class="ok" data-act="allp">✅ Sab Present (jo mark nahi)</button>':'')+(canEdit()?'<button type="button" data-act="leave">🏖 Multi-day Leave</button>':'')+'<button type="button" class="g" data-act="pday">🖨 Print</button><button type="button" class="g" data-act="backup">⬇ Backup</button>'+(ce?'<button type="button" class="g" data-act="restore">⬆ Restore</button><input type="file" id="attFile" accept=".json" style="display:none">':'')+(isAdmin()&&futRecs().length?'<button type="button" class="ok" style="background:#d93025!important" data-act="cleanfut">🧹 Aage ki entries hatao ('+futRecs().length+')</button>':'')+'</div>'+
+ '<div class="ebar">'+deptSel('attDept',all,keepD)+'<input id="attQ" placeholder="Naam search..." value="'+E(keepQ)+'">'+(ce?'<button type="button" class="ok" data-act="allp">✅ Sab Present (jo mark nahi)</button>':'')+(canEdit()?'<button type="button" data-act="leave">🏖 Multi-day Leave</button><button type="button" data-act="holi">🎉 Holiday</button>':'')+'<button type="button" class="g" data-act="pday">🖨 Print</button><button type="button" class="g" data-act="backup">⬇ Backup</button>'+(isAdmin()?'<button type="button" class="g" data-act="restore">⬆ Restore</button><input type="file" id="attFile" accept=".json" style="display:none">':'')+(isAdmin()&&futRecs().length?'<button type="button" class="ok" style="background:#d93025!important" data-act="cleanfut">🧹 Aage ki entries hatao ('+futRecs().length+')</button>':'')+'</div>'+
  '<div class="ecards">'+tile(c.P,'Present','#188038','#6fdc8c')+tile(c.H,'Half Day','#7b1fa2','#d79bff')+tile(c.A,'Absent','#d93025','#ff9a93')+tile(c.L,'Leave','#e8710a','#ffb86b')+tile(c.WO+c.HO,'Week Off / Holiday','#00838f','#6fd6e0')+tile(c.N,'Mark nahi hua','#64748b','#b6c4d4')+'</div>'+
  (fut?'<div class="enote">⛔ Aage ki date ki attendance nahi bhari ja sakti.</div>':ce?'':'<div class="enote">👁 Sirf dekhne ke liye — attendance Admin / Supervisor bharte hain.</div>')+
  (isSun(curDate)?'<div class="enote">Sunday — by default Week Off. Kisi ne kaam kiya ho to P dabao.</div>':'');
  h+=rows.map(function(r){var rc=rec(curDate,r.name)||{},s=eff(curDate,r.name),o=!!open[r.name]||!!(rc.i||rc.o||rc.ot||rc.r||(rc.sh&&rc.sh!=='General'));
   var n=E(r.name),dn=E(r.disp||r.name);
+  var lk=!isAdmin()&&isLocked(curDate,r.name),cr=ce&&!lk,
+   lockRow=(rc.s&&ce)?(isAdmin()?'<div class="lk"><button type="button" class="ul" data-act="unl" data-n="'+n+'">'+(rc.u?'🔒 Wapas lock karo':'🔓 Supervisor ko badalne do')+'</button>'+(rc.u?'<span>Allowed — Supervisor badal sakta hai</span>':'<span>Locked</span>')+'</div>':'<div class="lk"><span>'+(lk?'🔒 Lock hai — sirf Admin badal sakta hai / allow kare':'🔓 Admin ne badalne ki ijazat di hai')+'</span></div>'):'';
   return '<div class="er'+(o?' open':'')+'" data-n="'+n+'"><div class="en">'+av(r.disp||r.name)+'<span><b>'+dn+'</b><small>'+E([r.desig,r.dept].filter(Boolean).join(' • '))+(hrs(rc)?' • '+hrs(rc):'')+'</small></span></div>'+
-  '<div class="es">'+ORDER.map(function(k){var on=(rc.s===k)||(!rc.s&&s===k);return '<button type="button" class="sb'+(on?' on':'')+'" data-act="st" data-n="'+n+'" data-s="'+k+'" title="'+ST[k].l+'"'+(on?' style="background:'+ST[k].c+'"':'')+(ce?'':' disabled')+'>'+ST[k].s+'</button>'}).join('')+'</div>'+
+  '<div class="es">'+ORDER.map(function(k){var on=(rc.s===k)||(!rc.s&&s===k);return '<button type="button" class="sb'+(on?' on':'')+'" data-act="st" data-n="'+n+'" data-s="'+k+'" title="'+ST[k].l+'"'+(on?' style="background:'+ST[k].c+'"':'')+(cr?'':' disabled')+'>'+ST[k].s+'</button>'}).join('')+'</div>'+
   '<button type="button" class="ex" data-act="ex" data-n="'+n+'" title="Shift / time / OT / remark">⋯</button>'+
-  '<div class="ed"><div><label>Shift</label><select data-f="sh" data-n="'+n+'"'+(ce?'':' disabled')+'>'+SHIFTS.map(function(x){return '<option'+((rc.sh||'General')===x?' selected':'')+'>'+x+'</option>'}).join('')+'</select></div>'+
-  '<div><label>In</label><input type="time" data-f="i" data-n="'+n+'" value="'+E(rc.i||'')+'"'+(ce?'':' disabled')+'></div><div><label>Out</label><input type="time" data-f="o" data-n="'+n+'" value="'+E(rc.o||'')+'"'+(ce?'':' disabled')+'></div>'+
-  '<div><label>OT (hrs)</label><input type="number" min="0" step="0.5" style="width:70px" data-f="ot" data-n="'+n+'" value="'+E(rc.ot||'')+'"'+(ce?'':' disabled')+'></div><div class="rm"><label>Remark</label><input data-f="r" data-n="'+n+'" value="'+E(rc.r||'')+'" placeholder="jaise: CL, medical, late..."'+(ce?'':' disabled')+'></div></div></div>'}).join('')||'<div class="enote">Koi employee nahi mila.</div>';
+  '<div class="ed"><div><label>Shift</label><select data-f="sh" data-n="'+n+'"'+(cr?'':' disabled')+'>'+SHIFTS.map(function(x){return '<option'+((rc.sh||'General')===x?' selected':'')+'>'+x+'</option>'}).join('')+'</select></div>'+
+  '<div><label>In</label><input type="time" data-f="i" data-n="'+n+'" value="'+E(rc.i||'')+'"'+(cr?'':' disabled')+'></div><div><label>Out</label><input type="time" data-f="o" data-n="'+n+'" value="'+E(rc.o||'')+'"'+(cr?'':' disabled')+'></div>'+
+  '<div><label>OT (hrs)</label><input type="number" min="0" step="0.5" style="width:70px" data-f="ot" data-n="'+n+'" value="'+E(rc.ot||'')+'"'+(cr?'':' disabled')+'></div><div class="rm"><label>Remark</label><input data-f="r" data-n="'+n+'" value="'+E(rc.r||'')+'" placeholder="jaise: CL, medical, late..."'+(cr?'':' disabled')+'></div></div>'+lockRow+'</div>'}).join('')||'<div class="enote">Koi employee nahi mila.</div>';
  h+='<div class="legend">'+ORDER.map(function(k){return '<span class="chip" style="background:'+ST[k].bg+';color:'+ST[k].c+'">'+ST[k].s+' = '+ST[k].l+'</span>'}).join('')+'</div>';
  var sc=window.scrollY;p.innerHTML=h;window.scrollTo(0,sc);
 }
@@ -21541,15 +21550,19 @@ function renderMonth(){
  var p=document.getElementById('empPaneMonth');if(!p)return;
  var keepD=($('#attMDept',p)||{}).value||'',keepQ=($('#attMQ',p)||{}).value||'';
  var all=emps(),rows=filt(all,keepD,keepQ),days=monthDays(curMonth),ce=canEdit();
- var h='<div class="ebar"><button type="button" class="g" data-act="mprev">◀</button><input type="month" id="attMonth" value="'+curMonth+'"><button type="button" class="g" data-act="mnext">▶</button>'+deptSel('attMDept',all,keepD)+'<input id="attMQ" placeholder="Naam search..." value="'+E(keepQ)+'"><button type="button" class="g" data-act="pmonth">🖨 Print</button><button type="button" data-act="csv">⬇ Excel (CSV)</button>'+(canEdit()?'<button type="button" data-act="leave">🏖 Multi-day Leave</button>':'')+'</div>'+
+ var h='<div class="ebar"><button type="button" class="g" data-act="mprev">◀</button><input type="month" id="attMonth" value="'+curMonth+'"><button type="button" class="g" data-act="mnext">▶</button>'+deptSel('attMDept',all,keepD)+'<input id="attMQ" placeholder="Naam search..." value="'+E(keepQ)+'"><button type="button" class="g" data-act="pmonth">🖨 Print</button><button type="button" data-act="csv">⬇ Excel (CSV)</button>'+(canEdit()?'<button type="button" data-act="leave">🏖 Multi-day Leave</button><button type="button" data-act="holi">🎉 Holiday</button>':'')+'</div>'+
  '<div class="enote">'+(ce?'Kisi bhi din ke box par tap karo: P → A → L → ½ → WO → HO → khali. ':'')+'Sunday by default Week Off hai (halka rang).</div>';
- h+='<div class="mw"><table class="em"><thead><tr><th class="nm">Employee</th>'+days.map(function(d){return '<th class="'+(isSun(d)?'sun':'')+'">'+(+d.slice(8))+'<br><small>'+dayName(d).slice(0,2)+'</small></th>'}).join('')+'<th>P</th><th>½</th><th>A</th><th>L</th><th>WO/HO</th><th>Working<br>Days</th><th>OT</th></tr></thead><tbody>';
+ h+=monthTiles(rows,days)+'<div class="mw"><table class="em"><thead><tr><th class="nm">Employee</th>'+days.map(function(d){return '<th class="'+(isSun(d)?'sun':'')+'">'+(+d.slice(8))+'<br><small>'+dayName(d).slice(0,2)+'</small></th>'}).join('')+'<th '+ths('P')+'>P</th><th '+ths('H')+'>½</th><th '+ths('A')+'>A</th><th '+ths('L')+'>L</th><th '+ths('HO')+'>WO/HO</th><th style="background:#0b2545!important;color:#fff!important">Working<br>Days</th><th style="background:#e8710a!important;color:#fff!important">OT</th></tr></thead><tbody>';
  rows.forEach(function(r){var t=totals(r.name,days);
-  h+='<tr><td class="nm">'+E(r.disp||r.name)+'</td>'+days.map(function(d){var s=eff(d,r.name),x=s?ST[s]:null;return '<td class="mc'+(isSun(d)?' sun':'')+(d>ymd(new Date())?' fut':'')+'" data-act="cell" data-n="'+E(r.name)+'" data-d="'+d+'"'+(x?' style="background:'+x.bg+';color:'+x.c+'"':'')+'>'+(x?x.s:'')+'</td>'}).join('')+
-  '<td class="tt">'+t.P+'</td><td class="tt">'+t.H+'</td><td class="tt" style="color:#d93025">'+t.A+'</td><td class="tt">'+t.L+'</td><td class="tt">'+(t.WO+t.HO)+'</td><td class="tt"><b>'+t.work+'</b></td><td class="tt">'+(t.ot||'')+'</td></tr>'});
+  h+='<tr><td class="nm">'+E(r.disp||r.name)+'</td>'+days.map(function(d){var s=eff(d,r.name),x=s?ST[s]:null;return '<td class="mc'+(isSun(d)?' sun':'')+(d>ymd(new Date())?' fut':'')+'" data-act="cell" data-n="'+E(r.name)+'" data-d="'+d+'"'+(x?' style="background:'+x.c+'!important;color:#fff!important"':'')+'>'+(x?x.s:'')+'</td>'}).join('')+
+  '<td class="tt" '+tcs('P')+'>'+t.P+'</td><td class="tt" '+tcs('H')+'>'+t.H+'</td><td class="tt" '+tcs('A')+'>'+t.A+'</td><td class="tt" '+tcs('L')+'>'+t.L+'</td><td class="tt" '+tcs('HO')+'>'+(t.WO+t.HO)+'</td><td class="tt" style="background:#123c62!important;color:#fff!important"><b>'+t.work+'</b></td><td class="tt" style="background:#ffedd5!important;color:#c2410c!important">'+(t.ot||'')+'</td></tr>'});
  h+='</tbody></table></div><div class="legend">'+ORDER.map(function(k){return '<span class="chip" style="background:'+ST[k].bg+';color:'+ST[k].c+'">'+ST[k].s+' = '+ST[k].l+'</span>'}).join('')+'</div>';
  var sc=window.scrollY;p.innerHTML=h;window.scrollTo(0,sc);
 }
+function tcs(k){return 'style="background:'+ST[k].bg+'!important;color:'+ST[k].c+'!important"'}
+function ths(k){return 'style="background:'+ST[k].c+'!important;color:#fff!important"'}
+function monthTiles(rows,days){var t={P:0,H:0,A:0,L:0,W:0,ot:0};rows.forEach(function(r){var x=totals(r.name,days);t.P+=x.P;t.H+=x.H;t.A+=x.A;t.L+=x.L;t.W+=x.WO+x.HO;t.ot+=x.ot});
+ return '<div class="ecards">'+tile(t.P,'Present din','#188038','#6fdc8c')+tile(t.H,'Half Day','#7b1fa2','#d79bff')+tile(t.A,'Absent din','#d93025','#ff9a93')+tile(t.L,'Leave din','#e8710a','#ffb86b')+tile(t.W,'Week Off / Holiday','#00838f','#6fd6e0')+tile(t.ot,'OT hrs','#0148b1','#7fb0ff')+'</div>'}
 function monthRows(){var p=document.getElementById('empPaneMonth');return filt(emps(),($('#attMDept',p)||{}).value||'',($('#attMQ',p)||{}).value||'')}
 function mlabel(){var a=curMonth.split('-');return ['January','February','March','April','May','June','July','August','September','October','November','December'][+a[1]-1]+' '+a[0]}
 function printMonth(){
@@ -21565,14 +21578,15 @@ function csvMonth(){
  dl('HTP_Attendance_'+curMonth+'.csv','﻿'+out.map(function(r){return r.map(csvCell).join(',')}).join('\r\n'),'text/csv;charset=utf-8;');
 }
 function doBackup(){dl('HTP_Attendance_backup_'+ymd(new Date())+'.json',JSON.stringify({v:1,att:DB}),'application/json')}
-function doRestore(f){var fr=new FileReader();fr.onload=function(){try{var x=JSON.parse(fr.result),a=x&&x.att;if(!a||typeof a!=='object')throw 0;var n=0;Object.keys(a).forEach(function(d){Object.keys(a[d]).forEach(function(nm){(DB[d]||(DB[d]={}))[nm]=a[d][nm];upsert(d,nm,a[d][nm]);n++})});save();toast(n+' entries restore hui');refresh()}catch(e){alert('Backup file sahi nahi hai.')}};fr.readAsText(f)}
+function doRestore(f){if(!isAdmin()){toast('Sirf Admin restore kar sakta hai');return}
+ var fr=new FileReader();fr.onload=function(){try{var x=JSON.parse(fr.result),a=x&&x.att;if(!a||typeof a!=='object')throw 0;var n=0;Object.keys(a).forEach(function(d){Object.keys(a[d]).forEach(function(nm){(DB[d]||(DB[d]={}))[nm]=a[d][nm];upsert(d,nm,a[d][nm]);n++})});save();toast(n+' entries restore hui');refresh()}catch(e){alert('Backup file sahi nahi hai.')}};fr.readAsText(f)}
 
 /* ---------- wiring ---------- */
 function setView(v){view=v;['list','day','month'].forEach(function(k){var e=document.getElementById({list:'empPaneList',day:'empPaneDay',month:'empPaneMonth'}[k]);if(e)e.style.display=(k===v)?'':'none'});
  [].forEach.call(document.querySelectorAll('#empList .etabs button'),function(b){b.classList.toggle('on',b.getAttribute('data-v')===v)});refresh()}
 function lvDays(f,t){var o=[];if(!f||!t||t<f)return o;var d=pd(f),e=pd(t);while(d<=e&&o.length<=62){o.push(ymd(d));d.setDate(d.getDate()+1)}return o}
 function lvPlan(){var g=function(i){return document.getElementById(i)},n=g('lv_emp').value,days=lvDays(g('lv_from').value,g('lv_to').value),sk=g('lv_sun').checked,ow=g('lv_ow').checked,mark=[],skipS=0,keep=0;
- days.forEach(function(d){if(sk&&isSun(d)){skipS++;return}var r=rec(d,n);if(r&&r.s&&r.s!=='L'&&!ow){keep++;return}mark.push(d)});
+ days.forEach(function(d){if(sk&&isSun(d)){skipS++;return}var r=rec(d,n);if(!isAdmin()&&r&&r.s&&!r.u){keep++;return}if(r&&r.s&&r.s!=='L'&&!ow){keep++;return}mark.push(d)});
  return {n:n,days:days,mark:mark,skipS:skipS,keep:keep}}
 function lvPreview(){var p=lvPlan(),el=document.getElementById('lv_sum'),f=document.getElementById('lv_from').value,t=document.getElementById('lv_to').value;if(!el)return;
  if(!f||!t||t<f){el.textContent='From / To date sahi chuno (To, From se pehle nahi ho sakti).';el.style.color='#d93025';return}
@@ -21608,15 +21622,56 @@ function openLeave(){
   try{audit('ATT_LEAVE','attendance',p.n+': Leave '+f+' to '+t+' ('+p.mark.length+' din)')}catch(e){}
   box.remove();toast(p.mark.length+' din ki Leave lag gayi');refresh()};
  lvPreview()}
-function futRecs(){var t=ymd(new Date());return attArr().filter(function(x){return x&&x.date&&x.date>t&&x.status!=='L'})}
+function hlPlan(){var g=function(i){return document.getElementById(i)},mode=g('hl_mode').value,days=lvDays(g('hl_from').value,g('hl_to').value),ow=g('hl_ow').checked,list=emps(),cells=0,keep=0,hit=0;
+ days.forEach(function(d){list.forEach(function(r){var x=rec(d,r.name);
+  if(mode==='add'){if(!isAdmin()&&x&&x.s&&!x.u){keep++}else if(x&&x.s&&x.s!=='HO'&&!ow){keep++}else cells++}else{if(x&&x.s==='HO'&&(isAdmin()||x.u))cells++}})});
+ return {mode:mode,days:days,list:list,cells:cells,keep:keep}}
+function hlPreview(){var el=document.getElementById('hl_sum'),f=document.getElementById('hl_from').value,t=document.getElementById('hl_to').value;if(!el)return;
+ if(!f||!t||t<f){el.textContent='From / To date sahi chuno (To, From se pehle nahi ho sakti).';el.style.color='#d93025';return}
+ var p=hlPlan();if(p.days.length>62){el.textContent='Ek baar me maximum 62 din.';el.style.color='#d93025';return}
+ el.style.color='#0b1f4a';el.textContent=p.mode==='add'?(p.days.length+' din x '+p.list.length+' employees = '+p.cells+' entries me Holiday lagegi'+(p.keep?' • Pehle se mark (P/A/L/½) chhode: '+p.keep:'')):(p.cells+' Holiday entries hategi')}
+function openHoliday(){
+ if(!canEdit())return toast('Sirf Admin / Supervisor Holiday laga sakte hain');
+ var old=document.getElementById('empHlBox');if(old)old.remove();
+ var inp='width:100%;box-sizing:border-box;padding:9px;border:1.5px solid #cbd5e1;border-radius:10px;font-size:14px;background:#fff;color:#0b1f4a',lb='display:block;font-size:12px;font-weight:700;color:#5b6577;margin:8px 0 3px';
+ var box=document.createElement('div');box.id='empHlBox';box.style.cssText='position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,.55);z-index:99995;overflow:auto;padding:10px';
+ box.innerHTML='<div style="background:#fff;color:#0b1f4a;border-radius:16px;max-width:440px;margin:20px auto;padding:14px;font:14px Inter,system-ui,sans-serif">'+
+ '<div style="font-size:17px;font-weight:800">🎉 Holiday (sab employees ke liye)</div><div style="color:#5b6577;font-size:12px;margin:2px 0 6px">Diwali, Holi jaise company holiday ek saath sab Maintenance employees par lagao. Aage ki date bhi lag sakti hai.</div>'+
+ '<label style="'+lb+'">Kya karna hai</label><select id="hl_mode" style="'+inp+'"><option value="add">Holiday lagao</option><option value="del">Holiday hatao</option></select>'+
+ '<div style="display:flex;gap:8px"><div style="flex:1"><label style="'+lb+'">From date</label><input type="date" id="hl_from" value="'+curDate+'" style="'+inp+'"></div><div style="flex:1"><label style="'+lb+'">To date</label><input type="date" id="hl_to" value="'+curDate+'" style="'+inp+'"></div></div>'+
+ '<label style="'+lb+'">Holiday ka naam</label><input id="hl_name" placeholder="jaise: Diwali, Holi, Independence Day..." style="'+inp+'">'+
+ '<label style="display:flex;gap:8px;align-items:center;margin-top:10px"><input type="checkbox" id="hl_ow"> Pehle se mark (P / A / L / ½) din bhi badal do</label>'+
+ '<div id="hl_sum" style="margin:12px 0;padding:10px;border-radius:10px;background:#eef4fa;font-weight:700;font-size:13px"></div>'+
+ '<div style="display:flex;gap:8px"><button type="button" id="hl_ok" style="flex:1;padding:11px;border:0;border-radius:10px;background:#0e7490;color:#fff;font-weight:800;font-size:14px">✔ Apply</button><button type="button" id="hl_x" style="flex:0 0 auto;padding:11px 16px;border:1.5px solid #cbd5e1;border-radius:10px;background:#fff;color:#0b1f4a;font-weight:700">Cancel</button></div></div>';
+ document.body.appendChild(box);
+ box.addEventListener('input',hlPreview);box.addEventListener('change',hlPreview);
+ box.querySelector('#hl_x').onclick=function(){box.remove()};
+ box.addEventListener('mousedown',function(e){if(e.target===box)box.remove()});
+ box.querySelector('#hl_ok').onclick=function(){
+  var f=document.getElementById('hl_from').value,t=document.getElementById('hl_to').value;
+  if(!f||!t||t<f)return alert('From / To date sahi chuno.');
+  var p=hlPlan(),nm=document.getElementById('hl_name').value.trim(),ow=document.getElementById('hl_ow').checked;
+  if(p.days.length>62)return alert('Ek baar me maximum 62 din.');
+  if(!p.list.length)return toast('Koi employee nahi');
+  if(!p.cells)return alert(p.mode==='add'?'Lagane layak koi entry nahi bachi.':'In dino me koi Holiday mili hi nahi.');
+  if(p.mode==='add'&&!nm&&!confirm('Holiday ka naam khali hai. Bina naam ke lagayein?'))return;
+  var k=0;
+  p.days.forEach(function(d){p.list.forEach(function(r){var x=rec(d,r.name),day=DB[d]||(DB[d]={}),rr=day[r.name]||(day[r.name]={});
+   if(p.mode==='add'){if(!isAdmin()&&x&&x.s&&!x.u)return;if(x&&x.s&&x.s!=='HO'&&!ow)return;rr.s='HO';if(nm)rr.r=nm;upsert(d,r.name,rr);k++}
+   else{if(!x||x.s!=='HO')return;if(!isAdmin()&&!x.u)return;rr.s='';if(nm&&rr.r===nm)rr.r='';upsert(d,r.name,rr);if(!rr.s&&!rr.sh&&!rr.i&&!rr.o&&!rr.ot&&!rr.r){delete day[r.name]}k++}})});
+  if(!save())return;updSteps();
+  try{audit('ATT_HOLIDAY','attendance',(p.mode==='add'?'Holiday ':'Holiday removed ')+f+' to '+t+(nm?' ('+nm+')':'')+' - '+k+' entries')}catch(e){}
+  box.remove();toast(k+' entries '+(p.mode==='add'?'me Holiday lag gayi':'se Holiday hat gayi'));refresh()};
+ hlPreview()}
+function futRecs(){var t=ymd(new Date());return attArr().filter(function(x){return x&&x.date&&x.date>t&&x.status!=='L'&&x.status!=='HO'})}
 function cleanFuture(){
  if(!isAdmin())return toast('Sirf Admin ye kar sakta hai');
  try{if(typeof mmsGuardDelete==='function'&&!mmsGuardDelete('att'))return}catch(e){}
  var f=futRecs();if(!f.length)return toast('Aage ki date ki koi entry nahi hai');
  var ds=[];f.forEach(function(x){if(ds.indexOf(x.date)<0)ds.push(x.date)});ds.sort();
- if(!confirm(f.length+' entries aage ki date ('+ds.slice(0,6).map(fmt).join(', ')+(ds.length>6?' ...':'')+') ki mili hain.\n\nInhe DELETE karein? (Multi-day Leave se lagi planned Leave nahi hategi.) Ye sab devices se hat jayengi aur wapas nahi aayengi.'))return;
+ if(!confirm(f.length+' entries aage ki date ('+ds.slice(0,6).map(fmt).join(', ')+(ds.length>6?' ...':'')+') ki mili hain.\n\nInhe DELETE karein? (Planned Leave / Holiday nahi hategi.) Ye sab devices se hat jayengi aur wapas nahi aayengi.'))return;
  var t=ymd(new Date()),a=attArr(),k=0;
- for(var i=a.length-1;i>=0;i--){if(a[i]&&a[i].date&&a[i].date>t&&a[i].status!=='L'){a.splice(i,1);k++}}
+ for(var i=a.length-1;i>=0;i--){if(a[i]&&a[i].date&&a[i].date>t&&a[i].status!=='L'&&a[i].status!=='HO'){a.splice(i,1);k++}}
  try{persist('att')}catch(e){return toast('⚠ Save nahi hua')}
  try{audit('ATT_CLEAN','attendance','Future-date attendance removed: '+k)}catch(e){}
  toast(k+' entries hat gayi');refresh()}
@@ -21629,7 +21684,9 @@ function init(){
  pn.addEventListener('click',function(e){var t=e.target.closest&&e.target.closest('[data-act]');if(!t)return;var a=t.getAttribute('data-act'),n=t.getAttribute('data-n');
   if(a==='tab')return setView(t.getAttribute('data-v'));
   if(a==='cleanfut')return cleanFuture();
+  if(a==='unl'){if(!isAdmin())return;var ur=rec(curDate,n);if(!ur)return;ur.u=ur.u?0:1;upsert(curDate,n,ur);if(save()){try{audit('ATT_LOCK','attendance',n+' '+curDate+(ur.u?': unlocked':': locked'))}catch(e){}toast(ur.u?'Supervisor ab badal sakta hai':'Wapas lock ho gaya')}return renderDay()}
   if(a==='leave')return openLeave();
+  if(a==='holi')return openHoliday();
   if(a==='lv'){lview=t.getAttribute('data-v');return renderList()}
   if(a==='qs'){var td=ymd(new Date()),sv=t.getAttribute('data-s'),c1=rec(td,n);if(setRec(td,n,{s:(c1&&c1.s===sv)?'':sv}))renderList();return}
   if(a==='dprev')return shiftDate(-1);if(a==='dnext')return shiftDate(1);if(a==='dtoday'){curDate=ymd(new Date());return renderDay()}
@@ -21639,7 +21696,7 @@ function init(){
   if(a==='ex'){open[n]=!open[n];var row=t.closest('.er');if(row)row.classList.toggle('open',!!open[n]);return}
   if(a==='st'){var s=t.getAttribute('data-s'),cur=rec(curDate,n);var same=cur&&cur.s===s;if(setRec(curDate,n,{s:same?'':s}))renderDay();return}
   if(a==='allp'){if(curDate>ymd(new Date())){toast('Aage ki date ki attendance nahi bhar sakte');return}var rows=filt(emps(),($('#attDept')||{}).value||'',($('#attQ')||{}).value||''),k=0;rows.forEach(function(r){if(!eff(curDate,r.name)){var day=DB[curDate]||(DB[curDate]={});var rr=(day[r.name]||(day[r.name]={}));rr.s='P';upsert(curDate,r.name,rr);k++}});if(!canEdit()){toast('Sirf Admin / Supervisor');return}if(k){save();toast(k+' employee Present mark hue')}else toast('Sab pehle se mark hain');return renderDay()}
-  if(a==='cell'){if(!canEdit())return toast('Sirf Admin / Supervisor attendance bhar sakte hain');var d=t.getAttribute('data-d'),r0=rec(d,n),c0=r0&&r0.s||'',i=ORDER.indexOf(c0),nx=i+1>=ORDER.length?'':ORDER[i+1];if(setRec(d,n,{s:nx})){var x=nx?ST[nx]:null;t.textContent=x?x.s:'';t.style.background=x?x.bg:'';t.style.color=x?x.c:'';
+  if(a==='cell'){if(!canEdit())return toast('Sirf Admin / Supervisor attendance bhar sakte hain');var d=t.getAttribute('data-d'),r0=rec(d,n),c0=r0&&r0.s||'',i=ORDER.indexOf(c0),nx=i+1>=ORDER.length?'':ORDER[i+1];if(setRec(d,n,{s:nx})){var x=nx?ST[nx]:null;t.textContent=x?x.s:'';if(x){t.style.setProperty('background',x.c,'important');t.style.setProperty('color','#fff','important')}else{t.style.removeProperty('background');t.style.removeProperty('color')}
     var rowTr=t.closest('tr'),days=monthDays(curMonth),tt=totals(n,days),c=rowTr.querySelectorAll('td.tt');c[0].textContent=tt.P;c[1].textContent=tt.H;c[2].textContent=tt.A;c[3].textContent=tt.L;c[4].textContent=tt.WO+tt.HO;c[5].innerHTML='<b>'+tt.work+'</b>';c[6].textContent=tt.ot||''}return}
  });
  pn.addEventListener('change',function(e){var t=e.target;
