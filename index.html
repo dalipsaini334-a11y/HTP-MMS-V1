@@ -6136,10 +6136,10 @@ function empAllRows(){
   const u=us.find(function(x){return String(x.u).toLowerCase()===r.userId.toLowerCase()})||us.find(function(x){return x.emp&&String(x.emp.name||'').toLowerCase()===r.name.toLowerCase()&&String(x.emp.dept||'')===r.dept});
   if(u)used[u.u]=1;
   const e=(u&&u.emp)||{},ov=u?{}:(empOvr()[r.sno]||{});
-  return {sno:r.sno,name:r.userId,code:(e.code!==undefined?e.code:(ov.code!==undefined?ov.code:r.code)),dept:e.dept||ov.dept||r.dept,desig:e.desig||ov.desig||r.desig,noAtt:!!(u?e.noAtt:ov.noAtt),role:u?u.role:'',login:!!u,ukey:u?u.u:''};
+  return {sno:r.sno,name:r.userId,code:(e.code!==undefined?e.code:(ov.code!==undefined?ov.code:r.code)),dept:e.dept||ov.dept||r.dept,desig:e.desig||ov.desig||r.desig,noAtt:!!(u?e.noAtt:ov.noAtt),disp:String((u?e.disp:ov.disp)||''),role:u?u.role:'',login:!!u,ukey:u?u.u:''};
  });
  let n=out.length;
- us.forEach(function(u){if(u.emp&&!used[u.u])out.push({sno:++n,name:u.u,code:u.emp.code||'',dept:u.emp.dept||'',desig:u.emp.desig||'',noAtt:!!u.emp.noAtt,role:u.role,login:true,ukey:u.u})});
+ us.forEach(function(u){if(u.emp&&!used[u.u])out.push({sno:++n,name:u.u,code:u.emp.code||'',dept:u.emp.dept||'',desig:u.emp.desig||'',noAtt:!!u.emp.noAtt,disp:String(u.emp.disp||''),role:u.role,login:true,ukey:u.u})});
  return out;
 }
 function empFiltered(){
@@ -6149,7 +6149,7 @@ function empFiltered(){
   if(!/maint/i.test(String(r.dept||'')))return false;   // Employee List me sirf Maintenance department
   if(dep&&r.dept!==dep)return false;
   if(!q)return true;
-  return [r.name,r.code,r.dept,r.desig].join(' ').toLowerCase().indexOf(q)>=0;
+  return [r.disp,r.name,r.code,r.dept,r.desig].join(' ').toLowerCase().indexOf(q)>=0;
  });
 }
 function empRenderList(){
@@ -6176,7 +6176,7 @@ function empRenderList(){
 }
 function empPrintList(){
  const isAdmin=true,rows=empFiltered();   // Emp. Code ab sab ko dikhta hai
- const body=rows.map(function(r,i){return '<tr><td>'+(i+1)+'</td><td>'+esc2(r.name)+'</td>'+(isAdmin?'<td>'+esc2(r.code)+'</td>':'')+'<td>'+esc2(r.dept)+'</td><td>'+esc2(r.desig)+'</td></tr>'}).join('');
+ const body=rows.map(function(r,i){return '<tr><td>'+(i+1)+'</td><td>'+esc2(r.disp||r.name)+'</td>'+(isAdmin?'<td>'+esc2(r.code)+'</td>':'')+'<td>'+esc2(r.dept)+'</td><td>'+esc2(r.desig)+'</td></tr>'}).join('');
  utilityPrintWindow('MAINTENANCE EMPLOYEE DETAILS - UNIT VII','<table><thead><tr><th>Sr. No.</th><th>Name</th>'+(isAdmin?'<th>Emp. Code</th>':'')+'<th>Department</th><th>Designation</th></tr></thead><tbody>'+(body||'<tr><td colspan="5">No records</td></tr>')+'</tbody></table>');
 }
 
@@ -6207,7 +6207,8 @@ async function empEdit(name){
  box.style.cssText='position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,.55);z-index:100000;overflow:auto;padding:10px';
  box.innerHTML='<div style="background:#fff;border-radius:12px;max-width:460px;margin:0 auto;padding:14px;font-size:13px">'+
   '<div style="font-size:16px;font-weight:800;margin-bottom:4px">'+(isNew?'➕ Add Employee':'✏️ Edit Employee')+'</div>'+
-  '<label '+lab+'>Name / User ID (login naam)</label><input id="ee_name" '+inp+' value="'+esc2(r.name)+'" '+(isNew?'':'disabled')+'>'+
+  '<label '+lab+'>Name / User ID (login naam'+(isNew?'':' - badal nahi sakta')+')</label><input id="ee_name" '+inp+' value="'+esc2(r.name)+'" '+(isNew?'':'disabled')+'>'+
+  '<label '+lab+'>Display Name (list / attendance / print me dikhne wala naam - yahan badal sakte ho)</label><input id="ee_disp" '+inp+' value="'+esc2(r.disp||'')+'" placeholder="'+esc2(r.name)+'">'+
   '<label '+lab+'>Emp. Code</label><input id="ee_code" '+inp+' value="'+esc2(r.code)+'">'+
   '<label '+lab+'>Department</label><input id="ee_dept" '+inp+' value="'+esc2(r.dept)+'" list="ee_depts">'+
   '<datalist id="ee_depts">'+['Maintenance','Production','MET. LAB','Quality','SAP'].map(function(d){return '<option value="'+esc2(d)+'">'}).join('')+'</datalist>'+
@@ -6229,13 +6230,13 @@ async function empEdit(name){
 async function empEditSave(r,u,seed,isNew){
  const g=function(i){const el=document.getElementById(i);return el?String(el.value||'').replace(/\s+/g,' ').trim():''};
  const msg=document.getElementById('ee_msg'),go=document.getElementById('ee_go');
- const name=isNew?g('ee_name'):r.name,code=g('ee_code'),dept=g('ee_dept'),desig=g('ee_desig'),noAtt=!!(document.getElementById('ee_noatt')||{}).checked;
+ const name=isNew?g('ee_name'):r.name,code=g('ee_code'),dept=g('ee_dept'),desig=g('ee_desig'),noAtt=!!(document.getElementById('ee_noatt')||{}).checked,disp=g('ee_disp');
  if(!name||name.length>60||name.indexOf('|')>=0)return alert('Name / User ID galat hai.');
  if(!desig)return alert('Designation likho.');
  const accEl=document.getElementById('ee_acc'),acc=accEl?accEl.value:'Operator';
  if(u){
   const us=users(),x=us.find(function(z){return z.u===u.u});if(!x)return alert('User nahi mila.');
-  x.emp=Object.assign({},x.emp||{},{code:code,dept:dept,desig:desig,noAtt:noAtt});
+  x.emp=Object.assign({},x.emp||{},{code:code,dept:dept,desig:desig,noAtt:noAtt,disp:disp});
   const role=g('ee_role');if(x.role!=='Admin'&&role)x.role=role;
   const rc=document.getElementById('ee_resetacc');if(rc&&rc.checked)x.perms=empAccPerms(acc);
   localStorage.setItem(USERS_KEY,JSON.stringify(us));
@@ -6243,14 +6244,14 @@ async function empEditSave(r,u,seed,isNew){
  }else{
   const mk=isNew||(document.getElementById('ee_mklogin')||{}).checked,role=g('ee_role')||desig;
   if(isNew&&users().some(function(z){return String(z.u).toLowerCase()===name.toLowerCase()}))return alert('User ID pehle se maujood hai: '+name);
-  if(!isNew){const o=empOvr();o[r.sno]=Object.assign({},o[r.sno]||{},{code:code,dept:dept,desig:desig,noAtt:noAtt});empOvrSave(o)}
+  if(!isNew){const o=empOvr();o[r.sno]=Object.assign({},o[r.sno]||{},{code:code,dept:dept,desig:desig,noAtt:noAtt,disp:disp});empOvrSave(o)}
   if(mk){
    const pw=g('ee_pw');if(pw.length<6)return alert('Login ke liye password kam se kam 6 characters ka likho.');
    go.disabled=true;msg.textContent='⏳ Login ban raha hai… (Admin PIN / password poocha jayega)';
    let res;try{res=await mmsSrvSensitive('userSet',{u:name,role:role,pw:pw})}catch(e){res={ok:false,error:'Server tak nahi pahunch paaye'}}
    go.disabled=false;
    if(!(res&&res.ok)){msg.style.color='#dc2626';msg.textContent='✗ '+((res&&res.error)||'error');return}
-   const us=users();if(!us.some(function(z){return z.u===name}))us.push({u:name,id:'usr-'+name,role:role,perms:empAccPerms(acc),emp:{name:(seed&&seed.name)||name,code:code,dept:dept,desig:desig,noAtt:noAtt}});
+   const us=users();if(!us.some(function(z){return z.u===name}))us.push({u:name,id:'usr-'+name,role:role,perms:empAccPerms(acc),emp:{name:(seed&&seed.name)||name,code:code,dept:dept,desig:desig,noAtt:noAtt,disp:disp}});
    localStorage.setItem(USERS_KEY,JSON.stringify(us));
    try{audit('USER_ADD','system','Employee login added: '+name)}catch(e){}
   }
@@ -21365,7 +21366,7 @@ function sess(){try{return session()}catch(e){return null}}
 function canEdit(){var s=sess();if(!s||window.__auditorView)return false;return s.role==='Admin'||/supervis|head|in-?charge|engineer|manager/i.test(String(s.role||''))}
 function isAdmin(){var s=sess();return !!(s&&s.role==='Admin')}
 function emps(){try{return empAllRows().filter(function(r){return /maint/i.test(String(r.dept||''))&&!r.noAtt})}catch(e){return []}}   // attendance: Maintenance employees (noAtt wale nahi)
-function filt(rows,dept,q){q=String(q||'').toLowerCase();return rows.filter(function(r){if(dept&&r.dept!==dept)return false;return !q||[r.name,r.dept,r.desig].join(' ').toLowerCase().indexOf(q)>=0})}
+function filt(rows,dept,q){q=String(q||'').toLowerCase();return rows.filter(function(r){if(dept&&r.dept!==dept)return false;return !q||[r.disp,r.name,r.dept,r.desig].join(' ').toLowerCase().indexOf(q)>=0})}
 function rec(d,n){return DB[d]&&DB[d][n]||null}
 function eff(d,n){var r=rec(d,n);if(r&&r.s)return r.s;return isSun(d)?'WO':''}
 function setRec(d,n,patch){if(!canEdit()){toast('Sirf Admin / Supervisor attendance bhar sakte hain');return false}
@@ -21415,7 +21416,7 @@ function renderList(){
  if(sel&&sel.options.length!==deps.length+1){var cur=sel.value;sel.innerHTML='<option value="">All Departments</option>'+deps.map(function(d){return '<option>'+E(d)+'</option>'}).join('');sel.value=cur}
  var rows=(typeof empFiltered==='function')?empFiltered():all;
  body.innerHTML=rows.map(function(r,i){
-  return '<tr><td>'+(i+1)+'</td><td style="text-align:left"><b>'+E(r.name)+'</b></td><td>'+E(r.code||'—')+'</td><td>'+E(r.dept)+'</td><td>'+E(r.desig)+'</td><td>'+(r.noAtt?'<span style="color:#94a3b8">— (attendance nahi)</span>':chip(eff(today,r.name)))+'</td></tr>'}).join('')||'<tr><td colspan="6">Koi employee nahi mila.</td></tr>';
+  return '<tr><td>'+(i+1)+'</td><td style="text-align:left"><b>'+E(r.disp||r.name)+'</b></td><td>'+E(r.code||'—')+'</td><td>'+E(r.dept)+'</td><td>'+E(r.desig)+'</td><td>'+(r.noAtt?'<span style="color:#94a3b8">— (attendance nahi)</span>':chip(eff(today,r.name)))+'</td></tr>'}).join('')||'<tr><td colspan="6">Koi employee nahi mila.</td></tr>';
  var c=cnt(all,today),sm=document.getElementById('empSummary'),cd=document.getElementById('empCards');
  if(cd)cd.innerHTML='<div class="ec"><b>'+rows.length+'</b><span>Maintenance Employees</span></div><div class="ec" style="background:#dcfce7"><b style="color:#16a34a">'+(c.P+c.H)+'</b><span>Aaj Present</span></div><div class="ec" style="background:#fee2e2"><b style="color:#dc2626">'+c.A+'</b><span>Aaj Absent</span></div><div class="ec" style="background:#fef3c7"><b style="color:#d97706">'+c.L+'</b><span>Aaj Leave</span></div><div class="ec"><b>'+c.N+'</b><span>Mark nahi hua</span></div>';
  if(sm){sm.innerHTML=''}
@@ -21432,8 +21433,8 @@ function renderDay(){
  (ce?'':'<div class="enote">👁 Sirf dekhne ke liye — attendance Admin / Supervisor bharte hain.</div>')+
  (isSun(curDate)?'<div class="enote">Sunday — by default Week Off. Kisi ne kaam kiya ho to P dabao.</div>':'');
  h+=rows.map(function(r){var rc=rec(curDate,r.name)||{},s=eff(curDate,r.name),o=!!open[r.name]||!!(rc.i||rc.o||rc.ot||rc.r||(rc.sh&&rc.sh!=='General'));
-  var n=E(r.name);
-  return '<div class="er'+(o?' open':'')+'" data-n="'+n+'"><div class="en"><b>'+n+'</b><small>'+E([r.desig,r.dept].filter(Boolean).join(' • '))+(hrs(rc)?' • '+hrs(rc):'')+'</small></div>'+
+  var n=E(r.name),dn=E(r.disp||r.name);
+  return '<div class="er'+(o?' open':'')+'" data-n="'+n+'"><div class="en"><b>'+dn+'</b><small>'+E([r.desig,r.dept].filter(Boolean).join(' • '))+(hrs(rc)?' • '+hrs(rc):'')+'</small></div>'+
   '<div class="es">'+ORDER.map(function(k){var on=(rc.s===k)||(!rc.s&&s===k);return '<button type="button" class="sb'+(on?' on':'')+'" data-act="st" data-n="'+n+'" data-s="'+k+'" title="'+ST[k].l+'"'+(on?' style="background:'+ST[k].c+'"':'')+(ce?'':' disabled')+'>'+ST[k].s+'</button>'}).join('')+'</div>'+
   '<button type="button" class="ex" data-act="ex" data-n="'+n+'" title="Shift / time / OT / remark">⋯</button>'+
   '<div class="ed"><div><label>Shift</label><select data-f="sh" data-n="'+n+'"'+(ce?'':' disabled')+'>'+SHIFTS.map(function(x){return '<option'+((rc.sh||'General')===x?' selected':'')+'>'+x+'</option>'}).join('')+'</select></div>'+
@@ -21445,7 +21446,7 @@ function renderDay(){
 function dayRowsForPrint(){var p=document.getElementById('empPaneDay'),rows=filt(emps(),($('#attDept',p)||{}).value||'',($('#attQ',p)||{}).value||'');return rows}
 function printDay(){
  var rows=dayRowsForPrint(),c=cnt(rows,curDate);
- var b=rows.map(function(r,i){var rc=rec(curDate,r.name)||{},s=eff(curDate,r.name);return '<tr><td>'+(i+1)+'</td><td style="text-align:left">'+E(r.name)+'</td><td>'+E(r.dept)+'</td><td>'+E(r.desig)+'</td><td>'+(s?ST[s].l:'—')+'</td><td>'+E(rc.sh||'')+'</td><td>'+E(rc.i||'')+'</td><td>'+E(rc.o||'')+'</td><td>'+hrs(rc)+'</td><td>'+E(rc.ot||'')+'</td><td style="text-align:left">'+E(rc.r||'')+'</td></tr>'}).join('');
+ var b=rows.map(function(r,i){var rc=rec(curDate,r.name)||{},s=eff(curDate,r.name);return '<tr><td>'+(i+1)+'</td><td style="text-align:left">'+E(r.disp||r.name)+'</td><td>'+E(r.dept)+'</td><td>'+E(r.desig)+'</td><td>'+(s?ST[s].l:'—')+'</td><td>'+E(rc.sh||'')+'</td><td>'+E(rc.i||'')+'</td><td>'+E(rc.o||'')+'</td><td>'+hrs(rc)+'</td><td>'+E(rc.ot||'')+'</td><td style="text-align:left">'+E(rc.r||'')+'</td></tr>'}).join('');
  utilityPrintWindow('DAILY ATTENDANCE - '+fmt(curDate),'<div class="title">Milestone Gears Ltd. UNIT-7 — DAILY ATTENDANCE: '+fmt(curDate)+' ('+dayName(curDate)+')</div><div style="margin:4px 0 8px">Present '+c.P+' | Half Day '+c.H+' | Absent '+c.A+' | Leave '+c.L+' | Week Off/Holiday '+(c.WO+c.HO)+' | Not marked '+c.N+'</div><table><thead><tr><th>Sr.</th><th>Name</th><th>Department</th><th>Designation</th><th>Status</th><th>Shift</th><th>In</th><th>Out</th><th>Hrs</th><th>OT</th><th>Remark</th></tr></thead><tbody>'+b+'</tbody></table><div style="margin-top:30px;display:flex;justify-content:space-between"><span>Prepared By: ____________</span><span>Verified By: ____________</span></div>');
 }
 
@@ -21460,7 +21461,7 @@ function renderMonth(){
  '<div class="enote">'+(ce?'Kisi bhi din ke box par tap karo: P → A → L → ½ → WO → HO → khali. ':'')+'Sunday by default Week Off hai (halka rang).</div>';
  h+='<div class="mw"><table class="em"><thead><tr><th class="nm">Employee</th>'+days.map(function(d){return '<th class="'+(isSun(d)?'sun':'')+'">'+(+d.slice(8))+'<br><small>'+dayName(d).slice(0,2)+'</small></th>'}).join('')+'<th>P</th><th>½</th><th>A</th><th>L</th><th>WO/HO</th><th>Working<br>Days</th><th>OT</th></tr></thead><tbody>';
  rows.forEach(function(r){var t=totals(r.name,days);
-  h+='<tr><td class="nm">'+E(r.name)+'</td>'+days.map(function(d){var s=eff(d,r.name),x=s?ST[s]:null;return '<td class="mc'+(isSun(d)?' sun':'')+'" data-act="cell" data-n="'+E(r.name)+'" data-d="'+d+'"'+(x?' style="background:'+x.bg+';color:'+x.c+'"':'')+'>'+(x?x.s:'')+'</td>'}).join('')+
+  h+='<tr><td class="nm">'+E(r.disp||r.name)+'</td>'+days.map(function(d){var s=eff(d,r.name),x=s?ST[s]:null;return '<td class="mc'+(isSun(d)?' sun':'')+'" data-act="cell" data-n="'+E(r.name)+'" data-d="'+d+'"'+(x?' style="background:'+x.bg+';color:'+x.c+'"':'')+'>'+(x?x.s:'')+'</td>'}).join('')+
   '<td class="tt">'+t.P+'</td><td class="tt">'+t.H+'</td><td class="tt" style="color:#dc2626">'+t.A+'</td><td class="tt">'+t.L+'</td><td class="tt">'+(t.WO+t.HO)+'</td><td class="tt"><b>'+t.work+'</b></td><td class="tt">'+(t.ot||'')+'</td></tr>'});
  h+='</tbody></table></div><div class="legend">'+ORDER.map(function(k){return '<span class="chip" style="background:'+ST[k].bg+';color:'+ST[k].c+'">'+ST[k].s+' = '+ST[k].l+'</span>'}).join('')+'</div>';
  var sc=window.scrollY;p.innerHTML=h;window.scrollTo(0,sc);
@@ -21469,14 +21470,14 @@ function monthRows(){var p=document.getElementById('empPaneMonth');return filt(e
 function mlabel(){var a=curMonth.split('-');return ['January','February','March','April','May','June','July','August','September','October','November','December'][+a[1]-1]+' '+a[0]}
 function printMonth(){
  var rows=monthRows(),days=monthDays(curMonth);
- var b=rows.map(function(r,i){var t=totals(r.name,days);return '<tr><td>'+(i+1)+'</td><td style="text-align:left">'+E(r.name)+'</td>'+days.map(function(d){var s=eff(d,r.name);return '<td>'+(s?ST[s].s:'')+'</td>'}).join('')+'<td>'+t.P+'</td><td>'+t.H+'</td><td>'+t.A+'</td><td>'+t.L+'</td><td>'+(t.WO+t.HO)+'</td><td><b>'+t.work+'</b></td><td>'+(t.ot||'')+'</td></tr>'}).join('');
+ var b=rows.map(function(r,i){var t=totals(r.name,days);return '<tr><td>'+(i+1)+'</td><td style="text-align:left">'+E(r.disp||r.name)+'</td>'+days.map(function(d){var s=eff(d,r.name);return '<td>'+(s?ST[s].s:'')+'</td>'}).join('')+'<td>'+t.P+'</td><td>'+t.H+'</td><td>'+t.A+'</td><td>'+t.L+'</td><td>'+(t.WO+t.HO)+'</td><td><b>'+t.work+'</b></td><td>'+(t.ot||'')+'</td></tr>'}).join('');
  utilityPrintWindow('MONTHLY ATTENDANCE - '+mlabel(),'<div class="title">Milestone Gears Ltd. UNIT-7 — MONTHLY ATTENDANCE: '+mlabel()+'</div><table style="font-size:8px"><thead><tr><th>Sr.</th><th>Name</th>'+days.map(function(d){return '<th>'+(+d.slice(8))+'</th>'}).join('')+'<th>P</th><th>½</th><th>A</th><th>L</th><th>WO/HO</th><th>Work Days</th><th>OT</th></tr></thead><tbody>'+b+'</tbody></table><div style="margin-top:6px">P=Present, ½=Half Day, A=Absent, L=Leave, WO=Week Off, HO=Holiday</div><div style="margin-top:30px;display:flex;justify-content:space-between"><span>Prepared By: ____________</span><span>Verified By: ____________</span></div>');
 }
 function dl(name,text,type){var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:type}));a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},500)}
 function csvCell(v){v=String(v==null?'':v);return /[",\r\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}
 function csvMonth(){
  var rows=monthRows(),days=monthDays(curMonth),out=[['Sr','Employee','Department','Designation'].concat(days.map(function(d){return +d.slice(8)}),['Present','Half Day','Absent','Leave','WeekOff/Holiday','Working Days','OT hrs'])];
- rows.forEach(function(r,i){var t=totals(r.name,days);out.push([i+1,r.name,r.dept,r.desig].concat(days.map(function(d){var s=eff(d,r.name);return s||''}),[t.P,t.H,t.A,t.L,t.WO+t.HO,t.work,t.ot||0]))});
+ rows.forEach(function(r,i){var t=totals(r.name,days);out.push([i+1,r.disp||r.name,r.dept,r.desig].concat(days.map(function(d){var s=eff(d,r.name);return s||''}),[t.P,t.H,t.A,t.L,t.WO+t.HO,t.work,t.ot||0]))});
  dl('HTP_Attendance_'+curMonth+'.csv','﻿'+out.map(function(r){return r.map(csvCell).join(',')}).join('\r\n'),'text/csv;charset=utf-8;');
 }
 function doBackup(){dl('HTP_Attendance_backup_'+ymd(new Date())+'.json',JSON.stringify({v:1,att:DB}),'application/json')}
@@ -21531,7 +21532,7 @@ function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{
 function isAdm(){try{var s=session();return !!(s&&s.role==='Admin')}catch(e){return false}}
 function rows(){
  var q=((document.getElementById('elq_s')||{}).value||'').toLowerCase(),d=(document.getElementById('elq_d')||{}).value||'';
- return empAllRows().filter(function(r){if(d&&r.dept!==d)return false;return !q||[r.name,r.code,r.dept,r.desig,r.role].join(' ').toLowerCase().indexOf(q)>=0});
+ return empAllRows().filter(function(r){if(d&&r.dept!==d)return false;return !q||[r.disp,r.name,r.code,r.dept,r.desig,r.role].join(' ').toLowerCase().indexOf(q)>=0});
 }
 function render(){
  var box=document.getElementById('empLoginBox');if(!box)return;
@@ -21540,7 +21541,7 @@ function render(){
  if(sel&&sel.options.length!==deps.length+1){var cur=sel.value;sel.innerHTML='<option value="">All Departments</option>'+deps.map(function(x){return '<option>'+E(x)+'</option>'}).join('');sel.value=cur}
  var rs=rows();
  document.getElementById('elq_b').innerHTML=rs.map(function(r,i){
-  return '<tr><td>'+(i+1)+'</td><td style="text-align:left"><b>'+E(r.name)+'</b></td><td>'+E(r.code||'—')+'</td><td>'+E(r.dept)+'</td><td>'+E(r.desig)+'</td><td>'+(r.login?'✓ '+E(r.role):'<span style="color:#94a3b8">Login nahi bana</span>')+'</td>'+
+  return '<tr><td>'+(i+1)+'</td><td style="text-align:left"><b>'+E(r.disp||r.name)+'</b>'+(r.disp&&r.disp!==r.name?'<br><small style="color:#64748b">ID: '+E(r.name)+'</small>':'')+'</td><td>'+E(r.code||'—')+'</td><td>'+E(r.dept)+'</td><td>'+E(r.desig)+'</td><td>'+(r.login?'✓ '+E(r.role):'<span style="color:#94a3b8">Login nahi bana</span>')+'</td>'+
   '<td style="white-space:nowrap"><button type="button" data-n="'+E(r.name)+'" onclick="empEdit(this.getAttribute(\'data-n\'))">✏️ Edit</button> <button type="button" style="color:#b91c1c" data-n="'+E(r.name)+'" onclick="empDelete(this.getAttribute(\'data-n\'))">🗑️ Delete</button></td></tr>'}).join('')||'<tr><td colspan="7">Koi employee nahi mila.</td></tr>';
  document.getElementById('elq_sum').textContent='Total '+all.length+' employees | App Login bana: '+all.filter(function(r){return r.login}).length+' | Maintenance: '+all.filter(function(r){return /maint/i.test(r.dept||'')}).length;
 }
