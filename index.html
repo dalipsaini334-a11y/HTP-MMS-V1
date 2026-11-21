@@ -19265,9 +19265,9 @@ function dk(){var b=$('#v154Dk');if(!b){b=document.createElement('button');b.id=
 var C39={'0':'nnnwwnwnn','1':'wnnwnnnnw','2':'nnwwnnnnw','3':'wnwwnnnnn','4':'nnnwwnnnw','5':'wnnwwnnnn','6':'nnwwwnnnn','7':'nnnwnnwnw','8':'wnnwnnwnn','9':'nnwwnnwnn','A':'wnnnnwnnw','B':'nnwnnwnnw','C':'wnwnnwnnn','D':'nnnnwwnnw','E':'wnnnwwnnn','F':'nnwnwwnnn','G':'nnnnnwwnw','H':'wnnnnwwnn','I':'nnwnnwwnn','J':'nnnnwwwnn','K':'wnnnnnnww','L':'nnwnnnnww','M':'wnwnnnnwn','N':'nnnnwnnww','O':'wnnnwnnwn','P':'nnwnwnnwn','Q':'nnnnnnwww','R':'wnnnnnwwn','S':'nnwnnnwwn','T':'nnnnwnwwn','U':'wwnnnnnnw','V':'nwwnnnnnw','W':'wwwnnnnnn','X':'nwnnwnnnw','Y':'wwnnwnnnn','Z':'nwwnwnnnn','-':'nwnnnnwnw','.':'wwnnnnwnn',' ':'nwwnnnwnn','$':'nwnwnwnnn','/':'nwnwnnnwn','+':'nwnnnwnwn','%':'nnnwnwnwn','*':'nwnnwnwnn'};
 function code39(txt){
  txt=String(txt||'').toUpperCase();if(!txt||/[^0-9A-Z\-\. \$\/\+%]/.test(txt))return '';
- var s='*'+txt+'*',x=10,h=46,out='';
+ var s='*'+txt+'*',x=24,h=46,out='';
  for(var i=0;i<s.length;i++){var p=C39[s.charAt(i)];for(var j=0;j<9;j++){var w=p.charAt(j)==='w'?4:2;if(j%2===0)out+='<rect x="'+x+'" y="0" width="'+w+'" height="'+h+'" fill="#000"/>';x+=w}x+=2}
- return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+(x+8)+' '+h+'" style="width:100%;height:46px" preserveAspectRatio="none">'+out+'</svg>';
+ return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+(x+22)+' '+h+'" style="width:100%;height:46px" preserveAspectRatio="none">'+out+'</svg>';
 }
 function labels(){
  var L=(typeof MACHINE_MASTER!=='undefined'&&Array.isArray(MACHINE_MASTER))?MACHINE_MASTER:[],cells=[],skip=0;
@@ -19282,15 +19282,25 @@ function scan(done){
  if(!('BarcodeDetector' in window)||!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)return alert('Is browser me scan support nahi hai (Chrome/Android me chalta hai). Barcode ke neeche likha machine number search me likh do.');
  var o=document.createElement('div');o.style.cssText='position:fixed;inset:0;background:#000;z-index:100005;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font:700 14px Arial';
  o.innerHTML='<video playsinline muted style="max-width:100%;max-height:70vh"></video><div style="margin:10px">Barcode camera ke saamne rakho…</div><button type="button" style="padding:10px 18px;border:0;border-radius:8px;background:#dc2626;color:#fff;font-weight:800">Band karo</button>';
- document.body.appendChild(o);var v=$('video',o),stop=false;
+ document.body.appendChild(o);var v=$('video',o),stop=false,last='',hits=0;
  function end(){stop=true;try{if(scanStream)scanStream.getTracks().forEach(function(t){t.stop()})}catch(e){}scanStream=null;o.remove()}
  $('button',o).onclick=end;
- navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}).then(function(s){
-  scanStream=s;v.srcObject=s;v.play();var det=new BarcodeDetector({formats:['code_39','qr_code']});
-  (function loop(){if(stop)return;det.detect(v).then(function(r){if(r&&r.length){var t=r[0].rawValue;end();done(t)}else setTimeout(loop,300)}).catch(function(){setTimeout(loop,500)})})();
+ function clean(t){return String(t==null?'':t).replace(/[\r\n\t]+/g,' ').replace(/^\s*\*+|\*+\s*$/g,'').replace(/\s+/g,' ').trim()}
+ navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}}}).then(function(s){
+  scanStream=s;v.srcObject=s;v.play();
+  var mk=function(f){try{return new BarcodeDetector({formats:f})}catch(e){return null}};
+  var det=mk(['code_39','qr_code'])||mk(['code_39'])||mk(['qr_code'])||new BarcodeDetector();
+  (function loop(){if(stop)return;
+   if(!v.videoWidth){setTimeout(loop,200);return}
+   det.detect(v).then(function(r){
+    var t='';if(r&&r.length){for(var i=0;i<r.length;i++){var c=clean(r[i].rawValue);if(c){t=c;break}}}
+    if(t){if(t===last)hits++;else{last=t;hits=1}
+     if(hits>=2){end();done(t);return}}
+    else{last='';hits=0}
+    setTimeout(loop,150)}).catch(function(){setTimeout(loop,400)})})();
  }).catch(function(){end();alert('Camera allow nahi hua.')});
 }
-window.__v154={labels:labels,scan:scan,code39:code39};
+window.__v154={labels:labels,scan:scan,code39:code39,ledgerRows:(typeof ledgerRows==='function'?ledgerRows:null)};
 
 /* ---------- 4) PER-REGISTER EXCEL/CSV BUTTON ---------- */
 var CSVMAP={pf:'pf',pc:'pc',dg:'dg',mr:'mr',mh:'mh',pm:'pm',bd:'bd',spares:'spares',criticalSpares:'critical',thermocouple:'tc',calibration:'cal',airCompressor:'airCompressor',maintUtility:'utility',sparePurchase:'sparePurchase',mm:'*MM'};
@@ -19631,13 +19641,29 @@ function sec(title,n,body,open){return '<details class="sx"'+(open?' open':'')+'
 function show(m){
   var no=String(m.machineNumber||'').trim(),NO=N(no),today=new Date().toISOString().slice(0,10);
   var mr=byDate(pick(data.mr,NO,['machineNo','machine']),'pdate'),
-      openMr=mr.filter(function(r){return r.status!=='Closed'}),
-      bd=byDate(pick(data.bd,NO,['machineNumber','machine']),'date'),
+      openMr=mr.filter(function(r){return typeof mrIsOpenReq==='function'?mrIsOpenReq(r):(r.status!=='Closed'&&r.status!=='Cancelled')}),
+      bd=byDate((function(){var L=pick(data.bd,NO,['machineNumber','machine']),sr={};mr.forEach(function(r){if(r&&r.sr!=null)sr[String(r.sr)]=1});
+        arr(data.bd).forEach(function(r){if(r&&r.sourceMrSr&&sr[String(r.sourceMrSr)]&&L.indexOf(r)<0)L.push(r)});
+        /* auto row ka machine = naam hota hai; agar kisi aur machine ke MR se bana hai to hata do */
+        var mine={};arr(data.mr).forEach(function(r){if(r&&r.sr!=null)mine[String(r.sr)]=nk(r.machineNo)});
+        return L.filter(function(r){return !(r.sourceMrSr&&mine[String(r.sourceMrSr)]&&mine[String(r.sourceMrSr)]!==nk(NO))})})(),'date'),
       mh=byDate(pick(data.mh,NO,['machineNo','machine']),'date'),
       pm=byDate(pick(data.pm,NO,['machineNo']),'date'),
       cs=pick(data.critical,NO,['machine','machineNo','machineNumber']);
   var bdHrs=0;bd.forEach(function(r){bdHrs+=num(r.hours)});
-  var cost=0;try{var __cm=spMachineCostMap(function(){return true}),__nk=String(no).toLowerCase().replace(/[^a-z0-9]/g,'');Object.keys(__cm).forEach(function(k){if(String(k).toLowerCase().replace(/[^a-z0-9]/g,'')===__nk){var o=__cm[k];cost+=o.mr+o.bd+o.pm+o.oth}})}catch(e){}
+  var cost=0,cl=[],ct={mr:0,bd:0,pm:0,oth:0};
+  try{
+   var inr=function(n){return '\u20B9'+(Math.round(n*100)/100).toLocaleString('en-IN')};
+   var addL=function(f,d,ref,item,q,pr,amt){amt=num(amt);if(!amt)return;ct[f]+=amt;cl.push({f:f,d:d||'',ref:ref||'',item:item||'',q:q,pr:pr,amt:amt})};
+   var lines=function(f,d,ref,list){arr(list).forEach(function(x){if(!x||!(x.part||x.desc||x.qty||x.spareLink))return;var a=0,u=0;try{a=spLineTotal(x);u=spUnitPriceOf(x)}catch(e){}addL(f,d,ref,x.part||x.desc||x.spare||'',x.qty,u,a)})};
+   mr.forEach(function(r){var d=r.mdate||r.pdate,ref='MR Sr '+(r.sr||''),c=num(r.maintCost);
+     if(c)addL('mr',d,ref,'Maintenance cost (entered)','','',c);else lines('mr',d,ref,r.spareParts)});
+   bd.forEach(function(r){if(r.sourceMrSr)return;var c=0;try{c=bdSpareCostOf(r)}catch(e){}addL('bd',r.date,'Breakdown'+(r.reason?' - '+String(r.reason).slice(0,40):''),r.spare,r.qty,r.unitPrice,c)});
+   pm.forEach(function(r){lines('pm',r.date,'PM '+(r.planMonth||r.template||''),((arr(r.entries)[0])||{}).spareUsed)});
+   arr(data.utility).forEach(function(r){if(!r||r.type!=='log'||nk(r.itemName)!==nk(no))return;var c=num(r.cost);if(c)addL('oth',r.date,'Maint & Utility - '+(r.activity||''),'Cost (entered)','','',c);else lines('oth',r.date,'Maint & Utility - '+(r.activity||''),r.spareParts)});
+   mh.forEach(function(r){if(r.sourceSr||r.auto)return;addL('oth',r.date,'History card',String(r.reason||'').slice(0,50),'','',r.cost)});
+   cost=ct.mr+ct.bd+ct.pm+ct.oth;
+  }catch(e){console.warn('v155 cost',e)}
   var gap='—';
   if(bd.length>1){var ds=bd.map(function(r){return Date.parse(r.date)}).filter(function(x){return !isNaN(x)}).sort(function(a,b){return a-b});
    if(ds.length>1)gap=Math.round((ds[ds.length-1]-ds[0])/864e5/(ds.length-1))+' din'}
@@ -19673,6 +19699,12 @@ function show(m){
   if(vis.pm)pm.forEach(function(r){ev.push({d:r.date,t:'PM',x:'Checked: '+(r.checkedBy||'-')+(r.action?' | '+r.action:''),s:r.actionStatus||''})});
   ev.sort(function(a,b){return String(b.d||'').localeCompare(String(a.d||''))});
   h+=sec('🕘 Poori timeline (sab modules, latest pehle)',ev.length,tbl(['Date','Module','Detail','Status'],ev.slice(0,60).map(function(e){return '<tr><td>'+dd(e.d)+'</td><td><b>'+E(e.t)+'</b></td><td>'+cut(e.x,140)+'</td><td>'+E(e.s)+'</td></tr>'}))+(ev.length>60?'<div class="em">Sirf latest 60 dikhaye — baaki module register me.</div>':''),true);
+  if(cl.length||cost){var cn={mr:'MR',bd:'Breakdown',pm:'PM',oth:'History / Utility'};
+   cl.sort(function(x,y){return String(y.d||'').localeCompare(String(x.d||''))});
+   h+=sec('\uD83D\uDCB0 Maintenance cost \u2014 poora hisaab',cl.length,
+    '<table style="min-width:0;margin-bottom:8px"><tr><th>MR</th><th>Breakdown</th><th>PM</th><th>History / Utility</th><th>Total</th></tr><tr><td>'+inr(ct.mr)+'</td><td>'+inr(ct.bd)+'</td><td>'+inr(ct.pm)+'</td><td>'+inr(ct.oth)+'</td><td><b>'+inr(cost)+'</b></td></tr></table>'+
+    tbl(['Date','Module','Reference','Spare / Item','Qty','Rate','Amount'],cl.map(function(c){return '<tr><td>'+dd(c.d)+'</td><td>'+E(cn[c.f])+'</td><td>'+cut(c.ref,60)+'</td><td>'+cut(c.item,70)+'</td><td>'+E(c.q==null?'':c.q)+'</td><td>'+(c.pr?inr(num(c.pr)):'')+'</td><td style="text-align:right">'+inr(c.amt)+'</td></tr>'}))+
+    '<div class="em">Sirf wahi cost judti hai jiska rate/price entry me bhara ho. Bina price wale spare ka cost 0 ginta hai.</div>',true)}
   if(vis.mr)h+=sec('🛠 Maintenance Requests',mr.length,tbl(['Sr','Date','Problem','Observation / Action','Spare','Done','Status'],mr.map(function(r){var sp=arr(r.spareParts).map(function(p){return p&&p.part?p.part+(p.qty?' ×'+p.qty:''):''}).filter(Boolean).join(', ')||r.spare||'';return '<tr><td>'+E(r.sr)+phl('mr:'+(r.sr||''))+'</td><td>'+dd(r.pdate)+'</td><td>'+cut(r.problem,100)+'</td><td>'+cut([r.observation,r.action].filter(Boolean).join(' | '),120)+'</td><td>'+cut(sp,80)+'</td><td>'+dd(r.hdate)+'</td><td>'+E(r.status)+'</td></tr>'})),openMr.length>0);
   if(vis.bd)h+=sec('⚠ Breakdowns',bd.length,tbl(['Date','Reason','Type','From–To','Hrs','Action','Spare','Status'],bd.map(function(r){return '<tr><td>'+dd(r.date)+phl('bd:'+(r.id||''))+'</td><td>'+cut(r.reason,90)+'</td><td>'+E(r.type||'')+'</td><td>'+E((r.from||'')+(r.to?'–'+r.to:''))+'</td><td>'+E(r.hours||'')+'</td><td>'+cut(r.action,90)+'</td><td>'+cut((r.spare||'')+(r.qty?' ×'+r.qty:''),60)+'</td><td>'+E(r.status||'')+'</td></tr>'})),false);
   if(vis.mh)h+=sec('📒 Machine History Card',mh.length,tbl(['Date','Reason','Action','Spares','BD hrs','Cost','By'],mh.map(function(r){return '<tr><td>'+dd(r.date)+'</td><td>'+cut(r.reason,90)+'</td><td>'+cut(r.action,90)+'</td><td>'+cut(r.spares,60)+'</td><td>'+E(r.bdHours||'')+'</td><td>'+E(r.cost||'')+'</td><td>'+E(r.attendedBy||'')+'</td></tr>'})),false);
@@ -20004,24 +20036,51 @@ function calLabels(){labelsPage('Instrument Barcode Labels',arr(data.cal).map(fu
 function findSpare(t){var T=N(t);if(!T)return null;var L=arr(data.spares);return L.filter(function(r){return N(r.code)===T||sCode(r)===T})[0]||null}
 function findInst(t){var T=N(t);if(!T)return null;return arr(data.cal).filter(function(r){return N(r.idno)===T})[0]||null}
 function goSearch(tab,box,q){var b=document.querySelector('.app-sidebar .tab[data-target="'+tab+'"]');try{showTab(tab,b)}catch(e){}setTimeout(function(){var i=document.getElementById(box);if(i){i.value=q;i.dispatchEvent(new Event('input',{bubbles:true}))}},250)}
+/* ===== Scan report: spare / instrument ka COMPLETE detail (har module se) + Print ===== */
+(function(){var st=document.createElement('style');st.textContent='#v156Mod details.sx{border:1px solid #dbe4ea;border-radius:12px;margin:8px 0;background:#f8fafc}#v156Mod details.sx>summary{cursor:pointer;padding:9px 12px;font-weight:800;font-size:13px;list-style:none}#v156Mod details.sx>summary::-webkit-details-marker{display:none}#v156Mod details.sx>summary i{font-style:normal;background:#0e7490;color:#fff;border-radius:999px;padding:1px 8px;font-size:11px;margin-left:6px}#v156Mod .sc{padding:0 10px 10px;overflow-x:auto;max-height:340px;overflow-y:auto}#v156Mod .em{font-size:12px;color:#64748b;padding:4px 0}';document.head.appendChild(st)})();
+var LBL={code:'Code',desc:'Description',spec:'Specification',make:'Make',uom:'UOM',loc:'Location',qty:'Stock (qty)',availableQty:'Available qty',min:'Min',max:'Max',remark:'Remark',sno:'S.No',name:'Instrument',idno:'ID No',range:'Range',lc:'Least count',location:'Location',certNo:'Certificate No',lab:'Calibration Lab',nabl:'NABL',date:'Last calibration',freq:'Frequency',duedate:'Due date',machine:'Machine',u4:'Unit 4 item',updatedAt:'Last updated'};
+var DATEK={date:1,duedate:1};
+function fv(k,v){if(v==null||v==='')return '';if(typeof v==='boolean')return v?'Yes':'No';if(typeof v==='object')return '';if(DATEK[k]||/date$/i.test(k)){var d=D(v);return d||v}if(k==='updatedAt'){return String(v).slice(0,10)}return v}
+function infoTbl(r,skip){var rows=[];Object.keys(r).forEach(function(k){if(skip[k]||k.charAt(0)==='_')return;var v=fv(k,r[k]);if(v===''||v==null)return;rows.push('<tr><th style="width:38%">'+E(LBL[k]||k)+'</th><td>'+E(v)+'</td></tr>')});return rows.length?'<table>'+rows.join('')+'</table>':'<div class="em">Koi detail nahi.</div>'}
+function tb(head,rows){return rows.length?'<table><tr>'+head.map(function(h){return '<th>'+h+'</th>'}).join('')+'</tr>'+rows.join('')+'</table>':'<div class="em">Koi record nahi.</div>'}
+function sx(title,n,body,open){return '<details class="sx"'+(open?' open':'')+'><summary>'+title+' <i>'+n+'</i></summary><div class="sc">'+body+'</div></details>'}
+function dt(v){var d=D(v);return E(d||v||'')}
+function printBox(m,title){var w=window.open('','_blank');if(!w)return alert('Popup block hai - allow karo.');var bx=m.querySelector('.bx').cloneNode(true);[].forEach.call(bx.querySelectorAll('.ac,button'),function(b){b.remove()});[].forEach.call(bx.querySelectorAll('details'),function(d){d.setAttribute('open','')});
+ w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>'+E(title)+'</title><style>@page{size:A4;margin:8mm}body{font-family:Arial;font-size:10px}h2{margin:0}.sub{margin:2px 0 8px}.kp{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.k{border:1px solid #999;padding:4px 8px;text-align:center}.k b{display:block;font-size:14px}summary{font-weight:bold;font-size:12px;margin:10px 0 3px;list-style:none}table{border-collapse:collapse;width:100%}th,td{border:1px solid #000;padding:3px;text-align:left}th{background:#eee}.em{color:#555}</style></head><body><div style="text-align:center;font-weight:bold;font-size:14px">Milestone Gears Ltd. UNIT-7 — '+E(title)+'</div><div style="text-align:center;margin-bottom:6px">Printed: '+E(D(today()))+'</div>'+bx.innerHTML+'<script>window.onload=function(){window.print()}<\/script></body></html>');w.document.close()}
 function spareCard(r){
- var a=sAvail(r),low=sLow(r),used=0,last='';
- arr(data.mr).forEach(function(m){arr(m.spareParts).forEach(function(p){if(p&&String(p.part||'').toLowerCase()===String(r.desc||'').toLowerCase()){used++;if(String(m.mdate||m.pdate||'')>last)last=m.mdate||m.pdate}})});
- arr(data.bd).forEach(function(b){if(b.spareLink==='spares:'+r.id){used++;if(String(b.date||'')>last)last=b.date}});
- var pp=pendingPurchase(r);
- var m=modal('<h2>📦 '+E(r.desc)+'</h2><div class="sub">'+[r.code||sCode(r),r.spec,r.make,r.loc?'📍 '+r.loc:''].filter(Boolean).map(E).join(' • ')+'</div><div class="kp"><div class="k'+(low?' bad':'')+'"><b>'+a+'</b><span>Available</span></div><div class="k"><b>'+num(r.min)+'</b><span>Min</span></div><div class="k"><b>'+(num(r.max)||'—')+'</b><span>Max</span></div><div class="k"><b>'+used+'</b><span>Baar issue hua</span></div><div class="k"><b>'+(last?E(D(last)):'—')+'</b><span>Last use</span></div></div>'+
-  (low?'<div style="color:#b91c1c;font-weight:700;font-size:13px">⚠ Stock minimum se kam hai'+(pp?' — Purchase me pehle se hai.':'.')+'</div>':'<div style="color:#15803d;font-weight:700;font-size:13px">✔ Stock theek hai.</div>')+
-  '<div class="ac">'+(low&&!pp?'<button type="button" data-a="re">🛒 Purchase me daalo</button>':'')+'<button type="button" class="g" data-a="inv">Inventory me dekho</button><button type="button" class="x" data-a="x">Band karo</button></div>');
- m.addEventListener('click',function(e){var a2=e.target.getAttribute&&e.target.getAttribute('data-a');if(!a2)return;if(a2==='x'){closeMod();return}
+ var a=sAvail(r),low=sLow(r),pp=pendingPurchase(r),L={mv:[],open:0};
+ try{var lr=window.__v154&&window.__v154.ledgerRows;if(lr)L=lr(r)}catch(e){console.warn('ledger',e)}
+ var iss=L.mv.filter(function(x){return x.q<0}),issQty=0,last='';iss.forEach(function(x){issQty+=-x.q;if(String(x.d||'')>last)last=x.d});
+ var key=null;try{key=spareLinkKey(r.desc,r.spec)}catch(e){}
+ var pur=arr(data.sparePurchase).filter(function(p){if(!p)return false;if(p.desc===r.desc&&String(p.spec||'')===String(r.spec||''))return true;try{return key&&spareLinkKey(p.desc,p.spec)===key}catch(e){return false}});
+ pur.sort(function(x,y){return String(y.reqDate||'').localeCompare(String(x.reqDate||''))});
+ var cm=null;try{cm=criticalMatchForSpare(r)}catch(e){}
+ var cr=cm?[cm]:[];
+ var h='<h2>📦 '+E(r.desc)+'</h2><div class="sub">'+[r.code||sCode(r),r.spec,r.make,r.loc?'📍 '+r.loc:''].filter(Boolean).map(E).join(' • ')+'</div><div class="kp"><div class="k'+(low?' bad':'')+'"><b>'+a+'</b><span>Available</span></div><div class="k"><b>'+num(r.min)+'</b><span>Min</span></div><div class="k"><b>'+(num(r.max)||'—')+'</b><span>Max</span></div><div class="k"><b>'+iss.length+'</b><span>Baar issue hua</span></div><div class="k"><b>'+(Math.round(issQty*100)/100)+'</b><span>Total issue qty</span></div><div class="k"><b>'+(last?E(D(last)):'—')+'</b><span>Last use</span></div><div class="k"><b>'+pur.length+'</b><span>Purchase entries</span></div></div>'+
+  (low?'<div style="color:#b91c1c;font-weight:700;font-size:13px">⚠ Stock minimum se kam hai'+(pp?' — Purchase me pehle se hai.':'.')+'</div>':'<div style="color:#15803d;font-weight:700;font-size:13px">✔ Stock theek hai.</div>');
+ h+=sx('📋 Spare details (Spare List)',1,infoTbl(r,{id:1,adj:1,sno:1,qty:1,availableQty:1}),true);
+ h+=sx('📒 Stock ledger — kahan use hua / kab aaya (MR, Breakdown, PM, Utility, Purchase, Adjust)',L.mv.length,tb(['Date','Type','Reference','Qty','Balance'],L.mv.slice().reverse().slice(0,150).map(function(x){return '<tr><td>'+dt(x.d)+'</td><td>'+E(x.t)+'</td><td>'+E(String(x.ref||'').slice(0,140))+'</td><td style="'+(x.q<0?'color:#b91c1c':'color:#15803d')+';font-weight:700">'+(x.q>0?'+':'')+x.q+'</td><td>'+x.b+'</td></tr>'}))+(L.mv.length>150?'<div class="em">Sirf latest 150 dikhaye.</div>':''),true);
+ h+=sx('🛒 Spare Purchase register',pur.length,tb(['Req date','Qty','Status','PR / PO','Vendor','Received','Rec qty','Cost'],pur.map(function(p){return '<tr><td>'+dt(p.reqDate)+'</td><td>'+E(p.qty)+'</td><td>'+E(p.status)+'</td><td>'+E([p.prNo,p.po].filter(Boolean).join(' / '))+'</td><td>'+E(p.vendor||'')+'</td><td>'+dt(p.recDate)+'</td><td>'+E(p.recQty||'')+'</td><td>'+E(p.cost||'')+'</td></tr>'})),pur.length>0);
+ if(cr.length)h+=sx('⭐ Critical Spares list (is spare ka)',cr.length,tb(['Code','Description','Available','Min','Max','Machine','Location'],cr.map(function(c){var av=c.avail!=null?c.avail:c.available;return '<tr><td>'+E(c.code||'')+'</td><td>'+E(c.desc||'')+'</td><td>'+E(av)+'</td><td>'+E(c.min)+'</td><td>'+E(c.max||'')+'</td><td>'+E(c.machine||'')+'</td><td>'+E(c.loc||'')+'</td></tr>'})),true);
+ h+='<div class="ac">'+(low&&!pp?'<button type="button" data-a="re">🛒 Purchase me daalo</button>':'')+'<button type="button" data-a="pr">🖨 Print report</button><button type="button" class="g" data-a="inv">Inventory me dekho</button><button type="button" class="x" data-a="x">Band karo</button></div>';
+ var m=modal(h);
+ m.addEventListener('click',function(e){var a2=e.target.getAttribute&&e.target.getAttribute('data-a');if(!a2)return;if(a2==='pr'){printBox(m,'SPARE DETAIL REPORT - '+(r.code||sCode(r)));return}if(a2==='x'){closeMod();return}
   if(a2==='inv'){closeMod();goSearch('spares','sp_search',r.code||r.desc);return}
   if(a2==='re'){closeMod();reorderUI()}});
  return true;
 }
 function instCard(r){
- var T=today(),due=r.duedate||'',over=due&&due<T;
- var m=modal('<h2>⚖️ '+E(r.name)+'</h2><div class="sub">'+[r.idno,r.make,r.range,r.location].filter(Boolean).map(E).join(' • ')+'</div><div class="kp"><div class="k"><b>'+(r.date?E(D(r.date)):'—')+'</b><span>Last calibration</span></div><div class="k'+(over?' bad':'')+'"><b>'+(due?E(D(due)):'—')+'</b><span>Due date'+(over?' (overdue)':'')+'</span></div><div class="k"><b>'+E(r.certNo||'—')+'</b><span>Certificate</span></div><div class="k"><b>'+E(r.lab||'—')+'</b><span>Lab '+(r.nabl?'• NABL':'')+'</span></div></div>'+
-  '<div class="ac"><button type="button" class="g" data-a="go">Calibration plan me dekho</button><button type="button" class="x" data-a="x">Band karo</button></div>');
- m.addEventListener('click',function(e){var a=e.target.getAttribute&&e.target.getAttribute('data-a');if(!a)return;closeMod();if(a==='go')goSearch('calibration','cal_search',r.idno||r.name)});
+ var T=today(),due=r.duedate||'',over=due&&due<T,days=due?Math.round((Date.parse(due)-Date.parse(T))/864e5):null;
+ var same=arr(data.cal).filter(function(x){return x&&x!==r&&N(x.idno)===N(r.idno)});
+ var h='<h2>⚖️ '+E(r.name)+'</h2><div class="sub">'+[r.idno,r.make,r.range,r.location].filter(Boolean).map(E).join(' • ')+'</div><div class="kp"><div class="k"><b>'+(r.date?E(D(r.date)):'—')+'</b><span>Last calibration</span></div><div class="k'+(over?' bad':'')+'"><b>'+(due?E(D(due)):'—')+'</b><span>Due date'+(over?' (overdue)':'')+'</span></div><div class="k'+(over?' bad':'')+'"><b>'+(days==null||isNaN(days)?'—':(over?Math.abs(days)+' din late':days+' din baaki'))+'</b><span>Status</span></div><div class="k"><b>'+E(r.freq||'—')+'</b><span>Frequency</span></div><div class="k"><b>'+E(r.certNo||'—')+'</b><span>Certificate</span></div><div class="k"><b>'+E(r.lab||'—')+'</b><span>Lab '+(r.nabl?'• NABL '+E(r.nabl):'')+'</span></div></div>';
+ h+=sx('📋 Instrument details (Calibration plan)',1,infoTbl(r,{id:1,sno:1}),true);
+ /* is instrument ke aur records (pichhli calibration entries, agar same ID dobara bhari ho) */
+ if(same.length)h+=sx('🕘 Isi ID ke aur calibration records',same.length,tb(['Calibration date','Due','Certificate','Lab','NABL'],same.sort(function(a,b){return String(b.date||'').localeCompare(String(a.date||''))}).map(function(x){return '<tr><td>'+dt(x.date)+'</td><td>'+dt(x.duedate)+'</td><td>'+E(x.certNo||'')+'</td><td>'+E(x.lab||'')+'</td><td>'+E(x.nabl||'')+'</td></tr>'})),true);
+ /* array fields (agar record me calibration history jaisa kuch ho) */
+ Object.keys(r).forEach(function(k){var v=r[k];if(Array.isArray(v)&&v.length&&typeof v[0]==='object'){var cols=Object.keys(v[0]).filter(function(c){return c.charAt(0)!=='_'&&typeof v[0][c]!=='object'}).slice(0,8);h+=sx('🗂 '+E(k),v.length,tb(cols.map(E),v.map(function(x){return '<tr>'+cols.map(function(c){return '<td>'+E(fv(c,x&&x[c]))+'</td>'}).join('')+'</tr>'})),false)}});
+ h+='<div class="ac"><button type="button" data-a="pr">🖨 Print report</button><button type="button" class="g" data-a="go">Calibration plan me dekho</button><button type="button" class="x" data-a="x">Band karo</button></div>';
+ var m=modal(h);
+ m.addEventListener('click',function(e){var a=e.target.getAttribute&&e.target.getAttribute('data-a');if(!a)return;if(a==='pr'){printBox(m,'INSTRUMENT DETAIL REPORT - '+(r.idno||r.name));return}closeMod();if(a==='go')goSearch('calibration','cal_search',r.idno||r.name)});
  return true;
 }
 window.v156Find=function(txt){try{var s=findSpare(txt);if(s)return spareCard(s);var i=findInst(txt);if(i)return instCard(i)}catch(e){console.warn('v156 find',e)}return false};
