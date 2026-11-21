@@ -21370,26 +21370,94 @@ function filt(rows,dept,q){q=String(q||'').toLowerCase();return rows.filter(func
 function rec(d,n){return DB[d]&&DB[d][n]||null}
 function eff(d,n){var r=rec(d,n);if(r&&r.s)return r.s;return isSun(d)?'WO':''}
 function setRec(d,n,patch){if(!canEdit()){toast('Sirf Admin / Supervisor attendance bhar sakte hain');return false}
+ if(d>ymd(new Date())){toast('Aage ki date ki attendance nahi bhar sakte');return false}
  var day=DB[d]||(DB[d]={}),r=day[n]||(day[n]={});Object.keys(patch).forEach(function(k){r[k]=patch[k]});
  upsert(d,n,r);
  if(!r.s&&!r.sh&&!r.i&&!r.o&&!r.ot&&!r.r){delete day[n];if(!Object.keys(day).length)delete DB[d]}
- return save()}
+ var ok=save();updSteps();return ok}
 function hrs(r){if(!r||!r.i||!r.o)return '';var a=r.i.split(':'),b=r.o.split(':'),m=(+b[0]*60+ +b[1])-(+a[0]*60+ +a[1]);if(m<0)m+=1440;return (Math.round(m/6)/10)+'h'}
 function deptList(rows){var o=[];rows.forEach(function(r){if(r.dept&&o.indexOf(r.dept)<0)o.push(r.dept)});return o}
 function deptSel(id,rows,cur){return '<select id="'+id+'"><option value="">All Departments</option>'+deptList(rows).map(function(d){return '<option'+(d===cur?' selected':'')+'>'+E(d)+'</option>'}).join('')+'</select>'}
 
-var CSS='#empList .etabs{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 12px}#empList .etabs button{border:0;padding:10px 16px;border-radius:999px;background:#eef3f4;color:#0f172a;font-weight:800;font-size:13px;cursor:pointer}#empList .etabs button.on{background:#0e7490;color:#fff;box-shadow:0 3px 10px rgba(14,116,144,.35)}'+
-'#empList .ecards{display:grid;grid-template-columns:repeat(auto-fit,minmax(108px,1fr));gap:8px;margin:6px 0 12px}#empList .ec{border-radius:12px;padding:10px 8px;text-align:center;background:#f1f5f9;border:1px solid #e2e8f0}#empList .ec b{display:block;font-size:22px;line-height:1.1}#empList .ec span{font-size:11px;color:#475569}'+
-'#empList .ebar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 10px}#empList .ebar input,#empList .ebar select{padding:9px;border:1px solid #cfd9de;border-radius:8px;font-size:14px}#empList .ebar button{padding:9px 13px;border:0;border-radius:8px;background:#0e7490;color:#fff;font-weight:700;cursor:pointer;font-size:13px}#empList .ebar button.g{background:#e2e8f0;color:#0f172a}#empList .ebar button.ok{background:#16a34a}'+
-'#empList .edate{font-weight:800;font-size:15px;min-width:150px;text-align:center}#empList .enote{font-size:12px;color:#64748b;margin:4px 0 8px}'+
-'#empList .er{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;border:1px solid #e2e8f0;border-radius:12px;padding:8px 10px;margin-bottom:6px;background:#fff}#empList .er .en b{font-size:14px}#empList .er .en small{display:block;color:#64748b;font-size:11px}'+
-'#empList .es{display:flex;gap:4px;flex-wrap:wrap}#empList .sb{min-width:36px;padding:8px 6px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#334155;font-weight:800;font-size:12px;cursor:pointer}#empList .sb.on{color:#fff;border-color:transparent}#empList .sb:disabled{opacity:.55;cursor:not-allowed}#empList .ex{border:0;background:#f1f5f9;border-radius:8px;padding:8px 10px;cursor:pointer;font-weight:800}'+
-'#empList .ed{grid-column:1/-1;display:none;gap:8px;flex-wrap:wrap;align-items:end;border-top:1px dashed #cbd5e1;padding-top:8px}#empList .er.open .ed{display:flex}#empList .ed label{font-size:11px;color:#475569;display:block}#empList .ed input,#empList .ed select{padding:7px;border:1px solid #cbd5e1;border-radius:7px;font-size:13px}#empList .ed .rm{flex:1;min-width:140px}#empList .ed .rm input{width:100%;box-sizing:border-box}'+
-'#empList .chip{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:800}'+
-'#empList .mw{overflow:auto;max-height:70vh;border:1px solid #e2e8f0;border-radius:10px}#empList table.em{border-collapse:collapse;font-size:11px;width:max-content;min-width:100%}#empList table.em th,#empList table.em td{border:1px solid #e2e8f0;padding:3px 4px;text-align:center;white-space:nowrap}#empList table.em th{background:#e2e8f0;position:sticky;top:0;z-index:2}#empList table.em td.nm,#empList table.em th.nm{position:sticky;left:0;background:#fff;text-align:left;min-width:130px;z-index:1;font-weight:700}#empList table.em th.nm{z-index:3;background:#e2e8f0}#empList table.em td.mc{min-width:26px;cursor:pointer;font-weight:800}#empList table.em td.sun{background:#f8fafc}#empList table.em th.sun{background:#cbd5e1}#empList table.em td.tt{font-weight:800;background:#f8fafc}'+
-'#empList .legend{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0;font-size:11px}'+
-'#empxToast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#0f172a;color:#fff;padding:9px 16px;border-radius:999px;font-size:13px;font-weight:700;z-index:100020;opacity:0;pointer-events:none;transition:opacity .2s}#empxToast.on{opacity:1}'+
-'html body main.wrap #empList .es{display:flex!important;flex-wrap:nowrap!important;gap:4px!important;align-items:stretch!important}'+'html body main.wrap #empList .es>button.sb{flex:1 1 0!important;min-width:32px!important;min-height:38px!important;max-width:none!important;padding:6px 2px!important;border-radius:8px!important;font-size:12px!important;font-weight:800!important;margin:0!important;background:#fff;color:#334155!important;border:1px solid #cbd5e1!important}'+'html body main.wrap #empList .es>button.sb.on{color:#fff!important;border-color:transparent!important}'+'html body main.wrap #empList .etabs{display:flex!important;flex-wrap:nowrap!important;gap:6px!important}'+'html body main.wrap #empList .etabs>button{flex:1 1 0!important;min-width:0!important;min-height:42px!important;padding:6px 4px!important;border-radius:999px!important;font-size:12px!important;font-weight:800!important;margin:0!important;background:#eef3f4;color:#0f172a!important}'+'html body main.wrap #empList .etabs>button.on{background:#0e7490!important;color:#fff!important}'+'html body main.wrap #empList .ebar{display:flex!important;flex-wrap:wrap!important;gap:6px!important;align-items:center!important}'+'html body main.wrap #empList .ebar>*{flex:0 1 auto!important;min-width:0!important;margin:0!important}'+'html body main.wrap #empList .ebar>button{min-height:40px!important;padding:6px 12px!important;border-radius:10px!important;font-size:13px!important;font-weight:700!important;background:#0e7490;color:#fff!important}'+'html body main.wrap #empList .ebar>button.g{background:#e2e8f0!important;color:#0f172a!important}'+'html body main.wrap #empList .ebar>button.ok{background:#16a34a!important}'+'html body main.wrap #empList .ebar>input,html body main.wrap #empList .ebar>select{min-height:40px!important}'+'html body main.wrap #empList .er>button.ex{min-height:38px!important;min-width:40px!important;padding:6px 10px!important;border-radius:8px!important;margin:0!important;background:#f1f5f9;color:#0f172a!important}'+'html body main.wrap #empList .ed>*{flex:0 1 auto!important}html body main.wrap #empList .ed .rm{flex:1 1 140px!important}'+'html body main.wrap #empList .er{background:#fff!important;color:#0f172a!important;border:1px solid #cbd5e1!important}html body main.wrap #empList .er .en b{color:#0f172a!important}html body main.wrap #empList .er .en small{color:#475569!important}'+'html body main.wrap #empList .ec{color:#0f172a!important}html body main.wrap #empList .ec span{color:#475569!important}html body main.wrap #empList .enote{color:#475569!important}'+'html body main.wrap #empList .ed label{color:#475569!important}html body main.wrap #empList .ed input,html body main.wrap #empList .ed select,html body main.wrap #empList .ebar input,html body main.wrap #empList .ebar select{background:#fff!important;color:#0f172a!important}'+'html body main.wrap #empList .edate{color:#0f172a!important}html body main.wrap #empList .mw{background:#fff}html body main.wrap #empList table.em td,html body main.wrap #empList table.em th{color:#0f172a}'+'html body main.wrap #empList #empPaneList,html body main.wrap #empList #empPaneDay,html body main.wrap #empList #empPaneMonth{background:#fff!important;color:#0f172a!important;border-radius:14px;padding:10px!important}'+'@media(max-width:640px){#empList .er{grid-template-columns:1fr auto}#empList .es{grid-column:1/-1;order:3}#empList .sb{flex:1}}@media print{#empxToast{display:none}}';
+var CSS=`
+#empList{--tx:#0b1f4a;--mu:#5b6577;--cd:#fff;--cd2:#eef4fa;--bd:#d3deea;--inp:#fff}
+html:not(.aam-tl) #empList{--tx:#e6f0fa;--mu:#9cc4ee;--cd:#112b4a;--cd2:#0b2036;--bd:#2a5a86;--inp:#0b2036}
+#empList .xs,#empList .ec{--t:var(--c)}
+html:not(.aam-tl) #empList .xs,html:not(.aam-tl) #empList .ec{--t:var(--cl)}
+#empList .etabs{display:grid!important;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+html body main.wrap #empList .etabs>button.xs{display:grid!important;grid-template-columns:auto 1fr;grid-template-areas:"n ct" "lb lb";align-items:center;gap:3px 6px;padding:9px 10px!important;min-height:0!important;height:auto!important;border-radius:14px!important;border:2px solid var(--t)!important;background:var(--cd)!important;color:var(--t)!important;text-align:left;font:700 12px/1.15 Inter,system-ui,sans-serif!important;margin:0!important;cursor:pointer;transition:.15s}
+html body main.wrap #empList .etabs>button.xs .n{grid-area:n;width:22px;height:22px;border-radius:50%;background:var(--c);color:#fff;display:grid;place-items:center;font-size:12px;font-style:normal}
+html body main.wrap #empList .etabs>button.xs .ct{grid-area:ct;justify-self:end;font-size:17px;font-weight:800}
+html body main.wrap #empList .etabs>button.xs .lb{grid-area:lb}
+html body main.wrap #empList .etabs>button.xs.on{background:var(--c)!important;color:#fff!important;border-color:var(--c)!important;box-shadow:0 6px 16px rgba(0,0,0,.28);transform:translateY(-2px)}
+html body main.wrap #empList .etabs>button.xs.on .n{background:#fff;color:var(--c)}
+#empList .xbar{display:flex;height:10px;border-radius:99px;overflow:hidden;background:var(--cd2);border:1px solid var(--bd);margin:2px 0 4px}
+#empList .xbar i{display:block;height:100%}
+#empList .xcap{font-size:12px;color:var(--mu);font-weight:600;margin:0 0 10px}
+#empList .ecards{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px;margin:6px 0 12px}
+#empList .ec{border-radius:12px;padding:9px 10px;background:var(--cd);border:1px solid var(--bd);border-top:4px solid var(--c);text-align:left}
+#empList .ec b{display:block;font-size:24px;line-height:1.1;color:var(--t)}
+html body main.wrap #empList .ec span{font-size:11.5px;color:var(--mu);font-weight:600}
+#empList .xtool,#empList .ebar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 10px}
+html body main.wrap #empList .xtool>input,html body main.wrap #empList .xtool>select,html body main.wrap #empList .ebar>input,html body main.wrap #empList .ebar>select,html body main.wrap #empList .ed input,html body main.wrap #empList .ed select{background:var(--inp)!important;color:var(--tx)!important;border:1.5px solid var(--bd)!important;border-radius:10px!important;padding:8px 10px!important;min-height:40px!important;font-size:14px!important;width:auto;box-sizing:border-box}
+html body main.wrap #empList .xtool>input{flex:1 1 170px}
+html body main.wrap #empList .xtool>button,html body main.wrap #empList .ebar>button{flex:0 0 auto!important;width:auto!important;min-width:0!important;min-height:40px!important;padding:6px 13px!important;border:0!important;border-radius:10px!important;background:#0148b1!important;color:#fff!important;font-size:13px!important;font-weight:700!important;margin:0!important;cursor:pointer}
+html body main.wrap #empList .xtool>button.g,html body main.wrap #empList .ebar>button.g{background:var(--cd2)!important;color:var(--tx)!important;border:1.5px solid var(--bd)!important}
+html body main.wrap #empList .ebar>button.ok{background:#188038!important}
+#empList .xview{display:inline-flex;border:1.5px solid var(--bd);border-radius:10px;overflow:hidden;flex:0 0 auto}
+html body main.wrap #empList .xview>button{border:0!important;border-radius:0!important;margin:0!important;min-height:38px!important;padding:6px 12px!important;background:var(--cd2)!important;color:var(--tx)!important;font-weight:700!important;font-size:13px!important;width:auto!important}
+html body main.wrap #empList .xview>button.on{background:#0148b1!important;color:#fff!important}
+html body main.wrap #empList .xtool,html body main.wrap #empList .ebar{display:flex!important;flex-direction:row!important;flex-wrap:wrap!important}
+html body main.wrap #empList .ebar>*,html body main.wrap #empList .xtool>*{min-width:0;max-width:100%;margin:0}
+html body main.wrap #empList .ebar>input[type=date],html body main.wrap #empList .ebar>input[type=month],html body main.wrap #empList .ebar>input:not([type]),html body main.wrap #empList .ebar>select{flex:1 1 140px!important;width:auto!important}
+html body main.wrap #empList .xtool>select{flex:1 1 140px!important;width:auto!important}
+#empList .edate{font-weight:800;font-size:15px;flex:1 1 110px;min-width:0;text-align:center;color:var(--tx)}
+#empList .enote{font-size:12px;color:var(--mu);margin:4px 0 8px}
+#empList .xc,#empList .er{background:var(--cd);border:1px solid var(--bd);border-radius:14px;color:var(--tx)}
+#empList .xc{border-left:5px solid var(--sc);padding:10px 12px;margin-bottom:8px}
+#empList .xh,#empList .en{display:flex;align-items:center;gap:10px;min-width:0}
+#empList .av{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800;font-size:14px;font-style:normal;flex:none}
+#empList .xi,#empList .en>span{flex:1;min-width:0}
+#empList .xi b,#empList .en b{display:block;font-size:15px;color:var(--tx)}
+#empList .xi small,#empList .en small{display:block;color:var(--mu);font-size:12px}
+#empList .xcode{font-size:11px;font-weight:800;padding:3px 8px;border-radius:8px;background:var(--cd2);color:var(--mu);border:1px solid var(--bd);white-space:nowrap}
+#empList .xf{display:flex;align-items:center;gap:8px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--bd);flex-wrap:wrap}
+#empList .xlb{font-size:11px;color:var(--mu);font-weight:700}
+#empList .xf .es{margin-left:auto}
+#empList .er{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;padding:9px 10px;margin-bottom:8px}
+#empList .es{display:flex;gap:4px}
+html body main.wrap #empList .es>button.sb{flex:1 1 0!important;min-width:32px!important;min-height:38px!important;padding:6px 2px!important;border-radius:9px!important;font-size:12px!important;font-weight:800!important;margin:0!important;background:var(--cd2)!important;color:var(--tx)!important;border:1.5px solid var(--bd)!important;cursor:pointer}
+html body main.wrap #empList .es>button.sb.on{color:#fff!important;border-color:transparent!important}
+html body main.wrap #empList .es>button.sb:disabled{opacity:.55;cursor:not-allowed}
+html body main.wrap #empList .xf .es>button.sb{flex:0 0 38px!important}
+html body main.wrap #empList .er>button.ex{min-height:38px!important;min-width:40px!important;padding:6px 10px!important;border-radius:9px!important;margin:0!important;border:1.5px solid var(--bd)!important;background:var(--cd2)!important;color:var(--tx)!important;font-weight:800}
+#empList .ed{grid-column:1/-1;display:none;gap:8px;flex-wrap:wrap;align-items:end;border-top:1px dashed var(--bd);padding-top:8px}
+#empList .er.open .ed{display:flex}
+#empList .ed label{font-size:11px;color:var(--mu);display:block}
+#empList .ed .rm{flex:1 1 140px}
+#empList .ed .rm input{width:100%}
+#empList .chip{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:800}
+#empList .mw{overflow:auto;max-height:70vh;border:1.5px solid var(--bd);border-radius:12px;background:var(--cd)}
+#empList table.em,#empList table.emt{border-collapse:collapse;font-size:11px;width:max-content;min-width:100%}
+#empList table.emt{font-size:13px;width:100%}
+#empList table.em th,#empList table.em td,#empList table.emt th,#empList table.emt td{border:1px solid var(--bd);padding:4px 5px;text-align:center;white-space:nowrap;color:var(--tx);background:var(--cd)}
+#empList table.emt td{padding:8px 9px}
+#empList table.em th,#empList table.emt th{background:#123c62;color:#fff;position:sticky;top:0;z-index:2}
+#empList table.em td.nm,#empList table.em th.nm{position:sticky;left:0;text-align:left;min-width:130px;z-index:1;font-weight:700}
+#empList table.em th.nm{z-index:3}
+html body main.wrap #empList table.em th,html body main.wrap #empList table.emt th{background:#123c62!important;color:#fff!important}
+html body main.wrap #empList table.em th.sun{background:#0b2545!important}
+#empList table.emt td.l{text-align:left}
+#empList table.em td.mc{min-width:26px;cursor:pointer;font-weight:800}
+#empList table.em td.mc.fut{opacity:.4;cursor:not-allowed}
+#empList table.em td.sun,#empList table.em td.tt{background:var(--cd2)}
+#empList table.em th.sun{background:#0b2545}
+#empList table.em td.tt{font-weight:800}
+#empList .legend{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 2px;font-size:11px}
+#empxToast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#0b2545;color:#fff;padding:9px 16px;border-radius:999px;font-size:13px;font-weight:700;z-index:100020;opacity:0;pointer-events:none;transition:opacity .2s}#empxToast.on{opacity:1}
+@media(max-width:640px){#empList .er{grid-template-columns:1fr auto}#empList .es{grid-column:1/-1;order:3}#empList .etabs>button.xs .lb{font-size:11px}}
+@media print{#empxToast{display:none}}
+`;
 (function(){var s=document.createElement('style');s.textContent=CSS;document.head.appendChild(s)})();
 
 /* ---------- shell ---------- */
@@ -21397,44 +21465,60 @@ function buildShell(){
  var pn=document.getElementById('empList');if(!pn||pn.getAttribute('data-empx'))return !!(pn&&pn.getAttribute('data-empx'));
  pn.setAttribute('data-empx','1');
  pn.innerHTML='<div class="card"><div class="head">Milestone Gears Ltd. UNIT-7</div><div class="head2">MAINTENANCE EMPLOYEES & ATTENDANCE — UNIT VII</div>'+
- '<div class="etabs"><button type="button" data-act="tab" data-v="list">👥 Employees</button><button type="button" data-act="tab" data-v="day">📅 Daily Attendance</button><button type="button" data-act="tab" data-v="month">📊 Monthly Report</button></div>'+
- '<div id="empPaneList"><div class="ecards" id="empCards"></div><div class="summary" id="empSummary"></div>'+
- '<div class="toolbar"><input id="emp_search" placeholder="Search name, department, designation..." oninput="empRenderList()"><select id="emp_dept" onchange="empRenderList()"><option value="">All Departments</option></select>'+
- '<button class="secondary" onclick="empPrintList()">🖨️ Print</button></div>'+
- '<div class="tablewrap" style="overflow:auto"><table class="tbl" style="min-width:0"><thead><tr><th>Sr.No.</th><th>Name</th><th>Emp. Code</th><th>Department</th><th>Designation</th><th>Aaj ki Attendance</th></tr></thead><tbody id="empListBody"></tbody></table></div></div>'+
+ '<div class="etabs">'+step('list','1','👥 Employees','empS1','#0148b1','#7fb0ff')+step('day','2','📅 Daily Attendance','empS2','#188038','#6fdc8c')+step('month','3','📊 Monthly Report','empS3','#7b1fa2','#d79bff')+'</div>'+
+ '<div id="empPaneList"><div class="xbar" id="empBar"></div><div class="xcap" id="empCap"></div><div class="ecards" id="empCards"></div>'+
+ '<div class="xtool"><input id="emp_search" placeholder="🔍 Naam / code / designation..." oninput="empRenderList()"><select id="emp_dept" onchange="empRenderList()"><option value="">All Departments</option></select>'+
+ '<div class="xview"><button type="button" data-act="lv" data-v="cards">Cards</button><button type="button" data-act="lv" data-v="table">Table</button></div><button type="button" class="g" onclick="empPrintList()">🖨️ Print</button></div>'+
+ '<div id="empCardList"></div><div class="mw" id="empTblWrap" style="display:none"><table class="emt"><thead><tr><th>Sr.</th><th>Name</th><th>Emp. Code</th><th>Department</th><th>Designation</th><th>Aaj ki Attendance</th></tr></thead><tbody id="empListBody"></tbody></table></div></div>'+
  '<div id="empPaneDay" style="display:none"></div><div id="empPaneMonth" style="display:none"></div></div>';
  return true;
 }
 function chip(s){if(!s)return '<span class="chip" style="background:#f1f5f9;color:#94a3b8">Not marked</span>';var t=ST[s];return '<span class="chip" style="background:'+t.bg+';color:'+t.c+'">'+t.l+'</span>'}
+var PAL=['#0148b1','#e8710a','#188038','#00838f','#7b1fa2','#d93025'],lview='cards';
+function ini(n){var p=String(n||'?').trim().split(/\s+/);return ((p[0]||'?').charAt(0)+(p.length>1?p[p.length-1].charAt(0):'')).toUpperCase()}
+function av(n){var h=0,s=String(n||'');for(var i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))>>>0;return '<i class="av" style="background:'+PAL[h%PAL.length]+'">'+E(ini(n))+'</i>'}
+function step(v,n,lb,id,c,cl){return '<button type="button" class="xs" data-act="tab" data-v="'+v+'" style="--c:'+c+';--cl:'+cl+'"><i class="n">'+n+'</i><b class="ct" id="'+id+'">0</b><span class="lb">'+lb+'</span></button>'}
+function tile(v,l,c,cl){return '<div class="ec" style="--c:'+c+';--cl:'+cl+'"><b>'+v+'</b><span>'+l+'</span></div>'}
+function updSteps(){try{var all=emps(),t=ymd(new Date()),c=cnt(all,t),e1=$('#empS1'),e2=$('#empS2'),e3=$('#empS3');
+ if(e1)e1.textContent=all.length;if(e2)e2.textContent=(all.length-c.N)+'/'+all.length;if(e3)e3.textContent=mlabel().slice(0,3)}catch(e){}}
 function cnt(rows,d){var c={P:0,A:0,L:0,H:0,WO:0,HO:0,N:0};rows.forEach(function(r){var s=eff(d,r.name);if(s)c[s]++;else c.N++});return c}
 
 /* ---------- 1) Employees ---------- */
 function renderList(){
  var body=document.getElementById('empListBody');if(!body)return;
- var all=emps(),today=ymd(new Date());
+ var all=emps(),today=ymd(new Date()),ce=canEdit();
  var sel=document.getElementById('emp_dept'),deps=deptList(all);
  if(sel&&sel.options.length!==deps.length+1){var cur=sel.value;sel.innerHTML='<option value="">All Departments</option>'+deps.map(function(d){return '<option>'+E(d)+'</option>'}).join('');sel.value=cur}
  var rows=(typeof empFiltered==='function')?empFiltered():all;
+ var cl=document.getElementById('empCardList'),tw=document.getElementById('empTblWrap');
+ if(cl)cl.style.display=lview==='cards'?'':'none';if(tw)tw.style.display=lview==='table'?'':'none';
+ [].forEach.call(document.querySelectorAll('#empList .xview button'),function(b){b.classList.toggle('on',b.getAttribute('data-v')===lview)});
+ if(cl)cl.innerHTML=rows.map(function(r){var s=eff(today,r.name),t=s?ST[s]:null,n=E(r.name),dn=r.disp||r.name;
+  return '<div class="xc" style="--sc:'+(t?t.c:'#64748b')+'"><div class="xh">'+av(dn)+'<div class="xi"><b>'+E(dn)+'</b><small>'+E([r.desig,r.dept].filter(Boolean).join(' • '))+'</small></div><span class="xcode">'+(r.code?'Code '+E(r.code):'Code —')+'</span></div>'+
+  '<div class="xf"><span class="xlb">Aaj</span>'+(r.noAtt?'<span class="chip" style="background:#e2e8f0;color:#475569">Attendance nahi</span>':chip(s))+
+  (ce&&!r.noAtt?'<div class="es">'+['P','A','L','H'].map(function(k){var on=s===k;return '<button type="button" class="sb'+(on?' on':'')+'" data-act="qs" data-n="'+n+'" data-s="'+k+'" title="'+ST[k].l+'"'+(on?' style="background:'+ST[k].c+'"':'')+'>'+ST[k].s+'</button>'}).join('')+'</div>':'')+'</div></div>'}).join('')||'<div class="enote">Koi employee nahi mila.</div>';
  body.innerHTML=rows.map(function(r,i){
-  return '<tr><td>'+(i+1)+'</td><td style="text-align:left"><b>'+E(r.disp||r.name)+'</b></td><td>'+E(r.code||'—')+'</td><td>'+E(r.dept)+'</td><td>'+E(r.desig)+'</td><td>'+(r.noAtt?'<span style="color:#94a3b8">— (attendance nahi)</span>':chip(eff(today,r.name)))+'</td></tr>'}).join('')||'<tr><td colspan="6">Koi employee nahi mila.</td></tr>';
- var c=cnt(all,today),sm=document.getElementById('empSummary'),cd=document.getElementById('empCards');
- if(cd)cd.innerHTML='<div class="ec"><b>'+rows.length+'</b><span>Maintenance Employees</span></div><div class="ec" style="background:#dcfce7"><b style="color:#16a34a">'+(c.P+c.H)+'</b><span>Aaj Present</span></div><div class="ec" style="background:#fee2e2"><b style="color:#dc2626">'+c.A+'</b><span>Aaj Absent</span></div><div class="ec" style="background:#fef3c7"><b style="color:#d97706">'+c.L+'</b><span>Aaj Leave</span></div><div class="ec"><b>'+c.N+'</b><span>Mark nahi hua</span></div>';
- if(sm){sm.innerHTML=''}
+  return '<tr><td>'+(i+1)+'</td><td class="l"><b>'+E(r.disp||r.name)+'</b></td><td>'+E(r.code||'—')+'</td><td>'+E(r.dept)+'</td><td>'+E(r.desig)+'</td><td>'+(r.noAtt?'<span style="color:#94a3b8">— (attendance nahi)</span>':chip(eff(today,r.name)))+'</td></tr>'}).join('')||'<tr><td colspan="6">Koi employee nahi mila.</td></tr>';
+ var c=cnt(all,today),tot=all.length||1,bar=document.getElementById('empBar'),cap=document.getElementById('empCap'),cd=document.getElementById('empCards');
+ if(bar)bar.innerHTML=[['P',c.P],['H',c.H],['L',c.L],['A',c.A],['WO',c.WO],['HO',c.HO]].map(function(x){return x[1]?'<i style="width:'+(x[1]*100/tot)+'%;background:'+ST[x[0]].c+'" title="'+ST[x[0]].l+' '+x[1]+'"></i>':''}).join('');
+ if(cap)cap.textContent='Aaj '+fmt(today)+' ('+dayName(today)+') — '+all.length+' employees mein se '+(all.length-c.N)+' ki attendance mark hai'+(ce?'. Neeche card se seedha P / A / L / ½ dabao.':'.');
+ if(cd)cd.innerHTML=tile(rows.length,'Employees','#0148b1','#7fb0ff')+tile(c.P,'Present','#188038','#6fdc8c')+tile(c.H,'Half Day','#7b1fa2','#d79bff')+tile(c.A,'Absent','#d93025','#ff9a93')+tile(c.L,'Leave','#e8710a','#ffb86b')+tile(c.N,'Mark nahi hua','#64748b','#b6c4d4');
+ updSteps();
 }
 
 /* ---------- 2) Daily attendance ---------- */
 function renderDay(){
  var p=document.getElementById('empPaneDay');if(!p)return;
  var keepD=($('#attDept',p)||{}).value||'',keepQ=($('#attQ',p)||{}).value||'';
- var all=emps(),rows=filt(all,keepD,keepQ),ce=canEdit(),c=cnt(rows,curDate);
- var h='<div class="ebar"><button type="button" class="g" data-act="dprev">◀</button><div class="edate">'+fmt(curDate)+' ('+dayName(curDate)+')</div><button type="button" class="g" data-act="dnext">▶</button><input type="date" id="attDate" value="'+curDate+'"><button type="button" class="g" data-act="dtoday">Aaj</button></div>'+
- '<div class="ebar">'+deptSel('attDept',all,keepD)+'<input id="attQ" placeholder="Naam search..." value="'+E(keepQ)+'">'+(ce?'<button type="button" class="ok" data-act="allp">✅ Sab Present (jo mark nahi)</button>':'')+'<button type="button" class="g" data-act="pday">🖨 Print</button><button type="button" class="g" data-act="backup">⬇ Backup</button>'+(ce?'<button type="button" class="g" data-act="restore">⬆ Restore</button><input type="file" id="attFile" accept=".json" style="display:none">':'')+'</div>'+
- '<div class="ecards"><div class="ec" style="background:#dcfce7"><b style="color:#16a34a">'+c.P+'</b><span>Present</span></div><div class="ec" style="background:#ede9fe"><b style="color:#7c3aed">'+c.H+'</b><span>Half Day</span></div><div class="ec" style="background:#fee2e2"><b style="color:#dc2626">'+c.A+'</b><span>Absent</span></div><div class="ec" style="background:#fef3c7"><b style="color:#d97706">'+c.L+'</b><span>Leave</span></div><div class="ec"><b>'+(c.WO+c.HO)+'</b><span>Week Off / Holiday</span></div><div class="ec"><b>'+c.N+'</b><span>Mark nahi hua</span></div></div>'+
- (ce?'':'<div class="enote">👁 Sirf dekhne ke liye — attendance Admin / Supervisor bharte hain.</div>')+
+ var all=emps(),rows=filt(all,keepD,keepQ),fut=curDate>ymd(new Date()),ce=canEdit()&&!fut,c=cnt(rows,curDate);
+ var h='<div class="ebar"><button type="button" class="g" data-act="dprev">◀</button><div class="edate">'+fmt(curDate)+' ('+dayName(curDate)+')</div><button type="button" class="g" data-act="dnext">▶</button><input type="date" id="attDate" max="'+ymd(new Date())+'" value="'+curDate+'"><button type="button" class="g" data-act="dtoday">Aaj</button></div>'+
+ '<div class="ebar">'+deptSel('attDept',all,keepD)+'<input id="attQ" placeholder="Naam search..." value="'+E(keepQ)+'">'+(ce?'<button type="button" class="ok" data-act="allp">✅ Sab Present (jo mark nahi)</button>':'')+(canEdit()?'<button type="button" data-act="leave">🏖 Multi-day Leave</button>':'')+'<button type="button" class="g" data-act="pday">🖨 Print</button><button type="button" class="g" data-act="backup">⬇ Backup</button>'+(ce?'<button type="button" class="g" data-act="restore">⬆ Restore</button><input type="file" id="attFile" accept=".json" style="display:none">':'')+(isAdmin()&&futRecs().length?'<button type="button" class="ok" style="background:#d93025!important" data-act="cleanfut">🧹 Aage ki entries hatao ('+futRecs().length+')</button>':'')+'</div>'+
+ '<div class="ecards">'+tile(c.P,'Present','#188038','#6fdc8c')+tile(c.H,'Half Day','#7b1fa2','#d79bff')+tile(c.A,'Absent','#d93025','#ff9a93')+tile(c.L,'Leave','#e8710a','#ffb86b')+tile(c.WO+c.HO,'Week Off / Holiday','#00838f','#6fd6e0')+tile(c.N,'Mark nahi hua','#64748b','#b6c4d4')+'</div>'+
+ (fut?'<div class="enote">⛔ Aage ki date ki attendance nahi bhari ja sakti.</div>':ce?'':'<div class="enote">👁 Sirf dekhne ke liye — attendance Admin / Supervisor bharte hain.</div>')+
  (isSun(curDate)?'<div class="enote">Sunday — by default Week Off. Kisi ne kaam kiya ho to P dabao.</div>':'');
  h+=rows.map(function(r){var rc=rec(curDate,r.name)||{},s=eff(curDate,r.name),o=!!open[r.name]||!!(rc.i||rc.o||rc.ot||rc.r||(rc.sh&&rc.sh!=='General'));
   var n=E(r.name),dn=E(r.disp||r.name);
-  return '<div class="er'+(o?' open':'')+'" data-n="'+n+'"><div class="en"><b>'+dn+'</b><small>'+E([r.desig,r.dept].filter(Boolean).join(' • '))+(hrs(rc)?' • '+hrs(rc):'')+'</small></div>'+
+  return '<div class="er'+(o?' open':'')+'" data-n="'+n+'"><div class="en">'+av(r.disp||r.name)+'<span><b>'+dn+'</b><small>'+E([r.desig,r.dept].filter(Boolean).join(' • '))+(hrs(rc)?' • '+hrs(rc):'')+'</small></span></div>'+
   '<div class="es">'+ORDER.map(function(k){var on=(rc.s===k)||(!rc.s&&s===k);return '<button type="button" class="sb'+(on?' on':'')+'" data-act="st" data-n="'+n+'" data-s="'+k+'" title="'+ST[k].l+'"'+(on?' style="background:'+ST[k].c+'"':'')+(ce?'':' disabled')+'>'+ST[k].s+'</button>'}).join('')+'</div>'+
   '<button type="button" class="ex" data-act="ex" data-n="'+n+'" title="Shift / time / OT / remark">⋯</button>'+
   '<div class="ed"><div><label>Shift</label><select data-f="sh" data-n="'+n+'"'+(ce?'':' disabled')+'>'+SHIFTS.map(function(x){return '<option'+((rc.sh||'General')===x?' selected':'')+'>'+x+'</option>'}).join('')+'</select></div>'+
@@ -21457,12 +21541,12 @@ function renderMonth(){
  var p=document.getElementById('empPaneMonth');if(!p)return;
  var keepD=($('#attMDept',p)||{}).value||'',keepQ=($('#attMQ',p)||{}).value||'';
  var all=emps(),rows=filt(all,keepD,keepQ),days=monthDays(curMonth),ce=canEdit();
- var h='<div class="ebar"><button type="button" class="g" data-act="mprev">◀</button><input type="month" id="attMonth" value="'+curMonth+'"><button type="button" class="g" data-act="mnext">▶</button>'+deptSel('attMDept',all,keepD)+'<input id="attMQ" placeholder="Naam search..." value="'+E(keepQ)+'"><button type="button" class="g" data-act="pmonth">🖨 Print</button><button type="button" data-act="csv">⬇ Excel (CSV)</button></div>'+
+ var h='<div class="ebar"><button type="button" class="g" data-act="mprev">◀</button><input type="month" id="attMonth" value="'+curMonth+'"><button type="button" class="g" data-act="mnext">▶</button>'+deptSel('attMDept',all,keepD)+'<input id="attMQ" placeholder="Naam search..." value="'+E(keepQ)+'"><button type="button" class="g" data-act="pmonth">🖨 Print</button><button type="button" data-act="csv">⬇ Excel (CSV)</button>'+(canEdit()?'<button type="button" data-act="leave">🏖 Multi-day Leave</button>':'')+'</div>'+
  '<div class="enote">'+(ce?'Kisi bhi din ke box par tap karo: P → A → L → ½ → WO → HO → khali. ':'')+'Sunday by default Week Off hai (halka rang).</div>';
  h+='<div class="mw"><table class="em"><thead><tr><th class="nm">Employee</th>'+days.map(function(d){return '<th class="'+(isSun(d)?'sun':'')+'">'+(+d.slice(8))+'<br><small>'+dayName(d).slice(0,2)+'</small></th>'}).join('')+'<th>P</th><th>½</th><th>A</th><th>L</th><th>WO/HO</th><th>Working<br>Days</th><th>OT</th></tr></thead><tbody>';
  rows.forEach(function(r){var t=totals(r.name,days);
-  h+='<tr><td class="nm">'+E(r.disp||r.name)+'</td>'+days.map(function(d){var s=eff(d,r.name),x=s?ST[s]:null;return '<td class="mc'+(isSun(d)?' sun':'')+'" data-act="cell" data-n="'+E(r.name)+'" data-d="'+d+'"'+(x?' style="background:'+x.bg+';color:'+x.c+'"':'')+'>'+(x?x.s:'')+'</td>'}).join('')+
-  '<td class="tt">'+t.P+'</td><td class="tt">'+t.H+'</td><td class="tt" style="color:#dc2626">'+t.A+'</td><td class="tt">'+t.L+'</td><td class="tt">'+(t.WO+t.HO)+'</td><td class="tt"><b>'+t.work+'</b></td><td class="tt">'+(t.ot||'')+'</td></tr>'});
+  h+='<tr><td class="nm">'+E(r.disp||r.name)+'</td>'+days.map(function(d){var s=eff(d,r.name),x=s?ST[s]:null;return '<td class="mc'+(isSun(d)?' sun':'')+(d>ymd(new Date())?' fut':'')+'" data-act="cell" data-n="'+E(r.name)+'" data-d="'+d+'"'+(x?' style="background:'+x.bg+';color:'+x.c+'"':'')+'>'+(x?x.s:'')+'</td>'}).join('')+
+  '<td class="tt">'+t.P+'</td><td class="tt">'+t.H+'</td><td class="tt" style="color:#d93025">'+t.A+'</td><td class="tt">'+t.L+'</td><td class="tt">'+(t.WO+t.HO)+'</td><td class="tt"><b>'+t.work+'</b></td><td class="tt">'+(t.ot||'')+'</td></tr>'});
  h+='</tbody></table></div><div class="legend">'+ORDER.map(function(k){return '<span class="chip" style="background:'+ST[k].bg+';color:'+ST[k].c+'">'+ST[k].s+' = '+ST[k].l+'</span>'}).join('')+'</div>';
  var sc=window.scrollY;p.innerHTML=h;window.scrollTo(0,sc);
 }
@@ -21486,26 +21570,80 @@ function doRestore(f){var fr=new FileReader();fr.onload=function(){try{var x=JSO
 /* ---------- wiring ---------- */
 function setView(v){view=v;['list','day','month'].forEach(function(k){var e=document.getElementById({list:'empPaneList',day:'empPaneDay',month:'empPaneMonth'}[k]);if(e)e.style.display=(k===v)?'':'none'});
  [].forEach.call(document.querySelectorAll('#empList .etabs button'),function(b){b.classList.toggle('on',b.getAttribute('data-v')===v)});refresh()}
-function refresh(){load();if(view==='day')renderDay();else if(view==='month')renderMonth();else renderList()}
-function shiftDate(n){var d=pd(curDate);d.setDate(d.getDate()+n);curDate=ymd(d);renderDay()}
+function lvDays(f,t){var o=[];if(!f||!t||t<f)return o;var d=pd(f),e=pd(t);while(d<=e&&o.length<=62){o.push(ymd(d));d.setDate(d.getDate()+1)}return o}
+function lvPlan(){var g=function(i){return document.getElementById(i)},n=g('lv_emp').value,days=lvDays(g('lv_from').value,g('lv_to').value),sk=g('lv_sun').checked,ow=g('lv_ow').checked,mark=[],skipS=0,keep=0;
+ days.forEach(function(d){if(sk&&isSun(d)){skipS++;return}var r=rec(d,n);if(r&&r.s&&r.s!=='L'&&!ow){keep++;return}mark.push(d)});
+ return {n:n,days:days,mark:mark,skipS:skipS,keep:keep}}
+function lvPreview(){var p=lvPlan(),el=document.getElementById('lv_sum'),f=document.getElementById('lv_from').value,t=document.getElementById('lv_to').value;if(!el)return;
+ if(!f||!t||t<f){el.textContent='From / To date sahi chuno (To, From se pehle nahi ho sakti).';el.style.color='#d93025';return}
+ if(p.days.length>62){el.textContent='Ek baar me maximum 62 din.';el.style.color='#d93025';return}
+ el.style.color='#0b1f4a';el.textContent='Kul '+p.days.length+' din • Leave lagegi: '+p.mark.length+' din'+(p.skipS?' • Sunday chhode: '+p.skipS:'')+(p.keep?' • Pehle se mark (P/A/½...) chhode: '+p.keep:'')}
+function openLeave(){
+ if(!canEdit())return toast('Sirf Admin / Supervisor Leave laga sakte hain');
+ var old=document.getElementById('empLvBox');if(old)old.remove();
+ var rows=emps(),inp='width:100%;box-sizing:border-box;padding:9px;border:1.5px solid #cbd5e1;border-radius:10px;font-size:14px;background:#fff;color:#0b1f4a',lb='display:block;font-size:12px;font-weight:700;color:#5b6577;margin:8px 0 3px';
+ var box=document.createElement('div');box.id='empLvBox';box.style.cssText='position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,.55);z-index:99995;overflow:auto;padding:10px';
+ box.innerHTML='<div style="background:#fff;color:#0b1f4a;border-radius:16px;max-width:440px;margin:20px auto;padding:14px;font:14px Inter,system-ui,sans-serif">'+
+ '<div style="font-size:17px;font-weight:800">🏖 Multi-day Leave</div><div style="color:#5b6577;font-size:12px;margin:2px 0 6px">Ek se zyada din ki chhutti ek saath lagao. Aage ki date (planned leave) bhi lag sakti hai.</div>'+
+ '<label style="'+lb+'">Employee</label><select id="lv_emp" style="'+inp+'">'+rows.map(function(r){return '<option value="'+E(r.name)+'">'+E(r.disp||r.name)+(r.desig?' — '+E(r.desig):'')+'</option>'}).join('')+'</select>'+
+ '<div style="display:flex;gap:8px"><div style="flex:1"><label style="'+lb+'">From date</label><input type="date" id="lv_from" value="'+curDate+'" style="'+inp+'"></div><div style="flex:1"><label style="'+lb+'">To date</label><input type="date" id="lv_to" value="'+curDate+'" style="'+inp+'"></div></div>'+
+ '<label style="'+lb+'">Remark / karan</label><input id="lv_rem" placeholder="jaise: CL, medical, shaadi..." style="'+inp+'">'+
+ '<label style="display:flex;gap:8px;align-items:center;margin-top:10px"><input type="checkbox" id="lv_sun" checked> Sunday (Week Off) chhod do</label>'+
+ '<label style="display:flex;gap:8px;align-items:center;margin-top:6px"><input type="checkbox" id="lv_ow"> Pehle se mark (P / A / ½) din bhi badal do</label>'+
+ '<div id="lv_sum" style="margin:12px 0;padding:10px;border-radius:10px;background:#eef4fa;font-weight:700;font-size:13px"></div>'+
+ '<div style="display:flex;gap:8px"><button type="button" id="lv_ok" style="flex:1;padding:11px;border:0;border-radius:10px;background:#e8710a;color:#fff;font-weight:800;font-size:14px">✔ Leave lagao</button><button type="button" id="lv_x" style="flex:0 0 auto;padding:11px 16px;border:1.5px solid #cbd5e1;border-radius:10px;background:#fff;color:#0b1f4a;font-weight:700">Cancel</button></div></div>';
+ document.body.appendChild(box);
+ box.addEventListener('input',lvPreview);box.addEventListener('change',lvPreview);
+ box.querySelector('#lv_x').onclick=function(){box.remove()};
+ box.addEventListener('mousedown',function(e){if(e.target===box)box.remove()});
+ box.querySelector('#lv_ok').onclick=function(){
+  var f=document.getElementById('lv_from').value,t=document.getElementById('lv_to').value;
+  if(!rows.length)return toast('Koi employee nahi');
+  if(!f||!t||t<f)return alert('From / To date sahi chuno.');
+  var p=lvPlan();if(p.days.length>62)return alert('Ek baar me maximum 62 din.');
+  if(!p.mark.length)return alert('In dino me Leave lagane layak koi din nahi bacha.');
+  var rem=document.getElementById('lv_rem').value.trim();
+  p.mark.forEach(function(d){var day=DB[d]||(DB[d]={}),r=day[p.n]||(day[p.n]={});r.s='L';if(rem)r.r=rem;upsert(d,p.n,r)});
+  if(!save())return;updSteps();
+  try{audit('ATT_LEAVE','attendance',p.n+': Leave '+f+' to '+t+' ('+p.mark.length+' din)')}catch(e){}
+  box.remove();toast(p.mark.length+' din ki Leave lag gayi');refresh()};
+ lvPreview()}
+function futRecs(){var t=ymd(new Date());return attArr().filter(function(x){return x&&x.date&&x.date>t&&x.status!=='L'})}
+function cleanFuture(){
+ if(!isAdmin())return toast('Sirf Admin ye kar sakta hai');
+ try{if(typeof mmsGuardDelete==='function'&&!mmsGuardDelete('att'))return}catch(e){}
+ var f=futRecs();if(!f.length)return toast('Aage ki date ki koi entry nahi hai');
+ var ds=[];f.forEach(function(x){if(ds.indexOf(x.date)<0)ds.push(x.date)});ds.sort();
+ if(!confirm(f.length+' entries aage ki date ('+ds.slice(0,6).map(fmt).join(', ')+(ds.length>6?' ...':'')+') ki mili hain.\n\nInhe DELETE karein? (Multi-day Leave se lagi planned Leave nahi hategi.) Ye sab devices se hat jayengi aur wapas nahi aayengi.'))return;
+ var t=ymd(new Date()),a=attArr(),k=0;
+ for(var i=a.length-1;i>=0;i--){if(a[i]&&a[i].date&&a[i].date>t&&a[i].status!=='L'){a.splice(i,1);k++}}
+ try{persist('att')}catch(e){return toast('⚠ Save nahi hua')}
+ try{audit('ATT_CLEAN','attendance','Future-date attendance removed: '+k)}catch(e){}
+ toast(k+' entries hat gayi');refresh()}
+function refresh(){load();if(view==='day')renderDay();else if(view==='month')renderMonth();else renderList();updSteps()}
+function shiftDate(n){var d=pd(curDate);d.setDate(d.getDate()+n);var x=ymd(d);if(x>ymd(new Date())){toast('Aage ki date nahi chun sakte');return}curDate=x;renderDay()}
 function shiftMonth(n){var a=curMonth.split('-'),d=new Date(+a[0],+a[1]-1+n,1);curMonth=ymd(d).slice(0,7);renderMonth()}
 function init(){
  if(!buildShell())return false;
  var pn=document.getElementById('empList');if(pn.getAttribute('data-empx-bound'))return true;pn.setAttribute('data-empx-bound','1');
  pn.addEventListener('click',function(e){var t=e.target.closest&&e.target.closest('[data-act]');if(!t)return;var a=t.getAttribute('data-act'),n=t.getAttribute('data-n');
   if(a==='tab')return setView(t.getAttribute('data-v'));
+  if(a==='cleanfut')return cleanFuture();
+  if(a==='leave')return openLeave();
+  if(a==='lv'){lview=t.getAttribute('data-v');return renderList()}
+  if(a==='qs'){var td=ymd(new Date()),sv=t.getAttribute('data-s'),c1=rec(td,n);if(setRec(td,n,{s:(c1&&c1.s===sv)?'':sv}))renderList();return}
   if(a==='dprev')return shiftDate(-1);if(a==='dnext')return shiftDate(1);if(a==='dtoday'){curDate=ymd(new Date());return renderDay()}
   if(a==='mprev')return shiftMonth(-1);if(a==='mnext')return shiftMonth(1);
   if(a==='pday')return printDay();if(a==='pmonth')return printMonth();if(a==='csv')return csvMonth();if(a==='backup')return doBackup();
   if(a==='restore'){var f=document.getElementById('attFile');if(f)f.click();return}
   if(a==='ex'){open[n]=!open[n];var row=t.closest('.er');if(row)row.classList.toggle('open',!!open[n]);return}
   if(a==='st'){var s=t.getAttribute('data-s'),cur=rec(curDate,n);var same=cur&&cur.s===s;if(setRec(curDate,n,{s:same?'':s}))renderDay();return}
-  if(a==='allp'){var rows=filt(emps(),($('#attDept')||{}).value||'',($('#attQ')||{}).value||''),k=0;rows.forEach(function(r){if(!eff(curDate,r.name)){var day=DB[curDate]||(DB[curDate]={});var rr=(day[r.name]||(day[r.name]={}));rr.s='P';upsert(curDate,r.name,rr);k++}});if(!canEdit()){toast('Sirf Admin / Supervisor');return}if(k){save();toast(k+' employee Present mark hue')}else toast('Sab pehle se mark hain');return renderDay()}
+  if(a==='allp'){if(curDate>ymd(new Date())){toast('Aage ki date ki attendance nahi bhar sakte');return}var rows=filt(emps(),($('#attDept')||{}).value||'',($('#attQ')||{}).value||''),k=0;rows.forEach(function(r){if(!eff(curDate,r.name)){var day=DB[curDate]||(DB[curDate]={});var rr=(day[r.name]||(day[r.name]={}));rr.s='P';upsert(curDate,r.name,rr);k++}});if(!canEdit()){toast('Sirf Admin / Supervisor');return}if(k){save();toast(k+' employee Present mark hue')}else toast('Sab pehle se mark hain');return renderDay()}
   if(a==='cell'){if(!canEdit())return toast('Sirf Admin / Supervisor attendance bhar sakte hain');var d=t.getAttribute('data-d'),r0=rec(d,n),c0=r0&&r0.s||'',i=ORDER.indexOf(c0),nx=i+1>=ORDER.length?'':ORDER[i+1];if(setRec(d,n,{s:nx})){var x=nx?ST[nx]:null;t.textContent=x?x.s:'';t.style.background=x?x.bg:'';t.style.color=x?x.c:'';
     var rowTr=t.closest('tr'),days=monthDays(curMonth),tt=totals(n,days),c=rowTr.querySelectorAll('td.tt');c[0].textContent=tt.P;c[1].textContent=tt.H;c[2].textContent=tt.A;c[3].textContent=tt.L;c[4].textContent=tt.WO+tt.HO;c[5].innerHTML='<b>'+tt.work+'</b>';c[6].textContent=tt.ot||''}return}
  });
  pn.addEventListener('change',function(e){var t=e.target;
-  if(t.id==='attDate'&&t.value){curDate=t.value;return renderDay()}
+  if(t.id==='attDate'&&t.value){curDate=t.value>ymd(new Date())?ymd(new Date()):t.value;if(t.value>curDate)toast('Aage ki date nahi chun sakte');return renderDay()}
   if(t.id==='attMonth'&&t.value){curMonth=t.value;return renderMonth()}
   if(t.id==='attDept')return renderDay();if(t.id==='attMDept')return renderMonth();
   if(t.id==='attFile'&&t.files&&t.files[0]){doRestore(t.files[0]);t.value='';return}
