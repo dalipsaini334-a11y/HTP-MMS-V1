@@ -5314,6 +5314,7 @@ function mmRemoveMachine(){
 <button id="mmsSyncBtn" onclick="MMS.gsSync(false)" style="display:none;position:fixed;left:10px;bottom:10px;z-index:9998;padding:6px 10px;border:1px solid #bbb;border-radius:8px;font-size:11px;cursor:pointer;background:#f3f3f3;max-width:70vw">🔄 Sync</button>
 <div id="mmsUpgradePanel"><div class="mms-card"><button class="mms-close" onclick="MMS.closeTools()">✕</button><h2>Maintenance System Tools</h2><div class="sub">Users, data, sync aur audit - upar ke tab se chuno.</div><div class="mms-grid">
 <div class="mms-box"><h3>🔐 User & Roles</h3><div id="mmsRoleInfo"></div><button onclick="MMS.logout()">Logout</button><button onclick="MMS.changePassword()">Change Password</button><button onclick="MMS.setPin()">Set / Change PIN</button><button onclick="MMS.manageUsers()">Manage Users</button><button onclick="MMS.empImport()">👥 Import Employees</button><button id="mmsDesigBtn" style="display:none" onclick="openDesigUsers()">🎭 Designation Users</button></div>
+<div class="mms-box"><h3>👥 Employee Login List (User & Roles)</h3><div class="sub">Saare employees ka login / role / Emp. Code yahin manage hota hai. Employee List page par sirf Maintenance employees dikhte hain.</div><button onclick="openEmpLoginList()">👥 Open Employee Login List</button></div>
 <div class="mms-box" style="grid-column:1/-1"><h3>🧩 Module Access Control</h3><div class="sub">Choose a user, then set exactly which modules they can Save/Update, Edit and Delete in. Works for Admin, Technician, Operator, and any custom designation (Engineer, Supervisor, etc.). Admin always has full access.</div>
 <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px">
 <select id="mmsPermUser" onchange="MMS.loadUserPerms()"></select>
@@ -5561,7 +5562,7 @@ function audit(action,module,detail){
 }
 try{window.audit=audit}catch(e){}
 /* ===== Naye synced modules: Audit Center lists + Approval Access config (printFmt jaisa: KEY + data runtime par register) ===== */
-const AC_MODS={acAct:'htp7_ac_act_v1',acDel:'htp7_ac_del_v1',acEdit:'htp7_ac_edit_v1',apprCfg:'htp7_appr_cfg_v1',docCtl:'htp7_doc_ctl_v1'};
+const AC_MODS={acAct:'htp7_ac_act_v1',acDel:'htp7_ac_del_v1',acEdit:'htp7_ac_edit_v1',apprCfg:'htp7_appr_cfg_v1',docCtl:'htp7_doc_ctl_v1',att:'htp7_att_v2',empOvr:'htp7_emp_ovr_v2'};
 Object.keys(AC_MODS).forEach(function(m){if(!KEY[m])KEY[m]=AC_MODS[m];if(!Array.isArray(data[m]))data[m]=load(m)});
 // User ne pichhle 20 sec me click/type/touch kiya ho tabhi SAVE audit banega (timer / background persist ka nahi)
 window.__mmsLastUser=0;
@@ -6135,19 +6136,20 @@ function empAllRows(){
   const u=us.find(function(x){return String(x.u).toLowerCase()===r.userId.toLowerCase()})||us.find(function(x){return x.emp&&String(x.emp.name||'').toLowerCase()===r.name.toLowerCase()&&String(x.emp.dept||'')===r.dept});
   if(u)used[u.u]=1;
   const e=(u&&u.emp)||{},ov=u?{}:(empOvr()[r.sno]||{});
-  return {sno:r.sno,name:r.userId,code:(e.code!==undefined?e.code:(ov.code!==undefined?ov.code:r.code)),dept:e.dept||ov.dept||r.dept,desig:e.desig||ov.desig||r.desig,role:u?u.role:'',login:!!u,ukey:u?u.u:''};
+  return {sno:r.sno,name:r.userId,code:(e.code!==undefined?e.code:(ov.code!==undefined?ov.code:r.code)),dept:e.dept||ov.dept||r.dept,desig:e.desig||ov.desig||r.desig,noAtt:!!(u?e.noAtt:ov.noAtt),role:u?u.role:'',login:!!u,ukey:u?u.u:''};
  });
  let n=out.length;
- us.forEach(function(u){if(u.emp&&!used[u.u])out.push({sno:++n,name:u.u,code:u.emp.code||'',dept:u.emp.dept||'',desig:u.emp.desig||'',role:u.role,login:true,ukey:u.u})});
+ us.forEach(function(u){if(u.emp&&!used[u.u])out.push({sno:++n,name:u.u,code:u.emp.code||'',dept:u.emp.dept||'',desig:u.emp.desig||'',noAtt:!!u.emp.noAtt,role:u.role,login:true,ukey:u.u})});
  return out;
 }
 function empFiltered(){
  const isAdmin=!!(session()&&session().role==='Admin');
  const q=((document.getElementById('emp_search')||{}).value||'').toLowerCase(),dep=(document.getElementById('emp_dept')||{}).value||'';
  return empAllRows().filter(function(r){
+  if(!/maint/i.test(String(r.dept||'')))return false;   // Employee List me sirf Maintenance department
   if(dep&&r.dept!==dep)return false;
   if(!q)return true;
-  return [r.name,isAdmin?r.code:'',r.dept,r.desig,r.role].join(' ').toLowerCase().indexOf(q)>=0;
+  return [r.name,r.code,r.dept,r.desig].join(' ').toLowerCase().indexOf(q)>=0;
  });
 }
 function empRenderList(){
@@ -6173,13 +6175,22 @@ function empRenderList(){
  }
 }
 function empPrintList(){
- const isAdmin=!!(session()&&session().role==='Admin'),rows=empFiltered();
+ const isAdmin=true,rows=empFiltered();   // Emp. Code ab sab ko dikhta hai
  const body=rows.map(function(r,i){return '<tr><td>'+(i+1)+'</td><td>'+esc2(r.name)+'</td>'+(isAdmin?'<td>'+esc2(r.code)+'</td>':'')+'<td>'+esc2(r.dept)+'</td><td>'+esc2(r.desig)+'</td></tr>'}).join('');
- utilityPrintWindow('EMPLOYEE DETAILS IN UNIT - VII','<table><thead><tr><th>Sr. No.</th><th>Name</th>'+(isAdmin?'<th>Emp. Code</th>':'')+'<th>Department</th><th>Designation</th></tr></thead><tbody>'+(body||'<tr><td colspan="5">No records</td></tr>')+'</tbody></table>');
+ utilityPrintWindow('MAINTENANCE EMPLOYEE DETAILS - UNIT VII','<table><thead><tr><th>Sr. No.</th><th>Name</th>'+(isAdmin?'<th>Emp. Code</th>':'')+'<th>Department</th><th>Designation</th></tr></thead><tbody>'+(body||'<tr><td colspan="5">No records</td></tr>')+'</tbody></table>');
 }
 
 const EMP_OVR_KEY='htp_mms_emp_ovr_v1';
-function empOvr(){try{return JSON.parse(localStorage.getItem(EMP_OVR_KEY)||'{}')||{}}catch(e){return {}}}
+function empOvr(){
+ try{const a=data.empOvr;if(Array.isArray(a)&&a[0]&&a[0].ovr&&typeof a[0].ovr==='object')return a[0].ovr}catch(e){}
+ try{return JSON.parse(localStorage.getItem(EMP_OVR_KEY)||'{}')||{}}catch(e){return {}}
+}
+/* Employee list ke edit/delete/noAtt (login-less employees) ab Google Sheet (module 'empOvr', sirf Admin likhta hai) se sab devices par sync */
+function empOvrSave(o){
+ try{localStorage.setItem(EMP_OVR_KEY,JSON.stringify(o))}catch(e){}
+ try{if(!Array.isArray(data.empOvr))data.empOvr=[];const s0=session();data.empOvr.splice(0,data.empOvr.length,{id:'cfg',ovr:o,updatedBy:s0?s0.u:'',updatedAt:new Date().toISOString()});persist('empOvr')}catch(e){console.warn('empOvr sync',e)}
+}
+window.empOvrSave=empOvrSave;
 async function empEdit(name){
  if(!requireRole(['Admin']))return;
  const isNew=(name===null||name===undefined);
@@ -6201,6 +6212,7 @@ async function empEdit(name){
   '<label '+lab+'>Department</label><input id="ee_dept" '+inp+' value="'+esc2(r.dept)+'" list="ee_depts">'+
   '<datalist id="ee_depts">'+['Maintenance','Production','MET. LAB','Quality','SAP'].map(function(d){return '<option value="'+esc2(d)+'">'}).join('')+'</datalist>'+
   '<label '+lab+'>Designation</label><input id="ee_desig" '+inp+' value="'+esc2(r.desig)+'">'+
+  '<label style="display:flex;gap:6px;align-items:center;margin-top:10px;font-weight:700"><input type="checkbox" id="ee_noatt" '+(r.noAtt?'checked':'')+'> Attendance mein na dikhao (sirf login / Employee List mein rahe)</label>'+
   ((u||isNew)?'<label '+lab+'>Role (app mein dikhne wala)</label><input id="ee_role" '+inp+' value="'+esc2(u?u.role:(r.desig||''))+'" '+(isAdminUser?'disabled':'')+'>':'')+
   ((u&&!isAdminUser)?'<label style="display:flex;gap:6px;align-items:center;margin-top:8px"><input type="checkbox" id="ee_resetacc"> Access Level bhi badlo (is user ke module access reset ho jayenge)</label>':'')+
   ((!u)?'<label '+lab+'>Access Level</label><select id="ee_acc" style="padding:7px;border-radius:6px">'+roles.map(function(x){return '<option'+(x===acc?' selected':'')+'>'+x+'</option>'}).join('')+'</select>':'')+
@@ -6217,13 +6229,13 @@ async function empEdit(name){
 async function empEditSave(r,u,seed,isNew){
  const g=function(i){const el=document.getElementById(i);return el?String(el.value||'').replace(/\s+/g,' ').trim():''};
  const msg=document.getElementById('ee_msg'),go=document.getElementById('ee_go');
- const name=isNew?g('ee_name'):r.name,code=g('ee_code'),dept=g('ee_dept'),desig=g('ee_desig');
+ const name=isNew?g('ee_name'):r.name,code=g('ee_code'),dept=g('ee_dept'),desig=g('ee_desig'),noAtt=!!(document.getElementById('ee_noatt')||{}).checked;
  if(!name||name.length>60||name.indexOf('|')>=0)return alert('Name / User ID galat hai.');
  if(!desig)return alert('Designation likho.');
  const accEl=document.getElementById('ee_acc'),acc=accEl?accEl.value:'Operator';
  if(u){
   const us=users(),x=us.find(function(z){return z.u===u.u});if(!x)return alert('User nahi mila.');
-  x.emp=Object.assign({},x.emp||{},{code:code,dept:dept,desig:desig});
+  x.emp=Object.assign({},x.emp||{},{code:code,dept:dept,desig:desig,noAtt:noAtt});
   const role=g('ee_role');if(x.role!=='Admin'&&role)x.role=role;
   const rc=document.getElementById('ee_resetacc');if(rc&&rc.checked)x.perms=empAccPerms(acc);
   localStorage.setItem(USERS_KEY,JSON.stringify(us));
@@ -6231,14 +6243,14 @@ async function empEditSave(r,u,seed,isNew){
  }else{
   const mk=isNew||(document.getElementById('ee_mklogin')||{}).checked,role=g('ee_role')||desig;
   if(isNew&&users().some(function(z){return String(z.u).toLowerCase()===name.toLowerCase()}))return alert('User ID pehle se maujood hai: '+name);
-  if(!isNew){const o=empOvr();o[r.sno]={code:code,dept:dept,desig:desig};localStorage.setItem(EMP_OVR_KEY,JSON.stringify(o))}
+  if(!isNew){const o=empOvr();o[r.sno]=Object.assign({},o[r.sno]||{},{code:code,dept:dept,desig:desig,noAtt:noAtt});empOvrSave(o)}
   if(mk){
    const pw=g('ee_pw');if(pw.length<6)return alert('Login ke liye password kam se kam 6 characters ka likho.');
    go.disabled=true;msg.textContent='⏳ Login ban raha hai… (Admin PIN / password poocha jayega)';
    let res;try{res=await mmsSrvSensitive('userSet',{u:name,role:role,pw:pw})}catch(e){res={ok:false,error:'Server tak nahi pahunch paaye'}}
    go.disabled=false;
    if(!(res&&res.ok)){msg.style.color='#dc2626';msg.textContent='✗ '+((res&&res.error)||'error');return}
-   const us=users();if(!us.some(function(z){return z.u===name}))us.push({u:name,id:'usr-'+name,role:role,perms:empAccPerms(acc),emp:{name:(seed&&seed.name)||name,code:code,dept:dept,desig:desig}});
+   const us=users();if(!us.some(function(z){return z.u===name}))us.push({u:name,id:'usr-'+name,role:role,perms:empAccPerms(acc),emp:{name:(seed&&seed.name)||name,code:code,dept:dept,desig:desig,noAtt:noAtt}});
    localStorage.setItem(USERS_KEY,JSON.stringify(us));
    try{audit('USER_ADD','system','Employee login added: '+name)}catch(e){}
   }
@@ -6338,7 +6350,7 @@ async function empDelete(name){
   try{audit('USER_DELETE','system','Employee deleted: '+u.u)}catch(e){}
  }
  const seed=empBuildRows().find(function(x){return x.userId===name});
- if(seed){const o=empOvr();o[seed.sno]=Object.assign({},o[seed.sno]||{},{deleted:true});localStorage.setItem(EMP_OVR_KEY,JSON.stringify(o))}
+ if(seed){const o=empOvr();o[seed.sno]=Object.assign({},o[seed.sno]||{},{deleted:true});empOvrSave(o)}
  try{populatePermUserSelect()}catch(e){}try{empRefreshList()}catch(e){}try{gsSchedule(1500)}catch(e){}
  empRenderList();
 }
@@ -6348,7 +6360,7 @@ function empRestoreDeleted(){
  if(!n)return alert('Koi deleted employee nahi hai.');
  if(!confirm(n+' deleted employee(s) list me wapas aa jayenge (login wapas nahi banega). Aage badhein?'))return;
  Object.keys(o).forEach(function(k){if(o[k]&&o[k].deleted)delete o[k].deleted});
- localStorage.setItem(EMP_OVR_KEY,JSON.stringify(o));empRenderList();
+ empOvrSave(o);empRenderList();
 }
 function empInitTab(){
  const sc=document.querySelector('.app-sidebar .side-scroll');
@@ -6480,7 +6492,7 @@ const GS_CFG_KEY='htp_mms_gs_cfg_v1',GS_META_KEY='htp_mms_gs_meta_v1';
 // LIVE BACKEND: shared by every browser/device. The token must match Code.gs.
 // Device-local localStorage is still used for cache/state, but the Google Sheet is the shared source.
 const GS_DEFAULT_URL='https://script.google.com/macros/s/AKfycbwhKmOBMXzuIcMOFwFeSyQ32ZBfSOfcc99yv1sfFmElA_TSN6Q8Rf2OSKyUN8I4Bg16/exec';
-const GS_ALL=['pf','pc','dg','mr','mh','pm','bd','spares','critical','tc','cal','utility','airCompressor','machineMaster','users','pmPlan','pmCheck','pmMap', 'audit','meeting','sparePurchase','powerCost','hpsebBill','satReport','satTemp','oxyMV','oxyImp','oxyRep','mttr','amc','amcLog','tus','furnChk','contingency','ptm','dsm','dsoot','dcTpl','dcMeta','printFmt','acAct','acDel','acEdit','apprCfg','docCtl'];
+const GS_ALL=['pf','pc','dg','mr','mh','pm','bd','spares','critical','tc','cal','utility','airCompressor','machineMaster','users','pmPlan','pmCheck','pmMap', 'audit','meeting','sparePurchase','powerCost','hpsebBill','satReport','satTemp','oxyMV','oxyImp','oxyRep','mttr','amc','amcLog','tus','furnChk','contingency','ptm','dsm','dsoot','dcTpl','dcMeta','printFmt','acAct','acDel','acEdit','apprCfg','docCtl','att','empOvr'];
 // PM Plan schedule / PM checklists / machine-checklist map pehle localStorage me alag save
 // hote the aur kabhi sync hi nahi hote the - isliye ek device ka PM schedule change dusre
 // device par nahi dikhta tha. Ab inhe bhi upar wale GS_ALL engine se hi sync karte hain.
@@ -6547,7 +6559,7 @@ function gsHashLegacy(str){let h1=0xdeadbeef,h2=0x41c6ce57;for(let i=0,ch;i<str.
 function gsClean(r){return JSON.stringify(r,function(k,v){if(k==='evidence')return undefined;if(k==='sno'&&this&&this.machineNumber!==undefined&&this.costCenter!==undefined&&this.machineName!==undefined)return undefined;/* Machine Master ka S.No. har load par dobara ginta hai - sync ke liye change nahi */if((k==='h'||k==='s'||k==='p')&&this&&typeof this.u==='string'&&this.role!==undefined)return undefined;return v})}
 /* ===== Sheet report tabs: one tab per module (and per month), same columns as the print formats ===== */
 const GS_MONTHLY=['pf','pc','dg','mr','bd','mh','airCompressor','utility','pm','pmPlan','meeting'];
-const GS_MASTERS=['mttr','spares','critical','tc','cal','machineMaster','utility', 'audit','meeting','sparePurchase','powerCost','hpsebBill','satReport','satTemp','oxyMV','oxyImp','oxyRep','amc','amcLog','tus','furnChk','contingency','ptm','dsm','dsoot','dcTpl','dcMeta','printFmt','acAct','acDel','acEdit','apprCfg','docCtl']; 
+const GS_MASTERS=['mttr','spares','critical','tc','cal','machineMaster','utility', 'audit','meeting','sparePurchase','powerCost','hpsebBill','satReport','satTemp','oxyMV','oxyImp','oxyRep','amc','amcLog','tus','furnChk','contingency','ptm','dsm','dsoot','dcTpl','dcMeta','printFmt','acAct','acDel','acEdit','apprCfg','docCtl','att','empOvr']; 
 const GS_TAB={pf:'PowerFactor',pc:'PowerCut',dg:'DG',mr:'MaintReq',bd:'Breakdown',mh:'MachHistory',airCompressor:'AirCompressor',utility:'UtilityLog',spares:'SpareParts',critical:'CriticalSpares',tc:'Thermocouple',cal:'Calibration',machineMaster:'MachineMaster', audit:'AuditLog',meeting:'MeetingLog',sparePurchase:'SparePurchase',powerCost:'PowerCost',hpsebBill:'HPSEBLBill',pm:'PMCheckSheet',pmPlan:'PMPlan',satReport:'SATReport',satTemp:'SATTemp',oxyMV:'OxyMV',oxyImp:'OxyImpedance',oxyRep:'OxyReplace',amc:'AMCContracts',amcLog:'AMCServiceLog',tus:'TUSSurvey',furnChk:'FurnaceChecks',contingency:'ContingencyPlan',ptm:'PredictiveCheck',dsm:'DailyShiftCheck',dsoot:'SQFDesootPM',dcTpl:'DCTemplates',dcMeta:'DCSheetInfo',mttr:'MTTR',printFmt:'PrintFormats'};
 const GS_COMPANY='Milestone Gears Ltd. UNIT-7';
 function gsMonthKey(d){d=String(d||'').slice(0,7);return /^\d{4}-\d{2}$/.test(d)?d:''}
@@ -7444,7 +7456,7 @@ async function gsSync(auto){
    gsStatus('⏳ Checking server…');
    guardOut=await gsPost(cfg,{token:cfg.token,since:meta.since,changes:[]});   // fail ho to sync ruk jata hai (kuch overwrite nahi hota)
    const srv={};(guardOut&&guardOut.rows||[]).forEach(function(rw){const k=rw.module+'|'+rw.sid;if(!srv[k]||Number(rw.ts)>=Number(srv[k].ts))srv[k]=rw});
-   const GS_SRVWINS=['machineMaster','users','apprCfg','printFmt','dcMeta','dcTpl','docCtl'];
+   const GS_SRVWINS=['machineMaster','users','apprCfg','printFmt','dcMeta','dcTpl','docCtl','empOvr'];
    const keep=[],kept=[];let nConf=0,nReSid=0;const bk=[];const persistMods=new Set();
    changes.forEach(function(c){
     const k=c.module+'|'+c.sid,s0=srv[k];
@@ -7622,7 +7634,7 @@ window.addEventListener('online',function(){gsSchedule(500)});
 window.addEventListener('load',function(){gsSchedule(1500)});
 
 /* Audit Center ke buttons inline onclick se chalte hain, isliye ye functions global (window) par hone zaroori hain */
-Object.assign(window,{mmsOpenAuditCenter,mmsACRender,mmsToggleAuditor,mmsActAdd,mmsActClose,mmsReviewPrint,mmsReviewHtml,mmsRestoreDeleted,mmsOpenActions,mmsApprAllowed,mmsAccSummary,mmsApprRender,mmsApprSave,mmsApprReset,openEmpImport,empRunImport,empRenderList,empPrintList,empEdit,empEditSave,empDelete,empRestoreDeleted,openDesigUsers,empRunDesigUsers});
+Object.assign(window,{mmsOpenAuditCenter,mmsACRender,mmsToggleAuditor,mmsActAdd,mmsActClose,mmsReviewPrint,mmsReviewHtml,mmsRestoreDeleted,mmsOpenActions,mmsApprAllowed,mmsAccSummary,mmsApprRender,mmsApprSave,mmsApprReset,openEmpImport,empRunImport,empRenderList,empPrintList,empEdit,empEditSave,empDelete,empRestoreDeleted,openDesigUsers,empRunDesigUsers,empAllRows,empFiltered,empBuildRows,session,users});
 window.MMS={fillLoginIds:mmsFillLoginIds,empImport:openEmpImport,reauth:mmsReauthToken,audit:audit,setPin,gsDiag,gsRebuildReports,gsSync,gsConfigure,gsTogglePrimary,gsResetState,login,logout,backup,restore,exportExcel,validate,refreshAudit,exportAudit,addFY,applyFY,queueSync,clearSyncQueue,refreshKPIs,openTools,closeTools,changePassword,manageUsers,populatePermUserSelect,loadUserPerms,selectAllPerms,saveUserRoleLabel,saveUserPerms,deleteUserAccount};
 window.addEventListener('load',()=>{setBadge();let s=session();if(s){document.getElementById('mmsLogin').classList.add('hidden');}else document.getElementById('mmsLogin').classList.remove('hidden');initFY();refreshKPIs();gsRenderPrimaryUI();});
 })();
@@ -21313,5 +21325,245 @@ html body main.wrap section.panel .v154tool.v154tool button:active,html body mai
 #v195Toast.on{opacity:1;transform:translateX(-50%)}
 @media(max-width:520px){#v195Pm .pmForm,#v195Pm .pmGrid{grid-template-columns:1fr}#v195Pm .pmFlow em{display:none}#v195Pm .pmFlow{margin-bottom:10px}}
 </style>
+<script type="text/mms-defer" id="v210-emp-att">
+/* ===== v210 EMPLOYEE & ATTENDANCE: Employee List redesign + Daily Attendance + Monthly Report =====
+   Attendance is device ke localStorage me rehti hai (key htp_mms_att_v1). Backup/Restore button se file me rakh sakte ho. */
+(function(){
+'use strict';
+var AK='htp_mms_att_v1';   // purani local key (sirf ek baar migrate hoti hai); ab data 'att' module se Google Sheet par sync
+var ST={P:{l:'Present',s:'P',c:'#16a34a',bg:'#dcfce7'},A:{l:'Absent',s:'A',c:'#dc2626',bg:'#fee2e2'},L:{l:'Leave',s:'L',c:'#d97706',bg:'#fef3c7'},H:{l:'Half Day',s:'½',c:'#7c3aed',bg:'#ede9fe'},WO:{l:'Week Off',s:'WO',c:'#475569',bg:'#e2e8f0'},HO:{l:'Holiday',s:'HO',c:'#0e7490',bg:'#cffafe'}};
+var ORDER=['P','A','L','H','WO','HO'],SHIFTS=['General','A','B','C'];
+var DB={},view='list',curDate=ymd(new Date()),curMonth=ymd(new Date()).slice(0,7),open={};
+function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function $(s,r){return (r||document).querySelector(s)}
+function ymd(d){var m=d.getMonth()+1,x=d.getDate();return d.getFullYear()+'-'+(m<10?'0':'')+m+'-'+(x<10?'0':'')+x}
+function pd(s){var a=String(s).split('-');return new Date(+a[0],+a[1]-1,+a[2])}
+function fmt(s){var d=pd(s);return ('0'+d.getDate()).slice(-2)+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+d.getFullYear()}
+function isSun(s){return pd(s).getDay()===0}
+function dayName(s){return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][pd(s).getDay()]}
+function attArr(){try{if(!Array.isArray(data.att))data.att=[];return data.att}catch(e){return []}}
+function load(){
+ DB={};
+ attArr().forEach(function(x){if(!x||!x.date||!x.name)return;if(!(x.status||x.shift||x.timeIn||x.timeOut||x.ot||x.remark))return;
+  (DB[x.date]||(DB[x.date]={}))[x.name]={s:x.status||'',sh:x.shift||'',i:x.timeIn||'',o:x.timeOut||'',ot:x.ot||'',r:x.remark||''}});
+}
+/* purani device-local attendance ek baar sync wale 'att' module me chali jaye */
+function migrateLegacy(){
+ try{if(localStorage.getItem(AK+'_mig')==='1')return;var raw=localStorage.getItem(AK);if(!raw){localStorage.setItem(AK+'_mig','1');return}
+  var old=JSON.parse(raw),n=0;if(!old||typeof old!=='object')return;
+  Object.keys(old).forEach(function(d){Object.keys(old[d]||{}).forEach(function(nm){var r=old[d][nm];if(r&&(r.s||r.sh||r.i||r.o||r.ot||r.r)&&!findRec(d,nm)){upsert(d,nm,r);n++}})});
+  if(n)persist('att');localStorage.setItem(AK+'_mig','1')}catch(e){console.warn('att migrate',e)}
+}
+function findRec(d,n){var a=attArr();for(var i=0;i<a.length;i++){if(a[i]&&a[i].date===d&&a[i].name===n)return i}return -1}
+function upsert(d,n,r){
+ var a=attArr(),i=findRec(d,n),rec={id:d+'|'+n,date:d,name:n,status:r.s||'',shift:r.sh||'',timeIn:r.i||'',timeOut:r.o||'',ot:r.ot||'',remark:r.r||''};
+ if(i>=0){var o=a[i];if(o.status===rec.status&&o.shift===rec.shift&&o.timeIn===rec.timeIn&&o.timeOut===rec.timeOut&&String(o.ot)===String(rec.ot)&&o.remark===rec.remark)return;rec.id=o.id||rec.id;if(o._sid)rec._sid=o._sid;a[i]=rec}else a.push(rec);
+}
+function save(){try{persist('att');return true}catch(e){toast('⚠ Save nahi hua');return false}}
+function toast(m){var t=$('#empxToast');if(!t){t=document.createElement('div');t.id='empxToast';document.body.appendChild(t)}t.textContent=m;t.className='on';clearTimeout(toast.t);toast.t=setTimeout(function(){t.className=''},2200)}
+function sess(){try{return session()}catch(e){return null}}
+function canEdit(){var s=sess();if(!s||window.__auditorView)return false;return s.role==='Admin'||/supervis|head|in-?charge|engineer|manager/i.test(String(s.role||''))}
+function isAdmin(){var s=sess();return !!(s&&s.role==='Admin')}
+function emps(){try{return empAllRows().filter(function(r){return /maint/i.test(String(r.dept||''))&&!r.noAtt})}catch(e){return []}}   // attendance: Maintenance employees (noAtt wale nahi)
+function filt(rows,dept,q){q=String(q||'').toLowerCase();return rows.filter(function(r){if(dept&&r.dept!==dept)return false;return !q||[r.name,r.dept,r.desig].join(' ').toLowerCase().indexOf(q)>=0})}
+function rec(d,n){return DB[d]&&DB[d][n]||null}
+function eff(d,n){var r=rec(d,n);if(r&&r.s)return r.s;return isSun(d)?'WO':''}
+function setRec(d,n,patch){if(!canEdit()){toast('Sirf Admin / Supervisor attendance bhar sakte hain');return false}
+ var day=DB[d]||(DB[d]={}),r=day[n]||(day[n]={});Object.keys(patch).forEach(function(k){r[k]=patch[k]});
+ upsert(d,n,r);
+ if(!r.s&&!r.sh&&!r.i&&!r.o&&!r.ot&&!r.r){delete day[n];if(!Object.keys(day).length)delete DB[d]}
+ return save()}
+function hrs(r){if(!r||!r.i||!r.o)return '';var a=r.i.split(':'),b=r.o.split(':'),m=(+b[0]*60+ +b[1])-(+a[0]*60+ +a[1]);if(m<0)m+=1440;return (Math.round(m/6)/10)+'h'}
+function deptList(rows){var o=[];rows.forEach(function(r){if(r.dept&&o.indexOf(r.dept)<0)o.push(r.dept)});return o}
+function deptSel(id,rows,cur){return '<select id="'+id+'"><option value="">All Departments</option>'+deptList(rows).map(function(d){return '<option'+(d===cur?' selected':'')+'>'+E(d)+'</option>'}).join('')+'</select>'}
+
+var CSS='#empList .etabs{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 12px}#empList .etabs button{border:0;padding:10px 16px;border-radius:999px;background:#eef3f4;color:#0f172a;font-weight:800;font-size:13px;cursor:pointer}#empList .etabs button.on{background:#0e7490;color:#fff;box-shadow:0 3px 10px rgba(14,116,144,.35)}'+
+'#empList .ecards{display:grid;grid-template-columns:repeat(auto-fit,minmax(108px,1fr));gap:8px;margin:6px 0 12px}#empList .ec{border-radius:12px;padding:10px 8px;text-align:center;background:#f1f5f9;border:1px solid #e2e8f0}#empList .ec b{display:block;font-size:22px;line-height:1.1}#empList .ec span{font-size:11px;color:#475569}'+
+'#empList .ebar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 10px}#empList .ebar input,#empList .ebar select{padding:9px;border:1px solid #cfd9de;border-radius:8px;font-size:14px}#empList .ebar button{padding:9px 13px;border:0;border-radius:8px;background:#0e7490;color:#fff;font-weight:700;cursor:pointer;font-size:13px}#empList .ebar button.g{background:#e2e8f0;color:#0f172a}#empList .ebar button.ok{background:#16a34a}'+
+'#empList .edate{font-weight:800;font-size:15px;min-width:150px;text-align:center}#empList .enote{font-size:12px;color:#64748b;margin:4px 0 8px}'+
+'#empList .er{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;border:1px solid #e2e8f0;border-radius:12px;padding:8px 10px;margin-bottom:6px;background:#fff}#empList .er .en b{font-size:14px}#empList .er .en small{display:block;color:#64748b;font-size:11px}'+
+'#empList .es{display:flex;gap:4px;flex-wrap:wrap}#empList .sb{min-width:36px;padding:8px 6px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#334155;font-weight:800;font-size:12px;cursor:pointer}#empList .sb.on{color:#fff;border-color:transparent}#empList .sb:disabled{opacity:.55;cursor:not-allowed}#empList .ex{border:0;background:#f1f5f9;border-radius:8px;padding:8px 10px;cursor:pointer;font-weight:800}'+
+'#empList .ed{grid-column:1/-1;display:none;gap:8px;flex-wrap:wrap;align-items:end;border-top:1px dashed #cbd5e1;padding-top:8px}#empList .er.open .ed{display:flex}#empList .ed label{font-size:11px;color:#475569;display:block}#empList .ed input,#empList .ed select{padding:7px;border:1px solid #cbd5e1;border-radius:7px;font-size:13px}#empList .ed .rm{flex:1;min-width:140px}#empList .ed .rm input{width:100%;box-sizing:border-box}'+
+'#empList .chip{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:800}'+
+'#empList .mw{overflow:auto;max-height:70vh;border:1px solid #e2e8f0;border-radius:10px}#empList table.em{border-collapse:collapse;font-size:11px;width:max-content;min-width:100%}#empList table.em th,#empList table.em td{border:1px solid #e2e8f0;padding:3px 4px;text-align:center;white-space:nowrap}#empList table.em th{background:#e2e8f0;position:sticky;top:0;z-index:2}#empList table.em td.nm,#empList table.em th.nm{position:sticky;left:0;background:#fff;text-align:left;min-width:130px;z-index:1;font-weight:700}#empList table.em th.nm{z-index:3;background:#e2e8f0}#empList table.em td.mc{min-width:26px;cursor:pointer;font-weight:800}#empList table.em td.sun{background:#f8fafc}#empList table.em th.sun{background:#cbd5e1}#empList table.em td.tt{font-weight:800;background:#f8fafc}'+
+'#empList .legend{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0;font-size:11px}'+
+'#empxToast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#0f172a;color:#fff;padding:9px 16px;border-radius:999px;font-size:13px;font-weight:700;z-index:100020;opacity:0;pointer-events:none;transition:opacity .2s}#empxToast.on{opacity:1}'+
+'html body main.wrap #empList .es{display:flex!important;flex-wrap:nowrap!important;gap:4px!important;align-items:stretch!important}'+'html body main.wrap #empList .es>button.sb{flex:1 1 0!important;min-width:32px!important;min-height:38px!important;max-width:none!important;padding:6px 2px!important;border-radius:8px!important;font-size:12px!important;font-weight:800!important;margin:0!important;background:#fff;color:#334155!important;border:1px solid #cbd5e1!important}'+'html body main.wrap #empList .es>button.sb.on{color:#fff!important;border-color:transparent!important}'+'html body main.wrap #empList .etabs{display:flex!important;flex-wrap:nowrap!important;gap:6px!important}'+'html body main.wrap #empList .etabs>button{flex:1 1 0!important;min-width:0!important;min-height:42px!important;padding:6px 4px!important;border-radius:999px!important;font-size:12px!important;font-weight:800!important;margin:0!important;background:#eef3f4;color:#0f172a!important}'+'html body main.wrap #empList .etabs>button.on{background:#0e7490!important;color:#fff!important}'+'html body main.wrap #empList .ebar{display:flex!important;flex-wrap:wrap!important;gap:6px!important;align-items:center!important}'+'html body main.wrap #empList .ebar>*{flex:0 1 auto!important;min-width:0!important;margin:0!important}'+'html body main.wrap #empList .ebar>button{min-height:40px!important;padding:6px 12px!important;border-radius:10px!important;font-size:13px!important;font-weight:700!important;background:#0e7490;color:#fff!important}'+'html body main.wrap #empList .ebar>button.g{background:#e2e8f0!important;color:#0f172a!important}'+'html body main.wrap #empList .ebar>button.ok{background:#16a34a!important}'+'html body main.wrap #empList .ebar>input,html body main.wrap #empList .ebar>select{min-height:40px!important}'+'html body main.wrap #empList .er>button.ex{min-height:38px!important;min-width:40px!important;padding:6px 10px!important;border-radius:8px!important;margin:0!important;background:#f1f5f9;color:#0f172a!important}'+'html body main.wrap #empList .ed>*{flex:0 1 auto!important}html body main.wrap #empList .ed .rm{flex:1 1 140px!important}'+'html body main.wrap #empList .er{background:#fff!important;color:#0f172a!important;border:1px solid #cbd5e1!important}html body main.wrap #empList .er .en b{color:#0f172a!important}html body main.wrap #empList .er .en small{color:#475569!important}'+'html body main.wrap #empList .ec{color:#0f172a!important}html body main.wrap #empList .ec span{color:#475569!important}html body main.wrap #empList .enote{color:#475569!important}'+'html body main.wrap #empList .ed label{color:#475569!important}html body main.wrap #empList .ed input,html body main.wrap #empList .ed select,html body main.wrap #empList .ebar input,html body main.wrap #empList .ebar select{background:#fff!important;color:#0f172a!important}'+'html body main.wrap #empList .edate{color:#0f172a!important}html body main.wrap #empList .mw{background:#fff}html body main.wrap #empList table.em td,html body main.wrap #empList table.em th{color:#0f172a}'+'html body main.wrap #empList #empPaneList,html body main.wrap #empList #empPaneDay,html body main.wrap #empList #empPaneMonth{background:#fff!important;color:#0f172a!important;border-radius:14px;padding:10px!important}'+'@media(max-width:640px){#empList .er{grid-template-columns:1fr auto}#empList .es{grid-column:1/-1;order:3}#empList .sb{flex:1}}@media print{#empxToast{display:none}}';
+(function(){var s=document.createElement('style');s.textContent=CSS;document.head.appendChild(s)})();
+
+/* ---------- shell ---------- */
+function buildShell(){
+ var pn=document.getElementById('empList');if(!pn||pn.getAttribute('data-empx'))return !!(pn&&pn.getAttribute('data-empx'));
+ pn.setAttribute('data-empx','1');
+ pn.innerHTML='<div class="card"><div class="head">Milestone Gears Ltd. UNIT-7</div><div class="head2">MAINTENANCE EMPLOYEES & ATTENDANCE — UNIT VII</div>'+
+ '<div class="etabs"><button type="button" data-act="tab" data-v="list">👥 Employees</button><button type="button" data-act="tab" data-v="day">📅 Daily Attendance</button><button type="button" data-act="tab" data-v="month">📊 Monthly Report</button></div>'+
+ '<div id="empPaneList"><div class="ecards" id="empCards"></div><div class="summary" id="empSummary"></div>'+
+ '<div class="toolbar"><input id="emp_search" placeholder="Search name, department, designation..." oninput="empRenderList()"><select id="emp_dept" onchange="empRenderList()"><option value="">All Departments</option></select>'+
+ '<button class="secondary" onclick="empPrintList()">🖨️ Print</button></div>'+
+ '<div class="tablewrap" style="overflow:auto"><table class="tbl" style="min-width:0"><thead><tr><th>Sr.No.</th><th>Name</th><th>Emp. Code</th><th>Department</th><th>Designation</th><th>Aaj ki Attendance</th></tr></thead><tbody id="empListBody"></tbody></table></div></div>'+
+ '<div id="empPaneDay" style="display:none"></div><div id="empPaneMonth" style="display:none"></div></div>';
+ return true;
+}
+function chip(s){if(!s)return '<span class="chip" style="background:#f1f5f9;color:#94a3b8">Not marked</span>';var t=ST[s];return '<span class="chip" style="background:'+t.bg+';color:'+t.c+'">'+t.l+'</span>'}
+function cnt(rows,d){var c={P:0,A:0,L:0,H:0,WO:0,HO:0,N:0};rows.forEach(function(r){var s=eff(d,r.name);if(s)c[s]++;else c.N++});return c}
+
+/* ---------- 1) Employees ---------- */
+function renderList(){
+ var body=document.getElementById('empListBody');if(!body)return;
+ var all=emps(),today=ymd(new Date());
+ var sel=document.getElementById('emp_dept'),deps=deptList(all);
+ if(sel&&sel.options.length!==deps.length+1){var cur=sel.value;sel.innerHTML='<option value="">All Departments</option>'+deps.map(function(d){return '<option>'+E(d)+'</option>'}).join('');sel.value=cur}
+ var rows=(typeof empFiltered==='function')?empFiltered():all;
+ body.innerHTML=rows.map(function(r,i){
+  return '<tr><td>'+(i+1)+'</td><td style="text-align:left"><b>'+E(r.name)+'</b></td><td>'+E(r.code||'—')+'</td><td>'+E(r.dept)+'</td><td>'+E(r.desig)+'</td><td>'+(r.noAtt?'<span style="color:#94a3b8">— (attendance nahi)</span>':chip(eff(today,r.name)))+'</td></tr>'}).join('')||'<tr><td colspan="6">Koi employee nahi mila.</td></tr>';
+ var c=cnt(all,today),sm=document.getElementById('empSummary'),cd=document.getElementById('empCards');
+ if(cd)cd.innerHTML='<div class="ec"><b>'+rows.length+'</b><span>Maintenance Employees</span></div><div class="ec" style="background:#dcfce7"><b style="color:#16a34a">'+(c.P+c.H)+'</b><span>Aaj Present</span></div><div class="ec" style="background:#fee2e2"><b style="color:#dc2626">'+c.A+'</b><span>Aaj Absent</span></div><div class="ec" style="background:#fef3c7"><b style="color:#d97706">'+c.L+'</b><span>Aaj Leave</span></div><div class="ec"><b>'+c.N+'</b><span>Mark nahi hua</span></div>';
+ if(sm){sm.innerHTML=''}
+}
+
+/* ---------- 2) Daily attendance ---------- */
+function renderDay(){
+ var p=document.getElementById('empPaneDay');if(!p)return;
+ var keepD=($('#attDept',p)||{}).value||'',keepQ=($('#attQ',p)||{}).value||'';
+ var all=emps(),rows=filt(all,keepD,keepQ),ce=canEdit(),c=cnt(rows,curDate);
+ var h='<div class="ebar"><button type="button" class="g" data-act="dprev">◀</button><div class="edate">'+fmt(curDate)+' ('+dayName(curDate)+')</div><button type="button" class="g" data-act="dnext">▶</button><input type="date" id="attDate" value="'+curDate+'"><button type="button" class="g" data-act="dtoday">Aaj</button></div>'+
+ '<div class="ebar">'+deptSel('attDept',all,keepD)+'<input id="attQ" placeholder="Naam search..." value="'+E(keepQ)+'">'+(ce?'<button type="button" class="ok" data-act="allp">✅ Sab Present (jo mark nahi)</button>':'')+'<button type="button" class="g" data-act="pday">🖨 Print</button><button type="button" class="g" data-act="backup">⬇ Backup</button>'+(ce?'<button type="button" class="g" data-act="restore">⬆ Restore</button><input type="file" id="attFile" accept=".json" style="display:none">':'')+'</div>'+
+ '<div class="ecards"><div class="ec" style="background:#dcfce7"><b style="color:#16a34a">'+c.P+'</b><span>Present</span></div><div class="ec" style="background:#ede9fe"><b style="color:#7c3aed">'+c.H+'</b><span>Half Day</span></div><div class="ec" style="background:#fee2e2"><b style="color:#dc2626">'+c.A+'</b><span>Absent</span></div><div class="ec" style="background:#fef3c7"><b style="color:#d97706">'+c.L+'</b><span>Leave</span></div><div class="ec"><b>'+(c.WO+c.HO)+'</b><span>Week Off / Holiday</span></div><div class="ec"><b>'+c.N+'</b><span>Mark nahi hua</span></div></div>'+
+ (ce?'':'<div class="enote">👁 Sirf dekhne ke liye — attendance Admin / Supervisor bharte hain.</div>')+
+ (isSun(curDate)?'<div class="enote">Sunday — by default Week Off. Kisi ne kaam kiya ho to P dabao.</div>':'');
+ h+=rows.map(function(r){var rc=rec(curDate,r.name)||{},s=eff(curDate,r.name),o=!!open[r.name]||!!(rc.i||rc.o||rc.ot||rc.r||(rc.sh&&rc.sh!=='General'));
+  var n=E(r.name);
+  return '<div class="er'+(o?' open':'')+'" data-n="'+n+'"><div class="en"><b>'+n+'</b><small>'+E([r.desig,r.dept].filter(Boolean).join(' • '))+(hrs(rc)?' • '+hrs(rc):'')+'</small></div>'+
+  '<div class="es">'+ORDER.map(function(k){var on=(rc.s===k)||(!rc.s&&s===k);return '<button type="button" class="sb'+(on?' on':'')+'" data-act="st" data-n="'+n+'" data-s="'+k+'" title="'+ST[k].l+'"'+(on?' style="background:'+ST[k].c+'"':'')+(ce?'':' disabled')+'>'+ST[k].s+'</button>'}).join('')+'</div>'+
+  '<button type="button" class="ex" data-act="ex" data-n="'+n+'" title="Shift / time / OT / remark">⋯</button>'+
+  '<div class="ed"><div><label>Shift</label><select data-f="sh" data-n="'+n+'"'+(ce?'':' disabled')+'>'+SHIFTS.map(function(x){return '<option'+((rc.sh||'General')===x?' selected':'')+'>'+x+'</option>'}).join('')+'</select></div>'+
+  '<div><label>In</label><input type="time" data-f="i" data-n="'+n+'" value="'+E(rc.i||'')+'"'+(ce?'':' disabled')+'></div><div><label>Out</label><input type="time" data-f="o" data-n="'+n+'" value="'+E(rc.o||'')+'"'+(ce?'':' disabled')+'></div>'+
+  '<div><label>OT (hrs)</label><input type="number" min="0" step="0.5" style="width:70px" data-f="ot" data-n="'+n+'" value="'+E(rc.ot||'')+'"'+(ce?'':' disabled')+'></div><div class="rm"><label>Remark</label><input data-f="r" data-n="'+n+'" value="'+E(rc.r||'')+'" placeholder="jaise: CL, medical, late..."'+(ce?'':' disabled')+'></div></div></div>'}).join('')||'<div class="enote">Koi employee nahi mila.</div>';
+ h+='<div class="legend">'+ORDER.map(function(k){return '<span class="chip" style="background:'+ST[k].bg+';color:'+ST[k].c+'">'+ST[k].s+' = '+ST[k].l+'</span>'}).join('')+'</div>';
+ var sc=window.scrollY;p.innerHTML=h;window.scrollTo(0,sc);
+}
+function dayRowsForPrint(){var p=document.getElementById('empPaneDay'),rows=filt(emps(),($('#attDept',p)||{}).value||'',($('#attQ',p)||{}).value||'');return rows}
+function printDay(){
+ var rows=dayRowsForPrint(),c=cnt(rows,curDate);
+ var b=rows.map(function(r,i){var rc=rec(curDate,r.name)||{},s=eff(curDate,r.name);return '<tr><td>'+(i+1)+'</td><td style="text-align:left">'+E(r.name)+'</td><td>'+E(r.dept)+'</td><td>'+E(r.desig)+'</td><td>'+(s?ST[s].l:'—')+'</td><td>'+E(rc.sh||'')+'</td><td>'+E(rc.i||'')+'</td><td>'+E(rc.o||'')+'</td><td>'+hrs(rc)+'</td><td>'+E(rc.ot||'')+'</td><td style="text-align:left">'+E(rc.r||'')+'</td></tr>'}).join('');
+ utilityPrintWindow('DAILY ATTENDANCE - '+fmt(curDate),'<div class="title">Milestone Gears Ltd. UNIT-7 — DAILY ATTENDANCE: '+fmt(curDate)+' ('+dayName(curDate)+')</div><div style="margin:4px 0 8px">Present '+c.P+' | Half Day '+c.H+' | Absent '+c.A+' | Leave '+c.L+' | Week Off/Holiday '+(c.WO+c.HO)+' | Not marked '+c.N+'</div><table><thead><tr><th>Sr.</th><th>Name</th><th>Department</th><th>Designation</th><th>Status</th><th>Shift</th><th>In</th><th>Out</th><th>Hrs</th><th>OT</th><th>Remark</th></tr></thead><tbody>'+b+'</tbody></table><div style="margin-top:30px;display:flex;justify-content:space-between"><span>Prepared By: ____________</span><span>Verified By: ____________</span></div>');
+}
+
+/* ---------- 3) Monthly ---------- */
+function monthDays(m){var a=m.split('-'),n=new Date(+a[0],+a[1],0).getDate(),o=[];for(var i=1;i<=n;i++)o.push(m+'-'+(i<10?'0':'')+i);return o}
+function totals(name,days){var t={P:0,A:0,L:0,H:0,WO:0,HO:0,ot:0};days.forEach(function(d){var s=eff(d,name);if(s)t[s]++;var r=rec(d,name);if(r&&r.ot)t.ot+=Number(r.ot)||0});t.work=t.P+t.H*0.5;return t}
+function renderMonth(){
+ var p=document.getElementById('empPaneMonth');if(!p)return;
+ var keepD=($('#attMDept',p)||{}).value||'',keepQ=($('#attMQ',p)||{}).value||'';
+ var all=emps(),rows=filt(all,keepD,keepQ),days=monthDays(curMonth),ce=canEdit();
+ var h='<div class="ebar"><button type="button" class="g" data-act="mprev">◀</button><input type="month" id="attMonth" value="'+curMonth+'"><button type="button" class="g" data-act="mnext">▶</button>'+deptSel('attMDept',all,keepD)+'<input id="attMQ" placeholder="Naam search..." value="'+E(keepQ)+'"><button type="button" class="g" data-act="pmonth">🖨 Print</button><button type="button" data-act="csv">⬇ Excel (CSV)</button></div>'+
+ '<div class="enote">'+(ce?'Kisi bhi din ke box par tap karo: P → A → L → ½ → WO → HO → khali. ':'')+'Sunday by default Week Off hai (halka rang).</div>';
+ h+='<div class="mw"><table class="em"><thead><tr><th class="nm">Employee</th>'+days.map(function(d){return '<th class="'+(isSun(d)?'sun':'')+'">'+(+d.slice(8))+'<br><small>'+dayName(d).slice(0,2)+'</small></th>'}).join('')+'<th>P</th><th>½</th><th>A</th><th>L</th><th>WO/HO</th><th>Working<br>Days</th><th>OT</th></tr></thead><tbody>';
+ rows.forEach(function(r){var t=totals(r.name,days);
+  h+='<tr><td class="nm">'+E(r.name)+'</td>'+days.map(function(d){var s=eff(d,r.name),x=s?ST[s]:null;return '<td class="mc'+(isSun(d)?' sun':'')+'" data-act="cell" data-n="'+E(r.name)+'" data-d="'+d+'"'+(x?' style="background:'+x.bg+';color:'+x.c+'"':'')+'>'+(x?x.s:'')+'</td>'}).join('')+
+  '<td class="tt">'+t.P+'</td><td class="tt">'+t.H+'</td><td class="tt" style="color:#dc2626">'+t.A+'</td><td class="tt">'+t.L+'</td><td class="tt">'+(t.WO+t.HO)+'</td><td class="tt"><b>'+t.work+'</b></td><td class="tt">'+(t.ot||'')+'</td></tr>'});
+ h+='</tbody></table></div><div class="legend">'+ORDER.map(function(k){return '<span class="chip" style="background:'+ST[k].bg+';color:'+ST[k].c+'">'+ST[k].s+' = '+ST[k].l+'</span>'}).join('')+'</div>';
+ var sc=window.scrollY;p.innerHTML=h;window.scrollTo(0,sc);
+}
+function monthRows(){var p=document.getElementById('empPaneMonth');return filt(emps(),($('#attMDept',p)||{}).value||'',($('#attMQ',p)||{}).value||'')}
+function mlabel(){var a=curMonth.split('-');return ['January','February','March','April','May','June','July','August','September','October','November','December'][+a[1]-1]+' '+a[0]}
+function printMonth(){
+ var rows=monthRows(),days=monthDays(curMonth);
+ var b=rows.map(function(r,i){var t=totals(r.name,days);return '<tr><td>'+(i+1)+'</td><td style="text-align:left">'+E(r.name)+'</td>'+days.map(function(d){var s=eff(d,r.name);return '<td>'+(s?ST[s].s:'')+'</td>'}).join('')+'<td>'+t.P+'</td><td>'+t.H+'</td><td>'+t.A+'</td><td>'+t.L+'</td><td>'+(t.WO+t.HO)+'</td><td><b>'+t.work+'</b></td><td>'+(t.ot||'')+'</td></tr>'}).join('');
+ utilityPrintWindow('MONTHLY ATTENDANCE - '+mlabel(),'<div class="title">Milestone Gears Ltd. UNIT-7 — MONTHLY ATTENDANCE: '+mlabel()+'</div><table style="font-size:8px"><thead><tr><th>Sr.</th><th>Name</th>'+days.map(function(d){return '<th>'+(+d.slice(8))+'</th>'}).join('')+'<th>P</th><th>½</th><th>A</th><th>L</th><th>WO/HO</th><th>Work Days</th><th>OT</th></tr></thead><tbody>'+b+'</tbody></table><div style="margin-top:6px">P=Present, ½=Half Day, A=Absent, L=Leave, WO=Week Off, HO=Holiday</div><div style="margin-top:30px;display:flex;justify-content:space-between"><span>Prepared By: ____________</span><span>Verified By: ____________</span></div>');
+}
+function dl(name,text,type){var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:type}));a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},500)}
+function csvCell(v){v=String(v==null?'':v);return /[",\r\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}
+function csvMonth(){
+ var rows=monthRows(),days=monthDays(curMonth),out=[['Sr','Employee','Department','Designation'].concat(days.map(function(d){return +d.slice(8)}),['Present','Half Day','Absent','Leave','WeekOff/Holiday','Working Days','OT hrs'])];
+ rows.forEach(function(r,i){var t=totals(r.name,days);out.push([i+1,r.name,r.dept,r.desig].concat(days.map(function(d){var s=eff(d,r.name);return s||''}),[t.P,t.H,t.A,t.L,t.WO+t.HO,t.work,t.ot||0]))});
+ dl('HTP_Attendance_'+curMonth+'.csv','﻿'+out.map(function(r){return r.map(csvCell).join(',')}).join('\r\n'),'text/csv;charset=utf-8;');
+}
+function doBackup(){dl('HTP_Attendance_backup_'+ymd(new Date())+'.json',JSON.stringify({v:1,att:DB}),'application/json')}
+function doRestore(f){var fr=new FileReader();fr.onload=function(){try{var x=JSON.parse(fr.result),a=x&&x.att;if(!a||typeof a!=='object')throw 0;var n=0;Object.keys(a).forEach(function(d){Object.keys(a[d]).forEach(function(nm){(DB[d]||(DB[d]={}))[nm]=a[d][nm];upsert(d,nm,a[d][nm]);n++})});save();toast(n+' entries restore hui');refresh()}catch(e){alert('Backup file sahi nahi hai.')}};fr.readAsText(f)}
+
+/* ---------- wiring ---------- */
+function setView(v){view=v;['list','day','month'].forEach(function(k){var e=document.getElementById({list:'empPaneList',day:'empPaneDay',month:'empPaneMonth'}[k]);if(e)e.style.display=(k===v)?'':'none'});
+ [].forEach.call(document.querySelectorAll('#empList .etabs button'),function(b){b.classList.toggle('on',b.getAttribute('data-v')===v)});refresh()}
+function refresh(){load();if(view==='day')renderDay();else if(view==='month')renderMonth();else renderList()}
+function shiftDate(n){var d=pd(curDate);d.setDate(d.getDate()+n);curDate=ymd(d);renderDay()}
+function shiftMonth(n){var a=curMonth.split('-'),d=new Date(+a[0],+a[1]-1+n,1);curMonth=ymd(d).slice(0,7);renderMonth()}
+function init(){
+ if(!buildShell())return false;
+ var pn=document.getElementById('empList');if(pn.getAttribute('data-empx-bound'))return true;pn.setAttribute('data-empx-bound','1');
+ pn.addEventListener('click',function(e){var t=e.target.closest&&e.target.closest('[data-act]');if(!t)return;var a=t.getAttribute('data-act'),n=t.getAttribute('data-n');
+  if(a==='tab')return setView(t.getAttribute('data-v'));
+  if(a==='dprev')return shiftDate(-1);if(a==='dnext')return shiftDate(1);if(a==='dtoday'){curDate=ymd(new Date());return renderDay()}
+  if(a==='mprev')return shiftMonth(-1);if(a==='mnext')return shiftMonth(1);
+  if(a==='pday')return printDay();if(a==='pmonth')return printMonth();if(a==='csv')return csvMonth();if(a==='backup')return doBackup();
+  if(a==='restore'){var f=document.getElementById('attFile');if(f)f.click();return}
+  if(a==='ex'){open[n]=!open[n];var row=t.closest('.er');if(row)row.classList.toggle('open',!!open[n]);return}
+  if(a==='st'){var s=t.getAttribute('data-s'),cur=rec(curDate,n);var same=cur&&cur.s===s;if(setRec(curDate,n,{s:same?'':s}))renderDay();return}
+  if(a==='allp'){var rows=filt(emps(),($('#attDept')||{}).value||'',($('#attQ')||{}).value||''),k=0;rows.forEach(function(r){if(!eff(curDate,r.name)){var day=DB[curDate]||(DB[curDate]={});var rr=(day[r.name]||(day[r.name]={}));rr.s='P';upsert(curDate,r.name,rr);k++}});if(!canEdit()){toast('Sirf Admin / Supervisor');return}if(k){save();toast(k+' employee Present mark hue')}else toast('Sab pehle se mark hain');return renderDay()}
+  if(a==='cell'){if(!canEdit())return toast('Sirf Admin / Supervisor attendance bhar sakte hain');var d=t.getAttribute('data-d'),r0=rec(d,n),c0=r0&&r0.s||'',i=ORDER.indexOf(c0),nx=i+1>=ORDER.length?'':ORDER[i+1];if(setRec(d,n,{s:nx})){var x=nx?ST[nx]:null;t.textContent=x?x.s:'';t.style.background=x?x.bg:'';t.style.color=x?x.c:'';
+    var rowTr=t.closest('tr'),days=monthDays(curMonth),tt=totals(n,days),c=rowTr.querySelectorAll('td.tt');c[0].textContent=tt.P;c[1].textContent=tt.H;c[2].textContent=tt.A;c[3].textContent=tt.L;c[4].textContent=tt.WO+tt.HO;c[5].innerHTML='<b>'+tt.work+'</b>';c[6].textContent=tt.ot||''}return}
+ });
+ pn.addEventListener('change',function(e){var t=e.target;
+  if(t.id==='attDate'&&t.value){curDate=t.value;return renderDay()}
+  if(t.id==='attMonth'&&t.value){curMonth=t.value;return renderMonth()}
+  if(t.id==='attDept')return renderDay();if(t.id==='attMDept')return renderMonth();
+  if(t.id==='attFile'&&t.files&&t.files[0]){doRestore(t.files[0]);t.value='';return}
+  var f=t.getAttribute&&t.getAttribute('data-f');if(f){var n=t.getAttribute('data-n'),p={};p[f]=(f==='sh'&&t.value==='General')?'':t.value;if(setRec(curDate,n,p)){var row=t.closest('.er'),rc=rec(curDate,n),sm=row&&row.querySelector('.en small');if(sm){var base=sm.textContent.replace(/ • [\d.]+h$/,'');sm.textContent=base+(hrs(rc)?' • '+hrs(rc):'')};toast('Save ho gaya')}}
+ });
+ pn.addEventListener('input',function(e){var t=e.target;if(t.id==='attQ')renderDay();if(t.id==='attMQ')renderMonth()});
+ setView('list');return true;
+}
+window.empRenderList=function(){renderList()};
+window.empAttRefresh=refresh;
+/* showTab wrap: tab khulte hi taaza render (date badal gayi ho sakti hai) */
+(function(){var o=window.showTab;if(typeof o!=='function'||o.__empx)return;var w=function(id){var r=o.apply(this,arguments);if(id==='empList'){setTimeout(function(){try{init();if(view==='list')curDate=ymd(new Date());refresh()}catch(e){console.warn('empx',e)}},0)}return r};w.__empx=1;window.showTab=w})();
+load();
+try{migrateLegacy();load()}catch(e){}
+try{var s0=sess();if(s0&&s0.role==='Admin'&&!(Array.isArray(data.empOvr)&&data.empOvr.length)){var lo=JSON.parse(localStorage.getItem('htp_mms_emp_ovr_v1')||'{}');if(lo&&Object.keys(lo).length&&window.empOvrSave)window.empOvrSave(lo)}}catch(e){}
+var tries=0,iv=setInterval(function(){tries++;try{if(init()){clearInterval(iv);renderList()}}catch(e){console.warn('empx init',e)}if(tries>60)clearInterval(iv)},400);
+})();
+</script>
+<script type="text/mms-defer" id="v211-emp-login-tools">
+/* ===== v211: Employee LOGIN list ab sirf System Tools me (Admin). Employee List page par sirf Maintenance employees + Emp. Code ===== */
+(function(){
+'use strict';
+function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function isAdm(){try{var s=session();return !!(s&&s.role==='Admin')}catch(e){return false}}
+function rows(){
+ var q=((document.getElementById('elq_s')||{}).value||'').toLowerCase(),d=(document.getElementById('elq_d')||{}).value||'';
+ return empAllRows().filter(function(r){if(d&&r.dept!==d)return false;return !q||[r.name,r.code,r.dept,r.desig,r.role].join(' ').toLowerCase().indexOf(q)>=0});
+}
+function render(){
+ var box=document.getElementById('empLoginBox');if(!box)return;
+ var all=empAllRows(),deps=[];all.forEach(function(r){if(r.dept&&deps.indexOf(r.dept)<0)deps.push(r.dept)});
+ var sel=document.getElementById('elq_d');
+ if(sel&&sel.options.length!==deps.length+1){var cur=sel.value;sel.innerHTML='<option value="">All Departments</option>'+deps.map(function(x){return '<option>'+E(x)+'</option>'}).join('');sel.value=cur}
+ var rs=rows();
+ document.getElementById('elq_b').innerHTML=rs.map(function(r,i){
+  return '<tr><td>'+(i+1)+'</td><td style="text-align:left"><b>'+E(r.name)+'</b></td><td>'+E(r.code||'—')+'</td><td>'+E(r.dept)+'</td><td>'+E(r.desig)+'</td><td>'+(r.login?'✓ '+E(r.role):'<span style="color:#94a3b8">Login nahi bana</span>')+'</td>'+
+  '<td style="white-space:nowrap"><button type="button" data-n="'+E(r.name)+'" onclick="empEdit(this.getAttribute(\'data-n\'))">✏️ Edit</button> <button type="button" style="color:#b91c1c" data-n="'+E(r.name)+'" onclick="empDelete(this.getAttribute(\'data-n\'))">🗑️ Delete</button></td></tr>'}).join('')||'<tr><td colspan="7">Koi employee nahi mila.</td></tr>';
+ document.getElementById('elq_sum').textContent='Total '+all.length+' employees | App Login bana: '+all.filter(function(r){return r.login}).length+' | Maintenance: '+all.filter(function(r){return /maint/i.test(r.dept||'')}).length;
+}
+window.openEmpLoginList=function(){
+ if(!isAdm()){alert('Employee Login List sirf Admin ke liye hai.');return}
+ var old=document.getElementById('empLoginBox');if(old)old.remove();
+ var box=document.createElement('div');box.id='empLoginBox';
+ box.style.cssText='position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,.55);z-index:99990;overflow:auto;padding:8px';
+ box.innerHTML='<div style="background:#fff;color:#0f172a;border-radius:12px;max-width:980px;margin:0 auto;padding:12px;font-size:13px">'+
+  '<div style="font-size:16px;font-weight:800;margin-bottom:4px">👥 Employee Login List (sab employees)</div>'+
+  '<div style="color:#475569;margin-bottom:8px">User ID = Employee naam, pehla password = Emp. Code. Yahan se login banao / badlo / hatao. Employee List page par sirf Maintenance department dikhta hai.</div>'+
+  '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px"><input id="elq_s" placeholder="Search..." style="padding:8px;border:1px solid #cbd5e1;border-radius:8px"><select id="elq_d" style="padding:8px;border:1px solid #cbd5e1;border-radius:8px"><option value="">All Departments</option></select>'+
+  '<button type="button" onclick="empEdit(null)">➕ Add Employee</button><button type="button" onclick="openEmpImport()">👥 Import Employees → Users</button><button type="button" onclick="openDesigUsers()">🎭 Designation Users</button><button type="button" onclick="empRestoreDeleted()">↩ Deleted wapas lao</button><button type="button" onclick="document.getElementById(\'empLoginBox\').remove()">✕ Close</button></div>'+
+  '<div id="elq_sum" style="font-weight:700;margin-bottom:6px"></div>'+
+  '<div style="overflow:auto;max-height:62vh"><table style="border-collapse:collapse;width:100%"><thead><tr style="background:#f1f5f9;text-align:left"><th>#</th><th>Name (User ID)</th><th>Emp. Code</th><th>Department</th><th>Designation</th><th>App Login / Role</th><th>Action</th></tr></thead><tbody id="elq_b"></tbody></table></div></div>';
+ document.body.appendChild(box);
+ box.addEventListener('input',function(e){if(e.target.id==='elq_s')render()});
+ box.addEventListener('change',function(e){if(e.target.id==='elq_d')render()});
+ render();
+};
+/* Edit / Delete / Import ke baad login list bhi taaza ho */
+(function(){var o=window.empRenderList;if(typeof o!=='function'||o.__v211)return;var w=function(){var r=o.apply(this,arguments);try{render()}catch(e){}return r};w.__v211=1;window.empRenderList=w})();
+})();
+</script>
 </body>
 </html>
