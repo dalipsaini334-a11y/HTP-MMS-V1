@@ -19582,12 +19582,14 @@ function visible(id){var b=document.querySelector('.app-sidebar .tab[data-target
 function findMachine(txt){
  var t=N(txt),L=arr(typeof MACHINE_MASTER!=='undefined'?MACHINE_MASTER:[]);if(!t)return null;
  var m=L.filter(function(x){return N(x.machineNumber)===t});if(m.length)return m[0];
+ var tk=nk(t);m=L.filter(function(x){return nk(x.machineNumber)===tk});if(m.length===1)return m[0];
  m=L.filter(function(x){var n=N(x.machineNumber);return n&&(t.indexOf(n)>=0||n.indexOf(t)>=0)});
  return m.length===1?m[0]:null;
 }
 function rx(no){return new RegExp('(^|[^A-Z0-9])'+no.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'([^A-Z0-9]|$)')}
-function pick(list,no,fields){var re=rx(no);return arr(list).filter(function(r){if(!r||typeof r!=='object')return false;
- for(var i=0;i<fields.length;i++){if(re.test(N(r[fields[i]])))return true}return false})}
+function pick(list,no,fields){var re=rx(no),k=nk(no);return arr(list).filter(function(r){if(!r||typeof r!=='object')return false;
+ for(var i=0;i<fields.length;i++){var v=r[fields[i]];if(re.test(N(v)))return true;
+  var sv=String(v==null?'':v);if(nk(sv)===k||nk(sv.split(/\s[\u2014\u2013]\s/)[0])===k)return true}return false})}
 function byDate(a,k){return a.slice().sort(function(x,y){return String(y[k]||'').localeCompare(String(x[k]||''))})}
 function goFiltered(id,box,q){
  var b=document.querySelector('.app-sidebar .tab[data-target="'+id+'"]');
@@ -19616,7 +19618,7 @@ st.textContent='#v155M{position:fixed;inset:0;background:rgba(15,23,42,.6);z-ind
 '#v155M h4{margin:12px 0 4px;font-size:12px;color:#0e7490;text-transform:uppercase}'+
 '#v155M table{border-collapse:collapse;width:100%;font-size:12px}#v155M th,#v155M td{border:1px solid #dbe4ea;padding:4px 6px;text-align:left}#v155M th{background:#e2e8f0}'+
 '#v155M .em{font-size:12px;color:#64748b;padding:4px 0}'+
-'#v155M .bx{width:min(900px,100%)}#v155M details.sx{border:1px solid #dbe4ea;border-radius:12px;margin:8px 0;background:#f8fafc}#v155M details.sx>summary{cursor:pointer;padding:9px 12px;font-weight:800;font-size:13px;color:#0f172a;list-style:none}#v155M details.sx>summary::-webkit-details-marker{display:none}#v155M details.sx>summary i{font-style:normal;background:#0e7490;color:#fff;border-radius:999px;padding:1px 8px;font-size:11px;margin-left:6px}#v155M .sc{padding:0 10px 10px;overflow-x:auto;max-height:340px;overflow-y:auto}#v155M .sc table{min-width:520px}'+
+'#v155M .bx{width:min(900px,100%)}#v155M details.sx{border:1px solid #dbe4ea;border-radius:12px;margin:8px 0;background:#f8fafc}#v155M details.sx>summary{cursor:pointer;padding:9px 12px;font-weight:800;font-size:13px;color:#0f172a;list-style:none}#v155M details.sx>summary::-webkit-details-marker{display:none}#v155M details.sx>summary i{font-style:normal;background:#0e7490;color:#fff;border-radius:999px;padding:1px 8px;font-size:11px;margin-left:6px}#v155M .sc{padding:0 10px 10px;overflow-x:auto;max-height:340px;overflow-y:auto}#v155M .sc table{min-width:520px}@media(max-width:600px){#v155M .sc table{min-width:0;font-size:11px}#v155M .sc th,#v155M .sc td{padding:3px 4px;overflow-wrap:break-word}#v155M .sc td:first-child{white-space:nowrap}#v155M .k b{font-size:17px}}'+
 '#v155M .ac{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 2px}#v155M .ac button{padding:8px 12px;border:0;border-radius:9px;background:#0e7490;color:#fff;font:700 12px Arial;cursor:pointer}#v155M .ac button.x{background:#dc2626}#v155M .ac button.g{background:#475569}';
 document.head.appendChild(st);
 function tbl(head,rows){return rows.length?'<table><tr>'+head.map(function(h){return '<th>'+h+'</th>'}).join('')+'</tr>'+rows.join('')+'</table>':'<div class="em">Koi record nahi.</div>'}
